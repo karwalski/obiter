@@ -2,6 +2,7 @@
 
 **AGLC4, applied automatically.**
 
+![CI](https://github.com/karwalski/obiter/actions/workflows/ci.yml/badge.svg)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 Obiter is a free, open-source Microsoft Word add-in that implements the full [Australian Guide to Legal Citation, 4th Edition (AGLC4)](https://law.unimelb.edu.au/mulr/aglc) as an integrated citation engine, document formatter, and research layer.

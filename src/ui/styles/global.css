@@ -1084,6 +1084,132 @@ body {
   font-weight: 600;
 }
 
+.library-btn--import {
+  color: #ffffff;
+  background-color: var(--colour-accent);
+  border-color: var(--colour-accent);
+}
+
+.library-btn--import:hover {
+  background-color: var(--colour-accent-hover, var(--colour-accent));
+}
+
+.library-btn--refresh {
+  color: var(--colour-accent);
+  border-color: var(--colour-accent);
+  background: var(--colour-surface);
+}
+
+.library-btn--refresh:hover {
+  background-color: var(--colour-accent);
+  color: #ffffff;
+}
+
+.library-import-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+
+.library-refresh-bar {
+  margin-bottom: var(--space-sm);
+}
+
+.library-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--colour-surface);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.library-toast-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-md);
+  color: var(--colour-ink-muted, var(--colour-ink));
+  padding: 0 var(--space-xs);
+}
+
+.library-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.library-modal {
+  background: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-lg);
+  width: 90%;
+  max-width: 540px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.library-modal h3 {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.library-modal-description {
+  font-size: var(--text-sm);
+  color: var(--colour-ink-muted, var(--colour-ink));
+  margin: 0 0 var(--space-sm);
+}
+
+.library-modal-file-row {
+  margin-bottom: var(--space-sm);
+}
+
+.library-file-label {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.library-bibtex-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-sm);
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--text-sm);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+  resize: vertical;
+  margin-bottom: var(--space-sm);
+}
+
+.library-bibtex-textarea:focus {
+  outline: none;
+  border-color: var(--colour-accent);
+}
+
+.library-bibtex-textarea::placeholder {
+  color: var(--colour-ink-muted, #999);
+}
+
+.library-modal-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
 /* ─── Edit Citation View ─── */
 
 .edit-citation {

@@ -496,25 +496,38 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | ID | Title | Type | Status |
 |----|-------|------|--------|
 | DEPLOY-001 | Git init, commit all code, push to github.com/karwalski/obiter | FEATURE | DONE |
-| DEPLOY-002 | GitHub Actions CI — lint, typecheck, test, build on PR | FEATURE | NOT STARTED |
+| DEPLOY-002 | GitHub Actions CI — lint, typecheck, test, build on PR | FEATURE | DONE |
 | DEPLOY-003 | Lightsail server setup — nginx, SSL, deploy pipeline for website | FEATURE | NOT STARTED |
 
 ---
 
 ## EPIC: RESEARCH — Stories Derived from AGLC4 Implementation Research
 
-**Phase:** Post-backlog | **Stories:** 8 | **Completed:** 0
+**Phase:** Post-backlog | **Stories:** 8 | **Completed:** 8
 
 | ID | Title | Rule / Source | Type | Status |
 |----|-------|---------------|------|--------|
-| RESEARCH-001 | Parallel citations UI — expose formatParallelCitations in Insert Citation form | Rule 2.2.7, court practice | FEATURE | NOT STARTED |
-| RESEARCH-002 | "Below n" cross-references — post-processing pass or manual override for Rule 1.4.2 | Rule 1.4.2 | FEATURE | NOT STARTED |
-| RESEARCH-003 | GenAI citation prominence — dedicated form and top-level source type in Insert Citation selector | Rule 7.12 (interim guidance) | FEATURE | NOT STARTED |
-| RESEARCH-004 | First Nations materials — research required source types, metadata fields, controlled vocabularies (AGLC5 Theme 4) | AGLC5 Theme 4 | RESEARCH | NOT STARTED |
-| RESEARCH-005 | Machine-readable rule companion — export Obiter rule implementations as JSON/YAML reference for other tool authors | research.md | FEATURE | NOT STARTED |
-| RESEARCH-006 | AGLC4 erratum implementation — audit 17-page erratum (July 2019) against current engine | AGLC4 Erratum 29 July 2019 | FEATURE | NOT STARTED |
-| RESEARCH-007 | Court practice direction compliance — validation rule to flag cases cited without parallel citation where one exists | Supreme Court of QLD PD 1/2024 | FEATURE | NOT STARTED |
-| RESEARCH-008 | Zotero/CSL import — import citations from .bib files or Zotero RDF export | research.md | FEATURE | NOT STARTED |
+| RESEARCH-001 | Parallel citations UI — expose formatParallelCitations in Insert Citation form | Rule 2.2.7, court practice | FEATURE | DONE |
+| RESEARCH-002 | "Below n" cross-references — post-processing pass or manual override for Rule 1.4.2 | Rule 1.4.2 | FEATURE | DONE |
+| RESEARCH-003 | GenAI citation prominence — dedicated form and top-level source type in Insert Citation selector | Rule 7.12 (interim guidance) | FEATURE | DONE |
+| RESEARCH-004 | First Nations materials — research required source types, metadata fields, controlled vocabularies (AGLC5 Theme 4) | AGLC5 Theme 4 | RESEARCH | DONE |
+| RESEARCH-005 | Machine-readable rule companion — export Obiter rule implementations as JSON/YAML reference for other tool authors | research.md | FEATURE | DONE |
+| RESEARCH-006 | AGLC4 erratum implementation — audit 17-page erratum (July 2019) against current engine | AGLC4 Erratum 29 July 2019 | FEATURE | DONE |
+| RESEARCH-007 | Court practice direction compliance — validation rule to flag cases cited without parallel citation where one exists | Supreme Court of QLD PD 1/2024 | FEATURE | DONE |
+| RESEARCH-008 | Zotero/CSL import — import citations from .bib files or Zotero RDF export | research.md | FEATURE | DONE |
+
+---
+
+## EPIC: PACKAGE — Add-in Packaging & Distribution
+
+**Phase:** Post-backlog | **Stories:** 4 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| PKG-001 | Package add-in as single-file download (manifest + dist bundle) per OS | FEATURE | NOT STARTED |
+| PKG-002 | Create GitHub Release with packaged add-in assets | FEATURE | NOT STARTED |
+| PKG-003 | Add download page to website with OS detection and direct GitHub download links | FEATURE | NOT STARTED |
+| PKG-004 | GitHub Actions workflow to auto-build and create release on version tag | FEATURE | NOT STARTED |
 
 ---
 
@@ -554,7 +567,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | COMPAT | 5 | 5 | 0 | 5 | 0 |
 | DECISIONS | 7 | 7 | 0 | 7 | 0 |
 | UI | 8 | 8 | 0 | 8 | 0 |
-| RESEARCH | 8 | 7 | 1 | 0 | 0 |
+| RESEARCH | 8 | 7 | 1 | 8 | 0 |
 | AGLC5 | 5 | 5 | 0 | 0 | 0 |
 | HYBRID | 3 | 3 | 0 | 3 | 0 |
 | BUGS | 9 | 9 | 0 | 9 | 0 |
@@ -564,5 +577,6 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | STYLE | 4 | 4 | 0 | 4 | 0 |
 | WEBSITE | 7 | 7 | 0 | 5 | 0 |
 | LETTER | 5 | 5 | 0 | 5 | 0 |
-| DEPLOY | 3 | 3 | 0 | 0 | 0 |
-| **TOTAL** | **247** | **232** | **15** | **223** | **0** |
+| DEPLOY | 3 | 3 | 0 | 2 | 0 |
+| PACKAGE | 4 | 4 | 0 | 0 | 0 |
+| **TOTAL** | **251** | **236** | **15** | **232** | **0** |

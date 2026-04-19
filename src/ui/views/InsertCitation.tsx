@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { Citation, SourceType, SourceData, AustralianJurisdiction } from "../../types/citation";
+import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation } from "../../types/citation";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
@@ -118,7 +118,12 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
           { value: "film_tv_media", label: "Film/TV/Media" },
           { value: "internet_material", label: "Internet Material" },
           { value: "social_media", label: "Social Media" },
-          { value: "genai_output", label: "GenAI Output" },
+        ],
+      },
+      {
+        label: "AI-Generated Content",
+        types: [
+          { value: "genai_output", label: "AI-Generated Content" },
         ],
       },
     ],
@@ -209,6 +214,7 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "journal.article",
   "book",
   "treaty",
+  "genai_output",
 ];
 
 // ─── Author Entry ────────────────────────────────────────────────────────────
@@ -674,6 +680,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "book" &&
         renderBookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor)}
       {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField)}
+      {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
 
       {/* Short title */}
@@ -907,6 +914,159 @@ function renderCaseReportedForm(
             onChange={(e) => updateField("courtId", e.target.value)}
           />
         </div>
+      </div>
+
+      {/* Parallel Citations (Rule 2.2.7) */}
+      <div className="ic-parallel-section">
+        <div className="ic-label">
+          Parallel Citations
+          <FieldHelp
+            ruleNumber="2.2.7"
+            description="When a case is reported in more than one report series, parallel citations are provided, separated by semicolons."
+            example="[1974] VR 1; (1974) 4 ALR 57"
+          />
+        </div>
+        {((data.parallelCitations as ParallelCitation[]) || []).map(
+          (pc: ParallelCitation, index: number) => (
+            <div key={index} className="ic-parallel-entry">
+              <div className="ic-field-row">
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor={`ic-pc-year-type-${index}`}>
+                    Year Type
+                  </label>
+                  <select
+                    id={`ic-pc-year-type-${index}`}
+                    className="ic-select"
+                    value={pc.yearType || "round"}
+                    onChange={(e) => {
+                      const pcs = [
+                        ...((data.parallelCitations as ParallelCitation[]) || []),
+                      ];
+                      pcs[index] = { ...pcs[index], yearType: e.target.value as "round" | "square" };
+                      updateField("parallelCitations", pcs);
+                    }}
+                  >
+                    <option value="round">Round (year)</option>
+                    <option value="square">Square [year]</option>
+                  </select>
+                </div>
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor={`ic-pc-year-${index}`}>
+                    Year
+                  </label>
+                  <input
+                    id={`ic-pc-year-${index}`}
+                    className="ic-input"
+                    type="text"
+                    value={pc.year || ""}
+                    placeholder="e.g. 1974"
+                    onChange={(e) => {
+                      const pcs = [
+                        ...((data.parallelCitations as ParallelCitation[]) || []),
+                      ];
+                      pcs[index] = { ...pcs[index], year: Number(e.target.value) || 0 };
+                      updateField("parallelCitations", pcs);
+                    }}
+                  />
+                </div>
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor={`ic-pc-volume-${index}`}>
+                    Volume
+                  </label>
+                  <input
+                    id={`ic-pc-volume-${index}`}
+                    className="ic-input"
+                    type="text"
+                    value={pc.volume ?? ""}
+                    placeholder="Optional"
+                    onChange={(e) => {
+                      const pcs = [
+                        ...((data.parallelCitations as ParallelCitation[]) || []),
+                      ];
+                      const val = e.target.value.trim();
+                      pcs[index] = {
+                        ...pcs[index],
+                        volume: val ? Number(val) || undefined : undefined,
+                      };
+                      updateField("parallelCitations", pcs);
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="ic-field-row">
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor={`ic-pc-series-${index}`}>
+                    Report Series
+                  </label>
+                  <input
+                    id={`ic-pc-series-${index}`}
+                    className="ic-input"
+                    type="text"
+                    value={pc.reportSeries || ""}
+                    placeholder="e.g. ALR"
+                    onChange={(e) => {
+                      const pcs = [
+                        ...((data.parallelCitations as ParallelCitation[]) || []),
+                      ];
+                      pcs[index] = { ...pcs[index], reportSeries: e.target.value };
+                      updateField("parallelCitations", pcs);
+                    }}
+                  />
+                </div>
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor={`ic-pc-page-${index}`}>
+                    Starting Page
+                  </label>
+                  <input
+                    id={`ic-pc-page-${index}`}
+                    className="ic-input"
+                    type="text"
+                    value={pc.startingPage || ""}
+                    placeholder="e.g. 57"
+                    onChange={(e) => {
+                      const pcs = [
+                        ...((data.parallelCitations as ParallelCitation[]) || []),
+                      ];
+                      pcs[index] = { ...pcs[index], startingPage: Number(e.target.value) || 0 };
+                      updateField("parallelCitations", pcs);
+                    }}
+                  />
+                </div>
+                <button
+                  className="ic-remove-btn"
+                  type="button"
+                  aria-label={`Remove parallel citation ${index + 1}`}
+                  onClick={() => {
+                    const pcs = (
+                      (data.parallelCitations as ParallelCitation[]) || []
+                    ).filter((_: ParallelCitation, i: number) => i !== index);
+                    updateField("parallelCitations", pcs);
+                  }}
+                >
+                  x
+                </button>
+              </div>
+            </div>
+          ),
+        )}
+        <button
+          className="ic-add-btn"
+          type="button"
+          onClick={() => {
+            const pcs = [
+              ...((data.parallelCitations as ParallelCitation[]) || []),
+              {
+                yearType: "round" as const,
+                year: 0,
+                reportSeries: "",
+                startingPage: 0,
+              },
+            ];
+            updateField("parallelCitations", pcs);
+          }}
+        >
+          + Add parallel citation
+        </button>
       </div>
 
       <div className="ic-field">
@@ -1356,6 +1516,126 @@ function renderTreatyForm(
           />
           Not yet in force
         </label>
+      </div>
+    </div>
+  );
+}
+
+function renderGenaiForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element {
+  const isOtherPlatform = (data.platform as string) === "__other__";
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-platform">
+          Platform
+          <FieldHelp
+            ruleNumber="7.12"
+            description="The AI platform used to generate the output."
+            example="ChatGPT, Claude, Gemini"
+          />
+        </label>
+        <select
+          id="ic-genai-platform"
+          className="ic-select"
+          value={isOtherPlatform ? "__other__" : (data.platform as string) || ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === "__other__") {
+              updateField("platform", "__other__");
+              updateField("platformCustom", "");
+            } else {
+              updateField("platform", val);
+              updateField("platformCustom", "");
+            }
+          }}
+        >
+          <option value="">Select a platform...</option>
+          <option value="ChatGPT">ChatGPT</option>
+          <option value="Claude">Claude</option>
+          <option value="Gemini">Gemini</option>
+          <option value="Copilot">Copilot</option>
+          <option value="__other__">Other</option>
+        </select>
+      </div>
+
+      {isOtherPlatform && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-genai-platform-custom">
+            Platform Name
+          </label>
+          <input
+            id="ic-genai-platform-custom"
+            className="ic-input"
+            type="text"
+            value={(data.platformCustom as string) || ""}
+            placeholder="e.g. Perplexity"
+            onChange={(e) => updateField("platformCustom", e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-model">
+          Model
+        </label>
+        <input
+          id="ic-genai-model"
+          className="ic-input"
+          type="text"
+          value={(data.model as string) || ""}
+          placeholder="e.g. GPT-4o, Claude Sonnet 4.6"
+          onChange={(e) => updateField("model", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-prompt">
+          Prompt (optional)
+        </label>
+        <textarea
+          id="ic-genai-prompt"
+          className="ic-textarea"
+          value={(data.prompt as string) || ""}
+          placeholder="What did you ask the AI?"
+          rows={3}
+          onChange={(e) => updateField("prompt", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-date">
+          Date of Output
+        </label>
+        <input
+          id="ic-genai-date"
+          className="ic-input"
+          type="date"
+          value={(data.outputDate as string) || ""}
+          onChange={(e) => updateField("outputDate", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-url">
+          URL (optional)
+        </label>
+        <input
+          id="ic-genai-url"
+          className="ic-input"
+          type="url"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://chat.openai.com/share/..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-note">
+        Per MULR interim guidance, AI-generated content is cited as written
+        correspondence (Rule 7.12). This will be updated when AGLC5 provides
+        formal guidance.
       </div>
     </div>
   );

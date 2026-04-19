@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
 import { importWordSources } from "../../word/sourceImporter";
+import { importBibTeX } from "../../api/bibtexImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
 import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
@@ -187,6 +188,9 @@ export default function CitationLibrary(): JSX.Element {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string | null>(null);
   const [finderSignal, setFinderSignal] = useState(0);
+  const [bibtexModalOpen, setBibtexModalOpen] = useState(false);
+  const [bibtexText, setBibtexText] = useState("");
+  const [bibtexImporting, setBibtexImporting] = useState(false);
 
   // Load citations on mount and when refreshCounter changes
   useEffect(() => {
@@ -364,6 +368,44 @@ export default function CitationLibrary(): JSX.Element {
     }
   }, []);
 
+  const handleImportBibTeX = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    setBibtexImporting(true);
+    setImportStatus(null);
+    try {
+      const result = await importBibTeX(text, store);
+      setCitations(store.getAll());
+      setImportStatus(
+        `BibTeX: imported ${result.imported} entr${result.imported !== 1 ? "ies" : "y"} (${result.skipped} skipped as duplicate${result.skipped !== 1 ? "s" : ""})`,
+      );
+      setBibtexModalOpen(false);
+      setBibtexText("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to import BibTeX";
+      setImportStatus(`BibTeX import failed: ${message}`);
+    } finally {
+      setBibtexImporting(false);
+    }
+  }, []);
+
+  const handleBibFileUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result;
+        if (typeof content === "string") {
+          setBibtexText(content);
+        }
+      };
+      reader.readAsText(file);
+    },
+    [],
+  );
+
   const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
     setRefreshStatus(null);
@@ -450,7 +492,62 @@ export default function CitationLibrary(): JSX.Element {
         >
           {importing ? "Importing..." : "Import from Word"}
         </button>
+        <button
+          className="library-btn library-btn--import"
+          onClick={() => setBibtexModalOpen(true)}
+        >
+          Import BibTeX
+        </button>
       </div>
+
+      {/* BibTeX import modal */}
+      {bibtexModalOpen && (
+        <div className="library-modal-overlay">
+          <div className="library-modal">
+            <h3>Import BibTeX</h3>
+            <p className="library-modal-description">
+              Paste BibTeX/BibLaTeX entries below, or upload a .bib file.
+            </p>
+            <div className="library-modal-file-row">
+              <label className="library-btn library-btn--import library-file-label">
+                Choose .bib file
+                <input
+                  type="file"
+                  accept=".bib,.bibtex,text/plain"
+                  onChange={handleBibFileUpload}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
+            <textarea
+              className="library-bibtex-textarea"
+              rows={12}
+              value={bibtexText}
+              onChange={(e) => setBibtexText(e.target.value)}
+              placeholder={"@article{smith2020,\n  author = {Smith, John},\n  title = {Example Article},\n  journal = {Example Journal},\n  year = {2020},\n  volume = {1},\n  pages = {1--10}\n}"}
+            />
+            <div className="library-modal-actions">
+              <button
+                className="library-btn library-btn--import"
+                onClick={() => void handleImportBibTeX(bibtexText)}
+                disabled={bibtexImporting || !bibtexText.trim()}
+              >
+                {bibtexImporting ? "Importing..." : "Import"}
+              </button>
+              <button
+                className="library-btn"
+                onClick={() => {
+                  setBibtexModalOpen(false);
+                  setBibtexText("");
+                }}
+                disabled={bibtexImporting}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Import status toast */}
       {importStatus && (

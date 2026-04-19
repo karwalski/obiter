@@ -10,3 +10,5 @@ export { JadeClient } from "./jade";
 export { FederalRegisterClient } from "./legislation";
 export { TreatyDatabaseClient } from "./treaties";
 export type { LookupResult, SourceLookup } from "./types";
+export { parseBibTeX, mapBibEntryToObiter, importBibTeX } from "./bibtexImporter";
+export type { BibEntry } from "./bibtexImporter";

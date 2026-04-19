@@ -24,6 +24,7 @@ import { formatStatute } from "./rules/v4/domestic/legislation";
 import { formatJournalArticle } from "./rules/v4/secondary/journals";
 import { formatBook } from "./rules/v4/secondary/books";
 import { formatTreaty } from "./rules/v4/international/treaties";
+import { formatGenaiOutput } from "./rules/v4/secondary/genai";
 import { ensureClosingPunctuation } from "./rules/v4/general/footnotes";
 import {
   resolveSubsequentReference,
@@ -177,6 +178,28 @@ function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches a GenAI output citation (MULR interim guidance, Rule 7.12).
+ *
+ * Resolves the platform name from the dropdown value (using platformCustom
+ * when "Other" is selected) and delegates to formatGenaiOutput.
+ */
+function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const platformRaw = (d.platform as string) ?? "";
+  const platform =
+    platformRaw === "__other__"
+      ? ((d.platformCustom as string) ?? "")
+      : platformRaw;
+  return formatGenaiOutput({
+    platform,
+    model: (d.model as string) ?? "",
+    prompt: (d.prompt as string) || undefined,
+    outputDate: (d.outputDate as string) ?? "",
+    url: (d.url as string) || undefined,
+  });
+}
+
+/**
  * Registry mapping each supported SourceType to its dispatch function.
  * Source types not in this map fall through to the generic formatter.
  */
@@ -187,6 +210,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "journal.article": dispatchJournalArticle,
   book: dispatchBook,
   treaty: dispatchTreaty,
+  genai_output: dispatchGenaiOutput,
 };
 
 // ─── Generic Fallback Formatter ──────────────────────────────────────────────

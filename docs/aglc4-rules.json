@@ -1,0 +1,2670 @@
+{
+  "version": "AGLC4",
+  "generatedAt": "2026-04-19T23:27:04.089Z",
+  "generatedBy": "Obiter v0.1.0",
+  "sourceTypes": [
+    {
+      "type": "case.reported",
+      "ruleNumber": "2.2",
+      "label": "Reported Case",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "party2",
+        "year",
+        "reportSeries",
+        "startingPage"
+      ],
+      "optionalFields": [
+        "yearType",
+        "volume",
+        "pinpoint",
+        "courtId",
+        "parallelCitations",
+        "separator"
+      ],
+      "formatTemplate": "Party1 v Party2 (Year) Volume ReportSeries StartingPage, Pinpoint."
+    },
+    {
+      "type": "case.unreported.mnc",
+      "ruleNumber": "2.3.1",
+      "label": "Unreported Case (Medium Neutral Citation)",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "party2",
+        "year",
+        "court",
+        "caseNumber"
+      ],
+      "optionalFields": [
+        "pinpoint",
+        "separator"
+      ],
+      "formatTemplate": "Party1 v Party2 [Year] Court CaseNumber, Pinpoint."
+    },
+    {
+      "type": "case.unreported.no_mnc",
+      "ruleNumber": "2.3.2",
+      "label": "Unreported Case (No Medium Neutral Citation)",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "party2",
+        "court",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "pinpoint",
+        "separator",
+        "judgeName"
+      ],
+      "formatTemplate": "Party1 v Party2 (Court, Judge, FullDate) Pinpoint."
+    },
+    {
+      "type": "case.proceeding",
+      "ruleNumber": "2.3.3",
+      "label": "Proceeding",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "court",
+        "proceedingNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "party2",
+        "initiatingProcess",
+        "separator"
+      ],
+      "formatTemplate": "Party1 v Party2 (Court, ProceedingNumber, initiated FullDate)."
+    },
+    {
+      "type": "case.court_order",
+      "ruleNumber": "2.3.4",
+      "label": "Court Order",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "court",
+        "orderDate"
+      ],
+      "optionalFields": [
+        "party2",
+        "orderType",
+        "judge",
+        "separator"
+      ],
+      "formatTemplate": "Party1 v Party2 (Court, Judge, OrderDate) (OrderType)."
+    },
+    {
+      "type": "case.quasi_judicial",
+      "ruleNumber": "2.6",
+      "label": "Quasi-Judicial Decision",
+      "category": "domestic.case",
+      "requiredFields": [
+        "title",
+        "year",
+        "tribunal"
+      ],
+      "optionalFields": [
+        "decisionNumber",
+        "pinpoint",
+        "fullDate"
+      ],
+      "formatTemplate": "Title (Year) Tribunal DecisionNumber, Pinpoint."
+    },
+    {
+      "type": "case.arbitration",
+      "ruleNumber": "2.6.2",
+      "label": "Arbitration",
+      "category": "domestic.case",
+      "requiredFields": [
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "arbitrator",
+        "awardDate",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (Arbitrator, AwardDate) Pinpoint."
+    },
+    {
+      "type": "case.transcript",
+      "ruleNumber": "2.7",
+      "label": "Transcript of Proceedings",
+      "category": "domestic.case",
+      "requiredFields": [
+        "party1",
+        "court",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "party2",
+        "caseNumber",
+        "pinpoint",
+        "separator"
+      ],
+      "formatTemplate": "Transcript of Proceedings, Party1 v Party2 (Court, CaseNumber, FullDate) Pinpoint."
+    },
+    {
+      "type": "case.submission",
+      "ruleNumber": "2.8",
+      "label": "Submission in a Case",
+      "category": "domestic.case",
+      "requiredFields": [
+        "documentTitle",
+        "party1",
+        "court"
+      ],
+      "optionalFields": [
+        "party2",
+        "caseNumber",
+        "fullDate",
+        "separator"
+      ],
+      "formatTemplate": "DocumentTitle, Party1 v Party2 (Court, CaseNumber, FullDate)."
+    },
+    {
+      "type": "legislation.statute",
+      "ruleNumber": "3.1",
+      "label": "Statute",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title",
+        "year",
+        "jurisdiction"
+      ],
+      "optionalFields": [
+        "number",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title Year (Jurisdiction) Pinpoint."
+    },
+    {
+      "type": "legislation.bill",
+      "ruleNumber": "3.2",
+      "label": "Bill",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title",
+        "year",
+        "jurisdiction",
+        "chamber"
+      ],
+      "optionalFields": [
+        "number",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title Year (Jurisdiction) Pinpoint."
+    },
+    {
+      "type": "legislation.delegated",
+      "ruleNumber": "3.4",
+      "label": "Delegated Legislation",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title",
+        "year",
+        "jurisdiction"
+      ],
+      "optionalFields": [
+        "number",
+        "pinpoint",
+        "enablingAct"
+      ],
+      "formatTemplate": "Title Year (Jurisdiction) Pinpoint."
+    },
+    {
+      "type": "legislation.constitution",
+      "ruleNumber": "3.6",
+      "label": "Constitution",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Title Pinpoint."
+    },
+    {
+      "type": "legislation.explanatory",
+      "ruleNumber": "3.7",
+      "label": "Explanatory Memorandum",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title",
+        "year",
+        "jurisdiction",
+        "chamber"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Explanatory Memorandum, Title Year (Jurisdiction) Pinpoint."
+    },
+    {
+      "type": "legislation.quasi",
+      "ruleNumber": "3.9",
+      "label": "Quasi-Legislative Material",
+      "category": "domestic.legislation",
+      "requiredFields": [
+        "title",
+        "issuingBody"
+      ],
+      "optionalFields": [
+        "year",
+        "documentNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "IssuingBody, Title (DocumentNumber, Year) Pinpoint."
+    },
+    {
+      "type": "journal.article",
+      "ruleNumber": "5",
+      "label": "Journal Article",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "year",
+        "journal",
+        "startingPage"
+      ],
+      "optionalFields": [
+        "volume",
+        "issue",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title' (Year) Volume(Issue) Journal StartingPage, Pinpoint."
+    },
+    {
+      "type": "journal.online",
+      "ruleNumber": "5.10",
+      "label": "Online Journal Article",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "year",
+        "journal"
+      ],
+      "optionalFields": [
+        "volume",
+        "issue",
+        "pinpoint",
+        "url",
+        "doi"
+      ],
+      "formatTemplate": "Author, 'Title' (Year) Volume(Issue) Journal (online) <URL>."
+    },
+    {
+      "type": "journal.forthcoming",
+      "ruleNumber": "5.11",
+      "label": "Forthcoming Journal Article",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "journal"
+      ],
+      "optionalFields": [
+        "year",
+        "volume",
+        "issue"
+      ],
+      "formatTemplate": "Author, 'Title' (forthcoming) Journal."
+    },
+    {
+      "type": "book",
+      "ruleNumber": "6",
+      "label": "Book",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "publisher",
+        "year"
+      ],
+      "optionalFields": [
+        "edition",
+        "pinpoint",
+        "editors"
+      ],
+      "formatTemplate": "Author, Title (Publisher, Edition, Year) Pinpoint."
+    },
+    {
+      "type": "book.chapter",
+      "ruleNumber": "6.6.1",
+      "label": "Book Chapter",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "chapterTitle",
+        "editors",
+        "bookTitle",
+        "publisher",
+        "year",
+        "startingPage"
+      ],
+      "optionalFields": [
+        "edition",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'ChapterTitle' in Editor (ed), BookTitle (Publisher, Edition, Year) StartingPage, Pinpoint."
+    },
+    {
+      "type": "book.translated",
+      "ruleNumber": "6.7",
+      "label": "Translated Book",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "translator",
+        "publisher",
+        "year"
+      ],
+      "optionalFields": [
+        "edition",
+        "pinpoint",
+        "originalYear"
+      ],
+      "formatTemplate": "Author, Title (tr Translator, Publisher, Edition, Year) Pinpoint."
+    },
+    {
+      "type": "book.audiobook",
+      "ruleNumber": "6.9",
+      "label": "Audiobook",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "narrator",
+        "publisher",
+        "year"
+      ],
+      "optionalFields": [
+        "edition",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, Title (Publisher, Edition, Year) (audiobook, narrated by Narrator)."
+    },
+    {
+      "type": "report",
+      "ruleNumber": "7.1",
+      "label": "Report",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "documentNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, Title (Report, Year) Pinpoint."
+    },
+    {
+      "type": "report.parliamentary",
+      "ruleNumber": "7.1.2",
+      "label": "Parliamentary Committee Report",
+      "category": "secondary",
+      "requiredFields": [
+        "committee",
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "chamber",
+        "documentNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Committee, Title (Year) Pinpoint."
+    },
+    {
+      "type": "report.royal_commission",
+      "ruleNumber": "7.1.3",
+      "label": "Royal Commission Report",
+      "category": "secondary",
+      "requiredFields": [
+        "commissionName",
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "volume",
+        "documentNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Royal Commission, Title (Year) Volume Pinpoint."
+    },
+    {
+      "type": "report.law_reform",
+      "ruleNumber": "7.1.4",
+      "label": "Law Reform Commission Report",
+      "category": "secondary",
+      "requiredFields": [
+        "body",
+        "title",
+        "reportNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Body, Title (Report No ReportNumber, Year) Pinpoint."
+    },
+    {
+      "type": "report.abs",
+      "ruleNumber": "7.1.5",
+      "label": "ABS Publication",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "catalogueNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Australian Bureau of Statistics, Title (Catalogue No CatalogueNumber, Year) Pinpoint."
+    },
+    {
+      "type": "research_paper",
+      "ruleNumber": "7.2",
+      "label": "Research Paper",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "institution",
+        "paperType",
+        "paperNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title' (PaperType No PaperNumber, Institution, Year) Pinpoint."
+    },
+    {
+      "type": "research_paper.parliamentary",
+      "ruleNumber": "7.2.3",
+      "label": "Parliamentary Research Paper",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "paperNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "chamber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title' (Parliamentary Research Paper No PaperNumber, Year) Pinpoint."
+    },
+    {
+      "type": "conference_paper",
+      "ruleNumber": "7.2.4",
+      "label": "Conference Paper",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "conferenceName",
+        "year"
+      ],
+      "optionalFields": [
+        "location",
+        "fullDate",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title' (Conference Paper, ConferenceName, FullDate) Pinpoint."
+    },
+    {
+      "type": "thesis",
+      "ruleNumber": "7.2.5",
+      "label": "Thesis",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "thesisType",
+        "institution",
+        "year"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, Title (ThesisType, Institution, Year) Pinpoint."
+    },
+    {
+      "type": "speech",
+      "ruleNumber": "7.3",
+      "label": "Speech",
+      "category": "secondary",
+      "requiredFields": [
+        "speaker",
+        "title",
+        "event",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "location",
+        "pinpoint"
+      ],
+      "formatTemplate": "Speaker, 'Title' (Speech, Event, FullDate) Pinpoint."
+    },
+    {
+      "type": "press_release",
+      "ruleNumber": "7.4",
+      "label": "Press Release",
+      "category": "secondary",
+      "requiredFields": [
+        "author",
+        "title",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "documentNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title' (Press Release, DocumentNumber, FullDate)."
+    },
+    {
+      "type": "hansard",
+      "ruleNumber": "7.5.1",
+      "label": "Hansard",
+      "category": "secondary",
+      "requiredFields": [
+        "jurisdiction",
+        "chamber",
+        "fullDate",
+        "startingPage"
+      ],
+      "optionalFields": [
+        "speaker",
+        "pinpoint"
+      ],
+      "formatTemplate": "Jurisdiction, Parliamentary Debates, Chamber, FullDate, StartingPage (Speaker) Pinpoint."
+    },
+    {
+      "type": "submission.government",
+      "ruleNumber": "7.5.2",
+      "label": "Government Submission",
+      "category": "secondary",
+      "requiredFields": [
+        "author",
+        "title",
+        "committee"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, Title, Submission to Committee (Year) Pinpoint."
+    },
+    {
+      "type": "evidence.parliamentary",
+      "ruleNumber": "7.5.3",
+      "label": "Parliamentary Evidence",
+      "category": "secondary",
+      "requiredFields": [
+        "witness",
+        "committee",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Evidence to Committee (FullDate) Pinpoint (Witness)."
+    },
+    {
+      "type": "constitutional_convention",
+      "ruleNumber": "7.5.4",
+      "label": "Constitutional Convention Debates",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "speaker",
+        "pinpoint",
+        "volume"
+      ],
+      "formatTemplate": "Title, FullDate, Volume, Pinpoint (Speaker)."
+    },
+    {
+      "type": "dictionary",
+      "ruleNumber": "7.6",
+      "label": "Dictionary",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "entry"
+      ],
+      "optionalFields": [
+        "edition",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (at Edition, Year) 'Entry'."
+    },
+    {
+      "type": "legal_encyclopedia",
+      "ruleNumber": "7.7",
+      "label": "Legal Encyclopedia",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "volume",
+        "topicTitle"
+      ],
+      "optionalFields": [
+        "edition",
+        "year",
+        "pinpoint",
+        "publisher"
+      ],
+      "formatTemplate": "Title (at Edition, Year) vol Volume, 'TopicTitle', Pinpoint."
+    },
+    {
+      "type": "looseleaf",
+      "ruleNumber": "7.8",
+      "label": "Looseleaf Service",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "publisher"
+      ],
+      "optionalFields": [
+        "volume",
+        "serviceNumber",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, Title (Publisher, ServiceNumber) Volume, Pinpoint."
+    },
+    {
+      "type": "ip_material",
+      "ruleNumber": "7.9",
+      "label": "Intellectual Property Material",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "registrationNumber"
+      ],
+      "optionalFields": [
+        "applicant",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title, RegistrationNumber (Year) Pinpoint."
+    },
+    {
+      "type": "constitutive_document",
+      "ruleNumber": "7.10",
+      "label": "Constitutive Document",
+      "category": "secondary",
+      "requiredFields": [
+        "entityName",
+        "documentType"
+      ],
+      "optionalFields": [
+        "clause",
+        "pinpoint"
+      ],
+      "formatTemplate": "EntityName DocumentType Pinpoint."
+    },
+    {
+      "type": "newspaper",
+      "ruleNumber": "7.11",
+      "label": "Newspaper Article",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "newspaper",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "startingPage",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title', Newspaper (FullDate) StartingPage."
+    },
+    {
+      "type": "correspondence",
+      "ruleNumber": "7.12",
+      "label": "Correspondence",
+      "category": "secondary",
+      "requiredFields": [
+        "from",
+        "to",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "subject",
+        "pinpoint"
+      ],
+      "formatTemplate": "Letter from From to To, FullDate."
+    },
+    {
+      "type": "interview",
+      "ruleNumber": "7.13",
+      "label": "Interview",
+      "category": "secondary",
+      "requiredFields": [
+        "interviewee",
+        "interviewer"
+      ],
+      "optionalFields": [
+        "title",
+        "programme",
+        "fullDate",
+        "pinpoint"
+      ],
+      "formatTemplate": "Interview with Interviewee (Interviewer, FullDate)."
+    },
+    {
+      "type": "film_tv_media",
+      "ruleNumber": "7.14",
+      "label": "Film, Television, or Media",
+      "category": "secondary",
+      "requiredFields": [
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "director",
+        "producer",
+        "distributor",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (Director, Distributor, Year) Pinpoint."
+    },
+    {
+      "type": "internet_material",
+      "ruleNumber": "7.15",
+      "label": "Internet Material",
+      "category": "secondary",
+      "requiredFields": [
+        "authors",
+        "title",
+        "websiteName",
+        "url"
+      ],
+      "optionalFields": [
+        "fullDate",
+        "pinpoint"
+      ],
+      "formatTemplate": "Author, 'Title', WebsiteName (FullDate) <URL>."
+    },
+    {
+      "type": "social_media",
+      "ruleNumber": "7.16",
+      "label": "Social Media Post",
+      "category": "secondary",
+      "requiredFields": [
+        "author",
+        "platform",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "content",
+        "url"
+      ],
+      "formatTemplate": "Author (Platform, FullDate) <URL>."
+    },
+    {
+      "type": "genai_output",
+      "ruleNumber": "7.12",
+      "label": "Generative AI Output",
+      "category": "secondary",
+      "requiredFields": [
+        "model",
+        "provider",
+        "prompt",
+        "fullDate"
+      ],
+      "optionalFields": [
+        "url"
+      ],
+      "formatTemplate": "Provider, Model (FullDate) prompt: 'Prompt'."
+    },
+    {
+      "type": "treaty",
+      "ruleNumber": "8",
+      "label": "Treaty",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "treatySeries"
+      ],
+      "optionalFields": [
+        "parties",
+        "openedDate",
+        "signedDate",
+        "seriesVolume",
+        "startingPage",
+        "entryIntoForceDate",
+        "notYetInForce",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title, opened for signature OpenedDate, SeriesVolume TreatySeries StartingPage (entered into force EntryIntoForceDate) Pinpoint."
+    },
+    {
+      "type": "un.document",
+      "ruleNumber": "9.2",
+      "label": "United Nations Document",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "unOrgan",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "sessionNumber",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title, UN Doc DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "un.communication",
+      "ruleNumber": "9.3",
+      "label": "United Nations Communication",
+      "category": "international",
+      "requiredFields": [
+        "applicant",
+        "respondent",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Applicant v Respondent, UN Doc DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "un.yearbook",
+      "ruleNumber": "9.4",
+      "label": "United Nations Yearbook",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "year",
+        "volume"
+      ],
+      "optionalFields": [
+        "startingPage",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title [Year] Volume Yearbook StartingPage, Pinpoint."
+    },
+    {
+      "type": "icj.decision",
+      "ruleNumber": "10.2",
+      "label": "ICJ Decision",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "year",
+        "reportSeries"
+      ],
+      "optionalFields": [
+        "startingPage",
+        "pinpoint",
+        "decisionType"
+      ],
+      "formatTemplate": "Title (DecisionType) [Year] ICJ Reports StartingPage, Pinpoint."
+    },
+    {
+      "type": "icj.pleading",
+      "ruleNumber": "10.3",
+      "label": "ICJ Pleading",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "caseTitle",
+        "year"
+      ],
+      "optionalFields": [
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (CaseTitle) [Year] ICJ Pleadings Pinpoint."
+    },
+    {
+      "type": "arbitral.state_state",
+      "ruleNumber": "11.1",
+      "label": "State-State Arbitration",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (Year) Volume ReportSeries StartingPage, Pinpoint."
+    },
+    {
+      "type": "arbitral.individual_state",
+      "ruleNumber": "11.2",
+      "label": "Individual-State Arbitration",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "year",
+        "tribunal"
+      ],
+      "optionalFields": [
+        "caseNumber",
+        "reportSeries",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (Tribunal, CaseNumber, Year) Pinpoint."
+    },
+    {
+      "type": "icc_tribunal.case",
+      "ruleNumber": "12.2",
+      "label": "International Criminal Tribunal Case",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "tribunal",
+        "caseNumber"
+      ],
+      "optionalFields": [
+        "chamber",
+        "decisionType",
+        "fullDate",
+        "pinpoint"
+      ],
+      "formatTemplate": "Prosecutor v Accused (Tribunal, Chamber, CaseNumber, FullDate) Pinpoint."
+    },
+    {
+      "type": "wto.document",
+      "ruleNumber": "13.1.2",
+      "label": "WTO Document",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title, WTO Doc DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "wto.decision",
+      "ruleNumber": "13.1.3",
+      "label": "WTO Panel/Appellate Body Decision",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint",
+        "decisionType"
+      ],
+      "formatTemplate": "Title — DecisionType, WTO Doc DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "gatt.document",
+      "ruleNumber": "13.2",
+      "label": "GATT Document",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title, GATT Doc DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "eu.official_journal",
+      "ruleNumber": "14.2.1",
+      "label": "EU Official Journal",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "ojSeries",
+        "ojNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "startingPage",
+        "pinpoint"
+      ],
+      "formatTemplate": "[Year] OJ OjSeries OjNumber/StartingPage Pinpoint."
+    },
+    {
+      "type": "eu.court",
+      "ruleNumber": "14.2.3",
+      "label": "EU Court Decision",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "caseNumber",
+        "year"
+      ],
+      "optionalFields": [
+        "reportSeries",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (CaseNumber) [Year] ECR Pinpoint."
+    },
+    {
+      "type": "echr.decision",
+      "ruleNumber": "14.3.2",
+      "label": "European Court of Human Rights Decision",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "applicationNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "reportSeries",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (European Court of Human Rights, ApplicationNumber, FullDate) Pinpoint."
+    },
+    {
+      "type": "supranational.decision",
+      "ruleNumber": "14.4",
+      "label": "Supranational Court Decision",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "court",
+        "year"
+      ],
+      "optionalFields": [
+        "caseNumber",
+        "reportSeries",
+        "pinpoint"
+      ],
+      "formatTemplate": "Title (Court, CaseNumber, Year) Pinpoint."
+    },
+    {
+      "type": "supranational.document",
+      "ruleNumber": "14.5",
+      "label": "Supranational Document",
+      "category": "international",
+      "requiredFields": [
+        "title",
+        "organisation",
+        "documentNumber"
+      ],
+      "optionalFields": [
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "Organisation, Title, DocumentNumber (Year) Pinpoint."
+    },
+    {
+      "type": "foreign.canada",
+      "ruleNumber": "15",
+      "label": "Canadian Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 15 for format details."
+    },
+    {
+      "type": "foreign.china",
+      "ruleNumber": "16",
+      "label": "Chinese Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "See AGLC4 Rule 16 for format details."
+    },
+    {
+      "type": "foreign.france",
+      "ruleNumber": "17",
+      "label": "French Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "See AGLC4 Rule 17 for format details."
+    },
+    {
+      "type": "foreign.germany",
+      "ruleNumber": "18",
+      "label": "German Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "See AGLC4 Rule 18 for format details."
+    },
+    {
+      "type": "foreign.hong_kong",
+      "ruleNumber": "19",
+      "label": "Hong Kong Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 19 for format details."
+    },
+    {
+      "type": "foreign.malaysia",
+      "ruleNumber": "20",
+      "label": "Malaysian Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 20 for format details."
+    },
+    {
+      "type": "foreign.new_zealand",
+      "ruleNumber": "21",
+      "label": "New Zealand Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 21 for format details."
+    },
+    {
+      "type": "foreign.singapore",
+      "ruleNumber": "22",
+      "label": "Singaporean Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 22 for format details."
+    },
+    {
+      "type": "foreign.south_africa",
+      "ruleNumber": "23",
+      "label": "South African Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 23 for format details."
+    },
+    {
+      "type": "foreign.uk",
+      "ruleNumber": "24",
+      "label": "United Kingdom Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 24 for format details."
+    },
+    {
+      "type": "foreign.usa",
+      "ruleNumber": "25",
+      "label": "United States Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "reportSeries",
+        "volume",
+        "startingPage",
+        "pinpoint",
+        "court"
+      ],
+      "formatTemplate": "See AGLC4 Rule 25 for format details."
+    },
+    {
+      "type": "foreign.other",
+      "ruleNumber": "26",
+      "label": "Other Foreign Source",
+      "category": "foreign",
+      "requiredFields": [
+        "title",
+        "jurisdiction"
+      ],
+      "optionalFields": [
+        "authors",
+        "year",
+        "pinpoint"
+      ],
+      "formatTemplate": "See AGLC4 Rule 26 for format details."
+    }
+  ],
+  "reportSeries": [
+    {
+      "abbreviation": "CLR",
+      "fullName": "Commonwealth Law Reports",
+      "jurisdiction": "CTH",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "FCR",
+      "fullName": "Federal Court Reports",
+      "jurisdiction": "CTH",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "FCAFC",
+      "fullName": "Federal Court of Australia (Full Court)",
+      "jurisdiction": "CTH",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "FamCAFC",
+      "fullName": "Family Court of Australia (Full Court)",
+      "jurisdiction": "CTH",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NSWLR",
+      "fullName": "New South Wales Law Reports",
+      "jurisdiction": "NSW",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "VR",
+      "fullName": "Victorian Reports",
+      "jurisdiction": "VIC",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "QR",
+      "fullName": "Queensland Reports",
+      "jurisdiction": "QLD",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SASR",
+      "fullName": "South Australian State Reports",
+      "jurisdiction": "SA",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "WASR",
+      "fullName": "Western Australian State Reports",
+      "jurisdiction": "WA",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "WAR",
+      "fullName": "Western Australian Reports",
+      "jurisdiction": "WA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Tas R",
+      "fullName": "Tasmanian Reports",
+      "jurisdiction": "TAS",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ACTLR",
+      "fullName": "Australian Capital Territory Law Reports",
+      "jurisdiction": "ACT",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NTR",
+      "fullName": "Northern Territory Reports",
+      "jurisdiction": "NT",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NTLR",
+      "fullName": "Northern Territory Law Reports",
+      "jurisdiction": "NT",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ALR",
+      "fullName": "Australian Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ALJR",
+      "fullName": "Australian Law Journal Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "FLR",
+      "fullName": "Federal Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "AILR",
+      "fullName": "Australian Indigenous Law Reporter",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "AIJLF",
+      "fullName": "Australian Indigenous Law Journal Forum",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NSWCCR",
+      "fullName": "New South Wales Compensation Court Reports",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SR (WA)",
+      "fullName": "Western Australian Supreme Court Reports",
+      "jurisdiction": "WA",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "Qd R",
+      "fullName": "Queensland Reports (historical)",
+      "jurisdiction": "QLD",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ACTR",
+      "fullName": "Australian Capital Territory Reports",
+      "jurisdiction": "ACT",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "SR (NSW)",
+      "fullName": "New South Wales State Reports",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "A Crim R",
+      "fullName": "Australian Criminal Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "IPR",
+      "fullName": "Intellectual Property Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "LGERA",
+      "fullName": "Local Government and Environment Reports of Australia",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "IR",
+      "fullName": "Industrial Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "Fam LR",
+      "fullName": "Family Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ATPR",
+      "fullName": "Australian Trade Practices Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ATC",
+      "fullName": "Australian Tax Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ATR",
+      "fullName": "Australian Tax Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ACLR",
+      "fullName": "Australian Company Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ACSR",
+      "fullName": "Australian Corporations and Securities Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ACLC",
+      "fullName": "Australian Company Law Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "MVR",
+      "fullName": "Motor Vehicle Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NSWCR",
+      "fullName": "New South Wales Criminal Reports",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "APR",
+      "fullName": "Australian Patent Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "AIPC",
+      "fullName": "Australian Intellectual Property Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Fam CA",
+      "fullName": "Family Court of Australia",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "BCLC",
+      "fullName": "Building and Construction Law Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "SR (SA)",
+      "fullName": "South Australian State Reports",
+      "jurisdiction": "SA",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NNTT",
+      "fullName": "National Native Title Tribunal",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Aust Ins LR",
+      "fullName": "Australian Insurance Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NSWDCR",
+      "fullName": "New South Wales District Court Reports",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "BCL",
+      "fullName": "Butterworths Company Law Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "AATR",
+      "fullName": "Administrative Appeals Tribunal Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "AR (NSW)",
+      "fullName": "Arbitration Reports (New South Wales)",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "EOC",
+      "fullName": "Equal Opportunity Cases",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "HRLRA",
+      "fullName": "Human Rights Law Reports of Australia",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "TCLR",
+      "fullName": "Trade and Commerce Law Reports",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "AC",
+      "fullName": "Appeal Cases",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "QB",
+      "fullName": "Queen's Bench",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "KB",
+      "fullName": "King's Bench",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Ch",
+      "fullName": "Chancery",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Fam",
+      "fullName": "Family Division",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "WLR",
+      "fullName": "Weekly Law Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "All ER",
+      "fullName": "All England Law Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Lloyd's Rep",
+      "fullName": "Lloyd's Law Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Cr App R",
+      "fullName": "Criminal Appeal Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "BCLC",
+      "fullName": "Butterworths Company Law Cases (UK)",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "UKHL",
+      "fullName": "United Kingdom House of Lords",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "UKSC",
+      "fullName": "United Kingdom Supreme Court",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "UKPC",
+      "fullName": "United Kingdom Privy Council",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "EWCA Civ",
+      "fullName": "England and Wales Court of Appeal (Civil Division)",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "EWCA Crim",
+      "fullName": "England and Wales Court of Appeal (Criminal Division)",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "EWHC",
+      "fullName": "England and Wales High Court",
+      "jurisdiction": "UK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ICR",
+      "fullName": "Industrial Cases Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "FSR",
+      "fullName": "Fleet Street Reports",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "RPC",
+      "fullName": "Reports of Patent Cases",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "Tax Cas",
+      "fullName": "Tax Cases",
+      "jurisdiction": "UK",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "SCR",
+      "fullName": "Supreme Court Reports",
+      "jurisdiction": "CA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "FC",
+      "fullName": "Federal Court Reports (Canada)",
+      "jurisdiction": "CA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "DLR",
+      "fullName": "Dominion Law Reports",
+      "jurisdiction": "CA",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "OR",
+      "fullName": "Ontario Reports",
+      "jurisdiction": "CA",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "BCLR",
+      "fullName": "British Columbia Law Reports",
+      "jurisdiction": "CA",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "AR",
+      "fullName": "Alberta Reports",
+      "jurisdiction": "CA",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "WWR",
+      "fullName": "Western Weekly Reports",
+      "jurisdiction": "CA",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "CCC",
+      "fullName": "Canadian Criminal Cases",
+      "jurisdiction": "CA",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "CLLC",
+      "fullName": "Canadian Labour Law Cases",
+      "jurisdiction": "CA",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "US",
+      "fullName": "United States Reports",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "S Ct",
+      "fullName": "Supreme Court Reporter",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "L Ed",
+      "fullName": "Lawyers' Edition",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "L Ed 2d",
+      "fullName": "Lawyers' Edition (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F 2d",
+      "fullName": "Federal Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F 3d",
+      "fullName": "Federal Reporter (Third Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F 4th",
+      "fullName": "Federal Reporter (Fourth Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F Supp",
+      "fullName": "Federal Supplement",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F Supp 2d",
+      "fullName": "Federal Supplement (Second Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "F Supp 3d",
+      "fullName": "Federal Supplement (Third Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NE 2d",
+      "fullName": "North Eastern Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NW 2d",
+      "fullName": "North Western Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "P 2d",
+      "fullName": "Pacific Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "P 3d",
+      "fullName": "Pacific Reporter (Third Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "So 2d",
+      "fullName": "Southern Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "SE 2d",
+      "fullName": "South Eastern Reporter (Second Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "SW 3d",
+      "fullName": "South Western Reporter (Third Series)",
+      "jurisdiction": "US",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NY 2d",
+      "fullName": "New York Reports (Second Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "Cal 4th",
+      "fullName": "California Reports (Fourth Series)",
+      "jurisdiction": "US",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NZLR",
+      "fullName": "New Zealand Law Reports",
+      "jurisdiction": "NZ",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZAR",
+      "fullName": "New Zealand Administrative Reports",
+      "jurisdiction": "NZ",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZFLR",
+      "fullName": "New Zealand Family Law Reports",
+      "jurisdiction": "NZ",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZSC",
+      "fullName": "New Zealand Supreme Court",
+      "jurisdiction": "NZ",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZCA",
+      "fullName": "New Zealand Court of Appeal",
+      "jurisdiction": "NZ",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZHC",
+      "fullName": "New Zealand High Court",
+      "jurisdiction": "NZ",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NZELR",
+      "fullName": "New Zealand Employment Law Reports",
+      "jurisdiction": "NZ",
+      "type": "unauthorised_subject",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SLR",
+      "fullName": "Singapore Law Reports",
+      "jurisdiction": "SG",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SLR(R)",
+      "fullName": "Singapore Law Reports (Reissue)",
+      "jurisdiction": "SG",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SGCA",
+      "fullName": "Singapore Court of Appeal",
+      "jurisdiction": "SG",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SGHC",
+      "fullName": "Singapore High Court",
+      "jurisdiction": "SG",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "MLJ",
+      "fullName": "Malayan Law Journal",
+      "jurisdiction": "SG",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "HKLRD",
+      "fullName": "Hong Kong Law Reports and Digest",
+      "jurisdiction": "HK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "HKCFA",
+      "fullName": "Hong Kong Court of Final Appeal",
+      "jurisdiction": "HK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "HKCA",
+      "fullName": "Hong Kong Court of Appeal",
+      "jurisdiction": "HK",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "AIR",
+      "fullName": "All India Reporter",
+      "jurisdiction": "IN",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SCC",
+      "fullName": "Supreme Court Cases (India)",
+      "jurisdiction": "IN",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "SA",
+      "fullName": "South African Law Reports",
+      "jurisdiction": "ZA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ZACC",
+      "fullName": "Constitutional Court of South Africa",
+      "jurisdiction": "ZA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "IR",
+      "fullName": "Irish Reports",
+      "jurisdiction": "IE",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ILRM",
+      "fullName": "Irish Law Reports Monthly",
+      "jurisdiction": "IE",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ICJ Reports",
+      "fullName": "International Court of Justice Reports of Judgments, Advisory Opinions and Orders",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "PCIJ (ser A)",
+      "fullName": "Permanent Court of International Justice Series A: Collection of Judgments",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "PCIJ (ser B)",
+      "fullName": "Permanent Court of International Justice Series B: Collection of Advisory Opinions",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "PCIJ (ser A/B)",
+      "fullName": "Permanent Court of International Justice Series A/B: Judgments, Orders and Advisory Opinions",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ECHR",
+      "fullName": "European Court of Human Rights",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "EHRR",
+      "fullName": "European Human Rights Reports",
+      "jurisdiction": "INTL",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ICC",
+      "fullName": "International Criminal Court",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ICTY",
+      "fullName": "International Criminal Tribunal for the Former Yugoslavia",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ICTR",
+      "fullName": "International Criminal Tribunal for Rwanda",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ECR",
+      "fullName": "European Court Reports",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "CMLR",
+      "fullName": "Common Market Law Reports",
+      "jurisdiction": "INTL",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ILR",
+      "fullName": "International Law Reports",
+      "jurisdiction": "INTL",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ILM",
+      "fullName": "International Legal Materials",
+      "jurisdiction": "INTL",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "UNTS",
+      "fullName": "United Nations Treaty Series",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "LNTS",
+      "fullName": "League of Nations Treaty Series",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ATS",
+      "fullName": "Australian Treaty Series",
+      "jurisdiction": "CTH",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "RIAA",
+      "fullName": "Reports of International Arbitral Awards",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ITLOS",
+      "fullName": "International Tribunal for the Law of the Sea",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "ICSID",
+      "fullName": "International Centre for Settlement of Investment Disputes Reports",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "IACtHR (ser C)",
+      "fullName": "Inter-American Court of Human Rights Series C: Decisions and Judgments",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "ACHPR",
+      "fullName": "African Court on Human and Peoples' Rights",
+      "jurisdiction": "INTL",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NSWIR",
+      "fullName": "New South Wales Industrial Reports",
+      "jurisdiction": "NSW",
+      "type": "unauthorised_subject",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "VicRp",
+      "fullName": "Victorian Reports (historical)",
+      "jurisdiction": "VIC",
+      "type": "unauthorised_generalist",
+      "yearOrganised": false
+    },
+    {
+      "abbreviation": "NTLJ",
+      "fullName": "Northern Territory Law Journal",
+      "jurisdiction": "NT",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "FMCA",
+      "fullName": "Federal Magistrates Court of Australia",
+      "jurisdiction": "CTH",
+      "type": "unauthorised_generalist",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "TASSC",
+      "fullName": "Supreme Court of Tasmania",
+      "jurisdiction": "TAS",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "NTSC",
+      "fullName": "Supreme Court of the Northern Territory",
+      "jurisdiction": "NT",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "WASCA",
+      "fullName": "Western Australian Supreme Court of Appeal",
+      "jurisdiction": "WA",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "QCA",
+      "fullName": "Queensland Court of Appeal",
+      "jurisdiction": "QLD",
+      "type": "authorised",
+      "yearOrganised": true
+    },
+    {
+      "abbreviation": "VSCA",
+      "fullName": "Victorian Supreme Court of Appeal",
+      "jurisdiction": "VIC",
+      "type": "authorised",
+      "yearOrganised": true
+    }
+  ],
+  "courtIdentifiers": [
+    {
+      "code": "HCA",
+      "fullName": "High Court of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FCA",
+      "fullName": "Federal Court of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FCAFC",
+      "fullName": "Federal Court of Australia (Full Court)",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FCCA",
+      "fullName": "Federal Circuit Court of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "NSWSC",
+      "fullName": "Supreme Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCA",
+      "fullName": "Court of Appeal of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCCA",
+      "fullName": "Court of Criminal Appeal of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWDC",
+      "fullName": "District Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWLEC",
+      "fullName": "Land and Environment Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "VSC",
+      "fullName": "Supreme Court of Victoria",
+      "jurisdiction": "VIC"
+    },
+    {
+      "code": "VSCA",
+      "fullName": "Court of Appeal of Victoria",
+      "jurisdiction": "VIC"
+    },
+    {
+      "code": "VCC",
+      "fullName": "County Court of Victoria",
+      "jurisdiction": "VIC"
+    },
+    {
+      "code": "QSC",
+      "fullName": "Supreme Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QCA",
+      "fullName": "Court of Appeal of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QDC",
+      "fullName": "District Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "SASC",
+      "fullName": "Supreme Court of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SASCFC",
+      "fullName": "Supreme Court of South Australia (Full Court)",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SADC",
+      "fullName": "District Court of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "WASC",
+      "fullName": "Supreme Court of Western Australia",
+      "jurisdiction": "WA"
+    },
+    {
+      "code": "WASCA",
+      "fullName": "Court of Appeal of Western Australia",
+      "jurisdiction": "WA"
+    },
+    {
+      "code": "WADC",
+      "fullName": "District Court of Western Australia",
+      "jurisdiction": "WA"
+    },
+    {
+      "code": "TASSC",
+      "fullName": "Supreme Court of Tasmania",
+      "jurisdiction": "TAS"
+    },
+    {
+      "code": "TASFC",
+      "fullName": "Supreme Court of Tasmania (Full Court)",
+      "jurisdiction": "TAS"
+    },
+    {
+      "code": "ACTSC",
+      "fullName": "Supreme Court of the Australian Capital Territory",
+      "jurisdiction": "ACT"
+    },
+    {
+      "code": "ACTCA",
+      "fullName": "Court of Appeal of the Australian Capital Territory",
+      "jurisdiction": "ACT"
+    },
+    {
+      "code": "NTSC",
+      "fullName": "Supreme Court of the Northern Territory",
+      "jurisdiction": "NT"
+    },
+    {
+      "code": "NTCA",
+      "fullName": "Court of Appeal of the Northern Territory",
+      "jurisdiction": "NT"
+    },
+    {
+      "code": "AAT",
+      "fullName": "Administrative Appeals Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "AATA",
+      "fullName": "Administrative Appeals Tribunal of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FWC",
+      "fullName": "Fair Work Commission",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "NCAT",
+      "fullName": "NSW Civil and Administrative Tribunal",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "VCAT",
+      "fullName": "Victorian Civil and Administrative Tribunal",
+      "jurisdiction": "VIC"
+    },
+    {
+      "code": "QCAT",
+      "fullName": "Queensland Civil and Administrative Tribunal",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "SACAT",
+      "fullName": "South Australian Civil and Administrative Tribunal",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAT",
+      "fullName": "State Administrative Tribunal of Western Australia",
+      "jurisdiction": "WA"
+    },
+    {
+      "code": "TASCAT",
+      "fullName": "Tasmanian Civil and Administrative Tribunal",
+      "jurisdiction": "TAS"
+    },
+    {
+      "code": "ACAT",
+      "fullName": "ACT Civil and Administrative Tribunal",
+      "jurisdiction": "ACT"
+    },
+    {
+      "code": "NTCAT",
+      "fullName": "Northern Territory Civil and Administrative Tribunal",
+      "jurisdiction": "NT"
+    }
+  ],
+  "pinpointAbbreviations": [
+    {
+      "type": "section",
+      "singular": "s",
+      "plural": "ss"
+    },
+    {
+      "type": "part",
+      "singular": "pt",
+      "plural": "pts"
+    },
+    {
+      "type": "division",
+      "singular": "div",
+      "plural": "divs"
+    },
+    {
+      "type": "chapter",
+      "singular": "ch",
+      "plural": "chs"
+    },
+    {
+      "type": "clause",
+      "singular": "cl",
+      "plural": "cls"
+    },
+    {
+      "type": "schedule",
+      "singular": "sch",
+      "plural": "schs"
+    },
+    {
+      "type": "regulation",
+      "singular": "reg",
+      "plural": "regs"
+    },
+    {
+      "type": "rule",
+      "singular": "r",
+      "plural": "rr"
+    },
+    {
+      "type": "article",
+      "singular": "art",
+      "plural": "arts"
+    },
+    {
+      "type": "paragraph",
+      "singular": "para",
+      "plural": "paras"
+    },
+    {
+      "type": "footnote",
+      "singular": "n",
+      "plural": "nn"
+    },
+    {
+      "type": "column",
+      "singular": "col",
+      "plural": "cols"
+    },
+    {
+      "type": "line",
+      "singular": "ln",
+      "plural": "lns"
+    }
+  ],
+  "subsequentReferenceRules": {
+    "ibidConditions": [
+      "Rule 1.4.3: 'Ibid' refers to the immediately preceding source in the immediately preceding footnote.",
+      "The preceding footnote must contain exactly one citation for ibid to apply.",
+      "If the preceding footnote had a pinpoint but the current reference has no pinpoint, ibid is not used.",
+      "If pinpoints are identical (or both absent), the reference is simply 'Ibid'.",
+      "If pinpoints differ, the reference is 'Ibid' followed by the new pinpoint (e.g., 'Ibid 42').",
+      "Ibid may not be used across footnotes within the same footnote — use 'at' format instead (Rule 1.4.6)."
+    ],
+    "shortTitleRules": [
+      "Rule 1.4.1: After the first full citation, subsequent references use a shortened form with a cross-reference back to the first footnote number.",
+      "Rule 1.4.1: Secondary sources use the format: 'Author Surname (n FirstFootnoteNumber) Pinpoint'.",
+      "Rule 1.4.1: Cases use the format: 'Short Title (n FirstFootnoteNumber) Pinpoint' with the short title in italics.",
+      "Rule 1.4.1: Legislation uses the format: 'Short Title (n FirstFootnoteNumber) Pinpoint' with the short title in italics.",
+      "Rule 1.4.4: A short title is introduced in parentheses after the first full citation, e.g., ('short title').",
+      "Rule 1.4.4: For cases, the short title introduction uses italic text inside single quotes within parentheses.",
+      "Rule 1.4.4: For secondary sources, the short title introduction uses single quotes, not italic.",
+      "Rule 1.4.5: Abbreviation definitions appear in parentheses after the first citation, e.g., ('ADJR Act').",
+      "Rule 1.4.6: Within-footnote subsequent references use 'at' followed by the pinpoint, e.g., 'at [23]'.",
+      "When multiple works by the same author are cited, the title or short title is included after the surname to disambiguate."
+    ]
+  }
+}

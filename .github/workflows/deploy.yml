@@ -1,65 +1,32 @@
-# CI Pipeline for Obiter
+# Manual Deployment Workflow
+#
+# Trigger manually from the Actions tab to deploy website and/or
+# rebuild the add-in without waiting for a push to main.
 #
 # Required repository secrets:
 #   LIGHTSAIL_SSH_KEY  — SSH private key for bitnami@3.106.204.98 (Lightsail instance)
 #   DEPLOY_KEY         — GitHub deploy key for pushing
 
-name: CI
+name: Deploy
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      deploy_website:
+        description: 'Deploy website to Lightsail'
+        required: true
+        default: true
+        type: boolean
+      deploy_addin:
+        description: 'Build and upload add-in artifact'
+        required: true
+        default: true
+        type: boolean
 
 jobs:
-  lint-and-typecheck:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm run lint
-
-      - run: npm run typecheck
-
-  test:
-    runs-on: ubuntu-latest
-    needs: lint-and-typecheck
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm test
-        id: tests
-
-      - name: Upload test results
-        if: failure() && steps.tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: |
-            coverage/
-            junit.xml
-          retention-days: 14
-
   build:
     runs-on: ubuntu-latest
-    needs: test
+    if: ${{ inputs.deploy_addin }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,25 +51,12 @@ jobs:
 
   deploy-website:
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ inputs.deploy_website }}
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Check for website changes
-        id: changes
-        run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q '^website/'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Deploy website to Lightsail
-        if: steps.changes.outputs.changed == 'true'
         env:
           LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
         run: |

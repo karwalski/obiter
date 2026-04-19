@@ -10,3 +10,5 @@ export type { TypeaheadInputProps } from "./TypeaheadInput";
 export { default as CitationFinder } from "./CitationFinder";
 export type { CitationFinderProps } from "./CitationFinder";
 export { default as CheckReference } from "./CheckReference";
+export { default as CrossReferenceInsert } from "./CrossReferenceInsert";
+export type { CrossReferenceInsertProps } from "./CrossReferenceInsert";

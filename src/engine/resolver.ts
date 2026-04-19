@@ -314,6 +314,56 @@ export function formatAbbreviationDefinition(
   return [{ text: `('${abbreviation}')` }];
 }
 
+// ─── RESEARCH-002: Cross-Reference Formatting (Rule 1.4.2) ───────────────────
+
+/**
+ * Formats an "above n" cross-reference.
+ *
+ * AGLC4 Rule 1.4.2: When referring to a source cited in an earlier footnote,
+ * the cross-reference takes the form `above n X` or `above n X, pinpoint`.
+ *
+ * @param footnoteNumber - The footnote number being referred to
+ * @param pinpoint - Optional pinpoint for the cross-reference
+ */
+export function formatAboveReference(
+  footnoteNumber: number,
+  pinpoint?: Pinpoint,
+): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: `above n ${footnoteNumber}` }];
+
+  if (pinpoint) {
+    runs.push({ text: ", " });
+    runs.push(...formatPinpoint(pinpoint));
+  }
+
+  return runs;
+}
+
+/**
+ * Formats a "below n" cross-reference.
+ *
+ * AGLC4 Rule 1.4.2: When referring to a source cited in a later footnote,
+ * the cross-reference takes the form `below n X` or `below n X, pinpoint`.
+ * This is architecturally impossible in forward-only processors like CSL,
+ * but Obiter processes the whole document so it can support forward references.
+ *
+ * @param footnoteNumber - The footnote number being referred to
+ * @param pinpoint - Optional pinpoint for the cross-reference
+ */
+export function formatBelowReference(
+  footnoteNumber: number,
+  pinpoint?: Pinpoint,
+): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: `below n ${footnoteNumber}` }];
+
+  if (pinpoint) {
+    runs.push({ text: ", " });
+    runs.push(...formatPinpoint(pinpoint));
+  }
+
+  return runs;
+}
+
 // ─── Subsequent Reference Context ────────────────────────────────────────────
 
 /**
@@ -338,6 +388,15 @@ export interface SubsequentReferenceContext {
   formatPreference: "full" | "short" | "ibid" | "auto";
   /** Whether multiple works by the same author exist, requiring disambiguation. */
   disambiguate?: boolean;
+  /**
+   * Direction for cross-references (Rule 1.4.2).
+   *
+   * - `"auto"`: The resolver determines direction based on footnote ordering
+   *   (not yet implemented — defaults to standard short reference behaviour).
+   * - `"above"`: Force an "above n X" cross-reference.
+   * - `"below"`: Force a "below n X" cross-reference.
+   */
+  crossReferenceDirection?: "auto" | "above" | "below";
 }
 
 // ─── Main Resolver ───────────────────────────────────────────────────────────

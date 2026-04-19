@@ -5,9 +5,11 @@
 
 import type { ValidationIssue } from "./types/validation";
 import { Citation } from "../types/citation";
+import type { ParallelCitation } from "../types/citation";
 import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punctuation";
 import { checkDateFormatting } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
+import { COURT_IDENTIFIERS } from "./data/court-identifiers";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -57,6 +59,9 @@ export function validateDocument(
   for (const citation of citations) {
     allIssues.push(...checkCitationCompleteness(citation));
   }
+
+  // Parallel citation checks (Rule 2.2.7 / court practice directions)
+  allIssues.push(...checkParallelCitations(citations));
 
   // Categorise by severity
   const errors: ValidationIssue[] = [];
@@ -434,4 +439,83 @@ function getRuleForSourceType(sourceType: string): string {
   if (sourceType.startsWith("book")) return "6";
   if (sourceType === "treaty") return "8";
   return "1";
+}
+
+// ─── VALID-007: Parallel citation checks ──────────────────────────────────────
+
+/**
+ * Medium neutral citation pattern: [YYYY] CourtIdentifier Number
+ * e.g. [2024] HCA 1, [2023] NSWCA 42
+ */
+const MNC_PATTERN = /^\[\d{4}]\s+[A-Z][A-Za-z]+\s+\d+$/;
+
+/** Set of known court identifier codes for fast lookup. */
+const COURT_ID_SET: ReadonlySet<string> = new Set(
+  COURT_IDENTIFIERS.map((c) => c.code),
+);
+
+/**
+ * Checks case citations for missing parallel citations where court practice
+ * directions require them.
+ *
+ * For each `case.reported` citation:
+ * - If the citation has an MNC (via `data.mnc` matching the MNC pattern, or
+ *   `data.courtId` matching a known court identifier) but no parallel
+ *   citations, flags a warning per Rule 2.2.7.
+ * - If the citation has an authorised report series but no MNC, flags an
+ *   informational suggestion to include the MNC.
+ *
+ * Severity is "warning" (not "error") because AGLC4 itself does not mandate
+ * parallel citations — court practice directions do (e.g., Supreme Court of
+ * Queensland PD 1/2024).
+ *
+ * @remarks AGLC4 Rule 2.2.7 — Parallel citations.
+ */
+export function checkParallelCitations(
+  citations: Citation[],
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.reported") {
+      continue;
+    }
+
+    const d = citation.data;
+    const label = citation.shortTitle || citation.id;
+    const parallels = d.parallelCitations as ParallelCitation[] | undefined;
+    const hasParallels = Array.isArray(parallels) && parallels.length > 0;
+
+    // Determine whether the citation carries an MNC
+    const mncValue = d.mnc as string | undefined;
+    const courtId = d.courtId as string | undefined;
+    const hasMnc =
+      (typeof mncValue === "string" && MNC_PATTERN.test(mncValue.trim())) ||
+      (typeof courtId === "string" && COURT_ID_SET.has(courtId));
+
+    if (hasMnc && !hasParallels) {
+      issues.push({
+        ruleNumber: "2.2.7",
+        message:
+          `Case '${label}': Rule 2.2.7: Consider adding parallel citation. ` +
+          "Court practice directions (e.g., Supreme Court of Queensland " +
+          "PD 1/2024) require both the MNC and authorised report citation.",
+        severity: "warning",
+        offset: 0,
+        length: 0,
+      });
+    } else if (!hasMnc && !hasParallels) {
+      issues.push({
+        ruleNumber: "2.2.7",
+        message:
+          `Case '${label}': Consider including the medium neutral citation ` +
+          "alongside the authorised report.",
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
 }
