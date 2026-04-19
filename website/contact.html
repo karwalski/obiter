@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Obiter</title>
+  <meta name="description" content="Get in touch with the Obiter project. Submit a general enquiry, provide feedback, report an issue, or request an enhancement.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Backend needs: Gmail API with OAuth2
+       Scopes: https://www.googleapis.com/auth/gmail.send
+       Setup: Google Cloud Console > APIs > Gmail API > OAuth consent screen
+       Credentials file goes in server's /etc/obiter/google-credentials.json
+  -->
+</head>
+<body>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="container">
+      <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="aglc4.html">What is AGLC4?</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#open-source">Open Source</a></li>
+        <li><a href="index.html#support">Support</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Page Header
+       ============================================================ -->
+  <header class="page-header">
+    <div class="container">
+      <h1>Contact</h1>
+      <p>
+        Select the appropriate form below. All messages are reviewed and
+        responded to in a timely manner.
+      </p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Contact Forms
+       ============================================================ -->
+  <section class="contact-section">
+    <div class="container">
+      <div class="contact-forms">
+
+        <!-- General Enquiry -->
+        <div class="contact-form-card">
+          <h3>General Enquiry</h3>
+          <form class="contact-form" data-form-type="general">
+            <div class="form-group">
+              <label for="general-name">Name</label>
+              <input type="text" id="general-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="general-email">Email</label>
+              <input type="email" id="general-email" name="email" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="general-message">Message</label>
+              <textarea id="general-message" name="message" rows="5" required></textarea>
+            </div>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Submit</button>
+          </form>
+        </div>
+
+        <!-- Feedback -->
+        <div class="contact-form-card">
+          <h3>Feedback</h3>
+          <form class="contact-form" data-form-type="feedback">
+            <div class="form-group">
+              <label for="feedback-name">Name</label>
+              <input type="text" id="feedback-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="feedback-email">Email</label>
+              <input type="email" id="feedback-email" name="email" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="feedback-message">Message</label>
+              <textarea id="feedback-message" name="message" rows="5" required></textarea>
+            </div>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Submit</button>
+          </form>
+        </div>
+
+        <!-- Report Issue -->
+        <div class="contact-form-card">
+          <h3>Report Issue</h3>
+          <form class="contact-form" data-form-type="issue">
+            <div class="form-group">
+              <label for="issue-name">Name</label>
+              <input type="text" id="issue-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="issue-email">Email</label>
+              <input type="email" id="issue-email" name="email" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="issue-message">Message</label>
+              <textarea id="issue-message" name="message" rows="5" placeholder="Describe the issue, including steps to reproduce if possible." required></textarea>
+            </div>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Submit</button>
+          </form>
+        </div>
+
+        <!-- Request Enhancement -->
+        <div class="contact-form-card">
+          <h3>Request Enhancement</h3>
+          <form class="contact-form" data-form-type="enhancement">
+            <div class="form-group">
+              <label for="enhancement-name">Name</label>
+              <input type="text" id="enhancement-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="enhancement-email">Email</label>
+              <input type="email" id="enhancement-email" name="email" autocomplete="email" required>
+            </div>
+            <div class="form-group">
+              <label for="enhancement-message">Message</label>
+              <textarea id="enhancement-message" name="message" rows="5" placeholder="Describe the feature or improvement you would like to see." required></textarea>
+            </div>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Submit</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <!-- Placeholder: replace with actual AppSource URL once published -->
+        <li><a href="#">AppSource</a></li>
+        <!-- Placeholder: register at ko-fi.com and replace 'obiter' with your username -->
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

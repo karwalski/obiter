@@ -1,0 +1,169 @@
+/**
+ * Shared LLM HTTP client.
+ *
+ * Abstracts over the OpenAI and Anthropic chat-completion APIs so
+ * that every feature module can call a single function.
+ */
+
+import { LLMConfig } from "./config";
+
+// ─── Provider-specific request / response shapes ────────────────────────────
+
+interface OpenAIMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+interface OpenAIRequestBody {
+  model: string;
+  messages: OpenAIMessage[];
+  max_tokens: number;
+}
+
+interface OpenAIChoice {
+  message: { content: string };
+}
+
+interface OpenAIResponse {
+  choices: OpenAIChoice[];
+}
+
+interface AnthropicRequestBody {
+  model: string;
+  max_tokens: number;
+  system: string;
+  messages: Array<{ role: "user"; content: string }>;
+}
+
+interface AnthropicContentBlock {
+  type: string;
+  text: string;
+}
+
+interface AnthropicResponse {
+  content: AnthropicContentBlock[];
+}
+
+// ─── Endpoint resolution ────────────────────────────────────────────────────
+
+function resolveEndpoint(config: LLMConfig): string {
+  if (config.endpoint) {
+    return config.endpoint;
+  }
+  switch (config.provider) {
+    case "openai":
+      return "https://api.openai.com/v1/chat/completions";
+    case "anthropic":
+      return "https://api.anthropic.com/v1/messages";
+    case "custom":
+      throw new Error(
+        "A custom provider requires an explicit endpoint in LLMConfig.",
+      );
+  }
+}
+
+// ─── Build request ──────────────────────────────────────────────────────────
+
+function buildOpenAIRequest(
+  config: LLMConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): { url: string; init: RequestInit } {
+  const body: OpenAIRequestBody = {
+    model: config.model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    max_tokens: config.maxTokens,
+  };
+  return {
+    url: resolveEndpoint(config),
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    },
+  };
+}
+
+function buildAnthropicRequest(
+  config: LLMConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): { url: string; init: RequestInit } {
+  const body: AnthropicRequestBody = {
+    model: config.model,
+    max_tokens: config.maxTokens,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  };
+  return {
+    url: resolveEndpoint(config),
+    init: {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": config.apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
+    },
+  };
+}
+
+// ─── Response extraction ────────────────────────────────────────────────────
+
+function extractOpenAIText(json: OpenAIResponse): string {
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error("Empty response from OpenAI-compatible API.");
+  }
+  return text.trim();
+}
+
+function extractAnthropicText(json: AnthropicResponse): string {
+  const block = json.content?.find(
+    (b: AnthropicContentBlock) => b.type === "text",
+  );
+  if (!block) {
+    throw new Error("Empty response from Anthropic API.");
+  }
+  return block.text.trim();
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
+
+/**
+ * Send a system + user prompt to the configured LLM provider and return the
+ * assistant's text response.
+ */
+export async function callLlm(
+  config: LLMConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<string> {
+  const isAnthropic = config.provider === "anthropic";
+
+  const { url, init } = isAnthropic
+    ? buildAnthropicRequest(config, systemPrompt, userPrompt)
+    : buildOpenAIRequest(config, systemPrompt, userPrompt);
+
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `LLM request failed (${response.status}): ${errorBody}`,
+    );
+  }
+
+  const json: unknown = await response.json();
+
+  return isAnthropic
+    ? extractAnthropicText(json as AnthropicResponse)
+    : extractOpenAIText(json as OpenAIResponse);
+}

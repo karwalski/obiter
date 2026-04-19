@@ -1,0 +1,11 @@
+node_modules/
+dist/
+lib/
+lib-amd/
+*.log
+.DS_Store
+.env
+.env.local
+website/server/node_modules/
+website/server/obiter.db
+website/server/google-token.json

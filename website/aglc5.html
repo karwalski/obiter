@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGLC5 — Obiter</title>
+  <meta name="description" content="An open letter to the AGLC5 Committee requesting early preview access to draft AGLC5 rules, and an invitation to collaborate on open-source citation tooling.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="container">
+      <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="aglc4.html">What is AGLC4?</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#open-source">Open Source</a></li>
+        <li><a href="index.html#support">Support</a></li>
+        <li><a href="aglc5.html" class="site-nav__active">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Hero
+       ============================================================ -->
+  <header class="page-header">
+    <div class="container">
+      <h1>Supporting AGLC5 Adoption</h1>
+      <p>
+        An open letter requesting collaboration between the AGLC5 Committee
+        and the Obiter project to ensure citation tooling is ready from day one.
+      </p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Open Letter
+       ============================================================ -->
+  <section class="letter-section">
+    <div class="container">
+      <article class="letter">
+
+        <div class="letter__addressees">
+          <p>To:</p>
+          <ul>
+            <li>The Melbourne University Law Review Association</li>
+            <li>The Melbourne Journal of International Law</li>
+            <li>The AGLC5 Committee</li>
+          </ul>
+        </div>
+
+        <div class="letter__body">
+
+          <p>
+            Since its first edition in 1998, the <em>Australian Guide to Legal Citation</em>
+            has served as the authoritative standard for legal citation in Australia.
+            Across four editions, the AGLC has provided the consistency and rigour that
+            legal scholarship demands. The forthcoming fifth edition, currently
+            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">under development</a>,
+            represents an opportunity not only to refine the standard but to consider
+            how that standard is implemented in the tools that legal professionals use
+            every day.
+          </p>
+
+          <h3>Obiter: Open-Source AGLC4 Implementation</h3>
+
+          <p>
+            <a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">Obiter</a>
+            is a free, open-source Microsoft Word add-in that implements the full
+            AGLC4 specification across all 26 chapters. It automates footnote
+            formatting, ibid and cross-reference resolution, pinpoint references,
+            bibliography generation, and document-wide validation. It is licensed
+            under the GNU General Public License v3.0 and is developed in the open
+            for the benefit of the entire legal community.
+          </p>
+
+          <p>
+            The process of building Obiter has provided a detailed understanding of
+            AGLC4 at the level of individual rules, exceptions, and edge cases. That
+            experience has made clear that citation standards and citation tools are
+            most effective when they are developed in concert rather than in isolation.
+          </p>
+
+          <h3>The Case for Concurrent Development</h3>
+
+          <p>
+            Citation guides have historically been published as static documents, with
+            software implementations following months or years later. This approach
+            creates an adoption gap: users are expected to apply a new standard
+            manually while waiting for their tools to catch up. It also means that
+            rules which are difficult or ambiguous to automate are discovered only
+            after publication, when changes are costly and disruptive.
+          </p>
+
+          <p>
+            Modern citation tooling should be designed alongside the standard it
+            implements, not retrofitted after the fact. Developing software in parallel
+            with the rules it encodes surfaces practical implementation issues early,
+            while they can still be addressed through minor clarifications or
+            adjustments to drafting.
+          </p>
+
+          <h3>Request for Early Preview Access</h3>
+
+          <p>
+            We respectfully request early preview access to draft AGLC5 rules for
+            the purpose of software development and implementation testing. This
+            access would enable the Obiter project to:
+          </p>
+
+          <ul class="letter__list">
+            <li>
+              <strong>Support AGLC5 from day one of publication.</strong>
+              Obiter's architecture is already version-parameterised, with a dedicated
+              rules directory prepared for AGLC5. Early access would allow a working
+              implementation to be available to users on the date of publication,
+              eliminating the usual lag between a new edition and tool support.
+            </li>
+            <li>
+              <strong>Provide practical implementation feedback.</strong>
+              Translating citation rules into deterministic software logic is a rigorous
+              test of their clarity and completeness. Where a rule proves difficult to
+              automate within Microsoft Word &mdash; whether due to ambiguity, implicit
+              assumptions, or typographic constraints &mdash; we would provide structured
+              feedback to the Committee, identifying the specific issue and, where
+              possible, suggesting alternative formulations that preserve the rule's
+              intent while improving implementability.
+            </li>
+            <li>
+              <strong>Enable seamless transition for users.</strong>
+              Many AGLC users will need to migrate existing documents from AGLC4 to
+              AGLC5 formatting. Early access would allow Obiter to develop migration
+              tooling and validation checks that identify AGLC4-specific formatting and
+              guide users through the transition, reducing the burden on individual
+              researchers, students, and practitioners.
+            </li>
+          </ul>
+
+          <h3>Invitation to Collaborate</h3>
+
+          <p>
+            The Obiter project is open source and welcomes contributions from the
+            Committee, the Melbourne University Law Review, and the broader legal
+            community. We invite collaboration in whatever form is most appropriate:
+            from formal partnership to informal feedback on draft implementations.
+          </p>
+
+          <p>
+            We are prepared to offer technical resources and citation engine expertise
+            to support the AGLC5 development process. This includes detailed analysis
+            of how specific rules translate into software logic, identification of
+            edge cases that may benefit from additional guidance, and testing of draft
+            rules against real-world citation patterns drawn from Australian legal
+            scholarship.
+          </p>
+
+          <p>
+            The AGLC has been an indispensable resource for Australian legal citation
+            for over 25 years. We believe that AGLC5, developed with the benefit of
+            concurrent software implementation, can set a new standard not only for
+            citation accuracy but for citation accessibility.
+          </p>
+
+          <div class="letter__signature">
+            <p>Respectfully,</p>
+            <p><strong>Matthew Watt</strong><br>Author of Obiter</p>
+          </div>
+
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Co-signatories
+       ============================================================ -->
+  <section class="signatories-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Co-signatories</h2>
+        <p>
+          Legal academics, practitioners, and students who support this initiative
+          are invited to add their name.
+        </p>
+      </div>
+
+      <div class="signatories">
+        <div class="signatories__count" aria-live="polite">
+          <span id="signature-count">0</span> signatories
+        </div>
+
+        <div class="signatories__list" id="signatories-list">
+          <!-- Verified signatures are rendered here -->
+        </div>
+
+        <div class="signatories__form-wrapper">
+          <h3>Add Your Name</h3>
+          <form class="signature-form" id="signature-form">
+            <div class="form-group">
+              <label for="sig-name">Full Name</label>
+              <input type="text" id="sig-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="sig-title">Title / Position</label>
+              <input type="text" id="sig-title" name="title" required>
+            </div>
+            <div class="form-group">
+              <label for="sig-institution">Institution / Organisation</label>
+              <input type="text" id="sig-institution" name="institution" required>
+            </div>
+            <div class="form-group">
+              <label for="sig-email">Email <span class="form-hint">(for verification only &mdash; not displayed)</span></label>
+              <input type="email" id="sig-email" name="email" autocomplete="email" required>
+            </div>
+            <p class="form-note">
+              .edu.au email addresses are verified automatically. Other email domains
+              require brief manual review.
+            </p>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Add My Name</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Call to Action
+       ============================================================ -->
+  <section class="contribute-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Contribute to Obiter</h2>
+        <p>
+          Obiter is free, open-source, and built by the legal community for the
+          legal community.
+        </p>
+      </div>
+      <div class="contribute__actions">
+        <a href="https://github.com/karwalski/obiter" class="btn btn--primary" target="_blank" rel="noopener noreferrer">Contribute on GitHub</a>
+        <a href="contact.html" class="btn btn--secondary">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <!-- Placeholder: replace with actual AppSource URL once published -->
+        <li><a href="#">AppSource</a></li>
+        <!-- Placeholder: register at ko-fi.com and replace 'obiter' with your username -->
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var form = document.getElementById("signature-form");
+      if (!form) return;
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        var statusEl = form.querySelector(".form-status");
+        var submitBtn = form.querySelector('button[type="submit"]');
+
+        if (!statusEl || !submitBtn) return;
+
+        statusEl.className = "form-status";
+        statusEl.textContent = "";
+
+        var name = form.querySelector('input[name="name"]');
+        var title = form.querySelector('input[name="title"]');
+        var institution = form.querySelector('input[name="institution"]');
+        var email = form.querySelector('input[name="email"]');
+
+        if (!name.value.trim() || !title.value.trim() || !institution.value.trim() || !email.value.trim()) {
+          statusEl.className = "form-status form-status--error";
+          statusEl.textContent = "All fields are required.";
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting\u2026";
+
+        var payload = {
+          name: name.value.trim(),
+          title: title.value.trim(),
+          institution: institution.value.trim(),
+          email: email.value.trim()
+        };
+
+        fetch("/api/signatures", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("Server returned " + response.status);
+            }
+            return response.json();
+          })
+          .then(function () {
+            statusEl.className = "form-status form-status--success";
+            statusEl.textContent =
+              "A verification email has been sent to your address. Please click the link to confirm your signature.";
+            form.reset();
+          })
+          .catch(function () {
+            statusEl.className = "form-status form-status--error";
+            statusEl.textContent =
+              "Unable to submit your signature. Please try again or contact us directly.";
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Add My Name";
+          });
+      });
+
+      // Load existing signatures
+      fetch("/api/signatures")
+        .then(function (response) {
+          if (!response.ok) throw new Error("Failed to load signatures");
+          return response.json();
+        })
+        .then(function (data) {
+          var list = document.getElementById("signatories-list");
+          var countEl = document.getElementById("signature-count");
+          if (!list || !countEl || !data.signatures) return;
+
+          countEl.textContent = String(data.signatures.length);
+
+          data.signatures.forEach(function (sig) {
+            var entry = document.createElement("div");
+            entry.className = "signatory-entry";
+            entry.innerHTML =
+              "<strong>" + escapeHtml(sig.name) + "</strong><span>" + escapeHtml(sig.title) + "</span>";
+            list.appendChild(entry);
+          });
+        })
+        .catch(function () {
+          // Signatures will load when backend is available
+        });
+
+      function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+    })();
+  </script>
+</body>
+</html>

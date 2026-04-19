@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Obiter</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Admin-specific styles using existing CSS variables */
+
+    .admin-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--space-xl);
+    }
+
+    .admin-login__card {
+      background: var(--colour-bg);
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xxl);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .admin-login__card h1 {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-xl);
+      text-align: center;
+    }
+
+    .admin-dashboard {
+      display: none;
+      padding-top: 80px;
+      min-height: 100vh;
+    }
+
+    .admin-tabs {
+      display: flex;
+      gap: var(--space-sm);
+      border-bottom: 2px solid var(--colour-border);
+      margin-bottom: var(--space-xl);
+    }
+
+    .admin-tab {
+      padding: var(--space-md) var(--space-xl);
+      border: none;
+      background: none;
+      font-family: var(--font-ui);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--colour-text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .admin-tab:hover {
+      color: var(--colour-ink);
+    }
+
+    .admin-tab.is-active {
+      color: var(--colour-accent);
+      border-bottom-color: var(--colour-accent);
+    }
+
+    .admin-panel {
+      display: none;
+    }
+
+    .admin-panel.is-active {
+      display: block;
+    }
+
+    .admin-toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+    }
+
+    .admin-filter {
+      padding: 6px 12px;
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-ui);
+      font-size: 0.875rem;
+      background: var(--colour-bg);
+      color: var(--colour-ink);
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .admin-table th {
+      text-align: left;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 2px solid var(--colour-border);
+      font-weight: 600;
+      color: var(--colour-text-secondary);
+      white-space: nowrap;
+    }
+
+    .admin-table td {
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--colour-border);
+      vertical-align: top;
+    }
+
+    .admin-table tr:hover td {
+      background-color: var(--colour-surface);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge--pending {
+      background: #FFF3E0;
+      color: #E65100;
+    }
+
+    .status-badge--verified {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+
+    .status-badge--approved {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .status-badge--rejected {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+
+    .status-badge--unread {
+      background: #E3F2FD;
+      color: #1565C0;
+    }
+
+    .status-badge--read {
+      background: var(--colour-surface);
+      color: var(--colour-text-secondary);
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .admin-actions button {
+      padding: 4px 10px;
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-ui);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .btn-approve {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border-color: #A5D6A7;
+    }
+
+    .btn-approve:hover {
+      background: #C8E6C9;
+    }
+
+    .btn-reject {
+      background: #FFEBEE;
+      color: #C62828;
+      border-color: #EF9A9A;
+    }
+
+    .btn-reject:hover {
+      background: #FFCDD2;
+    }
+
+    .btn-mark-read {
+      background: var(--colour-surface);
+      color: var(--colour-text-secondary);
+      border-color: var(--colour-border);
+    }
+
+    .btn-mark-read:hover {
+      background: var(--colour-border);
+    }
+
+    .admin-empty {
+      text-align: center;
+      padding: var(--space-xxl);
+      color: var(--colour-text-secondary);
+    }
+
+    .admin-count {
+      font-size: 0.875rem;
+      color: var(--colour-text-secondary);
+    }
+
+    .admin-logout {
+      margin-left: auto;
+    }
+
+    .settings-form {
+      max-width: 480px;
+    }
+
+    .settings-form .form-group {
+      margin-bottom: var(--space-lg);
+    }
+
+    .message-cell {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .message-cell:hover {
+      white-space: normal;
+      overflow: visible;
+    }
+
+    @media (max-width: 768px) {
+      .admin-table {
+        font-size: 0.8125rem;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: var(--space-sm) var(--space-md);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       Login Screen
+       ============================================================ -->
+  <div class="admin-login" id="admin-login">
+    <div class="admin-login__card">
+      <h1>Admin</h1>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="admin-token">Token</label>
+          <input type="password" id="admin-token" name="token" autocomplete="off" required>
+        </div>
+        <div class="form-status" id="login-status" role="alert" aria-live="polite"></div>
+        <button type="submit" class="btn btn--primary" style="width: 100%; justify-content: center; margin-top: var(--space-lg);">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       Dashboard (hidden until authenticated)
+       ============================================================ -->
+  <nav class="site-nav" id="admin-nav" style="display: none;" aria-label="Admin navigation">
+    <div class="container">
+      <a href="admin.html" class="site-nav__brand">Obiter Admin</a>
+      <ul class="site-nav__links">
+        <li><a href="index.html">Back to site</a></li>
+        <li><a href="#" id="logout-link">Sign Out</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="admin-dashboard" id="admin-dashboard">
+    <div class="container">
+
+      <!-- Tabs -->
+      <div class="admin-tabs">
+        <button class="admin-tab is-active" data-tab="signatures">Signatures</button>
+        <button class="admin-tab" data-tab="contacts">Contacts</button>
+        <button class="admin-tab" data-tab="settings">Settings</button>
+      </div>
+
+      <!-- Signatures Panel -->
+      <div class="admin-panel is-active" id="panel-signatures">
+        <div class="admin-toolbar">
+          <select class="admin-filter" id="sig-filter">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="verified">Verified</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <span class="admin-count" id="sig-count"></span>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Title</th>
+              <th>Institution</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sig-tbody"></tbody>
+        </table>
+        <div class="admin-empty" id="sig-empty" style="display: none;">No signatures found.</div>
+      </div>
+
+      <!-- Contacts Panel -->
+      <div class="admin-panel" id="panel-contacts">
+        <div class="admin-toolbar">
+          <span class="admin-count" id="contact-count"></span>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Message</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="contact-tbody"></tbody>
+        </table>
+        <div class="admin-empty" id="contact-empty" style="display: none;">No contacts found.</div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="admin-panel" id="panel-settings">
+        <h3>Notification Settings</h3>
+        <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
+          Configure the admin email address used for receiving notifications.
+          This is set via the <code>ADMIN_EMAIL</code> environment variable on the server.
+        </p>
+        <div class="settings-form">
+          <div class="form-group">
+            <label>Server Environment Variables</label>
+            <p style="font-size: 0.875rem; color: var(--colour-text-secondary);">
+              <code>ADMIN_TOKEN</code> — Authentication token for this dashboard.<br>
+              <code>ADMIN_EMAIL</code> — Email address for admin notifications.<br>
+              <code>SITE_URL</code> — Public URL of the website (for verification links).<br>
+              <code>PORT</code> — Server port (default: 3001).
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    var API_BASE = "/api";
+    var token = sessionStorage.getItem("adminToken") || "";
+
+    // -------------------------------------------------------
+    // Elements
+    // -------------------------------------------------------
+
+    var loginScreen = document.getElementById("admin-login");
+    var dashboard = document.getElementById("admin-dashboard");
+    var adminNav = document.getElementById("admin-nav");
+    var loginForm = document.getElementById("login-form");
+    var loginStatus = document.getElementById("login-status");
+    var tokenInput = document.getElementById("admin-token");
+    var logoutLink = document.getElementById("logout-link");
+    var sigFilter = document.getElementById("sig-filter");
+    var sigTbody = document.getElementById("sig-tbody");
+    var sigCount = document.getElementById("sig-count");
+    var sigEmpty = document.getElementById("sig-empty");
+    var contactTbody = document.getElementById("contact-tbody");
+    var contactCount = document.getElementById("contact-count");
+    var contactEmpty = document.getElementById("contact-empty");
+
+    // -------------------------------------------------------
+    // Auth
+    // -------------------------------------------------------
+
+    function authHeaders() {
+      return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+    }
+
+    function showDashboard() {
+      loginScreen.style.display = "none";
+      dashboard.style.display = "block";
+      adminNav.style.display = "";
+      loadSignatures();
+      loadContacts();
+    }
+
+    function showLogin() {
+      loginScreen.style.display = "";
+      dashboard.style.display = "none";
+      adminNav.style.display = "none";
+      token = "";
+      sessionStorage.removeItem("adminToken");
+    }
+
+    // Auto-login if token is stored
+    if (token) {
+      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+        .then(function (r) {
+          if (r.ok) { showDashboard(); }
+          else { showLogin(); }
+        })
+        .catch(function () { showLogin(); });
+    }
+
+    loginForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      token = tokenInput.value.trim();
+      if (!token) return;
+
+      loginStatus.className = "form-status";
+      loginStatus.textContent = "";
+
+      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+        .then(function (r) {
+          if (r.ok) {
+            sessionStorage.setItem("adminToken", token);
+            showDashboard();
+          } else {
+            loginStatus.className = "form-status form-status--error";
+            loginStatus.textContent = "Invalid token.";
+            token = "";
+          }
+        })
+        .catch(function () {
+          loginStatus.className = "form-status form-status--error";
+          loginStatus.textContent = "Unable to connect to server.";
+          token = "";
+        });
+    });
+
+    logoutLink.addEventListener("click", function (e) {
+      e.preventDefault();
+      showLogin();
+    });
+
+    // -------------------------------------------------------
+    // Tabs
+    // -------------------------------------------------------
+
+    document.querySelectorAll(".admin-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        document.querySelectorAll(".admin-tab").forEach(function (t) { t.classList.remove("is-active"); });
+        document.querySelectorAll(".admin-panel").forEach(function (p) { p.classList.remove("is-active"); });
+        tab.classList.add("is-active");
+        document.getElementById("panel-" + tab.dataset.tab).classList.add("is-active");
+      });
+    });
+
+    // -------------------------------------------------------
+    // Signatures
+    // -------------------------------------------------------
+
+    var allSignatures = [];
+
+    function loadSignatures() {
+      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          allSignatures = data.signatures || [];
+          renderSignatures();
+        })
+        .catch(function (err) { console.error("Failed to load signatures:", err); });
+    }
+
+    function renderSignatures() {
+      var filter = sigFilter.value;
+      var filtered = filter === "all" ? allSignatures : allSignatures.filter(function (s) { return s.status === filter; });
+
+      sigCount.textContent = filtered.length + " signature" + (filtered.length !== 1 ? "s" : "");
+      sigEmpty.style.display = filtered.length === 0 ? "" : "none";
+
+      sigTbody.innerHTML = "";
+
+      filtered.forEach(function (sig) {
+        var tr = document.createElement("tr");
+        tr.innerHTML = [
+          "<td>" + esc(sig.name) + "</td>",
+          "<td>" + esc(sig.title) + "</td>",
+          "<td>" + esc(sig.institution || "") + "</td>",
+          "<td>" + esc(sig.email) + "</td>",
+          "<td><span class=\"status-badge status-badge--" + sig.status + "\">" + sig.status + "</span></td>",
+          "<td>" + formatDate(sig.created_at) + "</td>",
+          "<td class=\"admin-actions\">" + sigActions(sig) + "</td>"
+        ].join("");
+        sigTbody.appendChild(tr);
+      });
+
+      // Attach action handlers
+      sigTbody.querySelectorAll("[data-action]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var action = btn.dataset.action;
+          var id = btn.dataset.id;
+          fetch(API_BASE + "/admin/signatures/" + id + "/" + action, {
+            method: "POST",
+            headers: authHeaders()
+          })
+            .then(function (r) {
+              if (r.ok) { loadSignatures(); }
+            })
+            .catch(function (err) { console.error(err); });
+        });
+      });
+    }
+
+    function sigActions(sig) {
+      if (sig.status === "approved" || sig.status === "rejected") return "";
+      var btns = "";
+      if (sig.status === "verified" || sig.status === "pending") {
+        btns += "<button class=\"btn-approve\" data-action=\"approve\" data-id=\"" + sig.id + "\">Approve</button>";
+        btns += "<button class=\"btn-reject\" data-action=\"reject\" data-id=\"" + sig.id + "\">Reject</button>";
+      }
+      return btns;
+    }
+
+    sigFilter.addEventListener("change", renderSignatures);
+
+    // -------------------------------------------------------
+    // Contacts
+    // -------------------------------------------------------
+
+    function loadContacts() {
+      fetch(API_BASE + "/admin/contacts", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var contacts = data.contacts || [];
+          contactCount.textContent = contacts.length + " submission" + (contacts.length !== 1 ? "s" : "");
+          contactEmpty.style.display = contacts.length === 0 ? "" : "none";
+
+          contactTbody.innerHTML = "";
+
+          contacts.forEach(function (c) {
+            var tr = document.createElement("tr");
+            var readStatus = c.is_read ? "read" : "unread";
+            tr.innerHTML = [
+              "<td>" + esc(c.name) + "</td>",
+              "<td><a href=\"mailto:" + esc(c.email) + "\">" + esc(c.email) + "</a></td>",
+              "<td>" + esc(c.type) + "</td>",
+              "<td class=\"message-cell\" title=\"" + esc(c.message) + "\">" + esc(c.message) + "</td>",
+              "<td>" + formatDate(c.created_at) + "</td>",
+              "<td><span class=\"status-badge status-badge--" + readStatus + "\">" + readStatus + "</span></td>",
+              "<td class=\"admin-actions\">" + (c.is_read ? "" : "<button class=\"btn-mark-read\" data-contact-id=\"" + c.id + "\">Mark Read</button>") + "</td>"
+            ].join("");
+            contactTbody.appendChild(tr);
+          });
+
+          contactTbody.querySelectorAll("[data-contact-id]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              fetch(API_BASE + "/admin/contacts/" + btn.dataset.contactId + "/read", {
+                method: "POST",
+                headers: authHeaders()
+              })
+                .then(function (r) {
+                  if (r.ok) { loadContacts(); }
+                })
+                .catch(function (err) { console.error(err); });
+            });
+          });
+        })
+        .catch(function (err) { console.error("Failed to load contacts:", err); });
+    }
+
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    function esc(str) {
+      if (!str) return "";
+      var div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+    }
+  })();
+  </script>
+</body>
+</html>
