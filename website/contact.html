@@ -52,99 +52,57 @@
   </header>
 
   <!-- ============================================================
-       Contact Forms
+       Contact Form
        ============================================================ -->
   <section class="contact-section">
     <div class="container">
-      <div class="contact-forms">
-
-        <!-- General Enquiry -->
-        <div class="contact-form-card">
-          <h3>General Enquiry</h3>
-          <form class="contact-form" data-form-type="general">
-            <div class="form-group">
-              <label for="general-name">Name</label>
-              <input type="text" id="general-name" name="name" autocomplete="name" required>
-            </div>
-            <div class="form-group">
-              <label for="general-email">Email</label>
-              <input type="email" id="general-email" name="email" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="general-message">Message</label>
-              <textarea id="general-message" name="message" rows="5" required></textarea>
-            </div>
-            <div class="form-status" role="alert" aria-live="polite"></div>
-            <button type="submit" class="btn btn--primary">Submit</button>
-          </form>
-        </div>
-
-        <!-- Feedback -->
-        <div class="contact-form-card">
-          <h3>Feedback</h3>
-          <form class="contact-form" data-form-type="feedback">
-            <div class="form-group">
-              <label for="feedback-name">Name</label>
-              <input type="text" id="feedback-name" name="name" autocomplete="name" required>
-            </div>
-            <div class="form-group">
-              <label for="feedback-email">Email</label>
-              <input type="email" id="feedback-email" name="email" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="feedback-message">Message</label>
-              <textarea id="feedback-message" name="message" rows="5" required></textarea>
-            </div>
-            <div class="form-status" role="alert" aria-live="polite"></div>
-            <button type="submit" class="btn btn--primary">Submit</button>
-          </form>
-        </div>
-
-        <!-- Report Issue -->
-        <div class="contact-form-card">
-          <h3>Report Issue</h3>
-          <form class="contact-form" data-form-type="issue">
-            <div class="form-group">
-              <label for="issue-name">Name</label>
-              <input type="text" id="issue-name" name="name" autocomplete="name" required>
-            </div>
-            <div class="form-group">
-              <label for="issue-email">Email</label>
-              <input type="email" id="issue-email" name="email" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="issue-message">Message</label>
-              <textarea id="issue-message" name="message" rows="5" placeholder="Describe the issue, including steps to reproduce if possible." required></textarea>
-            </div>
-            <div class="form-status" role="alert" aria-live="polite"></div>
-            <button type="submit" class="btn btn--primary">Submit</button>
-          </form>
-        </div>
-
-        <!-- Request Enhancement -->
-        <div class="contact-form-card">
-          <h3>Request Enhancement</h3>
-          <form class="contact-form" data-form-type="enhancement">
-            <div class="form-group">
-              <label for="enhancement-name">Name</label>
-              <input type="text" id="enhancement-name" name="name" autocomplete="name" required>
-            </div>
-            <div class="form-group">
-              <label for="enhancement-email">Email</label>
-              <input type="email" id="enhancement-email" name="email" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-              <label for="enhancement-message">Message</label>
-              <textarea id="enhancement-message" name="message" rows="5" placeholder="Describe the feature or improvement you would like to see." required></textarea>
-            </div>
-            <div class="form-status" role="alert" aria-live="polite"></div>
-            <button type="submit" class="btn btn--primary">Submit</button>
-          </form>
-        </div>
-
+      <div class="contact-form-card" style="max-width: 640px; margin: 0 auto;">
+        <form class="contact-form" id="contact-form">
+          <div class="form-group">
+            <label for="contact-type">What can we help with?</label>
+            <select id="contact-type" name="type" required>
+              <option value="" disabled selected>Select a category</option>
+              <option value="general">General enquiry</option>
+              <option value="feedback">Feedback on Obiter</option>
+              <option value="issue">Report an issue</option>
+              <option value="enhancement">Request a feature or enhancement</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="contact-name">Name</label>
+            <input type="text" id="contact-name" name="name" autocomplete="name" required>
+          </div>
+          <div class="form-group">
+            <label for="contact-email">Email</label>
+            <input type="email" id="contact-email" name="email" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label for="contact-message" id="contact-message-label">Message</label>
+            <textarea id="contact-message" name="message" rows="6" required></textarea>
+          </div>
+          <div class="form-status" role="alert" aria-live="polite"></div>
+          <button type="submit" class="btn btn--primary">Send Message</button>
+        </form>
       </div>
     </div>
   </section>
+
+  <script>
+    // Dynamic placeholder based on selected type
+    var placeholders = {
+      general: "How can we help?",
+      feedback: "What do you think of Obiter? What works well, what could be improved?",
+      issue: "Describe the issue, including steps to reproduce if possible.",
+      enhancement: "Describe the feature or improvement you would like to see."
+    };
+    var typeSelect = document.getElementById("contact-type");
+    var messageField = document.getElementById("contact-message");
+    if (typeSelect && messageField) {
+      typeSelect.addEventListener("change", function () {
+        messageField.placeholder = placeholders[this.value] || "";
+      });
+    }
+  </script>
 
   <!-- ============================================================
        Footer

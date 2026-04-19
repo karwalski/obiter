@@ -15,7 +15,8 @@
  *
  * Environment variables:
  *   ADMIN_TOKEN=<random secure token for admin access>
- *   ADMIN_EMAIL=<your email for notifications>
+ *   ADMIN_EMAIL=mr.matthew.watt@gmail.com    (receives notifications)
+ *   SENDER_EMAIL=agent.matthew.watt@gmail.com (sends emails — must match OAuth account)
  *   SITE_URL=https://obiter.com.au
  *   GOOGLE_CREDENTIALS_PATH=/etc/obiter/google-credentials.json  (optional, default shown)
  *   GOOGLE_TOKEN_PATH=/etc/obiter/google-token.json              (optional, default shown)
@@ -106,7 +107,7 @@ async function getAuthClient() {
  * Build a raw RFC 2822 email message encoded in base64url.
  */
 function buildRawEmail(to, subject, htmlBody) {
-  var fromEmail = process.env.ADMIN_EMAIL || "noreply@obiter.com.au";
+  var fromEmail = process.env.SENDER_EMAIL || "agent.matthew.watt@gmail.com";
 
   var messageParts = [
     "From: Obiter <" + fromEmail + ">",

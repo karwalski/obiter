@@ -12,15 +12,24 @@ From *obiter dictum* — a remark in passing. Citations are the remarks that sup
 
 ---
 
-## Why Obiter?
+## Why Obiter Exists
 
-Nothing comparable exists. The closest tools — Zotero's community AGLC4 CSL style and EndNote's UTS output style — cover roughly 30% of AGLC4 source types, have known bugs with subsequent references and parallel citations, and cannot handle international materials (Parts IV–V). No existing Word add-in targets AGLC4 at all.
+AGLC4 has no working, comprehensive software implementation. Seven years after publication, this is the state of play:
 
-Obiter covers all ~80 source types across all 26 chapters, including:
-- Domestic cases and legislation (Chapters 2–3)
-- All secondary sources — journals, books, reports, Hansard, newspapers, interviews, social media (Chapters 4–7)
-- International materials — treaties, UN documents, ICJ, ICC, WTO, EU, ECHR (Chapters 8–14)
-- Foreign jurisdictions — Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, UK, USA (Chapters 15–26)
+**The official CSL style is frozen and deliberately narrow.** The AGLC4 CSL style in Zotero's official repository has not been updated since 2020. Its creator, Adam Smith, was candid about its scope: it was "deliberately scoped to cover Australian cases and legislation and wouldn't try to handle anything else." International materials (Rules 8--14) -- treaties, UN documents, ICJ, international arbitration, international criminal tribunals, and supranational materials -- have zero tool support. Smith's explanation is structural: "Zotero simply doesn't have the ability to properly store/identify such materials and so we can't implement them in any citation style."
+
+**The style is broken enough that users are generating patches with AI.** Two independent, AI-generated community patches for the AGLC4 CSL now exist on GitHub because no other mechanism has worked. One practitioner working on an 80,000-word research piece bypassed the official style entirely, recruiting Claude to produce a CSL patch because Zotero's style mangles dual MNC-plus-authorised-report citations (the format every Federal Court practitioner is required to produce under court practice directions like Supreme Court of Queensland Practice Direction 1 of 2024). A second researcher did the same with Claude Code in February 2026.
+
+**EndNote fares no better.** The UTS-developed AGLC4 EndNote style is the de facto national standard -- UWA, SCU, ECU, ANU, Macquarie, UTas, Wollongong, Notre Dame, Deakin, and ACU all redirect users to download UTS's files. Yet the UTS User Guide admits that EndNote "doesn't know what the required first footnote number is," so every `(n X)` cross-reference must be inserted as a Word cross-reference field by hand and re-pressed with F9 before submission. A custom Legal Reference Types Table had to be distributed separately because EndNote's default types do not include Case (Reported), Case (Medium Neutral), Statute, Treaty, Parliamentary Debate, Committee Report, Gazette, Legal Encyclopedia, or Looseleaf Service. Macquarie's LibGuide tells users to "Ignore Part 6: EndNote and Word -- categorising your reference list" and follow a divergent method -- institutional forking of the official guidance to route around tool limits.
+
+**The guide itself required early correction.** The AGLC4 Erratum, dated 29 July 2019, acknowledged errors on 17 pages of the 337-page guide within nine months of publication. If a portion of the printed guide required correction that quickly, the case for software-first review during drafting is difficult to dispute.
+
+**Five community repositories currently shoulder the gap** between AGLC4 and usable software (see [Community](#community) below). Obiter joins that effort as an open-source Word add-in that covers all ~80 source types across all 26 chapters, including:
+
+- Domestic cases and legislation (Chapters 2--3)
+- All secondary sources -- journals, books, reports, Hansard, newspapers, interviews, social media (Chapters 4--7)
+- International materials -- treaties, UN documents, ICJ, ICC, WTO, EU, ECHR (Chapters 8--14)
+- Foreign jurisdictions -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, UK, USA (Chapters 15--26)
 
 ## Features
 
@@ -50,13 +59,19 @@ Obiter covers all ~80 source types across all 26 chapters, including:
 
 | Feature | Obiter | Zotero + AGLC4 CSL | EndNote + UTS Style |
 |---------|--------|---------------------|---------------------|
-| AGLC4 source types | ~80 (all) | ~15 (AU only) | ~20 |
-| International materials | Yes (Parts IV–V) | No | No |
-| Foreign jurisdictions | 12 countries | No | No |
-| Automatic ibid | Full (Rule 1.4.3) | Partial (bugs) | Partial (manual) |
-| Cross-reference fields | Auto `(n X)` | Manual | Manual |
+| AGLC4 source types | ~80 (all) | ~15 (AU cases and legislation only; creator confirms style was deliberately scoped to exclude all else) | ~20 (custom Legal Reference Types Table required; default types lack Case, Statute, Treaty, Gazette, etc.) |
+| International materials (Rules 8--14) | Yes -- treaties, UN, ICJ, ICC, WTO, EU, ECHR | No ("Zotero simply doesn't have the ability to properly store/identify such materials") | No |
+| Foreign jurisdictions (Chs 15--26) | 12 countries | No | No |
+| Parallel citations (Rule 2.2.7) | Full (MNC + authorised report) | Broken -- populating both fields "mangles" output; two AI-generated community patches exist to work around it | No support |
+| Automatic ibid (Rule 1.4.3) | Full | Partial -- short titles rendered in italics when parent is roman (violating Rule 1.4.4); Bill type wraps subsequent refs in stray quotes | Partial (manual) |
+| Cross-reference fields `(n X)` | Auto-inserted, auto-renumbering | Manual | Manual -- UTS guide requires hand-inserted Word cross-reference for every `(n X)`, re-pressed with F9 before submission |
+| "Below n" references (Rule 1.4.2) | Supported | Architecturally impossible in CSL (processor is forward-only) | Not supported |
+| Jurisdiction-conditional brackets | Automatic (round vs square per reporter) | CSL spec forbids content-testing of variables; cannot express round-vs-square bracket rules | Not supported |
+| GenAI citation | Supported | No rule exists in AGLC4; interim guidance only (via Rule 7.12 analogy) | No rule exists |
 | Document validation | Full Ch 1 rules | No | No |
-| Bibliography generation | Automatic (Rule 1.13) | Partial | Partial |
+| Bibliography generation | Automatic (Rule 1.13) | Partial | Partial -- "some reference types may not be able to be categorised" |
+| Pandoc / LaTeX workflow | N/A (Word add-in) | CSL behaves differently in pandoc-citeproc vs citeproc-js due to deprecated `match` default | No |
+| Style last updated | Active development | 2020 (no updates in 6 years) | Maintained by UTS |
 | Works offline | Yes | Yes | Yes |
 | Price | Free (GPLv3) | Free | Institutional |
 
@@ -124,9 +139,23 @@ website/              Marketing site + backend (Node.js, SQLite, Gmail API)
 
 ## AGLC5
 
-Obiter's architecture is designed for a clean upgrade path to AGLC5. The rule engine is version-parameterised (`rules/v4/`, `rules/v5/`), and a one-click migration tool is planned.
+Obiter's architecture is designed for a clean upgrade path to AGLC5. The rule engine is version-parameterised (`rules/v4/`, `rules/v5/`), and a one-click migration tool is planned. On the AGLC's ~8-year edition cycle (1998, 2002, 2010, 2018), AGLC5 publication is most likely in late 2026 or 2027. See the [Community](#community) section for our open letter to the AGLC5 Committee.
 
-We have published an [open letter](https://obiter.com.au/aglc5.html) to the MULR and AGLC5 Committee requesting early preview access to draft rules, to ensure Obiter can support AGLC5 from day one of publication. If you support this initiative, please [add your name](https://obiter.com.au/aglc5.html).
+## Community
+
+Five open-source repositories currently shoulder the gap between AGLC4 and usable citation software:
+
+| Repository | Description |
+|------------|-------------|
+| [citation-style-language/styles](https://github.com/citation-style-language/styles) | The official AGLC4 CSL file. Last substantive update 2020. Covers Australian cases and legislation only. |
+| [LawData-user/zotero-aglc4](https://github.com/LawData-user/zotero-aglc4) | Claude-assisted CSL patch for dual MNC + authorised report citations, by a practitioner who describes the work as "not great... but functional for me." |
+| [ybanens/AGLC4-CSL-with-Case-fix](https://github.com/ybanens/AGLC4-CSL-with-Case-fix) | Claude Code-assisted CSL patch for the same case-citation problem (February 2026). |
+| [McJones/AGLCLaTeX](https://github.com/McJones/AGLCLaTeX) | LaTeX BibLaTeX implementation. Catalogues unsupported materials honestly; open issue since 2020 reports breakage on current TeX Live distributions. |
+| [cormacrelf/aglc4](https://github.com/cormacrelf/aglc4) | Cormac Relf's CSL fork with a test corpus, noting that "some of the error messages from citeproc-js are extremely unhelpful." |
+
+Obiter joins this ecosystem as the sixth major community effort and the only Word-native implementation.
+
+**AGLC5 Open Letter:** We have published an [open letter to the AGLC5 Committee](https://obiter.com.au/aglc5.html) requesting that draft rules be shared with tool implementers during the drafting phase. If you support this initiative, please [add your name](https://obiter.com.au/aglc5.html).
 
 ## Contributing
 

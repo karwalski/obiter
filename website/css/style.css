@@ -416,6 +416,77 @@ section:nth-child(even) {
 }
 
 /* ============================================================
+   Why Obiter?
+   ============================================================ */
+
+.why {
+  background-color: var(--colour-bg);
+}
+
+.why__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl);
+}
+
+.why-card {
+  background-color: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  transition: border-color var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+}
+
+.why-card:hover {
+  border-color: var(--colour-accent);
+}
+
+.why-card h3 {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+}
+
+.why-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-lg) 0;
+  flex-grow: 1;
+}
+
+.why-card ul li {
+  position: relative;
+  padding-left: var(--space-xl);
+  margin-bottom: var(--space-md);
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.why-card ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--colour-accent);
+}
+
+.why-card ul li:last-child {
+  margin-bottom: 0;
+}
+
+.why-card .btn {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* ============================================================
    How It Works
    ============================================================ */
 
@@ -978,6 +1049,12 @@ section:nth-child(even) {
 @media (max-width: 1024px) {
   .features__grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .why__grid {
+    grid-template-columns: 1fr;
+    max-width: 640px;
+    margin: 0 auto;
   }
 }
 

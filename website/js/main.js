@@ -53,7 +53,8 @@
 
       var statusEl = form.querySelector(".form-status");
       var submitBtn = form.querySelector('button[type="submit"]');
-      var formType = form.dataset.formType || "general";
+      var typeSelect = form.querySelector('select[name="type"]');
+      var formType = typeSelect ? typeSelect.value : (form.dataset.formType || "general");
 
       if (!statusEl || !submitBtn) return;
 
