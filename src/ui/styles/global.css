@@ -121,7 +121,6 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 320px;
   width: 100%;
 }
 
@@ -209,7 +208,10 @@ body {
 .obiter-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--space-lg) var(--space-md);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* View headings */
@@ -567,11 +569,12 @@ body {
 }
 
 .field-help-popover {
-  position: absolute;
-  top: calc(100% + var(--space-xs));
-  left: 0;
-  z-index: 100;
-  width: 240px;
+  position: fixed;
+  z-index: 200;
+  left: var(--space-lg);
+  right: var(--space-lg);
+  width: auto;
+  max-width: calc(100vw - 2 * var(--space-lg));
   padding: 10px;
   font-size: var(--text-sm);
   color: var(--colour-ink);
@@ -579,6 +582,7 @@ body {
   border: 1px solid var(--colour-border);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
 }
 
 .field-help-rule {
@@ -1581,4 +1585,145 @@ body {
 
 [data-theme="dark"] .ta-dropdown-error {
   color: #f1bbbc;
+}
+
+/* Library insert dropdown menu */
+.library-insert-wrapper {
+  display: inline-block;
+}
+
+.library-insert-menu {
+  background: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) 0;
+  margin-top: var(--space-sm);
+  box-sizing: border-box;
+}
+
+.library-insert-option {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--colour-ink);
+  cursor: pointer;
+}
+
+.library-insert-option:hover {
+  background: var(--colour-surface);
+}
+
+.library-insert-pinpoint {
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--colour-border);
+}
+
+.library-insert-pinpoint-input {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+}
+
+/* Citation Preview Editor */
+.citation-preview-formatted {
+  margin-bottom: var(--space-xs);
+}
+
+.citation-preview-edit-btn {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  padding: 0;
+  font-size: var(--text-xs);
+  color: var(--colour-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.citation-preview-edit-btn:hover {
+  color: var(--colour-accent-hover);
+}
+
+.citation-preview-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.citation-preview-textarea {
+  width: 100%;
+  padding: var(--space-sm);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--colour-ink);
+  background: var(--colour-surface);
+  border: 1px solid var(--colour-accent);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.citation-preview-textarea:focus {
+  outline: 2px solid var(--colour-accent);
+  outline-offset: 1px;
+}
+
+.citation-preview-warnings {
+  padding: var(--space-sm);
+  background: #fff8e1;
+  border-left: 3px solid var(--colour-warning);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
+
+[data-theme="dark"] .citation-preview-warnings {
+  background: #2a2000;
+}
+
+.citation-preview-warning {
+  color: var(--colour-warning);
+  margin-bottom: var(--space-xs);
+}
+
+.citation-preview-override-btn {
+  display: inline-block;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--colour-accent);
+  background: none;
+  border: 1px solid var(--colour-accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.citation-preview-override-active {
+  font-size: var(--text-xs);
+  color: var(--colour-success);
+  font-style: italic;
+}
+
+.citation-preview-done-btn {
+  align-self: flex-end;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+  color: #ffffff;
+  background: var(--colour-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.citation-preview-done-btn:hover {
+  background: var(--colour-accent-hover);
 }

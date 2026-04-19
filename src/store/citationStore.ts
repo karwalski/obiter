@@ -37,11 +37,14 @@ export class CitationStore {
       if (scopedParts.items.length > 0) {
         // Load existing store (use the first matching part)
         const part = scopedParts.items[0];
-        const xmlResult = part.getXml();
         part.load("id");
         await context.sync();
 
         this.xmlPartId = part.id;
+
+        const xmlResult = part.getXml();
+        await context.sync();
+
         this.storeData = deserializeStore(xmlResult.value);
       } else {
         // First use — create an empty store

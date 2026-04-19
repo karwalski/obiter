@@ -128,7 +128,9 @@ export async function refreshAllCitations(
     const footnoteNumber = i + 1;
 
     for (const cc of contentControls.items) {
-      if (cc.tag) {
+      if (cc.tag && !cc.tag.startsWith("obiter-")) {
+        // Only process citation content controls (UUIDs), not internal
+        // Obiter tags (obiter-heading-*, obiter-attribution)
         entries.push({
           cc,
           citationId: cc.tag,
@@ -182,9 +184,13 @@ export async function refreshAllCitations(
       entry.citationId,
     );
 
-    // Determine if same as preceding footnote's citation
+    // Determine if same as preceding footnote's citation.
+    // For ibid: the preceding footnote must contain exactly this citation
+    // (the count check is done in the resolver, but isSameAsPreceding must
+    // be true only if the citation actually appears in the preceding footnote)
     const isSameAsPreceding =
       prevFootnoteNumber === entry.footnoteNumber - 1 &&
+      prevFootnoteCitationIds.length > 0 &&
       prevFootnoteCitationIds.includes(entry.citationId);
 
     const firstFootnoteNumber = footnoteMap.get(entry.citationId) ?? entry.footnoteNumber;

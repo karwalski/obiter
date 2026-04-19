@@ -5,6 +5,20 @@
 
 /* global Word, Office */
 
+/** Tags used by Obiter for non-citation content controls. */
+const NON_CITATION_TAG_PREFIXES = [
+  "obiter-heading-",
+  "obiter-attribution",
+];
+
+/** Returns true if the tag looks like a citation ID (UUID), not an internal Obiter tag. */
+function isCitationTag(tag: string): boolean {
+  for (const prefix of NON_CITATION_TAG_PREFIXES) {
+    if (tag.startsWith(prefix)) return false;
+  }
+  return true;
+}
+
 /**
  * Callback invoked when the user selects or clicks into a citation content
  * control. Receives the citation ID extracted from the content control's tag.
@@ -43,9 +57,9 @@ export async function registerSelectionHandler(
         await context.sync();
 
         // Walk through all content controls at the selection and fire the
-        // callback for the first one that has a tag (citation ID).
+        // callback for the first one that has a citation tag (not heading/branding tags).
         for (const cc of contentControls.items) {
-          if (cc.tag) {
+          if (cc.tag && isCitationTag(cc.tag)) {
             onCitationSelected(cc.tag);
             return;
           }
@@ -57,7 +71,7 @@ export async function registerSelectionHandler(
         parentCC.load("tag,isNullObject");
         await context.sync();
 
-        if (!parentCC.isNullObject && parentCC.tag) {
+        if (!parentCC.isNullObject && parentCC.tag && isCitationTag(parentCC.tag)) {
           onCitationSelected(parentCC.tag);
         }
       });

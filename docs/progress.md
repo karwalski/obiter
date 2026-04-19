@@ -457,7 +457,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | WEB-003 | Contact forms — enquiry, feedback, report issue, request enhancement (Google API email) | FEATURE | DONE |
 | WEB-004 | Tip jar integration (Buy Me a Coffee / Ko-fi / GitHub Sponsors) | FEATURE | DONE |
 | WEB-005 | GitHub + AppSource links in footer and nav | FEATURE | DONE |
-| WEB-006 | Deploy to Lightsail (3.106.204.98) with nginx + SSL | FEATURE | NOT STARTED |
+| WEB-006 | Deploy to Lightsail (3.106.204.98) with nginx + SSL | FEATURE | DONE |
 | WEB-007 | CI/CD — auto-deploy website on push to main | FEATURE | NOT STARTED |
 
 ---
@@ -476,13 +476,26 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: NEXT — Next Priority Stories
+
+**Phase:** Post-backlog | **Stories:** 4 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| NEXT-001 | LLM check reference — select text, verify citation format with AI | FEATURE | DONE |
+| NEXT-002 | LLM settings UI — API key input, provider selector, test connection | FEATURE | DONE |
+| NEXT-003 | API proxy server — route AustLII/Jade/legislation search through Lightsail to bypass CORS | FEATURE | DONE |
+| NEXT-004 | Wire typeahead search to proxy endpoint instead of direct API calls | FEATURE | DONE |
+
+---
+
 ## EPIC: DEPLOY — Git Setup + Deployment
 
 **Phase:** Post-backlog | **Stories:** 3 | **Completed:** 0
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| DEPLOY-001 | Git init, commit all code, push to github.com/karwalski/obiter | FEATURE | NOT STARTED |
+| DEPLOY-001 | Git init, commit all code, push to github.com/karwalski/obiter | FEATURE | DONE |
 | DEPLOY-002 | GitHub Actions CI — lint, typecheck, test, build on PR | FEATURE | NOT STARTED |
 | DEPLOY-003 | Lightsail server setup — nginx, SSL, deploy pipeline for website | FEATURE | NOT STARTED |
 

@@ -8,6 +8,7 @@ import { validateDocument, ValidationIssue } from "../../engine/validator";
 import { CitationStore } from "../../store";
 import { ValidationResult } from "../../engine/validator";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
+import CheckReference from "../components/CheckReference";
 
 type FilterTab = "all" | "error" | "warning" | "info";
 
@@ -228,6 +229,9 @@ export default function Validation(): JSX.Element {
           <p>{formatError}</p>
         </div>
       )}
+
+      {/* Check Reference (LLM-powered) */}
+      <CheckReference />
 
       {/* Scanning state */}
       {scanning && (

@@ -30,6 +30,30 @@ Respond with ONLY valid JSON in this exact shape (no markdown fencing):
 
 If the citation is valid, return an empty issues array.`;
 
+const CHECK_REFERENCE_SYSTEM_PROMPT = `You are an expert in the Australian Guide to Legal Citation, 4th Edition (AGLC4).
+
+Given a piece of text that may contain one or more legal references or citations,
+identify the applicable AGLC4 rules and verify whether the text conforms to them.
+First determine what type of source is being cited (case, legislation, journal
+article, book, etc.), then check against the relevant AGLC4 rules. Check:
+- Correct order of elements
+- Correct punctuation and spacing
+- Correct use of italics (case names, legislation titles, book titles, etc.)
+- Correct abbreviation of report series, courts, and jurisdictions
+- Year format (round vs square brackets)
+- Pinpoint reference format
+- Short title formatting
+- Footnote formatting conventions
+
+Respond with ONLY valid JSON in this exact shape (no markdown fencing):
+{
+  "valid": true | false,
+  "issues": ["<description of each issue found>"],
+  "ruleReferences": ["<relevant AGLC4 rule numbers, e.g. '2.2.1', '1.4.3'>"]
+}
+
+If the text is valid, return an empty issues array.`;
+
 export interface VerificationResult {
   valid: boolean;
   issues: string[];
@@ -54,6 +78,32 @@ export async function verifyCitationFormat(
   const result = JSON.parse(cleaned) as VerificationResult;
 
   // Normalise: ensure arrays are present even if the LLM omits them.
+  result.issues = Array.isArray(result.issues) ? result.issues : [];
+  result.ruleReferences = Array.isArray(result.ruleReferences)
+    ? result.ruleReferences
+    : [];
+
+  return result;
+}
+
+/**
+ * NEXT-001: Ask the LLM to check a piece of selected text against all
+ * applicable AGLC4 rules, without requiring the caller to specify a rule
+ * number up-front. The LLM identifies the source type and relevant rules
+ * automatically.
+ */
+export async function checkReference(
+  text: string,
+  config: LLMConfig,
+): Promise<VerificationResult> {
+  const userPrompt = `Check the following text for AGLC4 compliance:\n\n${text}`;
+
+  const response = await callLlm(config, CHECK_REFERENCE_SYSTEM_PROMPT, userPrompt);
+
+  const cleaned = response.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
+
+  const result = JSON.parse(cleaned) as VerificationResult;
+
   result.issues = Array.isArray(result.issues) ? result.issues : [];
   result.ruleReferences = Array.isArray(result.ruleReferences)
     ? result.ruleReferences

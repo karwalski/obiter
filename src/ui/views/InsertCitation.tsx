@@ -13,7 +13,7 @@ import CitationPreview from "../components/CitationPreview";
 import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
-import { AustliiClient, JadeClient, FederalRegisterClient } from "../../api";
+import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyClient";
 import { LookupResult } from "../../api/types";
 
 // ─── Source Type Grouping ────────────────────────────────────────────────────
@@ -283,41 +283,18 @@ function asString(val: unknown): string {
   return typeof val === "string" ? val : "";
 }
 
-// ─── API Client Instances ────────────────────────────────────────────────────
-
-const austliiClient = new AustliiClient();
-const jadeClient = new JadeClient();
-const frlClient = new FederalRegisterClient();
+// ─── Proxy-Based Search Functions ────────────────────────────────────────────
 
 /**
- * Combined case search: queries AustLII and Jade in parallel, merges
- * and deduplicates by sourceId, then returns a single results array.
+ * Combined case search via the proxy server. Queries AustLII and Jade
+ * in parallel, merges and deduplicates by sourceId.
  */
-async function searchCases(query: string): Promise<LookupResult[]> {
-  const [austliiResults, jadeResults] = await Promise.all([
-    austliiClient.search(query).catch(() => [] as LookupResult[]),
-    jadeClient.search(query).catch(() => [] as LookupResult[]),
-  ]);
-
-  const seen = new Set<string>();
-  const merged: LookupResult[] = [];
-
-  for (const result of [...jadeResults, ...austliiResults]) {
-    if (!seen.has(result.sourceId)) {
-      seen.add(result.sourceId);
-      merged.push(result);
-    }
-  }
-
-  return merged;
-}
+const searchCases = searchCasesViaProxy;
 
 /**
- * Legislation search via the Federal Register of Legislation.
+ * Legislation search via the proxy server (Federal Register of Legislation).
  */
-async function searchLegislation(query: string): Promise<LookupResult[]> {
-  return frlClient.search(query);
-}
+const searchLegislation = searchLegislationViaProxy;
 
 // ─── Short Title Suggestion ──────────────────────────────────────────────────
 
@@ -515,7 +492,8 @@ export default function InsertCitation(): JSX.Element {
   const { triggerRefresh } = useCitationContext();
 
   const handleInsert = useCallback(async () => {
-    if (!selectedSourceType || previewRuns.length === 0) {
+    const overrideText = formData._overrideText as string | undefined;
+    if (!selectedSourceType || (previewRuns.length === 0 && !overrideText)) {
       setFeedback({ type: "error", message: "Please fill in the required fields." });
       return;
     }
@@ -538,6 +516,22 @@ export default function InsertCitation(): JSX.Element {
       };
 
       const store = await getStore();
+
+      // Handle override mode — user typed citation text directly
+      if (overrideText) {
+        const overrideRuns: FormattedRun[] = [{ text: overrideText }];
+        await store.add(citation);
+        const title = shortTitle || citation.sourceType;
+        await insertCitationFootnote(id, title, overrideRuns);
+        triggerRefresh();
+        setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
+        setFormData({});
+        setAuthors([{ givenNames: "", surname: "" }]);
+        setShortTitle("");
+        setShortTitleTouched(false);
+        setInserting(false);
+        return;
+      }
 
       // BUG-009: Check if a matching citation already exists in the store
       const existingCitations = store.getAll();
@@ -711,7 +705,18 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType && (
         <div className="ic-preview-section">
           <div className="ic-label">Preview</div>
-          <CitationPreview runs={previewRuns} />
+          <CitationPreview
+            runs={previewRuns}
+            sourceType={selectedSourceType as SourceType}
+            onParsed={(parsedData) => {
+              // Merge parsed fields into formData
+              setFormData((prev) => ({ ...prev, ...parsedData }));
+            }}
+            onOverride={(text) => {
+              // Store override text for direct insertion
+              setFormData((prev) => ({ ...prev, _overrideText: text }));
+            }}
+          />
         </div>
       )}
 

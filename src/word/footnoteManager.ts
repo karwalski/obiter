@@ -83,13 +83,29 @@ export async function insertCitationFootnote(
     const selection = context.document.getSelection();
     const noteItem = selection.insertFootnote("");
 
-    // Wrap the footnote body in a content control.
-    const cc = noteItem.body.insertContentControl("RichText");
+    // Get the first (auto-generated) paragraph in the footnote body.
+    // Word creates a paragraph with the footnote reference mark — we
+    // insert our citation text into that paragraph rather than wrapping
+    // the entire body, which would interfere with the reference number.
+    const paragraphs = noteItem.body.paragraphs;
+    paragraphs.load("items");
+    await context.sync();
+
+    const firstPara = paragraphs.items[0];
+
+    // Insert citation text at the end of the paragraph (after the
+    // footnote reference mark that Word auto-generates).
+    for (const run of formattedRuns) {
+      const range = firstPara.insertText(run.text, "End");
+      applyRunFormatting(range, run);
+    }
+
+    // Wrap the inserted text in a content control for tracking.
+    // Use the paragraph's content control to tag the citation.
+    const cc = firstPara.insertContentControl("RichText");
     cc.tag = citationId;
     cc.title = title;
-    cc.appearance = "BoundingBox";
-
-    writeFormattedRunsToControl(cc, formattedRuns);
+    cc.appearance = "Hidden" as Word.ContentControlAppearance;
 
     await context.sync();
   });

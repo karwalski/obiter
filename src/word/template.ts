@@ -6,41 +6,47 @@
 /* global Word */
 
 import { applyAglc4Styles } from "./styles";
-
-// ─── AGLC4 Document Template ────────────────────────────────────────────────
+import {
+  setDocumentMetadata,
+  loadTemplatePreferences,
+  type TemplatePreferences,
+} from "./documentMeta";
 
 /**
- * Applies a full AGLC4 document template to the active Word document.
- *
- * This sets up a document according to AGLC4 formatting conventions:
- * - Creates all AGLC4 named styles (via {@link applyAglc4Styles})
- * - Sets default body font to Times New Roman 12 pt
- * - Sets page margins to 2.54 cm (1 inch) on all sides per AGLC4
- * - Sets body text line spacing to double
- * - Sets footnote text to 10 pt single spacing
- * - Inserts title and author placeholders if the document body is empty
+ * Applies a full AGLC4 document template using the user's saved
+ * preferences (or defaults). Sets document metadata, applies styles,
+ * configures formatting, and optionally inserts title/author placeholders
+ * and the add-in notice.
  *
  * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @param prefsOverride - Optional preferences to use instead of saved ones.
  */
 export async function applyAglc4Template(
-  context: Word.RequestContext
+  context: Word.RequestContext,
+  prefsOverride?: Partial<TemplatePreferences>,
 ): Promise<void> {
-  // 1. Apply all AGLC4 named styles (may no-op if already applied)
+  const prefs = { ...loadTemplatePreferences(), ...prefsOverride };
+
+  // 1. Apply AGLC4 styles (heading formatting, block quote, etc.)
   try {
     await applyAglc4Styles(context);
   } catch {
-    // Styles may already exist from a previous application — continue
+    // Styles may already exist
   }
 
-  // 2. Set default font: Times New Roman 12 pt
-  const body = context.document.body;
-  body.font.name = "Times New Roman";
-  body.font.size = 12;
+  // 2. Set document metadata (custom properties)
+  try {
+    await setDocumentMetadata(context);
+  } catch {
+    // Custom properties API may not be available
+  }
 
-  // 3. Set page margins: 2.54 cm = 72 pt (1 inch) on all sides
-  //    WordApi exposes page dimensions via Section.body but direct margin
-  //    properties require WordApi 1.7+. We use a try/catch to gracefully
-  //    degrade on older runtimes.
+  // 3. Set default font
+  const body = context.document.body;
+  body.font.name = prefs.fontName;
+  body.font.size = prefs.fontSize;
+
+  // 4. Set page margins
   const sections = context.document.sections;
   sections.load("items");
   await context.sync();
@@ -51,47 +57,61 @@ export async function applyAglc4Template(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sectionAny = section as any;
       if (typeof sectionAny.setMargins === "function") {
-        sectionAny.setMargins(72, 72, 72, 72);
+        sectionAny.setMargins(prefs.marginPt, prefs.marginPt, prefs.marginPt, prefs.marginPt);
       }
     } catch {
-      // Margin setting not supported in this runtime — skip silently.
+      // Margin setting not supported
     }
   }
 
-  // 4. Set body line spacing to double (24 pt for 12 pt font)
+  // 5. Set body line spacing
   body.paragraphs.load("items");
   await context.sync();
 
   for (let i = 0; i < body.paragraphs.items.length; i++) {
     const para = body.paragraphs.items[i];
-    para.lineSpacing = 24;
-    try { para.lineUnitAfter = 0; } catch { /* WordApi 1.5 may not support */ }
-    try { para.lineUnitBefore = 0; } catch { /* WordApi 1.5 may not support */ }
+    para.lineSpacing = prefs.lineSpacing;
+    try { para.lineUnitAfter = 0; } catch { /* not supported */ }
+    try { para.lineUnitBefore = 0; } catch { /* not supported */ }
   }
 
-  // 5. Insert title and author placeholders if document is empty
+  // 6. Insert placeholders if document is empty
   body.load("text");
   await context.sync();
 
   const bodyText = body.text.trim();
   if (bodyText.length === 0) {
-    // Insert author placeholder first, then title above it
-    const authorPara = body.insertParagraph(
-      "[Author Name]",
-      Word.InsertLocation.start
-    );
-    authorPara.font.smallCaps = true;
-    authorPara.alignment = Word.Alignment.centered;
-    try { authorPara.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+    if (prefs.includeAuthor) {
+      const authorPara = body.insertParagraph(
+        "[Author Name]",
+        Word.InsertLocation.start,
+      );
+      authorPara.font.smallCaps = true;
+      authorPara.font.name = prefs.fontName;
+      authorPara.font.size = prefs.fontSize;
+      authorPara.alignment = Word.Alignment.centered;
+      try { authorPara.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+    }
 
-    const titlePara = body.insertParagraph(
-      "[Title]",
-      Word.InsertLocation.start
-    );
-    titlePara.font.bold = true;
-    titlePara.alignment = Word.Alignment.centered;
-    try { titlePara.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+    if (prefs.includeTitle) {
+      const titlePara = body.insertParagraph(
+        "[Title]",
+        Word.InsertLocation.start,
+      );
+      titlePara.font.bold = true;
+      titlePara.font.name = prefs.fontName;
+      titlePara.font.size = prefs.fontSize;
+      titlePara.alignment = Word.Alignment.centered;
+      try { titlePara.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+    }
 
     await context.sync();
   }
+
+  // 7. Add-in notice — skipped during template setup.
+  // The notice is only useful for recipients who don't have Obiter installed.
+  // It will be inserted when the document is shared/exported, not on creation,
+  // to avoid showing it to the author during editing.
+  // The document's custom properties (Obiter.ManagedDocument) serve as the
+  // machine-readable signal that this document uses Obiter.
 }

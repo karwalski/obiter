@@ -33,7 +33,7 @@ export async function buildFootnoteMap(
     const footnoteNumber = i + 1; // 1-based footnote numbering
 
     for (const cc of contentControls.items) {
-      if (cc.tag) {
+      if (cc.tag && !cc.tag.startsWith("obiter-")) {
         const existing = map.get(cc.tag);
         if (existing === undefined || footnoteNumber < existing) {
           map.set(cc.tag, footnoteNumber);

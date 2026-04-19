@@ -9,3 +9,4 @@ export { default as TypeaheadInput } from "./TypeaheadInput";
 export type { TypeaheadInputProps } from "./TypeaheadInput";
 export { default as CitationFinder } from "./CitationFinder";
 export type { CitationFinderProps } from "./CitationFinder";
+export { default as CheckReference } from "./CheckReference";

@@ -26,6 +26,11 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 
+// Ensure global fetch is available (Node < 22 may not have it built-in).
+if (typeof globalThis.fetch === "undefined") {
+  globalThis.fetch = require("node-fetch");
+}
+
 const db = require("./db");
 const { requireAdmin } = require("./auth");
 const email = require("./email");
@@ -381,6 +386,327 @@ function verificationPage(title, message, success) {
     "</html>"
   ].join("\n");
 }
+
+// -------------------------------------------------------
+// Proxy routes — CORS bypass for Word Add-in webview
+// (Story NEXT-003)
+// -------------------------------------------------------
+
+/**
+ * CORS middleware for proxy routes.
+ * Allows requests from the dev server and production domain.
+ */
+var proxyCors = cors({
+  origin: ["https://localhost:3000", "https://obiter.com.au"],
+  methods: ["GET"],
+});
+
+/** User-Agent header sent with all upstream proxy requests. */
+var PROXY_USER_AGENT = "Obiter-AGLC4-WordAddin/1.0";
+
+/** Minimum delay between consecutive requests per endpoint (milliseconds). */
+var PROXY_RATE_LIMIT_MS = 1000;
+
+/**
+ * Per-endpoint timestamps for rate-limit enforcement.
+ * Keys are endpoint names ("austlii", "jade", "legislation", "austlii-fetch").
+ */
+var lastProxyRequestTime = {};
+
+/**
+ * Enforce a minimum inter-request delay for the given endpoint.
+ * Returns a promise that resolves once it is safe to proceed.
+ */
+function waitForProxyRateLimit(endpoint) {
+  return new Promise(function (resolve) {
+    var now = Date.now();
+    var last = lastProxyRequestTime[endpoint] || 0;
+    var elapsed = now - last;
+    if (elapsed < PROXY_RATE_LIMIT_MS) {
+      setTimeout(function () {
+        lastProxyRequestTime[endpoint] = Date.now();
+        resolve();
+      }, PROXY_RATE_LIMIT_MS - elapsed);
+    } else {
+      lastProxyRequestTime[endpoint] = Date.now();
+      resolve();
+    }
+  });
+}
+
+/**
+ * Perform a rate-limited fetch to an upstream URL.
+ * Returns the Response object or null on failure.
+ */
+async function proxyFetch(endpoint, url, headers) {
+  await waitForProxyRateLimit(endpoint);
+  try {
+    var response = await fetch(url, { headers: headers });
+    return response;
+  } catch (err) {
+    return null;
+  }
+}
+
+// ------- AustLII HTML parsing helpers -------
+
+/**
+ * Parse AustLII search result HTML into an array of LookupResult objects.
+ * Uses regex-based extraction (no DOM parser available in Node).
+ */
+function parseAustliiSearchResults(html) {
+  var results = [];
+
+  // AustLII results are rendered as <li> items inside an <ol>.
+  // Each <li> contains an <a> with the title and href.
+  var liPattern = /<li[^>]*>([\s\S]*?)<\/li>/gi;
+  var anchorPattern = /<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/i;
+
+  var liMatch;
+  while ((liMatch = liPattern.exec(html)) !== null) {
+    var liContent = liMatch[1];
+    var anchorMatch = anchorPattern.exec(liContent);
+    if (!anchorMatch) continue;
+
+    var href = anchorMatch[1];
+    var title = anchorMatch[2].replace(/<[^>]+>/g, "").trim();
+    if (!title || !href) continue;
+
+    // Build sourceId from the path portion of the URL.
+    var sourceId = href;
+    try {
+      var parsed = new URL(href, "https://www.austlii.edu.au");
+      sourceId = parsed.pathname;
+    } catch (_e) {
+      // Keep href as-is.
+    }
+
+    // Snippet: strip HTML tags from the <li> content minus the title.
+    var fullText = liContent.replace(/<[^>]+>/g, "").trim();
+    var snippet = fullText.replace(title, "").trim().substring(0, 300);
+
+    results.push({
+      title: title,
+      snippet: snippet,
+      sourceId: sourceId,
+      confidence: 0.5,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Extract citation metadata from an AustLII document page.
+ */
+function parseAustliiDocumentPage(html, id) {
+  var record = {
+    sourceUrl: "https://www.austlii.edu.au" + id,
+  };
+
+  // Page title
+  var titleMatch = /<title>([\s\S]*?)<\/title>/i.exec(html);
+  if (titleMatch) {
+    record.title = titleMatch[1].trim();
+  }
+
+  // Medium neutral citation: [YYYY] CourtAbbrev Number
+  var mncPattern = /\[\d{4}]\s+[A-Z][A-Za-z]+\s+\d+/;
+  var bodyText = html.replace(/<[^>]+>/g, "");
+  var mncMatch = mncPattern.exec(bodyText);
+  if (mncMatch) {
+    record.mnc = mncMatch[0];
+  }
+
+  // Court — DC.Source meta tag
+  var courtMatch = /<meta\s+name="DC\.Source"\s+content="([^"]*)"/i.exec(html);
+  if (courtMatch && courtMatch[1]) {
+    record.court = courtMatch[1];
+  }
+
+  // Date — DC.Date or citation_date meta tag
+  var dateMatch = /<meta\s+name="DC\.Date"\s+content="([^"]*)"/i.exec(html) ||
+    /<meta\s+name="citation_date"\s+content="([^"]*)"/i.exec(html);
+  if (dateMatch && dateMatch[1]) {
+    record.date = dateMatch[1];
+  }
+
+  // Parties from page title (strip everything from "[" onwards)
+  if (record.title) {
+    var parties = record.title.replace(/\s*\[.*$/, "").trim();
+    if (parties) {
+      record.parties = parties;
+    }
+  }
+
+  return record;
+}
+
+/**
+ * GET /api/proxy/austlii?q=SEARCH_TERM
+ *
+ * Forwards the search to AustLII's sinosrch endpoint, parses the HTML
+ * results, and returns a JSON array of LookupResult objects.
+ */
+app.get("/api/proxy/austlii", proxyCors, async function (req, res) {
+  try {
+    var q = req.query.q;
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
+    }
+
+    var searchUrl = "https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query=" +
+      encodeURIComponent(String(q)) + "&meta=%2Fau";
+
+    var response = await proxyFetch("austlii", searchUrl, {
+      "User-Agent": PROXY_USER_AGENT,
+    });
+
+    if (!response || !response.ok) {
+      return res.json({ results: [], error: "Upstream request failed." });
+    }
+
+    var html = await response.text();
+    var results = parseAustliiSearchResults(html);
+
+    res.json({ results: results });
+  } catch (err) {
+    console.error("GET /api/proxy/austlii error:", err);
+    res.json({ results: [], error: "Internal proxy error." });
+  }
+});
+
+/**
+ * GET /api/proxy/austlii/fetch?id=URL_PATH
+ *
+ * Fetches a specific AustLII page and extracts citation metadata
+ * (case name, MNC, court, date, parties).
+ */
+app.get("/api/proxy/austlii/fetch", proxyCors, async function (req, res) {
+  try {
+    var id = req.query.id;
+    if (!id || !String(id).trim()) {
+      return res.status(400).json({ results: [], error: "Missing required parameter: id" });
+    }
+
+    var pageUrl = "https://www.austlii.edu.au" + String(id);
+
+    var response = await proxyFetch("austlii-fetch", pageUrl, {
+      "User-Agent": PROXY_USER_AGENT,
+    });
+
+    if (!response || !response.ok) {
+      return res.json({ results: [], error: "Upstream request failed." });
+    }
+
+    var html = await response.text();
+    var metadata = parseAustliiDocumentPage(html, String(id));
+
+    res.json(metadata);
+  } catch (err) {
+    console.error("GET /api/proxy/austlii/fetch error:", err);
+    res.json({ results: [], error: "Internal proxy error." });
+  }
+});
+
+/**
+ * GET /api/proxy/jade?q=SEARCH_TERM
+ *
+ * Forwards the search to Jade.io's API and returns JSON results
+ * matching the LookupResult interface.
+ */
+app.get("/api/proxy/jade", proxyCors, async function (req, res) {
+  try {
+    var q = req.query.q;
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
+    }
+
+    var searchUrl = "https://jade.io/api/search?q=" + encodeURIComponent(String(q));
+
+    var response = await proxyFetch("jade", searchUrl, {
+      "User-Agent": PROXY_USER_AGENT,
+      Accept: "application/json",
+    });
+
+    if (!response || !response.ok) {
+      return res.json({ results: [], error: "Upstream request failed." });
+    }
+
+    var data = await response.json();
+
+    // Parse results matching the Jade client's expected structure.
+    var results = [];
+    var items = (data && data.results) || [];
+    if (Array.isArray(items)) {
+      results = items
+        .filter(function (item) { return item !== null && typeof item === "object"; })
+        .map(function (item) {
+          return {
+            title: String(item.title || ""),
+            snippet: String(item.snippet || item.summary || ""),
+            sourceId: String(item.id || item.jadeId || ""),
+            confidence: typeof item.score === "number" ? item.score : 0.5,
+          };
+        });
+    }
+
+    res.json({ results: results });
+  } catch (err) {
+    console.error("GET /api/proxy/jade error:", err);
+    res.json({ results: [], error: "Internal proxy error." });
+  }
+});
+
+/**
+ * GET /api/proxy/legislation?q=SEARCH_TERM
+ *
+ * Forwards the search to the Federal Register of Legislation API
+ * and returns JSON results matching the LookupResult interface.
+ */
+app.get("/api/proxy/legislation", proxyCors, async function (req, res) {
+  try {
+    var q = req.query.q;
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
+    }
+
+    var searchUrl = "https://www.legislation.gov.au/api/search?q=" +
+      encodeURIComponent(String(q)) + "&type=legislation";
+
+    var response = await proxyFetch("legislation", searchUrl, {
+      "User-Agent": PROXY_USER_AGENT,
+      Accept: "application/json",
+    });
+
+    if (!response || !response.ok) {
+      return res.json({ results: [], error: "Upstream request failed." });
+    }
+
+    var data = await response.json();
+
+    // Parse results matching the FederalRegisterClient's expected structure.
+    var results = [];
+    var items = (data && (data.results || data.items)) || [];
+    if (Array.isArray(items)) {
+      results = items
+        .filter(function (item) { return item !== null && typeof item === "object"; })
+        .map(function (item) {
+          return {
+            title: String(item.title || item.name || ""),
+            snippet: String(item.snippet || item.description || ""),
+            sourceId: String(item.id || item.registerId || ""),
+            confidence: typeof item.score === "number" ? item.score : 0.5,
+          };
+        });
+    }
+
+    res.json({ results: results });
+  } catch (err) {
+    console.error("GET /api/proxy/legislation error:", err);
+    res.json({ results: [], error: "Internal proxy error." });
+  }
+});
 
 // -------------------------------------------------------
 // Start server

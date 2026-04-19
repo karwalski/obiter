@@ -172,58 +172,43 @@ export async function applyAglc4Styles(
     bibHeading.paragraphFormat.alignment = "Centered" as Word.Alignment;
   }
 
-  // ── AGLC4 Heading Levels I–V (Rule 1.12.2) ─────────────────────────────
+  // ── Modify built-in Heading 1–5 for AGLC4 (Rule 1.12.2) ────────────────
+  //
+  // Instead of creating new custom styles, we modify Word's built-in
+  // Heading 1-5 styles so they appear correctly in the styles pane
+  // and work with Word's built-in outline/navigation features.
 
-  // Level I: small caps, centred (I, II, III...)
-  const levelI = getOrCreateStyle("AGLC4 Level I", "Paragraph" as Word.StyleType);
-  if (levelI) {
-    levelI.font.smallCaps = true;
-    levelI.paragraphFormat.alignment = "Centered" as Word.Alignment;
-    levelI.paragraphFormat.outlineLevel = "OutlineLevel1" as Word.OutlineLevel;
+  const headingConfigs: Array<{
+    name: string;
+    italic: boolean;
+    smallCaps: boolean;
+    bold: boolean;
+    centered: boolean;
+  }> = [
+    { name: "Heading 1", italic: false, smallCaps: true,  bold: false, centered: true  },
+    { name: "Heading 2", italic: true,  smallCaps: false, bold: false, centered: true  },
+    { name: "Heading 3", italic: true,  smallCaps: false, bold: false, centered: false },
+    { name: "Heading 4", italic: true,  smallCaps: false, bold: false, centered: false },
+    { name: "Heading 5", italic: true,  smallCaps: false, bold: false, centered: false },
+  ];
+
+  for (const cfg of headingConfigs) {
+    try {
+      const style = doc.getStyles().getByName(cfg.name);
+      style.font.name = "Times New Roman";
+      style.font.size = 12;
+      style.font.italic = cfg.italic;
+      style.font.smallCaps = cfg.smallCaps;
+      style.font.bold = cfg.bold;
+      style.font.color = "black";
+      style.paragraphFormat.alignment = (cfg.centered ? "Centered" : "Left") as Word.Alignment;
+      style.paragraphFormat.spaceAfter = 12;
+      style.paragraphFormat.spaceBefore = 12;
+      await context.sync();
+    } catch {
+      // getStyles/getByName not available or style not found — skip
+    }
   }
-
-  // Level II: italic, centred (A, B, C...)
-  const levelII = getOrCreateStyle(
-    "AGLC4 Level II",
-    "Paragraph" as Word.StyleType
-  );
-  if (levelII) {
-    levelII.font.italic = true;
-    levelII.paragraphFormat.alignment = "Centered" as Word.Alignment;
-    levelII.paragraphFormat.outlineLevel = "OutlineLevel2" as Word.OutlineLevel;
-  }
-
-  // Level III: italic, left-aligned (1, 2, 3...)
-  const levelIII = getOrCreateStyle(
-    "AGLC4 Level III",
-    "Paragraph" as Word.StyleType
-  );
-  if (levelIII) {
-    levelIII.font.italic = true;
-    levelIII.paragraphFormat.alignment = "Left" as Word.Alignment;
-    levelIII.paragraphFormat.outlineLevel = "OutlineLevel3" as Word.OutlineLevel;
-  }
-
-  // Level IV: italic, left-aligned ((a), (b), (c)...)
-  const levelIV = getOrCreateStyle(
-    "AGLC4 Level IV",
-    "Paragraph" as Word.StyleType
-  );
-  if (levelIV) {
-    levelIV.font.italic = true;
-    levelIV.paragraphFormat.alignment = "Left" as Word.Alignment;
-    levelIV.paragraphFormat.outlineLevel = "OutlineLevel4" as Word.OutlineLevel;
-  }
-
-  // Level V: italic, left-aligned ((i), (ii), (iii)...)
-  const levelV = getOrCreateStyle("AGLC4 Level V", "Paragraph" as Word.StyleType);
-  if (levelV) {
-    levelV.font.italic = true;
-    levelV.paragraphFormat.alignment = "Left" as Word.Alignment;
-    levelV.paragraphFormat.outlineLevel = "OutlineLevel5" as Word.OutlineLevel;
-  }
-
-  await context.sync();
 }
 
 // ─── Multilevel Heading Numbering (Rule 1.12.2) ─────────────────────────────
@@ -287,10 +272,12 @@ export async function createAglc4HeadingList(
     list.setLevelStartingNumber(i, 1);
   }
 
-  // Set the paragraph to the correct list level (0-based)
-  paragraph.attachToList(list.id, level - 1);
-
+  // Sync to create the list and get its ID
   list.load("id");
+  await context.sync();
+
+  // Now attach the paragraph to the correct level (0-based)
+  paragraph.attachToList(list.id, level - 1);
   await context.sync();
 
   return list;
@@ -311,40 +298,152 @@ export async function createAglc4HeadingList(
  * @param number - The sequence number within that level (1-based).
  * @param existingListId - Optional ID of an existing AGLC4 heading list.
  */
+/**
+ * Tag prefix used on content controls to identify AGLC4 headings.
+ * The full tag is `obiter-heading-{level}` (e.g., `obiter-heading-1`).
+ */
+export const HEADING_TAG_PREFIX = "obiter-heading-";
+
 export async function applyHeadingLevel(
   context: Word.RequestContext,
   paragraph: Word.Paragraph,
   level: 1 | 2 | 3 | 4 | 5,
-  number: number,
-  existingListId?: number
+  _number?: number,
+  _existingListId?: number
 ): Promise<Word.List | undefined> {
-  // Apply the style first
-  paragraph.style = `AGLC4 Level ${toRoman(level)}`;
-
-  const canUseListApi = Office.context.requirements.isSetSupported("WordApi", "1.3");
-
-  if (canUseListApi) {
-    if (existingListId !== undefined) {
-      paragraph.attachToList(existingListId, level - 1);
-      await context.sync();
-      return undefined;
-    } else {
-      return createAglc4HeadingList(context, paragraph, level);
-    }
-  } else {
-    // Fallback: prepend numbering as plain text
-    paragraph.load("text");
+  // Use Word's built-in Heading styles. If applyAglc4Styles has been run,
+  // Strip any old text-based numbering prefixes from previous approaches
+  paragraph.load("text");
+  await context.sync();
+  const stripped = stripPrefix(paragraph.text, level);
+  if (stripped !== paragraph.text) {
+    paragraph.insertText(stripped, "Replace" as Word.InsertLocation.replace);
     await context.sync();
-
-    const prefix = getHeadingPrefix(level, number);
-    const currentText = paragraph.text;
-
-    // Avoid duplicating the prefix if already present
-    if (!currentText.startsWith(prefix)) {
-      const separator = currentText.length > 0 ? " " : "";
-      paragraph.insertText(`${prefix}${separator}`, "Start" as Word.InsertLocation.start);
-      await context.sync();
-    }
-    return undefined;
   }
+
+  // Remove any old heading content controls from previous approaches
+  const oldControls = paragraph.contentControls;
+  oldControls.load("items/tag");
+  await context.sync();
+  for (const cc of oldControls.items) {
+    if (cc.tag && cc.tag.startsWith(HEADING_TAG_PREFIX)) {
+      cc.delete(true); // keep content
+    }
+  }
+  if (oldControls.items.some((cc) => cc.tag?.startsWith(HEADING_TAG_PREFIX))) {
+    await context.sync();
+  }
+
+  // Apply built-in Heading style for outline level + styles pane
+  paragraph.style = `Heading ${level}`;
+
+  // Override formatting to match AGLC4 Rule 1.12.2
+  paragraph.font.italic = level >= 2;
+  paragraph.font.bold = false;
+  paragraph.font.smallCaps = level === 1;
+  paragraph.font.size = 12;
+  paragraph.font.name = "Times New Roman";
+  paragraph.font.color = "black";
+  paragraph.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
+
+  await context.sync();
+
+  // Use Word's multilevel list for real numbering
+  try {
+    if (_existingListId !== undefined) {
+      paragraph.attachToList(_existingListId, level - 1);
+      await context.sync();
+    } else {
+      // Create list, configure all 5 levels, then sync
+      const list = paragraph.startNewList();
+      list.setLevelNumbering(0, "UpperRoman" as Word.ListNumbering);
+      list.setLevelNumbering(1, "UpperLetter" as Word.ListNumbering);
+      list.setLevelNumbering(2, "Arabic" as Word.ListNumbering);
+      list.setLevelNumbering(3, "LowerLetter" as Word.ListNumbering, ["(", 3, ")"]);
+      list.setLevelNumbering(4, "LowerRoman" as Word.ListNumbering, ["(", 4, ")"]);
+      for (let i = 0; i < 5; i++) {
+        list.setLevelStartingNumber(i, 1);
+      }
+      list.load("id");
+      await context.sync();
+
+      // If applying to a level other than 1, re-attach at correct level
+      if (level > 1) {
+        paragraph.attachToList(list.id, level - 1);
+        await context.sync();
+      }
+
+      return list;
+    }
+  } catch {
+    // List API unavailable — no fallback numbering, just the style
+  }
+
+  return undefined;
+}
+
+/**
+ * Scans all content controls tagged as AGLC4 headings and renumbers
+ * them sequentially per Rule 1.12.2. Resets child-level counters
+ * when a parent level increments.
+ */
+export async function renumberAllHeadings(
+  context: Word.RequestContext,
+): Promise<number> {
+  const allControls = context.document.contentControls;
+  allControls.load("items/tag,items/text");
+  await context.sync();
+
+  // Collect heading controls in document order
+  const headings: Array<{ cc: Word.ContentControl; level: 1 | 2 | 3 | 4 | 5 }> = [];
+  for (const cc of allControls.items) {
+    if (cc.tag && cc.tag.startsWith(HEADING_TAG_PREFIX)) {
+      const lvl = parseInt(cc.tag.slice(HEADING_TAG_PREFIX.length), 10);
+      if (lvl >= 1 && lvl <= 5) {
+        headings.push({ cc, level: lvl as 1 | 2 | 3 | 4 | 5 });
+      }
+    }
+  }
+
+  if (headings.length === 0) return 0;
+
+  const counters = [0, 0, 0, 0, 0, 0]; // index 0 unused
+  let renumbered = 0;
+
+  for (const { cc, level } of headings) {
+    counters[level]++;
+    for (let child = level + 1; child <= 5; child++) {
+      counters[child] = 0;
+    }
+
+    const prefix = getHeadingPrefix(level, counters[level]);
+    const currentText = cc.text;
+
+    // Strip any existing prefix pattern
+    const stripped = stripPrefix(currentText, level);
+    const expectedText = stripped.length > 0 ? `${prefix} ${stripped}` : prefix;
+
+    if (currentText !== expectedText) {
+      cc.insertText(expectedText, "Replace" as Word.InsertLocation.replace);
+      renumbered++;
+    }
+  }
+
+  if (renumbered > 0) {
+    await context.sync();
+  }
+
+  return renumbered;
+}
+
+/** Strips an existing heading prefix from text. */
+function stripPrefix(text: string, level: number): string {
+  const patterns: RegExp[] = [
+    /^[IVXLCDM]+\s+/,     // Level 1: Upper Roman
+    /^[A-Z]\s+/,           // Level 2: Upper Letter
+    /^\d+\s+/,             // Level 3: Arabic
+    /^\([a-z]\)\s+/,       // Level 4: Lower letter in parens
+    /^\([ivxlcdm]+\)\s+/,  // Level 5: Lower Roman in parens
+  ];
+  return text.replace(patterns[level - 1], "");
 }

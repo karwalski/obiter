@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
 import { importWordSources } from "../../word/sourceImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
+import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
+import { formatCitation, getFormattedPreview } from "../../engine/engine";
+import type { CitationContext } from "../../engine/engine";
 import type { RefreshResult } from "../../word/citationRefresher";
 import type { Citation, SourceType } from "../../types/citation";
 import { useCitationContext } from "../context/CitationContext";
@@ -171,7 +174,7 @@ const store = new CitationStore();
 
 export default function CitationLibrary(): JSX.Element {
   const navigate = useNavigate();
-  const { setSelectedCitationId, refreshCounter } = useCitationContext();
+  const { setSelectedCitationId, refreshCounter, triggerRefresh } = useCitationContext();
   const [citations, setCitations] = useState<Citation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -262,19 +265,68 @@ export default function CitationLibrary(): JSX.Element {
     [navigate, setSelectedCitationId],
   );
 
-  const handleInsert = useCallback(async (citation: Citation) => {
-    try {
-      await Word.run(async (context) => {
-        const range = context.document.getSelection();
-        range.insertText(getCitationLabel(citation), Word.InsertLocation.replace);
-        await context.sync();
-      });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to insert citation";
-      setError(message);
-    }
-  }, []);
+  const [insertMenuId, setInsertMenuId] = useState<string | null>(null);
+  const [pinpointInput, setPinpointInput] = useState("");
+
+  const handleInsertAs = useCallback(
+    async (citation: Citation, mode: "full" | "short" | "ibid" | "auto") => {
+      try {
+        // Scan existing footnotes to build context
+        const existing = await getAllCitationFootnotes();
+        const firstFn = existing.find((e) => e.citationId === citation.id);
+        const totalFootnotes = existing.length;
+
+        // Determine preceding footnote's citations
+        const precedingCitations = existing.filter(
+          (e) => e.footnoteIndex === totalFootnotes
+        );
+
+        const isFirst = !firstFn;
+        const isSameAsPreceding =
+          precedingCitations.length === 1 &&
+          precedingCitations[0].citationId === citation.id;
+
+        let runs;
+        if (mode === "full" || isFirst) {
+          runs = getFormattedPreview(citation);
+        } else {
+          const ctx: CitationContext = {
+            footnoteNumber: totalFootnotes + 1,
+            isFirstCitation: false,
+            isSameAsPreceding: mode === "ibid" ? true : isSameAsPreceding,
+            precedingFootnoteCitationCount: precedingCitations.length,
+            currentPinpoint: pinpointInput
+              ? { type: "page", value: pinpointInput }
+              : undefined,
+            firstFootnoteNumber: firstFn?.footnoteIndex ?? 1,
+            isWithinSameFootnote: false,
+            formatPreference: mode,
+          };
+          const result = formatCitation(citation, ctx);
+          runs = result ?? getFormattedPreview(citation);
+        }
+
+        const title = citation.shortTitle || getCitationLabel(citation);
+        await insertCitationFootnote(citation.id, title, runs);
+
+        // Update store with firstFootnoteNumber if this is the first citation
+        if (isFirst) {
+          citation.firstFootnoteNumber = totalFootnotes + 1;
+          await store.update(citation);
+        }
+
+        setInsertMenuId(null);
+        setPinpointInput("");
+        triggerRefresh();
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to insert citation";
+        setError(message);
+        setInsertMenuId(null);
+      }
+    },
+    [pinpointInput, triggerRefresh],
+  );
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -492,9 +544,13 @@ export default function CitationLibrary(): JSX.Element {
                 </button>
                 <button
                   className="library-btn library-btn--insert"
-                  onClick={() => void handleInsert(citation)}
+                  onClick={() =>
+                    setInsertMenuId(
+                      insertMenuId === citation.id ? null : citation.id
+                    )
+                  }
                 >
-                  Insert
+                  Insert ▾
                 </button>
                 {deletingId === citation.id ? (
                   <span className="library-confirm">
@@ -521,6 +577,43 @@ export default function CitationLibrary(): JSX.Element {
                   </button>
                 )}
               </div>
+              {insertMenuId === citation.id && (
+                <div className="library-insert-menu">
+                  <button
+                    className="library-insert-option"
+                    onClick={() => void handleInsertAs(citation, "auto")}
+                  >
+                    Auto (full or short)
+                  </button>
+                  <button
+                    className="library-insert-option"
+                    onClick={() => void handleInsertAs(citation, "full")}
+                  >
+                    Full citation
+                  </button>
+                  <button
+                    className="library-insert-option"
+                    onClick={() => void handleInsertAs(citation, "short")}
+                  >
+                    Short reference (n {citation.firstFootnoteNumber ?? "X"})
+                  </button>
+                  <button
+                    className="library-insert-option"
+                    onClick={() => void handleInsertAs(citation, "ibid")}
+                  >
+                    Ibid
+                  </button>
+                  <div className="library-insert-pinpoint">
+                    <input
+                      type="text"
+                      placeholder="Pinpoint (eg 42, [23])"
+                      value={pinpointInput}
+                      onChange={(e) => setPinpointInput(e.target.value)}
+                      className="library-insert-pinpoint-input"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

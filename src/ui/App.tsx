@@ -18,10 +18,21 @@ import Settings from "./views/Settings";
 import { CitationProvider } from "./context/CitationContext";
 import "./styles/global.css";
 
+/** Map URL hash fragments from manifest ribbon buttons to routes. */
+function getInitialRoute(): string {
+  try {
+    const hash = window.location.hash.replace("#", "/");
+    if (hash && hash !== "/") return hash;
+  } catch { /* ignore */ }
+  return "/";
+}
+
 function App(): JSX.Element {
+  const initialRoute = getInitialRoute();
+
   return (
     <CitationProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialRoute]}>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<InsertCitation />} />

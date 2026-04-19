@@ -159,11 +159,30 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches an unreported case with MNC (Rule 2.3.1).
+ */
+function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.party1 as string) ?? "",
+    (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+  const runs: FormattedRun[] = [...caseName];
+  runs.push({ text: ` [${d.year}] ${d.court ?? ""} ${d.caseNumber ?? ""}` });
+  if (d.pinpoint) {
+    runs.push({ text: `, ${(d.pinpoint as Pinpoint).value}` });
+  }
+  return runs;
+}
+
+/**
  * Registry mapping each supported SourceType to its dispatch function.
  * Source types not in this map fall through to the generic formatter.
  */
 const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "case.reported": dispatchReportedCase,
+  "case.unreported.mnc": dispatchUnreportedMnc,
   "legislation.statute": dispatchStatute,
   "journal.article": dispatchJournalArticle,
   book: dispatchBook,

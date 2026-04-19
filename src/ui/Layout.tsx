@@ -44,7 +44,7 @@ export default function Layout(): JSX.Element {
         <Outlet />
       </main>
       <footer className="obiter-footer">
-        <a href="#" target="_blank" rel="noopener noreferrer">
+        <a href="https://obiter.com.au" target="_blank" rel="noopener noreferrer">
           Obiter v0.1.0
         </a>
         <span>Watt, Matthew 2026</span>

@@ -6,15 +6,27 @@
 import { useEffect, useState, useCallback } from "react";
 import { CitationStore } from "../../store";
 import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
-import { getInstallInstructions } from "../../word/styleInstaller";
+// styleInstaller import removed — XSL now downloaded via button
 import { applyAglc4Styles, applyHeadingLevel } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
+import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
+import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
+import { useCitationContext } from "../context/CitationContext";
+import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback } from "../../debug";
 
 type AglcVersion = "4" | "5";
 
+const LLM_MODELS: Record<"openai" | "anthropic", string[]> = {
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+  anthropic: ["claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
+};
+
 const store = new CitationStore();
+
+/** Persists the AGLC4 heading list ID across button clicks so all headings join the same list. */
+let aglcHeadingListId: number | undefined;
 
 /** Read a setting, using Office.context.document.settings (Word) with localStorage fallback. */
 function getSetting(key: string): unknown {
@@ -49,6 +61,22 @@ export default function Settings(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formatStatus, setFormatStatus] = useState<string | null>(null);
+  const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
+  const { autoRefreshEnabled: _are, setAutoRefreshEnabled } = useCitationContext();
+  const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
+  const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
+  const [debugLogs, setDebugLogs] = useState<ReturnType<typeof getLogHistory>>([]);
+  const [testStatus, setTestStatus] = useState<string | null>(null);
+
+  // LLM configuration state
+  const [llmProvider, setLlmProvider] = useState<LLMConfig["provider"]>("openai");
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmModel, setLlmModel] = useState("gpt-4o");
+  const [llmEndpoint, setLlmEndpoint] = useState("");
+  const [llmMaxTokens, setLlmMaxTokens] = useState(1024);
+  const [llmEnabled, setLlmEnabled] = useState(false);
+  const [llmTestStatus, setLlmTestStatus] = useState<string | null>(null);
+  const [llmSaveStatus, setLlmSaveStatus] = useState<string | null>(null);
 
   const {
     currentVersion,
@@ -75,6 +103,23 @@ export default function Settings(): JSX.Element {
           const savedPref = getSetting("obiter-showAttribution");
           const prefValue = savedPref === undefined || savedPref === null ? true : (savedPref as boolean);
           setShowAttribution(prefValue);
+
+          // Load auto-refresh preference
+          const savedAutoRefresh = getSetting("obiter-autoRefresh");
+          const autoRefreshValue = savedAutoRefresh === undefined || savedAutoRefresh === null ? true : (savedAutoRefresh as boolean);
+          setAutoRefreshCitations(autoRefreshValue);
+          setAutoRefreshEnabled(autoRefreshValue);
+
+          // Load LLM configuration
+          const savedLlmConfig = loadLlmConfig();
+          if (savedLlmConfig) {
+            setLlmProvider(savedLlmConfig.provider);
+            setLlmApiKey(savedLlmConfig.apiKey);
+            setLlmModel(savedLlmConfig.model);
+            setLlmEndpoint(savedLlmConfig.endpoint ?? "");
+            setLlmMaxTokens(savedLlmConfig.maxTokens);
+            setLlmEnabled(savedLlmConfig.enabled);
+          }
 
           // Check current document for existing attribution
           await Word.run(async (context) => {
@@ -167,20 +212,17 @@ export default function Settings(): JSX.Element {
         selection.load("paragraphs");
         await context.sync();
 
-        let existingListId: number | undefined;
-
         for (let i = 0; i < selection.paragraphs.items.length; i++) {
           const para = selection.paragraphs.items[i];
-          const sequenceNumber = i + 1;
           const list = await applyHeadingLevel(
             context,
             para,
             numericLevel,
-            sequenceNumber,
-            existingListId
+            i + 1,
+            aglcHeadingListId
           );
-          if (list && existingListId === undefined) {
-            existingListId = list.id;
+          if (list && aglcHeadingListId === undefined) {
+            aglcHeadingListId = list.id;
           }
         }
       });
@@ -274,6 +316,40 @@ export default function Settings(): JSX.Element {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Citation Management</legend>
+
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={autoRefreshCitations}
+            onChange={(e) => {
+              setAutoRefreshCitations(e.target.checked);
+              setAutoRefreshEnabled(e.target.checked);
+              setSetting("obiter-autoRefresh", e.target.checked);
+            }}
+          />
+          <span className="settings-toggle-label">
+            Auto-refresh ibid and subsequent references
+          </span>
+        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          Automatically updates ibid, short references, and cross-reference
+          numbers when footnotes are added, moved, or deleted.
+        </p>
+      </fieldset>
+
+      <details style={{ marginTop: 16 }}>
+        <summary style={{
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          color: "var(--colour-text-secondary)",
+          padding: "var(--space-sm) 0",
+        }}>
+          Advanced Settings
+        </summary>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Branding</legend>
 
         <label className="settings-toggle">
@@ -299,18 +375,156 @@ export default function Settings(): JSX.Element {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <button
             className="bib-insert-btn"
-            onClick={() => void handleApplyStyles()}
+            onClick={async () => {
+              try {
+                setFormatStatus(null);
+                await Word.run(async (context) => {
+                  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+                  await applyAglc4Template(context);
+                });
+                setFormatStatus("Document set up with AGLC4 styles and template.");
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Setup failed");
+              }
+            }}
           >
-            Apply AGLC4 Styles
+            Set Up Document (Styles + Template)
           </button>
-
-          <button
-            className="bib-insert-btn"
-            onClick={() => void handleApplyTemplate()}
-          >
-            Apply AGLC4 Template
-          </button>
+          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 4px" }}>
+            Applies AGLC4 heading styles, template formatting, document metadata,
+            and add-in notice. Runs automatically on new documents.
+          </p>
         </div>
+
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ fontSize: 12, cursor: "pointer", color: "var(--colour-accent)" }}>
+            Customise template defaults
+          </summary>
+          <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 11 }}>
+              Font
+              <select
+                className="ic-select"
+                style={{ marginLeft: 8, width: "auto" }}
+                value={templatePrefs.fontName}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, fontName: e.target.value };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              >
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Calibri">Calibri</option>
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Garamond">Garamond</option>
+              </select>
+            </label>
+            <label style={{ fontSize: 11 }}>
+              Font size
+              <select
+                className="ic-select"
+                style={{ marginLeft: 8, width: "auto" }}
+                value={templatePrefs.fontSize}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, fontSize: Number(e.target.value) };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              >
+                <option value={10}>10pt</option>
+                <option value={11}>11pt</option>
+                <option value={12}>12pt</option>
+                <option value={13}>13pt</option>
+                <option value={14}>14pt</option>
+              </select>
+            </label>
+            <label style={{ fontSize: 11 }}>
+              Line spacing
+              <select
+                className="ic-select"
+                style={{ marginLeft: 8, width: "auto" }}
+                value={templatePrefs.lineSpacing}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, lineSpacing: Number(e.target.value) };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              >
+                <option value={12}>Single</option>
+                <option value={18}>1.5</option>
+                <option value={24}>Double</option>
+              </select>
+            </label>
+            <label style={{ fontSize: 11 }}>
+              <input
+                type="checkbox"
+                checked={templatePrefs.includeTitle}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, includeTitle: e.target.checked };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              />
+              {" "}Include title placeholder
+            </label>
+            <label style={{ fontSize: 11 }}>
+              <input
+                type="checkbox"
+                checked={templatePrefs.includeAuthor}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, includeAuthor: e.target.checked };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              />
+              {" "}Include author placeholder
+            </label>
+            <label style={{ fontSize: 11 }}>
+              <input
+                type="checkbox"
+                checked={templatePrefs.includeNotice}
+                onChange={(e) => {
+                  const updated = { ...templatePrefs, includeNotice: e.target.checked };
+                  setTemplatePrefs(updated);
+                  saveTemplatePreferences(updated);
+                }}
+              />
+              {" "}Include install notice in templates
+            </label>
+
+            <button
+              className="library-btn library-btn--insert"
+              style={{ marginTop: 8, width: "100%" }}
+              onClick={async () => {
+                try {
+                  setFormatStatus(null);
+                  const { prepareAsTemplate } = await import("../../word/templateExporter");
+                  await Word.run(async (context) => {
+                    try { await applyAglc4Styles(context); } catch { /* */ }
+                    await applyAglc4Template(context);
+                    await prepareAsTemplate(context);
+                  });
+                  setFormatStatus(
+                    "Template prepared. Save as .dotx: File > Save As > " +
+                    "choose 'Word Template (.dotx)'. New documents created " +
+                    "from this template will have AGLC4 formatting pre-configured."
+                  );
+                } catch (err: unknown) {
+                  setError(err instanceof Error ? err.message : "Failed to prepare template");
+                }
+              }}
+            >
+              Prepare as Template (.dotx)
+            </button>
+            <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+              Sets up AGLC4 styles, formatting, and an install notice, then
+              prompts you to save as a Word Template. New documents created
+              from this template inherit all AGLC4 formatting.
+              The install notice is automatically removed when Obiter is loaded.
+            </p>
+          </div>
+        </details>
 
         <p style={{ fontSize: 12, fontWeight: 600, margin: "12px 0 4px", color: "var(--colour-text-secondary)" }}>
           Heading Levels
@@ -341,29 +555,51 @@ export default function Settings(): JSX.Element {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">Built-in Style Picker</legend>
+        <legend className="settings-section-title">Word Citation Style (Optional)</legend>
 
         <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
-          Obiter includes an AGLC4.xsl file that adds AGLC4 to
-          Word&rsquo;s built-in <strong>References &gt; Style</strong> dropdown.
-          This is optional &mdash; the add-in works without it &mdash; but it
-          lets you use Word&rsquo;s native citation tools with AGLC4 formatting.
+          Add AGLC4 to Word&rsquo;s built-in <strong>References &gt; Style</strong> dropdown.
+          This is optional &mdash; Obiter&rsquo;s own citation tools are more capable.
         </p>
 
-        <pre
-          style={{
-            fontSize: 11,
-            background: "var(--colour-surface)",
-            color: "var(--colour-ink)",
-            padding: 8,
-            borderRadius: 4,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            lineHeight: 1.5,
+        <button
+          className="library-btn library-btn--insert"
+          onClick={async () => {
+            try {
+              // Fetch the real XSL from the same server hosting the add-in
+              const response = await fetch("/AGLC4.xsl");
+              let xslContent: string;
+              if (response.ok) {
+                xslContent = await response.text();
+              } else {
+                // Fallback: direct the user to the website
+                window.open("https://obiter.com.au/AGLC4.xsl", "_blank");
+                setFormatStatus("Download started from obiter.com.au.");
+                return;
+              }
+              const blob = new Blob([xslContent], { type: "application/xml" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "AGLC4.xsl";
+              a.click();
+              URL.revokeObjectURL(url);
+              setFormatStatus(
+                "AGLC4.xsl downloaded. Copy it to Word's Style folder and restart Word."
+              );
+            } catch {
+              window.open("https://obiter.com.au", "_blank");
+              setFormatStatus("Visit obiter.com.au to download the style file.");
+            }
           }}
         >
-          {getInstallInstructions()}
-        </pre>
+          Download AGLC4.xsl
+        </button>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          After downloading, copy to Word&rsquo;s Style folder and restart Word.
+          See <a href="https://obiter.com.au" target="_blank" rel="noopener noreferrer" style={{ color: "var(--colour-accent)" }}>obiter.com.au</a> for
+          step-by-step instructions.
+        </p>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
@@ -424,6 +660,280 @@ export default function Settings(): JSX.Element {
           </ol>
         </details>
       </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">LLM Integration (Optional)</legend>
+
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={llmEnabled}
+            onChange={(e) => setLlmEnabled(e.target.checked)}
+          />
+          <span className="settings-toggle-label">
+            Enable LLM integration
+          </span>
+        </label>
+
+        <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+          Provider
+          <select
+            className="ic-select"
+            style={{ width: "100%", marginTop: 4 }}
+            value={llmProvider}
+            onChange={(e) => {
+              const provider = e.target.value as LLMConfig["provider"];
+              setLlmProvider(provider);
+              if (provider !== "custom") {
+                setLlmModel(LLM_MODELS[provider][0]);
+              } else {
+                setLlmModel("");
+              }
+            }}
+          >
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="custom">Custom</option>
+          </select>
+        </label>
+
+        <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+          API Key
+          <input
+            type="password"
+            className="ic-input"
+            style={{ width: "100%", marginTop: 4 }}
+            value={llmApiKey}
+            onChange={(e) => setLlmApiKey(e.target.value)}
+            placeholder="sk-..."
+          />
+        </label>
+
+        <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+          Model
+          {llmProvider === "custom" ? (
+            <input
+              type="text"
+              className="ic-input"
+              style={{ width: "100%", marginTop: 4 }}
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+              placeholder="Enter model name"
+            />
+          ) : (
+            <select
+              className="ic-select"
+              style={{ width: "100%", marginTop: 4 }}
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+            >
+              {LLM_MODELS[llmProvider].map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          )}
+        </label>
+
+        {llmProvider === "custom" && (
+          <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+            Custom Endpoint
+            <input
+              type="text"
+              className="ic-input"
+              style={{ width: "100%", marginTop: 4 }}
+              value={llmEndpoint}
+              onChange={(e) => setLlmEndpoint(e.target.value)}
+              placeholder="https://api.example.com/v1/chat"
+            />
+          </label>
+        )}
+
+        <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+          Max Tokens
+          <input
+            type="number"
+            className="ic-input"
+            style={{ width: "100%", marginTop: 4 }}
+            value={llmMaxTokens}
+            min={1}
+            onChange={(e) => setLlmMaxTokens(Number(e.target.value) || 1024)}
+          />
+        </label>
+
+        <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+          <button
+            className="library-btn library-btn--insert"
+            onClick={async () => {
+              setLlmTestStatus("Testing...");
+              const config: LLMConfig = {
+                provider: llmProvider,
+                apiKey: llmApiKey,
+                model: llmModel,
+                endpoint: llmProvider === "custom" ? llmEndpoint : undefined,
+                maxTokens: llmMaxTokens,
+                enabled: llmEnabled,
+              };
+              const ok = await testConnection(config);
+              setLlmTestStatus(ok ? "Connected" : "Failed");
+            }}
+          >
+            Test Connection
+          </button>
+          <button
+            className="library-btn library-btn--insert"
+            onClick={() => {
+              const config: LLMConfig = {
+                provider: llmProvider,
+                apiKey: llmApiKey,
+                model: llmModel,
+                endpoint: llmProvider === "custom" ? llmEndpoint : undefined,
+                maxTokens: llmMaxTokens,
+                enabled: llmEnabled,
+              };
+              saveLlmConfig(config);
+              setLlmSaveStatus("Saved");
+              setTimeout(() => setLlmSaveStatus(null), 2000);
+            }}
+          >
+            Save
+          </button>
+        </div>
+
+        {llmTestStatus && (
+          <p style={{
+            fontSize: 11,
+            margin: "6px 0 0",
+            color: llmTestStatus === "Connected" ? "var(--colour-success)"
+              : llmTestStatus === "Testing..." ? "var(--colour-text-secondary)"
+              : "var(--colour-error)",
+          }}>
+            {llmTestStatus}
+          </p>
+        )}
+
+        {llmSaveStatus && (
+          <p style={{ fontSize: 11, margin: "6px 0 0", color: "var(--colour-success)" }}>
+            {llmSaveStatus}
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Debug</legend>
+
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={debugEnabled}
+            onChange={(e) => {
+              if (e.target.checked) {
+                enableDebug();
+              } else {
+                disableDebug();
+              }
+              setDebugEnabled(e.target.checked);
+            }}
+          />
+          <span className="settings-toggle-label">
+            Enable verbose logging
+          </span>
+        </label>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+          <button
+            className="library-btn library-btn--insert"
+            onClick={async () => {
+              setTestStatus("Running tests...");
+              enableDebug();
+              setDebugEnabled(true);
+              // Register live status callback
+              setStatusCallback((status) => {
+                setTestStatus(status);
+              });
+              try {
+                const testResults = await runAllTests();
+                const passed = testResults.filter((r) => r.passed).length;
+                const failed = testResults.filter((r) => !r.passed).length;
+                setTestStatus(`Complete: ${passed} passed, ${failed} failed`);
+                setDebugLogs(getLogHistory().slice(-100));
+              } catch (err: unknown) {
+                setTestStatus(err instanceof Error ? err.message : "Test run failed");
+              } finally {
+                setStatusCallback(null);
+              }
+            }}
+          >
+            Run Tests
+          </button>
+          <button
+            className="library-btn"
+            onClick={() => {
+              setDebugLogs(getLogHistory().slice(-50));
+            }}
+          >
+            Show Logs
+          </button>
+          <button
+            className="library-btn"
+            onClick={() => {
+              const text = exportLogs();
+              const blob = new Blob([text], { type: "text/plain" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `obiter-debug-${new Date().toISOString().slice(0, 19)}.log`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Export
+          </button>
+          <button
+            className="library-btn"
+            onClick={() => {
+              clearLogHistory();
+              setDebugLogs([]);
+              setTestStatus(null);
+            }}
+          >
+            Clear
+          </button>
+        </div>
+
+        {testStatus && (
+          <p style={{ fontSize: 11, margin: "8px 0 0", color: testStatus.includes("failed") ? "var(--colour-error)" : "var(--colour-success)" }}>
+            {testStatus}
+          </p>
+        )}
+
+        {debugLogs.length > 0 && (
+          <div style={{
+            marginTop: 8,
+            maxHeight: 200,
+            overflow: "auto",
+            fontSize: 10,
+            fontFamily: "var(--font-mono)",
+            background: "var(--colour-surface)",
+            borderRadius: "var(--radius-md)",
+            padding: 8,
+            lineHeight: 1.4,
+          }}>
+            {debugLogs.map((entry, i) => (
+              <div key={i} style={{
+                color: entry.level === "error" ? "var(--colour-error)"
+                  : entry.level === "warn" ? "var(--colour-warning)"
+                  : entry.level === "info" ? "var(--colour-accent)"
+                  : "var(--colour-text-secondary)",
+                marginBottom: 2,
+              }}>
+                [{entry.level.toUpperCase()}] [{entry.module}] {entry.message}
+                {entry.data !== undefined && entry.data !== "" ? ` | ${JSON.stringify(entry.data)}` : ""}
+              </div>
+            ))}
+          </div>
+        )}
+      </fieldset>
+      </details>
     </div>
   );
 }

@@ -67,6 +67,10 @@ module.exports = async (env, options) => {
             to: "assets/[name][ext][query]",
           },
           {
+            from: "src/styles/AGLC4.xsl",
+            to: "AGLC4.xsl",
+          },
+          {
             from: "manifest*.xml",
             to: "[name]" + "[ext]",
             transform(content) {

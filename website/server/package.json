@@ -10,6 +10,7 @@
     "better-sqlite3": "^11.0.0",
     "googleapis": "^140.0.0",
     "crypto": "*",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^2.7.0"
   }
 }
