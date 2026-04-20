@@ -689,9 +689,9 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| DOCS-001 | Website tutorial/documentation — walkthrough of every feature with placeholder screenshots | FEATURE | NOT STARTED |
-| BUGS-010 | Anthropic API — CORS blocked from browser; route through Lightsail proxy like AustLII search | FEATURE | BLOCKED |
-| BUGS-011 | Insert citation before first occurrence — should render as full, update original first to short/ibid | FEATURE | NOT STARTED |
+| DOCS-001 | Website tutorial/documentation — walkthrough of every feature with placeholder screenshots | FEATURE | DONE |
+| BUGS-010 | Anthropic API — CORS blocked from browser; route through Lightsail proxy like AustLII search | FEATURE | DONE |
+| BUGS-011 | Insert citation before first occurrence — always insert full, refresh fixes ordering | FEATURE | DONE |
 
 ---
 

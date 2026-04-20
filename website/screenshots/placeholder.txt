@@ -1,0 +1,18 @@
+Placeholder directory for documentation screenshots.
+
+The following screenshots need to be captured and placed here:
+
+1. ribbon-overview.png — The Obiter tab in the Word ribbon showing all button groups
+2. document-setup.png — A document with AGLC4 template applied, showing heading levels and formatting
+3. insert-citation.png — The Insert Citation view with a reported case form filled in and preview showing
+4. citation-library.png — The Citation Library showing multiple citations with the insert dropdown open
+5. subsequent-refs.png — A document showing footnotes with full citation, ibid, and short reference (n 1)
+6. edit-citation.png — The Edit Citation view with a citation loaded and format toggle visible
+7. bibliography.png — The Bibliography view showing preview with section headings
+8. validation.png — The Validation view showing scan results with mixed severity levels
+9. reference-guide.png — The Reference Guide showing search results for a rule
+10. ai-assistant.png — The AI Assistant settings with provider dropdown and Test Connection
+11. settings.png — The Settings view showing citation standard selector and document formatting options
+12. multi-standard.png — The standard selector showing AGLC, OSCOLA, and NZLSG options
+
+Capture at 1280x720 or 1366x768. Use a clean document with realistic legal content. Save as PNG.

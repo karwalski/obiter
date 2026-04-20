@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — Obiter</title>
+  <meta name="description" content="Complete walkthrough of every Obiter feature. Learn how to install the add-in, insert citations, generate bibliographies, validate your document, and more.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="aglc4.html">What is AGLC4?</a></li>
+        <li><a href="docs.html" class="site-nav__active">Documentation</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Page Header
+       ============================================================ -->
+  <main id="main-content" role="main">
+  <section class="page-header">
+    <div class="container">
+      <h1>Documentation</h1>
+      <p>
+        A complete walkthrough of every Obiter feature. This guide explains
+        how to use the add-in &mdash; not the citation rules themselves.
+        For AGLC4 rules, see the <a href="aglc4.html">What is AGLC4?</a> page.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Table of Contents
+       ============================================================ -->
+  <section class="docs-toc" id="toc">
+    <div class="container">
+      <div class="docs-toc__inner">
+        <h2>Contents</h2>
+        <ol class="docs-toc__list">
+          <li><a href="#getting-started">Getting Started</a></li>
+          <li><a href="#document-setup">Setting Up Your Document</a></li>
+          <li><a href="#inserting-citations">Inserting Citations</a></li>
+          <li><a href="#citation-library">Citation Library</a></li>
+          <li><a href="#subsequent-references">Subsequent References</a></li>
+          <li><a href="#editing-citations">Editing Citations</a></li>
+          <li><a href="#bibliography">Bibliography</a></li>
+          <li><a href="#validation">Validation</a></li>
+          <li><a href="#reference-guide">Reference Guide</a></li>
+          <li><a href="#ai-assistant">AI Assistant (Optional)</a></li>
+          <li><a href="#settings">Settings</a></li>
+          <li><a href="#multi-standard">Multi-Standard Support</a></li>
+          <li><a href="#shortcuts">Keyboard Shortcuts &amp; Tips</a></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       1. Getting Started
+       ============================================================ -->
+  <section class="docs-section" id="getting-started">
+    <div class="container">
+      <div class="docs-content">
+        <h2>1. Getting Started</h2>
+
+        <h3>Installing from AppSource</h3>
+        <p>
+          The recommended way to install Obiter is through Microsoft AppSource.
+          Open Word, go to <strong>Insert &gt; Get Add-ins</strong>, and search
+          for &ldquo;Obiter&rdquo;. Click <strong>Add</strong> and the add-in
+          will be available in your ribbon immediately.
+        </p>
+
+        <h3>Sideloading for development</h3>
+        <p>
+          If you are testing a development build, you can sideload the add-in
+          manually. Download the manifest file from GitHub and follow the
+          sideloading instructions on the <a href="download.html">Download</a>
+          page for your platform (Windows, Mac, or Web).
+        </p>
+
+        <h3>The Obiter ribbon tab</h3>
+        <p>
+          Once installed, Obiter adds a dedicated tab to the Word ribbon. This
+          tab contains button groups for inserting citations, managing your
+          library, formatting your document, running validation, and accessing
+          settings. Every feature is accessible from this ribbon tab.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/ribbon-overview.png" alt="The Obiter tab in the Word ribbon showing all button groups">
+          <figcaption>
+            Screenshot: <code>ribbon-overview.png</code> &mdash; The Obiter tab in the
+            Word ribbon showing all button groups.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2. Setting Up Your Document
+       ============================================================ -->
+  <section class="docs-section" id="document-setup">
+    <div class="container">
+      <div class="docs-content">
+        <h2>2. Setting Up Your Document</h2>
+
+        <h3>Applying the AGLC4 template</h3>
+        <p>
+          Obiter can apply the correct AGLC4 document formatting in one step.
+          Click <strong>Apply Template</strong> in the ribbon to set the
+          correct font, margins, line spacing, and footnote formatting. This
+          saves you from configuring each setting manually.
+        </p>
+
+        <h3>Heading levels</h3>
+        <p>
+          AGLC4 defines five heading levels with specific formatting. Obiter
+          provides toolbar pills (labelled I through V) in the ribbon that
+          apply the correct heading style to the current paragraph. Heading I
+          is the highest level (centred, bold, uppercase), while Heading V is
+          the lowest.
+        </p>
+        <p>
+          Select the text you want as a heading, then click the appropriate
+          level button. The formatting is applied instantly.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/document-setup.png" alt="A document with AGLC4 template applied, showing heading levels and formatting">
+          <figcaption>
+            Screenshot: <code>document-setup.png</code> &mdash; A document with the
+            AGLC4 template applied, showing heading levels and formatting.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       3. Inserting Citations
+       ============================================================ -->
+  <section class="docs-section" id="inserting-citations">
+    <div class="container">
+      <div class="docs-content">
+        <h2>3. Inserting Citations</h2>
+
+        <h3>Selecting a source type</h3>
+        <p>
+          Click <strong>Insert Citation</strong> in the ribbon to open the task
+          pane. Start by selecting the type of source you are citing. Obiter
+          supports over 80 source types across all 26 AGLC4 chapters, including
+          cases, legislation, journal articles, books, treaties, and
+          international materials.
+        </p>
+        <p>
+          Source types are organised by category. Use the search field or browse
+          the list to find the one you need. If you are unsure which type to
+          choose, the <strong>Help Me Choose</strong> button (available when AI
+          is enabled) can suggest the correct type based on a description of
+          your source.
+        </p>
+
+        <h3>Filling in the citation form</h3>
+        <p>
+          Each source type has its own form with the fields required by AGLC4.
+          For example, a reported case requires the case name, year, volume,
+          report series, and starting page. Required fields are marked and the
+          form will not submit until they are filled.
+        </p>
+        <p>
+          As an example workflow for a reported case:
+        </p>
+        <ol class="docs-list">
+          <li>Select <strong>Reported Case</strong> from the source type list.</li>
+          <li>Enter the case name (e.g. &ldquo;Mabo v Queensland (No 2)&rdquo;).</li>
+          <li>Enter the year, volume, report series, and starting page.</li>
+          <li>Add a pinpoint reference if citing a specific page or paragraph.</li>
+          <li>Review the live preview at the bottom of the form.</li>
+          <li>Click <strong>Insert</strong> to add the citation as a footnote.</li>
+        </ol>
+
+        <h3>The live preview</h3>
+        <p>
+          As you fill in the form, a live preview at the bottom shows exactly
+          how the formatted citation will appear in your footnote. This includes
+          all italics, punctuation, and abbreviations that AGLC4 requires. You
+          can check the output before inserting.
+        </p>
+
+        <h3>Editing the preview directly</h3>
+        <p>
+          In some cases you may need to adjust the formatted output manually.
+          The preview is editable &mdash; click into it and make changes
+          directly. This is useful for unusual citations that do not fit
+          neatly into the standard form fields.
+        </p>
+
+        <h3>Parse with AI</h3>
+        <p>
+          If you have AI enabled, you can paste a raw citation string and click
+          <strong>Parse with AI</strong>. Obiter will extract the individual
+          fields (case name, year, volume, etc.) and populate the form
+          automatically. This is particularly useful for bulk entry.
+        </p>
+
+        <h3>Short titles</h3>
+        <p>
+          When inserting a citation, you can assign a short title. This short
+          title is used in subsequent references and in the bibliography. If you
+          leave it blank, Obiter will generate one automatically based on the
+          source type&rsquo;s conventions.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/insert-citation.png" alt="The Insert Citation view with a reported case form filled in and preview showing">
+          <figcaption>
+            Screenshot: <code>insert-citation.png</code> &mdash; The Insert Citation
+            view with a reported case form filled in and the live preview showing.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4. Citation Library
+       ============================================================ -->
+  <section class="docs-section" id="citation-library">
+    <div class="container">
+      <div class="docs-content">
+        <h2>4. Citation Library</h2>
+
+        <h3>Viewing all citations</h3>
+        <p>
+          The Citation Library shows every citation in your document. Open it
+          from the ribbon by clicking <strong>Citation Library</strong>. Each
+          entry displays the formatted citation, source type, and short title.
+        </p>
+
+        <h3>Search and filter</h3>
+        <p>
+          Use the search field at the top of the library to filter citations by
+          any text in the citation &mdash; case names, authors, titles, or
+          report series. You can also filter by source type category.
+        </p>
+
+        <h3>Inserting references</h3>
+        <p>
+          To insert a reference to an existing citation, click the citation in
+          the library and use the insert dropdown. You can choose from:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Auto</strong> &mdash; Obiter determines the correct format based on position (full, ibid, or short).</li>
+          <li><strong>Full</strong> &mdash; Forces a full citation regardless of position.</li>
+          <li><strong>Short</strong> &mdash; Inserts a short reference with a cross-reference note number.</li>
+          <li><strong>Ibid</strong> &mdash; Inserts an ibid reference, optionally with a pinpoint.</li>
+        </ul>
+        <p>
+          In most cases, <strong>Auto</strong> is the correct choice. Obiter
+          will automatically select the right format based on the citation&rsquo;s
+          position in the document.
+        </p>
+
+        <h3>Import from Word Source Manager</h3>
+        <p>
+          If you have existing citations in Word&rsquo;s built-in Source
+          Manager, Obiter can import them. Click <strong>Import</strong> in the
+          Citation Library and select <strong>Word Source Manager</strong>.
+          Obiter reads the source data and creates properly formatted AGLC4
+          citations from it.
+        </p>
+
+        <h3>Import from BibTeX</h3>
+        <p>
+          You can also import citations from a BibTeX file. Click
+          <strong>Import</strong> and select <strong>BibTeX</strong>, then
+          choose your <code>.bib</code> file. Obiter parses the BibTeX entries
+          and maps them to the appropriate AGLC4 source types.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/citation-library.png" alt="The Citation Library showing multiple citations with the insert dropdown open">
+          <figcaption>
+            Screenshot: <code>citation-library.png</code> &mdash; The Citation Library
+            showing multiple citations with the insert dropdown open.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5. Subsequent References
+       ============================================================ -->
+  <section class="docs-section" id="subsequent-references">
+    <div class="container">
+      <div class="docs-content">
+        <h2>5. Subsequent References</h2>
+
+        <h3>How Obiter handles ibid</h3>
+        <p>
+          AGLC4 Rule 1.4.3 requires that <em>ibid</em> is used when a footnote
+          cites the same single source as the immediately preceding footnote.
+          Obiter detects this automatically. When you insert a citation that
+          refers to the same source as the previous footnote, Obiter formats it
+          as <em>Ibid</em> (with an optional pinpoint) instead of repeating the
+          full citation.
+        </p>
+        <p>
+          If the preceding footnote cites multiple sources, ibid cannot be used.
+          Obiter handles this correctly and falls back to a short reference
+          instead.
+        </p>
+
+        <h3>Short references with cross-reference notes</h3>
+        <p>
+          When a source has been cited in full earlier in the document but ibid
+          does not apply, Obiter inserts a short reference in the form
+          &ldquo;Short Title (n X) pinpoint&rdquo;, where X is the footnote
+          number of the first full citation. These cross-reference numbers are
+          managed as fields and update automatically when footnotes are
+          reordered.
+        </p>
+
+        <h3>The Refresh All button</h3>
+        <p>
+          If you have moved, deleted, or reordered footnotes, click
+          <strong>Refresh All</strong> in the ribbon. Obiter rescans the entire
+          document and recalculates every ibid, short reference, and
+          cross-reference note number. This ensures all subsequent references
+          remain correct after edits.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/subsequent-refs.png" alt="A document showing footnotes with full citation, ibid, and short reference (n 1)">
+          <figcaption>
+            Screenshot: <code>subsequent-refs.png</code> &mdash; A document showing
+            footnotes with a full citation, ibid, and a short reference with (n 1).
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       6. Editing Citations
+       ============================================================ -->
+  <section class="docs-section" id="editing-citations">
+    <div class="container">
+      <div class="docs-content">
+        <h2>6. Editing Citations</h2>
+
+        <h3>Clicking a citation to edit</h3>
+        <p>
+          Every citation Obiter inserts is wrapped in a content control. To
+          edit a citation, click on it in the footnote. Obiter detects the
+          click and opens the Edit Citation view in the task pane with the
+          citation&rsquo;s data loaded.
+        </p>
+
+        <h3>The Edit Citation view</h3>
+        <p>
+          The Edit Citation view shows the same form you used to insert the
+          citation, pre-filled with the current values. Change any field, and
+          the live preview updates to reflect your changes. Click
+          <strong>Update</strong> to save the changes back to the document.
+        </p>
+
+        <h3>Format toggle</h3>
+        <p>
+          In the Edit Citation view, you can override the reference format.
+          The format toggle lets you switch between <strong>Auto</strong>,
+          <strong>Full</strong>, <strong>Short</strong>, and
+          <strong>Ibid</strong>. Auto is the default and lets Obiter determine
+          the correct format based on position. Overriding to Full forces a
+          full citation even when Obiter would normally use ibid or a short
+          reference.
+        </p>
+
+        <h3>Deleting citations</h3>
+        <p>
+          To delete a citation, open the Edit Citation view and click
+          <strong>Delete</strong>. This removes the citation from the document
+          and the library. After deleting, run <strong>Refresh All</strong> to
+          update any subsequent references that may have been affected.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/edit-citation.png" alt="The Edit Citation view with a citation loaded and format toggle visible">
+          <figcaption>
+            Screenshot: <code>edit-citation.png</code> &mdash; The Edit Citation view
+            with a citation loaded and the format toggle visible.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       7. Bibliography
+       ============================================================ -->
+  <section class="docs-section" id="bibliography">
+    <div class="container">
+      <div class="docs-content">
+        <h2>7. Bibliography</h2>
+
+        <h3>Generating a bibliography</h3>
+        <p>
+          Click <strong>Bibliography</strong> in the ribbon to open the
+          bibliography view. Obiter collects all citations in your document
+          and generates a formatted bibliography following AGLC4 conventions.
+          A preview is shown in the task pane before you insert it.
+        </p>
+
+        <h3>AGLC4 sections</h3>
+        <p>
+          AGLC4 requires bibliographies to be divided into sections with
+          specific headings:
+        </p>
+        <ul class="docs-list">
+          <li><strong>A</strong> &mdash; Articles, Books, Reports</li>
+          <li><strong>B</strong> &mdash; Cases</li>
+          <li><strong>C</strong> &mdash; Legislation</li>
+          <li><strong>D</strong> &mdash; Treaties</li>
+          <li><strong>E</strong> &mdash; Other</li>
+        </ul>
+        <p>
+          Obiter sorts each citation into the correct section automatically.
+          Within each section, entries are ordered alphabetically by the
+          first element of the citation.
+        </p>
+
+        <h3>Include only cited sources</h3>
+        <p>
+          By default, the bibliography includes every citation in your
+          library. If you want to include only sources that are actually
+          cited in the document (as opposed to sources you added but
+          later removed references to), use the <strong>Include only cited
+          sources</strong> toggle.
+        </p>
+
+        <h3>Inserting into the document</h3>
+        <p>
+          Once you are satisfied with the preview, click <strong>Insert
+          Bibliography</strong>. Obiter inserts the formatted bibliography at
+          the end of your document with correct section headings and
+          formatting. If a bibliography already exists in the document, it is
+          replaced with the updated version.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/bibliography.png" alt="The Bibliography view showing preview with section headings">
+          <figcaption>
+            Screenshot: <code>bibliography.png</code> &mdash; The Bibliography view
+            showing a preview with AGLC4 section headings.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       8. Validation
+       ============================================================ -->
+  <section class="docs-section" id="validation">
+    <div class="container">
+      <div class="docs-content">
+        <h2>8. Validation</h2>
+
+        <h3>Running a document scan</h3>
+        <p>
+          Click <strong>Validate</strong> in the ribbon to scan your entire
+          document against AGLC4 formatting rules. Obiter checks punctuation,
+          dashes, abbreviations, dates, numbers, footnote structure, and
+          citation completeness.
+        </p>
+
+        <h3>Understanding results</h3>
+        <p>
+          Scan results are displayed in the task pane, grouped by severity:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Errors</strong> &mdash; Problems that must be fixed. These are clear AGLC4 violations, such as missing required fields or incorrect formatting.</li>
+          <li><strong>Warnings</strong> &mdash; Issues that likely need attention but may be intentional, such as unusually long pinpoint references.</li>
+          <li><strong>Info</strong> &mdash; Informational notes about formatting choices that are technically valid but worth reviewing.</li>
+        </ul>
+        <p>
+          Click on any result to navigate to the relevant location in the
+          document.
+        </p>
+
+        <h3>Check Reference with AI</h3>
+        <p>
+          If AI is enabled, you can use <strong>Check Reference</strong> on
+          individual citations. This sends the citation to an AI model to
+          verify details like case names, years, and report series against
+          known legal databases. Results appear as suggestions &mdash; always
+          verify before accepting.
+        </p>
+
+        <h3>Format Inline References</h3>
+        <p>
+          The <strong>Format Inline References</strong> option scans for
+          citation-like text in the body of your document (outside of
+          footnotes) and offers to convert them to proper footnote citations.
+          This is useful when working with drafts that use in-text references
+          instead of footnotes.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/validation.png" alt="The Validation view showing scan results with mixed severity levels">
+          <figcaption>
+            Screenshot: <code>validation.png</code> &mdash; The Validation view showing
+            scan results with errors, warnings, and informational items.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       9. Reference Guide
+       ============================================================ -->
+  <section class="docs-section" id="reference-guide">
+    <div class="container">
+      <div class="docs-content">
+        <h2>9. Reference Guide</h2>
+
+        <h3>Searching rules</h3>
+        <p>
+          The Reference Guide provides a searchable index of AGLC4 rules,
+          accessible from the ribbon. Type a keyword or rule number into the
+          search field to find relevant rules. Results display the rule
+          number, a summary, and formatting guidance.
+        </p>
+
+        <h3>Abbreviations tab</h3>
+        <p>
+          The <strong>Abbreviations</strong> tab contains all standard
+          abbreviations from AGLC4 Appendices A through C, including
+          court abbreviations, report series abbreviations, and
+          jurisdictional abbreviations. Use the search field to look up
+          any abbreviation quickly.
+        </p>
+
+        <h3>Source types tab</h3>
+        <p>
+          The <strong>Source Types</strong> tab lists all supported source
+          types with their required and optional fields. This is a useful
+          quick reference when you are unsure which fields are needed for a
+          particular type of source.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/reference-guide.png" alt="The Reference Guide showing search results for a rule">
+          <figcaption>
+            Screenshot: <code>reference-guide.png</code> &mdash; The Reference Guide
+            showing search results for a rule.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       10. AI Assistant (Optional)
+       ============================================================ -->
+  <section class="docs-section" id="ai-assistant">
+    <div class="container">
+      <div class="docs-content">
+        <h2>10. AI Assistant (Optional)</h2>
+
+        <p>
+          Obiter includes optional AI features that require you to provide
+          your own API key. No data is sent to any AI provider without your
+          explicit action. All AI features are clearly labelled in the
+          interface and can be ignored entirely.
+        </p>
+
+        <h3>Setting up an API key</h3>
+        <p>
+          Go to <strong>Settings</strong> and find the <strong>AI
+          Assistant</strong> section. Select a provider from the dropdown,
+          enter your API key, and click <strong>Test Connection</strong> to
+          verify it works. The key is stored locally in the document&rsquo;s
+          settings and is never sent to Obiter&rsquo;s servers.
+        </p>
+
+        <h3>Supported providers</h3>
+        <p>
+          Obiter supports multiple AI providers. The specific providers
+          available are listed in the Settings dropdown. Each provider may
+          have different capabilities and pricing.
+        </p>
+
+        <h3>AI features</h3>
+        <ul class="docs-list">
+          <li><strong>Parse with AI</strong> &mdash; Paste a raw citation string and have the AI extract individual fields to populate the form.</li>
+          <li><strong>Help Me Choose</strong> &mdash; Describe your source and the AI suggests the correct source type.</li>
+          <li><strong>AI Suggest Short Title</strong> &mdash; Automatically generates an appropriate short title based on the citation data.</li>
+          <li><strong>Check Reference</strong> &mdash; Verifies citation details against known legal databases.</li>
+        </ul>
+
+        <figure class="docs-figure">
+          <img src="screenshots/ai-assistant.png" alt="The AI Assistant settings with provider dropdown and Test Connection">
+          <figcaption>
+            Screenshot: <code>ai-assistant.png</code> &mdash; The AI Assistant settings
+            with the provider dropdown and Test Connection button.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       11. Settings
+       ============================================================ -->
+  <section class="docs-section" id="settings">
+    <div class="container">
+      <div class="docs-content">
+        <h2>11. Settings</h2>
+
+        <h3>Citation standard selector</h3>
+        <p>
+          At the top of Settings, you can select the citation standard for
+          the current document. The default is AGLC4. When multi-standard
+          support is available, you will also be able to select OSCOLA 5 or
+          NZLSG 3 from this dropdown.
+        </p>
+
+        <h3>Citation management</h3>
+        <p>
+          The <strong>Citation Management</strong> section controls how Obiter
+          handles subsequent references. The <strong>Auto-refresh</strong>
+          option, when enabled, automatically recalculates ibid and short
+          references every time you insert or modify a citation. When disabled,
+          you must click <strong>Refresh All</strong> manually.
+        </p>
+
+        <h3>Document formatting</h3>
+        <p>
+          The <strong>Document Formatting</strong> section controls how Obiter
+          formats document elements such as margins, font, line spacing, and
+          footnote formatting. These settings align with AGLC4 requirements
+          by default, but you can adjust them if your institution has specific
+          requirements that differ.
+        </p>
+
+        <h3>Template customisation</h3>
+        <p>
+          The <strong>Template</strong> section lets you customise the
+          document template that Obiter applies. You can adjust heading
+          styles, paragraph formatting, and other document-level settings.
+          Changes here affect only the current document.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/settings.png" alt="The Settings view showing citation standard selector and document formatting options">
+          <figcaption>
+            Screenshot: <code>settings.png</code> &mdash; The Settings view showing
+            the citation standard selector and document formatting options.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       12. Multi-Standard Support
+       ============================================================ -->
+  <section class="docs-section" id="multi-standard">
+    <div class="container">
+      <div class="docs-content">
+        <h2>12. Multi-Standard Support</h2>
+
+        <p>
+          Obiter is designed to support multiple citation standards. The
+          engine is standard-agnostic &mdash; citation rules are loaded based
+          on the selected standard, and the same workflow applies regardless
+          of which standard you use.
+        </p>
+
+        <h3>Switching between standards</h3>
+        <p>
+          To change the citation standard for a document, open
+          <strong>Settings</strong> and use the <strong>Citation Standard</strong>
+          dropdown. Changing the standard re-formats all existing citations in
+          the document to match the new standard&rsquo;s rules.
+        </p>
+
+        <h3>Supported standards</h3>
+        <ul class="docs-list">
+          <li><strong>AGLC4</strong> &mdash; Australian Guide to Legal Citation, 4th Edition. Fully supported.</li>
+          <li><strong>OSCOLA 5</strong> &mdash; Oxford University Standard for Citation of Legal Authorities, 5th Edition. In development.</li>
+          <li><strong>NZLSG 3</strong> &mdash; New Zealand Law Style Guide, 3rd Edition. In development.</li>
+        </ul>
+
+        <h3>How formatting changes per standard</h3>
+        <p>
+          Each standard has its own rules for citation order, punctuation,
+          abbreviations, and bibliography structure. When you switch
+          standards, Obiter applies the new standard&rsquo;s rules
+          throughout the document. Source type forms may show different
+          fields depending on what the selected standard requires.
+        </p>
+
+        <figure class="docs-figure">
+          <img src="screenshots/multi-standard.png" alt="The standard selector showing AGLC, OSCOLA, and NZLSG options">
+          <figcaption>
+            Screenshot: <code>multi-standard.png</code> &mdash; The standard selector
+            showing AGLC, OSCOLA, and NZLSG options.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       13. Keyboard Shortcuts & Tips
+       ============================================================ -->
+  <section class="docs-section" id="shortcuts">
+    <div class="container">
+      <div class="docs-content">
+        <h2>13. Keyboard Shortcuts &amp; Tips</h2>
+
+        <h3>Quick heading application</h3>
+        <p>
+          Use the heading level buttons (I&ndash;V) in the Obiter ribbon tab
+          to quickly apply AGLC4 heading styles. Place your cursor in the
+          paragraph you want to format as a heading and click the appropriate
+          level. There is no need to select the entire paragraph first.
+        </p>
+
+        <h3>Block Quote</h3>
+        <p>
+          AGLC4 requires that quotations of 50 words or more be formatted as
+          block quotes (indented, no quotation marks). Select the text and
+          click <strong>Block Quote</strong> in the ribbon to apply the
+          correct formatting.
+        </p>
+
+        <h3>Refresh All</h3>
+        <p>
+          After making significant edits to your document &mdash; reordering
+          sections, deleting footnotes, or pasting content from another
+          document &mdash; click <strong>Refresh All</strong> in the ribbon.
+          This recalculates every subsequent reference in the document and
+          ensures all cross-reference numbers are correct.
+        </p>
+
+        <h3>General tips</h3>
+        <ul class="docs-list">
+          <li>Insert citations as you write rather than adding them all at the end. This gives Obiter the best context for determining ibid and short references.</li>
+          <li>Use <strong>Auto</strong> format mode unless you have a specific reason to override. Obiter follows AGLC4 rules for determining reference format.</li>
+          <li>Run <strong>Validate</strong> before submitting your document. It catches formatting issues that are easy to miss during writing.</li>
+          <li>Assign meaningful short titles when inserting citations. They appear in subsequent references and make your footnotes easier to read.</li>
+          <li>Use the Citation Library search to quickly find and re-insert sources you have already cited.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="#">AppSource</a></li>
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

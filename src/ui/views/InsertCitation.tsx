@@ -8,8 +8,8 @@ import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitat
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
-import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
-import { getFormattedPreview, formatCitation, CitationContext as EngineCitationContext } from "../../engine/engine";
+import { insertCitationFootnote } from "../../word/footnoteManager";
+import { getFormattedPreview } from "../../engine/engine";
 import CitationPreview from "../components/CitationPreview";
 import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
@@ -425,45 +425,14 @@ export default function InsertCitation(): JSX.Element {
   // RIBBON-002: Re-insert a recent citation (auto mode — same logic as Library)
   const handleReinsert = useCallback(async (citation: Citation) => {
     try {
-      const existing = await getAllCitationFootnotes();
-      const firstFn = existing.find((e) => e.citationId === citation.id);
-      const totalFootnotes = existing.length;
-
-      const precedingCitations = existing.filter(
-        (e) => e.footnoteIndex === totalFootnotes
-      );
-
-      const isFirst = !firstFn;
-      const isSameAsPreceding =
-        precedingCitations.length === 1 &&
-        precedingCitations[0].citationId === citation.id;
-
-      let runs;
-      if (isFirst) {
-        runs = getFormattedPreview(citation);
-      } else {
-        const ctx: EngineCitationContext = {
-          footnoteNumber: totalFootnotes + 1,
-          isFirstCitation: false,
-          isSameAsPreceding,
-          precedingFootnoteCitationCount: precedingCitations.length,
-          firstFootnoteNumber: firstFn?.footnoteIndex ?? 1,
-          isWithinSameFootnote: false,
-          formatPreference: "auto",
-        };
-        const result = formatCitation(citation, ctx);
-        runs = result ?? getFormattedPreview(citation);
-      }
+      // BUGS-011: Always insert as full citation — refreshAllCitations will
+      // rescan footnotes in document order and assign the correct format
+      // (full for earliest, short/ibid for subsequent) regardless of where
+      // the cursor is positioned relative to existing occurrences.
+      const runs = getFormattedPreview(citation);
 
       const title = citation.shortTitle || getCitationLabel(citation);
       await insertCitationFootnote(citation.id, title, runs);
-
-      // Update store with firstFootnoteNumber if this is the first citation
-      if (isFirst) {
-        const store = await getStore();
-        citation.firstFootnoteNumber = totalFootnotes + 1;
-        await store.update(citation);
-      }
 
       triggerRefresh();
       setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
@@ -696,36 +665,11 @@ export default function InsertCitation(): JSX.Element {
       let runsToInsert: FormattedRun[];
 
       if (existingMatch) {
-        // This is a repeat citation — use subsequent reference format
-        const footnotes = await getAllCitationFootnotes();
-
-        // Find the first footnote number for the existing citation
-        const firstEntry = footnotes.find((f) => f.citationId === existingMatch.id);
-        const firstFootnoteNumber = firstEntry?.footnoteIndex ?? 1;
-
-        // Determine if ibid applies: preceding footnote has exactly one citation
-        // and it references the same citation
-        const lastFootnoteIndex = footnotes.length > 0
-          ? Math.max(...footnotes.map((f) => f.footnoteIndex))
-          : 0;
-        const precedingCitations = footnotes.filter(
-          (f) => f.footnoteIndex === lastFootnoteIndex,
-        );
-        const isSameAsPreceding =
-          precedingCitations.length === 1 &&
-          precedingCitations[0].citationId === existingMatch.id;
-
-        const engineContext: EngineCitationContext = {
-          footnoteNumber: lastFootnoteIndex + 1,
-          isFirstCitation: false,
-          isSameAsPreceding,
-          precedingFootnoteCitationCount: precedingCitations.length,
-          firstFootnoteNumber,
-          isWithinSameFootnote: false,
-          formatPreference: "auto",
-        };
-
-        runsToInsert = formatCitation(existingMatch, engineContext);
+        // BUGS-011: Always insert as full citation — refreshAllCitations will
+        // rescan footnotes in document order and assign the correct format
+        // (full for earliest, short/ibid for subsequent) regardless of where
+        // the cursor is positioned relative to existing occurrences.
+        runsToInsert = getFormattedPreview(existingMatch);
 
         // Don't add duplicate to store; use existing citation ID for the footnote
         const existingTitle = shortTitle || existingMatch.shortTitle || existingMatch.sourceType;
