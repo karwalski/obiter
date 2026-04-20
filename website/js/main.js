@@ -14,14 +14,14 @@
 
   if (navToggle && navLinks) {
     navToggle.addEventListener("click", function () {
-      var isOpen = navLinks.classList.toggle("is-open");
+      var isOpen = navLinks.classList.toggle("active");
       navToggle.setAttribute("aria-expanded", String(isOpen));
     });
 
     // Close mobile nav when a link is clicked
     navLinks.querySelectorAll("a").forEach(function (link) {
       link.addEventListener("click", function () {
-        navLinks.classList.remove("is-open");
+        navLinks.classList.remove("active");
         navToggle.setAttribute("aria-expanded", "false");
       });
     });

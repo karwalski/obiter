@@ -1096,25 +1096,51 @@ section:nth-child(even) {
   }
 
   /* Mobile nav */
-  .nav-toggle {
-    display: block;
-  }
-
   .site-nav__links {
     display: none;
     flex-direction: column;
+    width: 100%;
+    padding: var(--space-sm) 0;
+    gap: 0;
     position: absolute;
     top: 64px;
     left: 0;
     right: 0;
     background-color: var(--colour-bg);
     border-bottom: 1px solid var(--colour-border);
-    padding: var(--space-lg) var(--space-xl);
-    gap: var(--space-lg);
   }
 
-  .site-nav__links.is-open {
+  .site-nav__links.active {
     display: flex;
+  }
+
+  .site-nav__links li {
+    width: 100%;
+  }
+
+  .site-nav__links a {
+    display: block;
+    padding: var(--space-sm) var(--space-lg);
+    border-bottom: 1px solid var(--colour-border);
+  }
+
+  .site-nav__cta {
+    margin: var(--space-sm) var(--space-lg);
+    text-align: center;
+  }
+
+  .nav-toggle {
+    display: block;
+  }
+}
+
+@media (min-width: 769px) {
+  .nav-toggle {
+    display: none;
+  }
+
+  .site-nav__links {
+    display: flex !important;
   }
 }
 
