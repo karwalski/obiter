@@ -555,6 +555,119 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: MULTI — Multi-Standard Architecture
+
+**Phase:** Post-backlog | **Stories:** 13 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| MULTI-001 | Citation standard selector | FEATURE | NOT STARTED |
+| MULTI-002 | Rule engine dispatcher refactor | FEATURE | NOT STARTED |
+| MULTI-003 | Parallel citation composition | FEATURE | NOT STARTED |
+| MULTI-004 | Subsequent reference format parameterisation | FEATURE | NOT STARTED |
+| MULTI-005 | Ibid mode configuration | FEATURE | NOT STARTED |
+| MULTI-006 | Legislation italicisation toggle | FEATURE | NOT STARTED |
+| MULTI-007 | Quotation mark style | FEATURE | NOT STARTED |
+| MULTI-008 | Pinpoint prefix parameterisation | FEATURE | NOT STARTED |
+| MULTI-009 | Edition abbreviation locale | FEATURE | NOT STARTED |
+| MULTI-010 | Bibliography structure generator | FEATURE | NOT STARTED |
+| MULTI-011 | Heading and document styles per standard | FEATURE | NOT STARTED |
+| MULTI-012 | Initials formatting | FEATURE | NOT STARTED |
+| MULTI-013 | Home jurisdiction suppression | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: OSC — OSCOLA-Specific Rules & Source Types
+
+**Phase:** Post-backlog | **Stories:** 14 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| OSC-001 | UK case citation — modern | FEATURE | NOT STARTED |
+| OSC-002 | UK case citation — pre-2001 and nominate reports | FEATURE | NOT STARTED |
+| OSC-003 | Scottish courts and reports | FEATURE | NOT STARTED |
+| OSC-004 | Northern Ireland courts | FEATURE | NOT STARTED |
+| OSC-005 | UK legislation — primary | FEATURE | NOT STARTED |
+| OSC-006 | UK legislation — secondary and delegated | FEATURE | NOT STARTED |
+| OSC-007 | UK Parliamentary materials | FEATURE | NOT STARTED |
+| OSC-008 | EU and assimilated law (post-Brexit) | FEATURE | NOT STARTED |
+| OSC-009 | ECHR and Council of Europe | FEATURE | NOT STARTED |
+| OSC-010 | International materials — OSCOLA Section 4 | FEATURE | NOT STARTED |
+| OSC-011 | Generative AI citation | FEATURE | NOT STARTED |
+| OSC-012 | OSCOLA Table of Cases generation | FEATURE | NOT STARTED |
+| OSC-013 | OSCOLA Table of Legislation generation | FEATURE | NOT STARTED |
+| OSC-014 | OSCOLA Ireland profile overlay | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: NZLSG — NZLSG-Specific Rules & Source Types
+
+**Phase:** Post-backlog | **Stories:** 10 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| NZLSG-001 | NZ case citation — neutral citation | FEATURE | NOT STARTED |
+| NZLSG-002 | NZ case citation — pre-neutral citation | FEATURE | NOT STARTED |
+| NZLSG-003 | Maori Land Court and Maori Appellate Court | FEATURE | NOT STARTED |
+| NZLSG-004 | Waitangi Tribunal reports | FEATURE | NOT STARTED |
+| NZLSG-005 | NZ legislation | FEATURE | NOT STARTED |
+| NZLSG-006 | NZ parliamentary materials | FEATURE | NOT STARTED |
+| NZLSG-007 | NZ-specific secondary sources | FEATURE | NOT STARTED |
+| NZLSG-008 | General vs commercial style toggle | FEATURE | NOT STARTED |
+| NZLSG-009 | Treaty of Waitangi citation | FEATURE | NOT STARTED |
+| NZLSG-010 | NZ international materials | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: DATA-EXT — Extended Reference Data
+
+**Phase:** Post-backlog | **Stories:** 6 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| DATA-EXT-001 | UK law report abbreviations | FEATURE | NOT STARTED |
+| DATA-EXT-002 | UK court identifiers | FEATURE | NOT STARTED |
+| DATA-EXT-003 | NZ law report abbreviations (LCANZ) | FEATURE | NOT STARTED |
+| DATA-EXT-004 | NZ court identifiers | FEATURE | NOT STARTED |
+| DATA-EXT-005 | Irish court identifiers and report series | FEATURE | NOT STARTED |
+| DATA-EXT-006 | EU case number prefix database | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: API-EXT — Extended Source Lookup
+
+**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| API-EXT-001 | BAILII integration | FEATURE | NOT STARTED |
+| API-EXT-002 | NZ Legislation integration | FEATURE | NOT STARTED |
+| API-EXT-003 | NZLII integration | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: VALID-EXT — Extended Validation
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| VALID-EXT-001 | OSCOLA-specific validation rules | FEATURE | NOT STARTED |
+| VALID-EXT-002 | NZLSG-specific validation rules | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: GUIDE-EXT — Extended Reference Guide
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| GUIDE-EXT-001 | OSCOLA reference panel | FEATURE | NOT STARTED |
+| GUIDE-EXT-002 | NZLSG reference panel | FEATURE | NOT STARTED |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0
@@ -592,6 +705,13 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | DECISIONS | 7 | 7 | 0 | 7 | 0 |
 | UI | 8 | 8 | 0 | 8 | 0 |
 | RESEARCH | 8 | 7 | 1 | 8 | 0 |
+| MULTI | 13 | 13 | 0 | 0 | 0 |
+| OSC | 14 | 14 | 0 | 0 | 0 |
+| NZLSG | 10 | 10 | 0 | 0 | 0 |
+| DATA-EXT | 6 | 6 | 0 | 0 | 0 |
+| API-EXT | 3 | 3 | 0 | 0 | 0 |
+| VALID-EXT | 2 | 2 | 0 | 0 | 0 |
+| GUIDE-EXT | 2 | 2 | 0 | 0 | 0 |
 | AGLC5 | 5 | 5 | 0 | 0 | 0 |
 | HYBRID | 3 | 3 | 0 | 3 | 0 |
 | BUGS | 9 | 9 | 0 | 9 | 0 |
@@ -605,4 +725,4 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | PACKAGE | 4 | 4 | 0 | 4 | 0 |
 | AI | 3 | 3 | 0 | 3 | 0 |
 | A11Y | 3 | 3 | 0 | 3 | 0 |
-| **TOTAL** | **257** | **242** | **15** | **252** | **0** |
+| **TOTAL** | **307** | **292** | **15** | **252** | **0** |

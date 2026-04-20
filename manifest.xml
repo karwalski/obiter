@@ -199,7 +199,7 @@
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Obiter — AGLC4 Citation Engine"/>
-        <bt:String id="ObiterTab.Label" DefaultValue="AGLC4"/>
+        <bt:String id="ObiterTab.Label" DefaultValue="Obiter"/>
         <bt:String id="CitationGroup.Label" DefaultValue="Citation"/>
         <bt:String id="DocumentGroup.Label" DefaultValue="Document"/>
         <bt:String id="ToolsGroup.Label" DefaultValue="Tools"/>
