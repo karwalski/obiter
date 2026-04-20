@@ -163,7 +163,16 @@ export async function refreshAllCitations(
   for (const entry of entries) {
     const citation = store.getById(entry.citationId);
     if (!citation) {
-      // Citation not found in store; skip
+      // Citation not found in store — leave content control untouched.
+      // This happens when citations are deleted from the store but
+      // footnotes still contain the content controls.
+      unchanged++;
+      continue;
+    }
+
+    // Skip citations with empty/missing data to avoid rendering
+    // garbage like " v  (0)  0." from default fallback values
+    if (!citation.data || Object.keys(citation.data).length === 0) {
       unchanged++;
       continue;
     }

@@ -14,13 +14,18 @@ import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
-import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback } from "../../debug";
+import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
 
 type AglcVersion = "4" | "5";
 
 const LLM_MODELS: Record<"openai" | "anthropic", string[]> = {
-  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
-  anthropic: ["claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
+  openai: ["gpt-5", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+  anthropic: ["claude-opus-4-20250514", "claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
+};
+
+const LLM_API_KEY_URLS: Record<string, string> = {
+  openai: "https://platform.openai.com/api-keys",
+  anthropic: "https://console.anthropic.com/settings/keys",
 };
 
 const store = new CitationStore();
@@ -54,6 +59,9 @@ function setSetting(key: string, value: unknown): void {
     localStorage.setItem(key, JSON.stringify(value));
   } catch { /* ignore */ }
 }
+
+/** Debug/test/screenshot tools only visible on localhost (dev server). */
+const isDev = typeof window !== "undefined" && window.location.hostname === "localhost";
 
 export default function Settings(): JSX.Element {
   const [version, setVersion] = useState<AglcVersion>("4");
@@ -664,7 +672,13 @@ export default function Settings(): JSX.Element {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">LLM Integration (Optional)</legend>
+        <legend className="settings-section-title">AI Assistant (Optional)</legend>
+
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          Connect an AI provider to verify citations, parse raw citation text,
+          and suggest short titles. You provide your own API key — no data is
+          sent without your explicit action.
+        </p>
 
         <label className="settings-toggle">
           <input
@@ -673,7 +687,7 @@ export default function Settings(): JSX.Element {
             onChange={(e) => setLlmEnabled(e.target.checked)}
           />
           <span className="settings-toggle-label">
-            Enable LLM integration
+            Enable AI features
           </span>
         </label>
 
@@ -707,9 +721,24 @@ export default function Settings(): JSX.Element {
             style={{ width: "100%", marginTop: 4 }}
             value={llmApiKey}
             onChange={(e) => setLlmApiKey(e.target.value)}
-            placeholder="sk-..."
+            placeholder={llmProvider === "openai" ? "sk-..." : llmProvider === "anthropic" ? "sk-ant-..." : "Enter API key"}
           />
         </label>
+        {llmProvider !== "custom" && LLM_API_KEY_URLS[llmProvider] && (
+          <p style={{ fontSize: 11, margin: "4px 0 0" }}>
+            <a
+              href={LLM_API_KEY_URLS[llmProvider]}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--colour-accent)" }}
+            >
+              Get {llmProvider === "openai" ? "an OpenAI" : "an Anthropic"} API key
+            </a>
+            {llmProvider === "openai"
+              ? " — requires an OpenAI account. Usage is billed per request."
+              : " — requires an Anthropic account. Usage is billed per request."}
+          </p>
+        )}
 
         <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
           Model
@@ -823,7 +852,7 @@ export default function Settings(): JSX.Element {
         </div>
       </fieldset>
 
-      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+      {isDev && <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Debug</legend>
 
         <label className="settings-toggle">
@@ -905,6 +934,47 @@ export default function Settings(): JSX.Element {
           </button>
         </div>
 
+        <details style={{ marginTop: 12 }}>
+          <summary style={{ fontSize: 12, cursor: "pointer", color: "var(--colour-accent)" }}>
+            Screenshot Preparation
+          </summary>
+          <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 4 }}>
+            <button
+              className="library-btn library-btn--insert"
+              style={{ width: "100%" }}
+              onClick={async () => {
+                setTestStatus("Preparing test essay...");
+                try {
+                  await prepareTestEssay();
+                  setTestStatus("Essay prepared with citations. Use screenshot buttons below.");
+                } catch (err: unknown) {
+                  setTestStatus(err instanceof Error ? err.message : "Failed to prepare essay");
+                }
+              }}
+            >
+              Prepare Test Essay
+            </button>
+            {SCREENSHOT_PREPS.map((s) => (
+              <button
+                key={s.id}
+                className="library-btn"
+                style={{ width: "100%", textAlign: "left", fontSize: 11 }}
+                onClick={async () => {
+                  setTestStatus(`Preparing screenshot ${s.id}...`);
+                  try {
+                    await s.fn();
+                    setTestStatus(`Ready for screenshot ${s.id}: ${s.label}`);
+                  } catch (err: unknown) {
+                    setTestStatus(err instanceof Error ? err.message : "Failed");
+                  }
+                }}
+              >
+                Screenshot {s.id}: {s.label}
+              </button>
+            ))}
+          </div>
+        </details>
+
         <div aria-live="polite" role="status">
           {testStatus && (
             <p style={{ fontSize: 11, margin: "8px 0 0", color: testStatus.includes("failed") ? "var(--colour-error)" : "var(--colour-success)" }}>
@@ -939,7 +1009,7 @@ export default function Settings(): JSX.Element {
             ))}
           </div>
         )}
-      </fieldset>
+      </fieldset>}
       </details>
     </div>
   );

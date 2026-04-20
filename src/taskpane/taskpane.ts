@@ -6,6 +6,13 @@
 /* global document, Office, Word */
 
 import { renderApp } from "../ui/App";
+
+// Register service worker for offline support
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+    // Service worker registration failed — offline mode unavailable
+  });
+}
 import { applyAglc4Styles } from "../word/styles";
 import { applyAglc4Template } from "../word/template";
 import { CitationStore } from "../store/citationStore";

@@ -1430,26 +1430,43 @@ async function testClearInlineFormatting(): Promise<string> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function testCleanupCitations(): Promise<string> {
-  const ids = [
-    storedMabo?.id,
-    storedCCA?.id,
-    storedJournal?.id,
-    storedBook?.id,
-    storedTreaty?.id,
-    storedTasmanianDam?.id,
-  ].filter(Boolean) as string[];
+  // Disable auto-refresh before cleanup to prevent the refresher
+  // from re-rendering footnotes with empty data after citations
+  // are removed from the store.
+  try {
+    const savedAutoRefresh = localStorage.getItem("obiter-autoRefresh");
+    localStorage.setItem("obiter-autoRefresh", "false");
 
-  let removed = 0;
-  for (const id of ids) {
-    try {
-      await testStore.remove(id);
-      removed++;
-    } catch {
-      // Citation may not exist if add failed
+    const ids = [
+      storedMabo?.id,
+      storedCCA?.id,
+      storedJournal?.id,
+      storedBook?.id,
+      storedTreaty?.id,
+      storedTasmanianDam?.id,
+    ].filter(Boolean) as string[];
+
+    let removed = 0;
+    for (const id of ids) {
+      try {
+        await testStore.remove(id);
+        removed++;
+      } catch {
+        // Citation may not exist if add failed
+      }
     }
-  }
 
-  return `Cleaned up ${removed} test citations from store`;
+    // Restore auto-refresh setting
+    if (savedAutoRefresh !== null) {
+      localStorage.setItem("obiter-autoRefresh", savedAutoRefresh);
+    } else {
+      localStorage.removeItem("obiter-autoRefresh");
+    }
+
+    return `Cleaned up ${removed} test citations from store`;
+  } catch (err) {
+    throw err;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

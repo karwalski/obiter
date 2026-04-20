@@ -71,6 +71,10 @@ module.exports = async (env, options) => {
             to: "AGLC4.xsl",
           },
           {
+            from: "src/sw.js",
+            to: "sw.js",
+          },
+          {
             from: "manifest*.xml",
             to: "[name]" + "[ext]",
             transform(content) {

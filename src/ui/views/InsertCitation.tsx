@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation } from "../../types/citation";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
@@ -15,6 +15,9 @@ import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
 import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyClient";
 import { LookupResult } from "../../api/types";
+import { loadLlmConfig, LLMConfig } from "../../llm/config";
+import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
+import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 
 // ─── Source Type Grouping ────────────────────────────────────────────────────
 
@@ -217,6 +220,44 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "genai_output",
 ];
 
+// ─── Help Me Choose: Category Lookup ─────────────────────────────────────────
+
+/**
+ * Finds which category and group a source type belongs to within
+ * SOURCE_TYPE_CATEGORIES, used to auto-select the dropdowns after
+ * AI classification.
+ */
+export function findCategoryForSourceType(
+  sourceType: SourceType,
+): { category: string; group: string } | null {
+  for (const cat of SOURCE_TYPE_CATEGORIES) {
+    for (const grp of cat.groups) {
+      for (const t of grp.types) {
+        if (t.value === sourceType) {
+          return { category: cat.label, group: grp.label };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Finds the label for a source type within SOURCE_TYPE_CATEGORIES.
+ */
+function findSourceTypeLabel(sourceType: SourceType): string | null {
+  for (const cat of SOURCE_TYPE_CATEGORIES) {
+    for (const grp of cat.groups) {
+      for (const t of grp.types) {
+        if (t.value === sourceType) {
+          return t.label;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // ─── Author Entry ────────────────────────────────────────────────────────────
 
 interface AuthorEntry {
@@ -348,6 +389,18 @@ export default function InsertCitation(): JSX.Element {
   const [authors, setAuthors] = useState<AuthorEntry[]>([{ givenNames: "", surname: "" }]);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [inserting, setInserting] = useState(false);
+  const [llmConfig, setLlmConfig] = useState<LLMConfig | null>(null);
+  const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
+  const [classifyDescription, setClassifyDescription] = useState("");
+  const [classifyLoading, setClassifyLoading] = useState(false);
+  const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
+  const [classifyError, setClassifyError] = useState<string | null>(null);
+
+  // Load LLM config on mount to determine if AI suggest is available
+  useEffect(() => {
+    const config = loadLlmConfig();
+    setLlmConfig(config);
+  }, []);
 
   // ─── Field Updater ──────────────────────────────────────────────────────
 
@@ -479,6 +532,34 @@ export default function InsertCitation(): JSX.Element {
     setShortTitleTouched(false);
     setFeedback(null);
   }, []);
+
+  // ─── Help Me Choose Handler ─────────────────────────────────────────────
+
+  const handleClassifySource = useCallback(async () => {
+    if (!llmConfig || !classifyDescription.trim()) return;
+    setClassifyLoading(true);
+    setClassifyResult(null);
+    setClassifyError(null);
+    try {
+      const result = await classifySourceType(classifyDescription.trim(), llmConfig);
+      setClassifyResult(result);
+      // Auto-select the identified source type in the dropdowns
+      const match = findCategoryForSourceType(result.sourceType);
+      if (match) {
+        setSelectedCategory(match.category);
+        setSelectedSourceType(result.sourceType);
+        setFormData({});
+        setAuthors([{ givenNames: "", surname: "" }]);
+        setShortTitle("");
+        setShortTitleTouched(false);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to classify source type.";
+      setClassifyError(message);
+    } finally {
+      setClassifyLoading(false);
+    }
+  }, [llmConfig, classifyDescription]);
 
   // ─── Preview ────────────────────────────────────────────────────────────
 
@@ -626,6 +707,54 @@ export default function InsertCitation(): JSX.Element {
     <div className="insert-citation">
       <h2>Insert Citation</h2>
 
+      {/* Help Me Choose — AI source type classifier */}
+      {llmConfig?.enabled ? (
+        <div className="ic-help-me-choose">
+          <div className="ic-label">Help me choose</div>
+          <div className="ic-field-row">
+            <input
+              className="ic-input ic-input--grow"
+              type="text"
+              value={classifyDescription}
+              placeholder="Describe your source (e.g., 'a High Court case from 1992' or 'a UN General Assembly resolution')"
+              onChange={(e) => setClassifyDescription(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleClassifySource();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="ic-classify-btn"
+              disabled={classifyLoading || !classifyDescription.trim()}
+              onClick={() => void handleClassifySource()}
+            >
+              {classifyLoading ? "Identifying..." : "Identify"}
+            </button>
+          </div>
+          {classifyResult && (
+            <div className="ic-classify-result">
+              Identified as: {findSourceTypeLabel(classifyResult.sourceType) || classifyResult.sourceType}
+              {" — "}
+              {Math.round(classifyResult.confidence * 100)}% confidence.
+              {" "}
+              {classifyResult.explanation}
+            </div>
+          )}
+          {classifyError && (
+            <div className="ic-classify-error">
+              {classifyError}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="ic-help-me-choose-disabled">
+          Enable AI Assistant in Settings to identify source types automatically
+        </div>
+      )}
+
       {/* Category selector */}
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-category">
@@ -694,17 +823,46 @@ export default function InsertCitation(): JSX.Element {
               example="Mabo (No 2)"
             />
           </label>
-          <input
-            id="ic-short-title"
-            className="ic-input"
-            type="text"
-            value={shortTitle}
-            placeholder="e.g. Mabo (No 2)"
-            onChange={(e) => {
-              setShortTitle(e.target.value);
-              setShortTitleTouched(true);
-            }}
-          />
+          <div className="ic-short-title-row">
+            <input
+              id="ic-short-title"
+              className="ic-input"
+              type="text"
+              value={shortTitle}
+              placeholder="e.g. Mabo (No 2)"
+              onChange={(e) => {
+                setShortTitle(e.target.value);
+                setShortTitleTouched(true);
+              }}
+            />
+            {llmConfig?.enabled && (
+              <button
+                type="button"
+                className="ic-ai-suggest-link"
+                disabled={aiSuggestLoading}
+                onClick={async () => {
+                  if (!llmConfig || !selectedSourceType) return;
+                  setAiSuggestLoading(true);
+                  try {
+                    const tempCitation = buildPreviewCitation(
+                      selectedSourceType as SourceType,
+                      formData,
+                      shortTitle,
+                    );
+                    const suggestion = await suggestShortTitleLlm(tempCitation, llmConfig);
+                    setShortTitle(suggestion);
+                    setShortTitleTouched(true);
+                  } catch {
+                    // Silently fail — user can still type manually
+                  } finally {
+                    setAiSuggestLoading(false);
+                  }
+                }}
+              >
+                {aiSuggestLoading ? "..." : "(AI suggest)"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -722,6 +880,18 @@ export default function InsertCitation(): JSX.Element {
             onOverride={(text) => {
               // Store override text for direct insertion
               setFormData((prev) => ({ ...prev, _overrideText: text }));
+            }}
+            onSourceTypeDetected={(detectedType) => {
+              // AI detected a different source type — switch the form
+              const st = detectedType as SourceType;
+              // Find the category that contains this source type
+              const matchingCategory = SOURCE_TYPE_CATEGORIES.find((cat) =>
+                cat.groups.some((g) => g.types.some((t) => t.value === st)),
+              );
+              if (matchingCategory) {
+                setSelectedCategory(matchingCategory.label);
+              }
+              setSelectedSourceType(st);
             }}
           />
         </div>

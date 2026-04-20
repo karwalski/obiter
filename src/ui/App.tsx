@@ -6,7 +6,9 @@
 /* global document */
 
 import { createRoot } from "react-dom/client";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { setNavigate } from "../debug";
 import Layout from "./Layout";
 import InsertCitation from "./views/InsertCitation";
 import EditCitation from "./views/EditCitation";
@@ -17,6 +19,15 @@ import Bibliography from "./views/Bibliography";
 import Settings from "./views/Settings";
 import { CitationProvider } from "./context/CitationContext";
 import "./styles/global.css";
+
+/** Registers the React Router navigate function for screenshot prep. */
+function NavigateRegistrar(): null {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setNavigate(navigate);
+  }, [navigate]);
+  return null;
+}
 
 /** Map URL hash fragments from manifest ribbon buttons to routes. */
 function getInitialRoute(): string {
@@ -33,6 +44,7 @@ function App(): JSX.Element {
   return (
     <CitationProvider>
       <MemoryRouter initialEntries={[initialRoute]}>
+        <NavigateRegistrar />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<InsertCitation />} />

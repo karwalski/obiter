@@ -6,6 +6,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { FormattedRun } from "../../types/formattedRun";
 import type { SourceType, SourceData } from "../../types/citation";
+import { loadLlmConfig } from "../../llm/config";
+import { parseCitationText as parseCitationWithLlm } from "../../llm/parseCitation";
 
 export interface CitationPreviewProps {
   runs: FormattedRun[];
@@ -14,6 +16,8 @@ export interface CitationPreviewProps {
   onParsed?: (data: Partial<SourceData>, warnings: string[]) => void;
   /** Called when the user's manual text should be used as-is for insertion. */
   onOverride?: (text: string) => void;
+  /** Called when AI parsing detects a different source type than currently selected. */
+  onSourceTypeDetected?: (sourceType: string) => void;
 }
 
 /** Parse a raw citation string into partial source data based on source type. */
@@ -156,12 +160,22 @@ export default function CitationPreview({
   sourceType,
   onParsed,
   onOverride,
+  onSourceTypeDetected,
 }: CitationPreviewProps): JSX.Element {
   const [editing, setEditing] = useState(false);
   const [manualText, setManualText] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [overrideMode, setOverrideMode] = useState(false);
+  const [aiParsing, setAiParsing] = useState(false);
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [llmAvailable, setLlmAvailable] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Check if LLM is configured and enabled
+  useEffect(() => {
+    const config = loadLlmConfig();
+    setLlmAvailable(config !== null && config.enabled);
+  }, [editing]);
 
   // Sync formatted preview text into the manual text field when not editing
   const formattedText = runs.map((r) => r.text).join("");
@@ -187,6 +201,45 @@ export default function CitationPreview({
     },
     [sourceType, onParsed],
   );
+
+  const handleAiParse = useCallback(async () => {
+    if (!manualText.trim() || !onParsed) return;
+
+    const config = loadLlmConfig();
+    if (!config || !config.enabled) return;
+
+    setAiParsing(true);
+    setAiMessage(null);
+
+    try {
+      const result = await parseCitationWithLlm(manualText, config);
+      const fieldCount = Object.keys(result.data).length;
+
+      // If the AI detected a different source type, notify the parent
+      if (onSourceTypeDetected && result.sourceType !== sourceType) {
+        onSourceTypeDetected(result.sourceType);
+      }
+
+      // Map returned data to form fields
+      onParsed(result.data as Partial<SourceData>, []);
+      setWarnings([]);
+      setAiMessage(`AI parsed ${fieldCount} field${fieldCount !== 1 ? "s" : ""}`);
+
+      // Clear success message after a few seconds
+      setTimeout(() => setAiMessage(null), 3000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "AI parsing failed";
+      setAiMessage(null);
+      // Fall back to regex parsing
+      const { data, warnings: w } = parseCitationText(manualText, sourceType);
+      setWarnings([`AI parse failed: ${message}. Fell back to regex parsing.`, ...w]);
+      if (Object.keys(data).length > 0) {
+        onParsed(data, w);
+      }
+    } finally {
+      setAiParsing(false);
+    }
+  }, [manualText, sourceType, onParsed, onSourceTypeDetected]);
 
   const handleEditClick = useCallback(() => {
     setEditing(true);
@@ -287,13 +340,30 @@ export default function CitationPreview({
               Override active — citation will be inserted exactly as typed.
             </div>
           )}
-          <button
-            type="button"
-            className="citation-preview-done-btn"
-            onClick={handleDoneClick}
-          >
-            Done editing
-          </button>
+          {aiMessage && (
+            <div className="citation-preview-ai-success">
+              {aiMessage}
+            </div>
+          )}
+          <div className="citation-preview-actions">
+            <button
+              type="button"
+              className="citation-preview-done-btn"
+              onClick={handleDoneClick}
+            >
+              Done editing
+            </button>
+            {llmAvailable && (
+              <button
+                type="button"
+                className="citation-preview-ai-btn"
+                onClick={handleAiParse}
+                disabled={aiParsing || !manualText.trim()}
+              >
+                {aiParsing ? "Parsing..." : "Parse with AI"}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
