@@ -95,7 +95,7 @@ function buildOpenAIRequest(
     max_tokens: config.maxTokens,
   };
   return {
-    url: resolveEndpoint(config),
+    url: resolveEndpoint(config).url,
     init: {
       method: "POST",
       headers: {
@@ -119,7 +119,7 @@ function buildAnthropicRequest(
     messages: [{ role: "user", content: userPrompt }],
   };
   return {
-    url: resolveEndpoint(config),
+    url: resolveEndpoint(config).url,
     init: {
       method: "POST",
       headers: {
