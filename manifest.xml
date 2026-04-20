@@ -290,5 +290,8 @@
         <bt:String id="HeadingV.Tooltip" DefaultValue="Apply AGLC4 Level V heading style to selection"/>
       </bt:LongStrings>
     </Resources>
+    <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">
+      <ExtendedOverrides Url="https://localhost:3000/shortcuts.json"/>
+    </VersionOverrides>
   </VersionOverrides>
 </OfficeApp>

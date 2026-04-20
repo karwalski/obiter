@@ -75,6 +75,10 @@ module.exports = async (env, options) => {
             to: "sw.js",
           },
           {
+            from: "src/shortcuts.json",
+            to: "shortcuts.json",
+          },
+          {
             from: "manifest*.xml",
             to: "[name]" + "[ext]",
             transform(content) {

@@ -1,0 +1,71 @@
+{
+  "actions": [
+    {
+      "id": "applyHeadingI",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Heading Level I"
+    },
+    {
+      "id": "applyHeadingII",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Heading Level II"
+    },
+    {
+      "id": "applyHeadingIII",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Heading Level III"
+    },
+    {
+      "id": "applyBlockQuote",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Block Quote"
+    },
+    {
+      "id": "refreshAll",
+      "type": "ExecuteFunction",
+      "displayName": "Refresh All Citations"
+    },
+    {
+      "id": "applyTemplate",
+      "type": "ExecuteFunction",
+      "displayName": "Apply AGLC4 Template"
+    }
+  ],
+  "shortcuts": [
+    {
+      "action": "applyHeadingI",
+      "key": {
+        "default": "Ctrl+Shift+1",
+        "mac": "Cmd+Shift+1"
+      }
+    },
+    {
+      "action": "applyHeadingII",
+      "key": {
+        "default": "Ctrl+Shift+2",
+        "mac": "Cmd+Shift+2"
+      }
+    },
+    {
+      "action": "applyHeadingIII",
+      "key": {
+        "default": "Ctrl+Shift+3",
+        "mac": "Cmd+Shift+3"
+      }
+    },
+    {
+      "action": "applyBlockQuote",
+      "key": {
+        "default": "Ctrl+Shift+Q",
+        "mac": "Cmd+Shift+Q"
+      }
+    },
+    {
+      "action": "refreshAll",
+      "key": {
+        "default": "Ctrl+Shift+R",
+        "mac": "Cmd+Shift+R"
+      }
+    }
+  ]
+}
