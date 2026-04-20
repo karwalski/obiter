@@ -81,31 +81,24 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
 Office.actions.associate("applyBlockQuote", applyBlockQuote);
 
 // ── Heading Level Commands (Levels I–V) ──
-// Context-sensitivity: applies heading style to selected paragraphs.
-// Silently no-ops if selection is empty/collapsed.
+// Uses the same applyHeadingLevel from styles.ts that the task pane uses,
+// which applies built-in Heading styles + direct formatting (works without
+// custom named styles that require WordApi 1.6+).
 
-const HEADING_STYLE_NAMES: ReadonlyArray<string> = [
-  "AGLC4 Level I",
-  "AGLC4 Level II",
-  "AGLC4 Level III",
-  "AGLC4 Level IV",
-  "AGLC4 Level V",
-];
-
-async function applyHeadingLevel(
+async function applyHeading(
   event: Office.AddinCommands.Event,
-  level: number,
+  level: 1 | 2 | 3 | 4 | 5,
 ) {
   try {
+    const { applyHeadingLevel: applyHL } = await import("../word/styles");
     await Word.run(async (context) => {
       const selection = context.document.getSelection();
-      selection.paragraphs.load("items");
+      selection.load("paragraphs");
       await context.sync();
-      const styleName = HEADING_STYLE_NAMES[level - 1];
-      for (const para of selection.paragraphs.items) {
-        para.style = styleName;
+
+      for (let i = 0; i < selection.paragraphs.items.length; i++) {
+        await applyHL(context, selection.paragraphs.items[i], level, i + 1);
       }
-      await context.sync();
     });
   } catch {
     /* silent */
@@ -113,27 +106,17 @@ async function applyHeadingLevel(
   event.completed();
 }
 
-async function applyHeadingI(event: Office.AddinCommands.Event) {
-  await applyHeadingLevel(event, 1);
-}
+async function applyHeadingI(event: Office.AddinCommands.Event) { await applyHeading(event, 1); }
 Office.actions.associate("applyHeadingI", applyHeadingI);
 
-async function applyHeadingII(event: Office.AddinCommands.Event) {
-  await applyHeadingLevel(event, 2);
-}
+async function applyHeadingII(event: Office.AddinCommands.Event) { await applyHeading(event, 2); }
 Office.actions.associate("applyHeadingII", applyHeadingII);
 
-async function applyHeadingIII(event: Office.AddinCommands.Event) {
-  await applyHeadingLevel(event, 3);
-}
+async function applyHeadingIII(event: Office.AddinCommands.Event) { await applyHeading(event, 3); }
 Office.actions.associate("applyHeadingIII", applyHeadingIII);
 
-async function applyHeadingIV(event: Office.AddinCommands.Event) {
-  await applyHeadingLevel(event, 4);
-}
+async function applyHeadingIV(event: Office.AddinCommands.Event) { await applyHeading(event, 4); }
 Office.actions.associate("applyHeadingIV", applyHeadingIV);
 
-async function applyHeadingV(event: Office.AddinCommands.Event) {
-  await applyHeadingLevel(event, 5);
-}
+async function applyHeadingV(event: Office.AddinCommands.Event) { await applyHeading(event, 5); }
 Office.actions.associate("applyHeadingV", applyHeadingV);
