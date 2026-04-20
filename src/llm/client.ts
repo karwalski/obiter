@@ -125,7 +125,7 @@ function buildAnthropicRequest(
       headers: {
         "Content-Type": "application/json",
         "x-api-key": config.apiKey,
-        "anthropic-version": "2024-10-22",
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify(body),
     },
