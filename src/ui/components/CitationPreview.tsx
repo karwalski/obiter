@@ -264,6 +264,7 @@ export default function CitationPreview({
             onChange={(e) => handleTextChange(e.target.value)}
             rows={3}
             placeholder="Type or paste a formatted citation..."
+            aria-label="Edit citation text"
           />
           {warnings.length > 0 && !overrideMode && (
             <div className="citation-preview-warnings">

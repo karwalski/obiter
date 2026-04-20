@@ -39,10 +39,24 @@ export default function FieldHelp({
     [open],
   );
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (open && e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    },
+    [open],
+  );
+
   useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [handleClickOutside]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleClickOutside, handleKeyDown]);
 
   const handleViewInGuide = (): void => {
     setOpen(false);

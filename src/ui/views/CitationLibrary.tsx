@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
 import { importWordSources } from "../../word/sourceImporter";
@@ -168,6 +168,127 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "alphabetical", label: "Alphabetical" },
   { value: "dateAdded", label: "Date added" },
 ];
+
+// ─── BibTeX Modal (A11Y: focus trap, Escape, role="dialog") ─────────────────
+
+interface BibTeXModalProps {
+  bibtexText: string;
+  setBibtexText: (text: string) => void;
+  bibtexImporting: boolean;
+  onImport: () => void;
+  onClose: () => void;
+  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+function BibTeXModal({
+  bibtexText,
+  setBibtexText,
+  bibtexImporting,
+  onImport,
+  onClose,
+  onFileUpload,
+}: BibTeXModalProps): JSX.Element {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus the modal on mount; trap focus and handle Escape
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    // Move focus into the modal
+    const firstFocusable = modal.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    firstFocusable?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape" && !bibtexImporting) {
+        onClose();
+        return;
+      }
+
+      // Focus trap
+      if (e.key === "Tab") {
+        const focusableElements = modal.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+
+        const firstEl = focusableElements[0];
+        const lastEl = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstEl) {
+            e.preventDefault();
+            lastEl.focus();
+          }
+        } else {
+          if (document.activeElement === lastEl) {
+            e.preventDefault();
+            firstEl.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [bibtexImporting, onClose]);
+
+  return (
+    <div className="library-modal-overlay" onClick={(e) => {
+      if (e.target === e.currentTarget && !bibtexImporting) onClose();
+    }}>
+      <div
+        className="library-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Import BibTeX"
+        ref={modalRef}
+      >
+        <h3>Import BibTeX</h3>
+        <p className="library-modal-description">
+          Paste BibTeX/BibLaTeX entries below, or upload a .bib file.
+        </p>
+        <div className="library-modal-file-row">
+          <label className="library-btn library-btn--import library-file-label">
+            Choose .bib file
+            <input
+              type="file"
+              accept=".bib,.bibtex,text/plain"
+              onChange={onFileUpload}
+              style={{ display: "none" }}
+            />
+          </label>
+        </div>
+        <textarea
+          className="library-bibtex-textarea"
+          rows={12}
+          value={bibtexText}
+          onChange={(e) => setBibtexText(e.target.value)}
+          aria-label="BibTeX entries"
+          placeholder={"@article{smith2020,\n  author = {Smith, John},\n  title = {Example Article},\n  journal = {Example Journal},\n  year = {2020},\n  volume = {1},\n  pages = {1--10}\n}"}
+        />
+        <div className="library-modal-actions">
+          <button
+            className="library-btn library-btn--import"
+            onClick={onImport}
+            disabled={bibtexImporting || !bibtexText.trim()}
+          >
+            {bibtexImporting ? "Importing..." : "Import"}
+          </button>
+          <button
+            className="library-btn"
+            onClick={onClose}
+            disabled={bibtexImporting}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -466,6 +587,7 @@ export default function CitationLibrary(): JSX.Element {
       </div>
 
       {/* Refresh status toast */}
+      <div aria-live="polite" role="status">
       {refreshStatus && (
         <div className="library-toast">
           <span>{refreshStatus}</span>
@@ -478,6 +600,7 @@ export default function CitationLibrary(): JSX.Element {
           </button>
         </div>
       )}
+      </div>
 
       {/* Import + Summary bar */}
       <div className="library-import-bar">
@@ -502,66 +625,34 @@ export default function CitationLibrary(): JSX.Element {
 
       {/* BibTeX import modal */}
       {bibtexModalOpen && (
-        <div className="library-modal-overlay">
-          <div className="library-modal">
-            <h3>Import BibTeX</h3>
-            <p className="library-modal-description">
-              Paste BibTeX/BibLaTeX entries below, or upload a .bib file.
-            </p>
-            <div className="library-modal-file-row">
-              <label className="library-btn library-btn--import library-file-label">
-                Choose .bib file
-                <input
-                  type="file"
-                  accept=".bib,.bibtex,text/plain"
-                  onChange={handleBibFileUpload}
-                  style={{ display: "none" }}
-                />
-              </label>
-            </div>
-            <textarea
-              className="library-bibtex-textarea"
-              rows={12}
-              value={bibtexText}
-              onChange={(e) => setBibtexText(e.target.value)}
-              placeholder={"@article{smith2020,\n  author = {Smith, John},\n  title = {Example Article},\n  journal = {Example Journal},\n  year = {2020},\n  volume = {1},\n  pages = {1--10}\n}"}
-            />
-            <div className="library-modal-actions">
-              <button
-                className="library-btn library-btn--import"
-                onClick={() => void handleImportBibTeX(bibtexText)}
-                disabled={bibtexImporting || !bibtexText.trim()}
-              >
-                {bibtexImporting ? "Importing..." : "Import"}
-              </button>
-              <button
-                className="library-btn"
-                onClick={() => {
-                  setBibtexModalOpen(false);
-                  setBibtexText("");
-                }}
-                disabled={bibtexImporting}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <BibTeXModal
+          bibtexText={bibtexText}
+          setBibtexText={setBibtexText}
+          bibtexImporting={bibtexImporting}
+          onImport={() => void handleImportBibTeX(bibtexText)}
+          onClose={() => {
+            setBibtexModalOpen(false);
+            setBibtexText("");
+          }}
+          onFileUpload={handleBibFileUpload}
+        />
       )}
 
       {/* Import status toast */}
-      {importStatus && (
-        <div className="library-toast">
-          <span>{importStatus}</span>
-          <button
-            className="library-toast-dismiss"
-            onClick={() => setImportStatus(null)}
-            aria-label="Dismiss"
-          >
-            &times;
-          </button>
-        </div>
-      )}
+      <div aria-live="polite" role="status">
+        {importStatus && (
+          <div className="library-toast">
+            <span>{importStatus}</span>
+            <button
+              className="library-toast-dismiss"
+              onClick={() => setImportStatus(null)}
+              aria-label="Dismiss"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Search */}
       <input
@@ -570,6 +661,7 @@ export default function CitationLibrary(): JSX.Element {
         placeholder="Search by title, author, or party name..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
+        aria-label="Search citations"
       />
 
       {/* Filter + Sort controls */}
@@ -707,6 +799,7 @@ export default function CitationLibrary(): JSX.Element {
                       value={pinpointInput}
                       onChange={(e) => setPinpointInput(e.target.value)}
                       className="library-insert-pinpoint-input"
+                      aria-label="Pinpoint reference"
                     />
                   </div>
                 </div>

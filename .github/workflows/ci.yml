@@ -92,17 +92,33 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Check for website changes
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check for changes
         id: changes
         run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q '^website/'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          if echo "$CHANGED_FILES" | grep -q '^website/'; then
+            echo "website=true" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "website=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^website/server/'; then
+            echo "server=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "server=false" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$CHANGED_FILES" | grep -q '^src/'; then
+            echo "addin=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "addin=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy website to Lightsail
-        if: steps.changes.outputs.changed == 'true'
+      - name: Set up SSH
+        if: steps.changes.outputs.website == 'true' || steps.changes.outputs.addin == 'true'
         env:
           LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
         run: |
@@ -111,14 +127,48 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H 3.106.204.98 >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Sync website files to Lightsail nginx html directory
-          rsync -avz --delete \
+      - name: Deploy website to Lightsail
+        if: steps.changes.outputs.website == 'true'
+        run: |
+          # Sync website files (excluding server/) to nginx html directory
+          rsync -avz --delete --exclude='server/' \
             -e "ssh -i ~/.ssh/deploy_key" \
             website/ \
             bitnami@3.106.204.98:/opt/bitnami/nginx/html/
 
-          # Restart the Node.js backend server
-          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
-            'sudo systemctl restart obiter-backend || pm2 restart obiter-backend'
+      - name: Deploy server to Lightsail
+        if: steps.changes.outputs.server == 'true'
+        run: |
+          # Sync server files
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            website/server/ \
+            bitnami@3.106.204.98:/var/www/obiter/server/
 
-          rm -f ~/.ssh/deploy_key
+          # Install dependencies on remote if package.json changed
+          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+            'cd /var/www/obiter/server && npm ci --production'
+
+          # Restart the Node.js backend server using screen
+          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+            'pkill -f "node.*index.js" 2>/dev/null; sleep 1; source /etc/obiter/env.sh && cd /var/www/obiter/server && screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"'
+
+      - name: Deploy add-in to Lightsail
+        if: steps.changes.outputs.addin == 'true'
+        run: |
+          # Download the dist artifact built in the build job
+          # (already available via needs: build)
+
+          # Build production add-in
+          npm ci
+          npm run build:prod
+
+          # Deploy built add-in files to /app/ on the server
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ \
+            bitnami@3.106.204.98:/opt/bitnami/nginx/html/app/
+
+      - name: Clean up SSH key
+        if: always() && (steps.changes.outputs.website == 'true' || steps.changes.outputs.addin == 'true')
+        run: rm -f ~/.ssh/deploy_key

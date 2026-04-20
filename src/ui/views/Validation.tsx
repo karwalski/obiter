@@ -215,20 +215,22 @@ export default function Validation(): JSX.Element {
       </button>
 
       {/* Inline formatting result */}
-      {formatResult && (
-        <div className="validation-summary">
-          <span>
-            Formatted {formatResult.formatted} inline reference{formatResult.formatted !== 1 ? "s" : ""} ({formatResult.skipped} already correct)
-          </span>
-        </div>
-      )}
+      <div aria-live="polite" role="status">
+        {formatResult && (
+          <div className="validation-summary">
+            <span>
+              Formatted {formatResult.formatted} inline reference{formatResult.formatted !== 1 ? "s" : ""} ({formatResult.skipped} already correct)
+            </span>
+          </div>
+        )}
 
-      {/* Inline formatting error */}
-      {formatError && (
-        <div className="validation-error">
-          <p>{formatError}</p>
-        </div>
-      )}
+        {/* Inline formatting error */}
+        {formatError && (
+          <div className="validation-error">
+            <p>Error: {formatError}</p>
+          </div>
+        )}
+      </div>
 
       {/* Check Reference (LLM-powered) */}
       <CheckReference />
@@ -242,11 +244,13 @@ export default function Validation(): JSX.Element {
       )}
 
       {/* Error state */}
-      {error && (
-        <div className="validation-error">
-          <p>{error}</p>
-        </div>
-      )}
+      <div aria-live="polite" role="status">
+        {error && (
+          <div className="validation-error">
+            <p>Error: {error}</p>
+          </div>
+        )}
+      </div>
 
       {/* Empty state (before scanning) */}
       {!scanning && result === null && !error && (
@@ -259,7 +263,7 @@ export default function Validation(): JSX.Element {
       {result !== null && !scanning && (
         <>
           {/* Summary bar */}
-          <div className={`validation-summary ${noIssues ? "validation-summary--clean" : ""}`}>
+          <div className={`validation-summary ${noIssues ? "validation-summary--clean" : ""}`} aria-live="polite">
             {noIssues ? (
               <>
                 <CheckIcon />

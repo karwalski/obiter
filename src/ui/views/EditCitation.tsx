@@ -518,8 +518,10 @@ export default function EditCitation(): JSX.Element {
 
       <div className="edit-type-badge">{typeLabel}</div>
 
-      {error && <p className="edit-error">{error}</p>}
-      {successMessage && <p className="edit-success">{successMessage}</p>}
+      <div aria-live="polite" role="status">
+        {error && <p className="edit-error">Error: {error}</p>}
+        {successMessage && <p className="edit-success">Success: {successMessage}</p>}
+      </div>
 
       <div className="edit-form">
         {fields.map((field) => (

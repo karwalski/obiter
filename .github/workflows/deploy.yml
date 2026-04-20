@@ -18,9 +18,14 @@ on:
         default: true
         type: boolean
       deploy_addin:
-        description: 'Build and upload add-in artifact'
+        description: 'Build and deploy add-in to /app/'
         required: true
         default: true
+        type: boolean
+      restart_server:
+        description: 'Restart the Node.js backend server'
+        required: false
+        default: false
         type: boolean
 
 jobs:
@@ -51,12 +56,12 @@ jobs:
 
   deploy-website:
     runs-on: ubuntu-latest
-    if: ${{ inputs.deploy_website }}
+    if: ${{ inputs.deploy_website || inputs.restart_server }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy website to Lightsail
+      - name: Set up SSH
         env:
           LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
         run: |
@@ -65,14 +70,70 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H 3.106.204.98 >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Sync website files to Lightsail nginx html directory
-          rsync -avz --delete \
+      - name: Deploy website files
+        if: ${{ inputs.deploy_website }}
+        run: |
+          # Sync website files (excluding server/) to nginx html directory
+          rsync -avz --delete --exclude='server/' \
             -e "ssh -i ~/.ssh/deploy_key" \
             website/ \
             bitnami@3.106.204.98:/opt/bitnami/nginx/html/
 
-          # Restart the Node.js backend server
-          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
-            'sudo systemctl restart obiter-backend || pm2 restart obiter-backend'
+      - name: Deploy server files
+        if: ${{ inputs.deploy_website }}
+        run: |
+          # Sync server files
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            website/server/ \
+            bitnami@3.106.204.98:/var/www/obiter/server/
 
-          rm -f ~/.ssh/deploy_key
+          # Install dependencies on remote
+          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+            'cd /var/www/obiter/server && npm ci --production'
+
+      - name: Restart server
+        if: ${{ inputs.deploy_website || inputs.restart_server }}
+        run: |
+          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+            'pkill -f "node.*index.js" 2>/dev/null; sleep 1; source /etc/obiter/env.sh && cd /var/www/obiter/server && screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"'
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+  deploy-addin:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.deploy_addin }}
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up SSH
+        env:
+          LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 3.106.204.98 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Build and deploy add-in
+        run: |
+          npm ci
+          npm run build:prod
+
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ \
+            bitnami@3.106.204.98:/opt/bitnami/nginx/html/app/
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

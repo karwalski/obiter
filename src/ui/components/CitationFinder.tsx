@@ -184,6 +184,7 @@ export default function CitationFinder({
                   placeholder="Filter citations..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Filter citations"
                 />
               )}
 

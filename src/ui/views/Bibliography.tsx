@@ -209,8 +209,10 @@ export default function Bibliography(): JSX.Element {
       </label>
 
       {/* Status messages */}
-      {error && <p className="bib-error">{error}</p>}
-      {successMessage && <p className="bib-success">{successMessage}</p>}
+      <div aria-live="polite" role="status">
+        {error && <p className="bib-error">Error: {error}</p>}
+        {successMessage && <p className="bib-success">Success: {successMessage}</p>}
+      </div>
 
       {/* Insert button */}
       <button

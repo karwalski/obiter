@@ -547,11 +547,13 @@ export default function Settings(): JSX.Element {
           ))}
         </div>
 
-        {formatStatus && (
-          <p style={{ fontSize: 12, color: "var(--colour-success)", margin: "8px 0 0" }}>
-            {formatStatus}
-          </p>
-        )}
+        <div aria-live="polite" role="status">
+          {formatStatus && (
+            <p style={{ fontSize: 12, color: "var(--colour-success)", margin: "8px 0 0" }}>
+              {formatStatus}
+            </p>
+          )}
+        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
@@ -799,23 +801,26 @@ export default function Settings(): JSX.Element {
           </button>
         </div>
 
-        {llmTestStatus && (
-          <p style={{
-            fontSize: 11,
-            margin: "6px 0 0",
-            color: llmTestStatus === "Connected" ? "var(--colour-success)"
-              : llmTestStatus === "Testing..." ? "var(--colour-text-secondary)"
-              : "var(--colour-error)",
-          }}>
-            {llmTestStatus}
-          </p>
-        )}
+        <div aria-live="polite" role="status">
+          {llmTestStatus && (
+            <p style={{
+              fontSize: 11,
+              margin: "6px 0 0",
+              color: llmTestStatus === "Connected" ? "var(--colour-success)"
+                : llmTestStatus === "Testing..." ? "var(--colour-text-secondary)"
+                : "var(--colour-error)",
+            }}>
+              {llmTestStatus === "Connected" ? "Success: " : llmTestStatus === "Failed" ? "Error: " : ""}
+              {llmTestStatus}
+            </p>
+          )}
 
-        {llmSaveStatus && (
-          <p style={{ fontSize: 11, margin: "6px 0 0", color: "var(--colour-success)" }}>
-            {llmSaveStatus}
-          </p>
-        )}
+          {llmSaveStatus && (
+            <p style={{ fontSize: 11, margin: "6px 0 0", color: "var(--colour-success)" }}>
+              {llmSaveStatus}
+            </p>
+          )}
+        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
@@ -900,11 +905,13 @@ export default function Settings(): JSX.Element {
           </button>
         </div>
 
-        {testStatus && (
-          <p style={{ fontSize: 11, margin: "8px 0 0", color: testStatus.includes("failed") ? "var(--colour-error)" : "var(--colour-success)" }}>
-            {testStatus}
-          </p>
-        )}
+        <div aria-live="polite" role="status">
+          {testStatus && (
+            <p style={{ fontSize: 11, margin: "8px 0 0", color: testStatus.includes("failed") ? "var(--colour-error)" : "var(--colour-success)" }}>
+              {testStatus}
+            </p>
+          )}
+        </div>
 
         {debugLogs.length > 0 && (
           <div style={{

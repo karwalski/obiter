@@ -162,11 +162,13 @@ export default function CheckReference(): JSX.Element {
       )}
 
       {/* Error state */}
-      {error && (
-        <div className="validation-error">
-          <p>{error}</p>
-        </div>
-      )}
+      <div aria-live="polite" role="status">
+        {error && (
+          <div className="validation-error">
+            <p>Error: {error}</p>
+          </div>
+        )}
+      </div>
 
       {/* Result card */}
       {result && !checking && (
@@ -176,6 +178,7 @@ export default function CheckReference(): JSX.Element {
               ? "check-reference-result--pass"
               : "check-reference-result--fail"
           }`}
+          aria-live="polite"
         >
           <div className="check-reference-result-header">
             {result.valid ? <PassIcon /> : <FailIcon />}

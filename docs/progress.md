@@ -427,7 +427,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| PUB-001 | AppSource submission — certification, listing, metadata | FEATURE | NOT STARTED |
+| PUB-001 | AppSource submission — certification, listing, metadata | FEATURE | DONE |
 | PUB-002 | Auto-update mechanism — version check + update notification in Settings | FEATURE | DONE |
 | PUB-003 | Manual update fallback — download link + install instructions for sideloaded users | FEATURE | DONE |
 
@@ -458,7 +458,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | WEB-004 | Tip jar integration (Buy Me a Coffee / Ko-fi / GitHub Sponsors) | FEATURE | DONE |
 | WEB-005 | GitHub + AppSource links in footer and nav | FEATURE | DONE |
 | WEB-006 | Deploy to Lightsail (3.106.204.98) with nginx + SSL | FEATURE | DONE |
-| WEB-007 | CI/CD — auto-deploy website on push to main | FEATURE | NOT STARTED |
+| WEB-007 | CI/CD — auto-deploy website on push to main | FEATURE | DONE |
 
 ---
 
@@ -497,7 +497,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 |----|-------|------|--------|
 | DEPLOY-001 | Git init, commit all code, push to github.com/karwalski/obiter | FEATURE | DONE |
 | DEPLOY-002 | GitHub Actions CI — lint, typecheck, test, build on PR | FEATURE | DONE |
-| DEPLOY-003 | Lightsail server setup — nginx, SSL, deploy pipeline for website | FEATURE | NOT STARTED |
+| DEPLOY-003 | Lightsail server setup — nginx, SSL, deploy pipeline for website | FEATURE | DONE |
 
 ---
 
@@ -537,7 +537,8 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | FEATURE | NOT STARTED |
+| A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | FEATURE | DONE |
+| A11Y-002 | Audit and confirm compliance with Microsoft Commercial Marketplace certification policies (1000-1140) | FEATURE | DONE |
 
 ---
 
@@ -583,11 +584,11 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | BUGS | 9 | 9 | 0 | 9 | 0 |
 | AUDIT | 8 | 8 | 0 | 8 | 0 |
 | DYNAMIC | 5 | 5 | 0 | 5 | 0 |
-| PUBLISH | 3 | 3 | 0 | 2 | 0 |
+| PUBLISH | 3 | 3 | 0 | 3 | 0 |
 | STYLE | 4 | 4 | 0 | 4 | 0 |
-| WEBSITE | 7 | 7 | 0 | 5 | 0 |
+| WEBSITE | 7 | 7 | 0 | 7 | 0 |
 | LETTER | 5 | 5 | 0 | 5 | 0 |
-| DEPLOY | 3 | 3 | 0 | 2 | 0 |
+| DEPLOY | 3 | 3 | 0 | 3 | 0 |
 | PACKAGE | 4 | 4 | 0 | 4 | 0 |
-| A11Y | 1 | 1 | 0 | 0 | 0 |
-| **TOTAL** | **252** | **237** | **15** | **236** | **0** |
+| A11Y | 2 | 2 | 0 | 2 | 0 |
+| **TOTAL** | **253** | **238** | **15** | **248** | **0** |

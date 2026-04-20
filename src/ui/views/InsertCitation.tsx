@@ -728,11 +728,14 @@ export default function InsertCitation(): JSX.Element {
       )}
 
       {/* Feedback */}
-      {feedback && (
-        <div className={`ic-feedback ic-feedback--${feedback.type}`}>
-          {feedback.message}
-        </div>
-      )}
+      <div aria-live="polite" role="status">
+        {feedback && (
+          <div className={`ic-feedback ic-feedback--${feedback.type}`}>
+            {feedback.type === "error" ? "Error: " : "Success: "}
+            {feedback.message}
+          </div>
+        )}
+      </div>
 
       {/* Insert button */}
       {selectedSourceType && (

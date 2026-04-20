@@ -28,7 +28,11 @@
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "export-rules": "npx ts-node scripts/export-rules.ts",
-    "package": "bash scripts/package.sh"
+    "package": "bash scripts/package.sh",
+    "deploy:website": "bash scripts/deploy-website.sh",
+    "deploy:server": "bash scripts/deploy-server.sh",
+    "deploy:app": "bash scripts/deploy-app.sh",
+    "restart:server": "bash scripts/restart-server.sh"
   },
   "dependencies": {
     "core-js": "^3.36.0",
