@@ -46,20 +46,26 @@ interface AnthropicResponse {
 
 // ─── Endpoint resolution ────────────────────────────────────────────────────
 
+/** Provider endpoint map. Gemini, Grok, and DeepSeek all use OpenAI-compatible APIs. */
+const PROVIDER_ENDPOINTS: Record<string, string> = {
+  openai: "https://api.openai.com/v1/chat/completions",
+  anthropic: "https://api.anthropic.com/v1/messages",
+  gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+  grok: "https://api.x.ai/v1/chat/completions",
+  deepseek: "https://api.deepseek.com/chat/completions",
+};
+
 function resolveEndpoint(config: LLMConfig): string {
   if (config.endpoint) {
     return config.endpoint;
   }
-  switch (config.provider) {
-    case "openai":
-      return "https://api.openai.com/v1/chat/completions";
-    case "anthropic":
-      return "https://api.anthropic.com/v1/messages";
-    case "custom":
-      throw new Error(
-        "A custom provider requires an explicit endpoint in LLMConfig.",
-      );
+  const endpoint = PROVIDER_ENDPOINTS[config.provider];
+  if (!endpoint) {
+    throw new Error(
+      `Provider "${config.provider}" requires an explicit endpoint in LLMConfig.`,
+    );
   }
+  return endpoint;
 }
 
 // ─── Build request ──────────────────────────────────────────────────────────

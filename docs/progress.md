@@ -551,7 +551,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 |----|-------|------|--------|
 | A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | FEATURE | DONE |
 | A11Y-002 | Audit and confirm compliance with Microsoft Commercial Marketplace certification policies (1000-1140) | FEATURE | DONE |
-| A11Y-003 | Website dark mode (prefers-color-scheme), contrast audit, and screen reader accessibility | FEATURE | NOT STARTED |
+| A11Y-003 | Website dark mode (prefers-color-scheme), contrast audit, and screen reader accessibility | FEATURE | DONE |
 
 ---
 
@@ -604,5 +604,5 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | DEPLOY | 3 | 3 | 0 | 3 | 0 |
 | PACKAGE | 4 | 4 | 0 | 4 | 0 |
 | AI | 3 | 3 | 0 | 3 | 0 |
-| A11Y | 3 | 3 | 0 | 2 | 0 |
-| **TOTAL** | **257** | **242** | **15** | **251** | **0** |
+| A11Y | 3 | 3 | 0 | 3 | 0 |
+| **TOTAL** | **257** | **242** | **15** | **252** | **0** |

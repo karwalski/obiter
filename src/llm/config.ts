@@ -7,7 +7,7 @@
  */
 
 export interface LLMConfig {
-  provider: "openai" | "anthropic" | "custom";
+  provider: "openai" | "anthropic" | "gemini" | "grok" | "deepseek" | "custom";
   apiKey: string;
   model: string;
   endpoint?: string;

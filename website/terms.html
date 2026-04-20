@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,10 +11,12 @@
 </head>
 <body>
 
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- ============================================================
        Navigation
        ============================================================ -->
-  <nav class="site-nav" aria-label="Primary navigation">
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
     <div class="container">
       <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
@@ -35,6 +37,7 @@
   <!-- ============================================================
        Page Header
        ============================================================ -->
+  <main id="main-content" role="main">
   <header class="page-header">
     <div class="container">
       <h1>Terms of Use</h1>
@@ -141,10 +144,12 @@
     </div>
   </section>
 
+  </main>
+
   <!-- ============================================================
        Footer
        ============================================================ -->
-  <footer class="site-footer">
+  <footer class="site-footer" role="contentinfo">
     <div class="container">
       <ul class="site-footer__links">
         <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>

@@ -18,14 +18,29 @@ import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHisto
 
 type AglcVersion = "4" | "5";
 
-const LLM_MODELS: Record<"openai" | "anthropic", string[]> = {
+const LLM_MODELS: Record<string, string[]> = {
   openai: ["gpt-5", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
   anthropic: ["claude-opus-4-20250514", "claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
+  gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+  grok: ["grok-3", "grok-3-mini"],
+  deepseek: ["deepseek-chat", "deepseek-reasoner"],
 };
 
 const LLM_API_KEY_URLS: Record<string, string> = {
   openai: "https://platform.openai.com/api-keys",
   anthropic: "https://console.anthropic.com/settings/keys",
+  gemini: "https://aistudio.google.com/apikey",
+  grok: "https://console.x.ai",
+  deepseek: "https://platform.deepseek.com/api_keys",
+};
+
+const LLM_PROVIDER_LABELS: Record<string, string> = {
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  gemini: "Google Gemini",
+  grok: "xAI Grok",
+  deepseek: "DeepSeek",
+  custom: "Custom Endpoint",
 };
 
 const store = new CitationStore();
@@ -700,16 +715,16 @@ export default function Settings(): JSX.Element {
             onChange={(e) => {
               const provider = e.target.value as LLMConfig["provider"];
               setLlmProvider(provider);
-              if (provider !== "custom") {
+              if (LLM_MODELS[provider]) {
                 setLlmModel(LLM_MODELS[provider][0]);
               } else {
                 setLlmModel("");
               }
             }}
           >
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="custom">Custom</option>
+            {Object.entries(LLM_PROVIDER_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </label>
 
@@ -732,17 +747,15 @@ export default function Settings(): JSX.Element {
               rel="noopener noreferrer"
               style={{ color: "var(--colour-accent)" }}
             >
-              Get {llmProvider === "openai" ? "an OpenAI" : "an Anthropic"} API key
+              Get {LLM_PROVIDER_LABELS[llmProvider] ?? llmProvider} API key
             </a>
-            {llmProvider === "openai"
-              ? " — requires an OpenAI account. Usage is billed per request."
-              : " — requires an Anthropic account. Usage is billed per request."}
+            {" — requires an account. Usage is billed per request."}
           </p>
         )}
 
         <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
           Model
-          {llmProvider === "custom" ? (
+          {!LLM_MODELS[llmProvider] ? (
             <input
               type="text"
               className="ic-input"
