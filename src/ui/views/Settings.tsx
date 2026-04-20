@@ -27,10 +27,9 @@ const LLM_MODELS: Record<string, ModelOption[]> = {
     { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
   ],
   anthropic: [
-    { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-    { value: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-    { value: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
-    { value: "claude-3-opus-20240229", label: "Claude 3 Opus" },
+    { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
+    { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
+    { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
   ],
   gemini: [
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
