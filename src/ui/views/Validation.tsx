@@ -140,7 +140,8 @@ export default function Validation(): JSX.Element {
       const citations = store.getAll();
 
       // Run validation (including body text for footnote position checks)
-      const validationResult = validateDocument(footnoteTexts, citations, bodyText);
+      const currentWritingMode = store.getWritingMode();
+      const validationResult = validateDocument(footnoteTexts, citations, bodyText, currentWritingMode);
       setResult(validationResult);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Validation failed";

@@ -195,6 +195,7 @@ export interface StoreMetadata {
   schemaVersion: string; // e.g. "1.0"
   aglcVersion: "4" | "5"; // Default AGLC version for new citations
   standardId?: string; // CitationStandardId — defaults to "aglc4" if missing (backward compat)
+  writingMode?: "academic" | "court"; // MULTI-014 — defaults to "academic" if missing
 }
 
 // ─── Store Shape (deserialized) ───────────────────────────────────────────────

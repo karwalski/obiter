@@ -8,9 +8,10 @@ import { Citation } from "../../types/citation";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import {
-  generateBibliography,
+  generateBibliographyForStandard,
   BibliographySection,
 } from "../../engine/rules/v4/general/bibliography";
+import { getStandardConfig } from "../../engine/standards";
 
 // ─── FormattedRun Renderer ──────────────────────────────────────────────────
 
@@ -103,6 +104,8 @@ export default function Bibliography(): JSX.Element {
   const [inserting, setInserting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [bibStructure, setBibStructure] = useState<"aglc" | "oscola" | "nzlsg">("aglc");
+  const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
 
   // Load citations from the store on mount
   useEffect(() => {
@@ -115,6 +118,9 @@ export default function Bibliography(): JSX.Element {
         const all = store.getAll();
         if (!cancelled) {
           setCitations(all);
+          const stdConfig = getStandardConfig(store.getStandardId());
+          setBibStructure(stdConfig.bibliographyStructure);
+          setWritingMode(store.getWritingMode());
         }
       } catch (err) {
         if (!cancelled) {
@@ -143,10 +149,10 @@ export default function Bibliography(): JSX.Element {
     );
   }, [citations, citedOnly]);
 
-  // Generate bibliography sections from filtered citations
+  // Generate bibliography or List of Authorities from filtered citations
   const sections = useMemo(
-    () => generateBibliography(filteredCitations),
-    [filteredCitations]
+    () => generateBibliographyForStandard(filteredCitations, bibStructure, writingMode),
+    [filteredCitations, bibStructure, writingMode]
   );
 
   const handleInsert = useCallback(async () => {
@@ -158,7 +164,7 @@ export default function Bibliography(): JSX.Element {
 
     try {
       await insertBibliographyIntoDocument(sections);
-      setSuccessMessage("Bibliography inserted successfully.");
+      setSuccessMessage(writingMode === "court" ? "List of Authorities inserted successfully." : "Bibliography inserted successfully.");
     } catch (err) {
       setError(
         err instanceof Error
@@ -174,7 +180,7 @@ export default function Bibliography(): JSX.Element {
   if (loading) {
     return (
       <div>
-        <h2>Bibliography</h2>
+        <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
         <p>Loading citations...</p>
       </div>
     );
@@ -184,8 +190,8 @@ export default function Bibliography(): JSX.Element {
   if (citations.length === 0) {
     return (
       <div>
-        <h2>Bibliography</h2>
-        <p>No citations to generate a bibliography from.</p>
+        <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
+        <p>No citations to generate {writingMode === "court" ? "a list of authorities" : "a bibliography"} from.</p>
       </div>
     );
   }
@@ -194,7 +200,7 @@ export default function Bibliography(): JSX.Element {
 
   return (
     <div className="bib-view">
-      <h2>Bibliography</h2>
+      <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
 
       {/* Options */}
       <label className="settings-toggle">
@@ -220,7 +226,7 @@ export default function Bibliography(): JSX.Element {
         disabled={isEmpty || inserting}
         onClick={handleInsert}
       >
-        {inserting ? "Inserting..." : "Insert Bibliography at Cursor"}
+        {inserting ? "Inserting..." : writingMode === "court" ? "Insert List of Authorities at Cursor" : "Insert Bibliography at Cursor"}
       </button>
 
       {/* Preview or filtered-empty message */}

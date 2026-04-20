@@ -42,21 +42,24 @@ export default function Layout(): JSX.Element {
   const online = useOnlineStatus();
   const { triggerRefresh } = useCitationContext();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+  const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load the active standard on mount
+  // Load the active standard and writing mode on mount
   useEffect(() => {
     void (async () => {
       try {
         const store = await getLayoutStore();
         setStandardId(store.getStandardId());
+        setWritingMode(store.getWritingMode());
       } catch {
-        // Default to aglc4
+        // Default to aglc4, academic
       }
     })();
   }, []);
 
-  const showHeadingBar = hasCustomHeadings(standardId);
+  // MULTI-014: Court mode suppresses heading bar
+  const showHeadingBar = hasCustomHeadings(standardId) && writingMode !== "court";
 
   const handleApplyHeading = useCallback(async (level: string) => {
     const levelMap: Record<string, 1 | 2 | 3 | 4 | 5> = {
@@ -147,7 +150,7 @@ export default function Layout(): JSX.Element {
       </a>
       <header className="obiter-header">
         <h1>Obiter</h1>
-        <span>AGLC4</span>
+        <span>{writingMode === "court" ? "AGLC4 (Court)" : "AGLC4"}</span>
       </header>
       {!online && (
         <div className="obiter-offline-banner" role="alert">

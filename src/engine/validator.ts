@@ -10,6 +10,7 @@ import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punc
 import { checkDateFormatting } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
 import { COURT_IDENTIFIERS } from "./data/court-identifiers";
+import type { WritingMode } from "./standards/types";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -36,8 +37,10 @@ export function validateDocument(
   footnoteTexts: string[],
   citations: Citation[],
   bodyText?: string,
+  writingMode?: WritingMode,
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
+  const isCourtMode = writingMode === "court";
 
   // Footnote-level checks
   for (let i = 0; i < footnoteTexts.length; i++) {
@@ -47,7 +50,10 @@ export function validateDocument(
   }
 
   // Cross-footnote checks
-  allIssues.push(...checkIbidCorrectness(footnoteTexts));
+  // MULTI-014: Court mode skips ibid correctness (ibid is never used)
+  if (!isCourtMode) {
+    allIssues.push(...checkIbidCorrectness(footnoteTexts));
+  }
   allIssues.push(...checkCrossReferences(footnoteTexts));
 
   // Body text checks (Rule 1.1.2: footnote number position)
@@ -61,7 +67,11 @@ export function validateDocument(
   }
 
   // Parallel citation checks (Rule 2.2.7 / court practice directions)
-  allIssues.push(...checkParallelCitations(citations));
+  // MULTI-014: Court mode skips parallel citation warnings (parallels are
+  // emitted by default and are expected in court submissions)
+  if (!isCourtMode) {
+    allIssues.push(...checkParallelCitations(citations));
+  }
 
   // Categorise by severity
   const errors: ValidationIssue[] = [];

@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { CitationStore } from "../../store";
-import { AVAILABLE_STANDARDS, type CitationStandardId } from "../../engine/standards";
+import { AVAILABLE_STANDARDS, type CitationStandardId, type WritingMode } from "../../engine/standards";
 import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
 // styleInstaller import removed — XSL now downloaded via button
 import { applyAglc4Styles, applyHeadingLevel } from "../../word/styles";
@@ -106,6 +106,7 @@ export default function Settings(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [formatStatus, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
+  const [writingMode, setWritingMode] = useState<WritingMode>("academic");
   const { autoRefreshEnabled: _are, setAutoRefreshEnabled } = useCitationContext();
   const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
@@ -143,6 +144,7 @@ export default function Settings(): JSX.Element {
         if (!cancelled) {
           setVersion(store.getAglcVersion());
           setStandardId(store.getStandardId());
+          setWritingMode(store.getWritingMode());
 
           // Load attribution preference
           const savedPref = getSetting("obiter-showAttribution");
@@ -239,6 +241,17 @@ export default function Settings(): JSX.Element {
       setError(message);
     }
   }, [standardId]);
+
+  const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
+    try {
+      await store.setWritingMode(mode);
+      setWritingMode(mode);
+      setSetting("obiter-writingMode", mode);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save writing mode";
+      setError(message);
+    }
+  }, []);
 
   const handleApplyStyles = useCallback(async () => {
     try {
@@ -415,6 +428,27 @@ export default function Settings(): JSX.Element {
               ))}
           </div>
         </label>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Writing Mode</legend>
+
+        <label style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+          <select
+            className="ic-select"
+            style={{ width: "100%", marginTop: 4 }}
+            value={writingMode}
+            onChange={(e) => void handleWritingModeChange(e.target.value as WritingMode)}
+          >
+            <option value="academic">Academic</option>
+            <option value="court">Court Submission</option>
+          </select>
+        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 0" }}>
+          {writingMode === "court"
+            ? "Court mode: no ibid, short case names without (n X), parallel citations by default, List of Authorities instead of bibliography."
+            : "Standard academic footnote citation with ibid, short references, and bibliography."}
+        </p>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

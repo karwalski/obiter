@@ -58,9 +58,9 @@ export interface CitationContext {
 // ─── Source Type Dispatch Map ────────────────────────────────────────────────
 
 /**
- * A formatter function takes a Citation and returns FormattedRun[].
+ * A formatter function takes a Citation and optional config, returns FormattedRun[].
  */
-type SourceFormatter = (citation: Citation) => FormattedRun[];
+type SourceFormatter = (citation: Citation, config?: CitationConfig) => FormattedRun[];
 
 /**
  * Dispatches a reported case citation (Rule 2.2).
@@ -69,13 +69,46 @@ type SourceFormatter = (citation: Citation) => FormattedRun[];
  * pinpoint, court identifier, and parallel citations from the citation
  * data and delegates to formatCaseName + formatReportedCase.
  */
-function dispatchReportedCase(citation: Citation): FormattedRun[] {
+function dispatchReportedCase(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
     (d.separator as string) ?? "v",
   );
+
+  let parallelCitations = d.parallelCitations as
+    | {
+        yearType: "round" | "square";
+        year: number;
+        volume?: number;
+        reportSeries: string;
+        startingPage: number;
+      }[]
+    | undefined;
+
+  // MULTI-014: Court mode — auto-include MNC as a parallel citation when
+  // the case has an MNC but no explicit parallels. This ensures both the
+  // authorised report and the MNC are emitted per court practice directions.
+  if (config?.writingMode === "court" && !parallelCitations?.length) {
+    const mnc = d.mnc as string | undefined;
+    if (mnc && mnc.trim()) {
+      // Append the MNC as a plain text run after the main citation
+      const runs = formatReportedCase({
+        caseName,
+        yearType: (d.yearType as "round" | "square") ?? "round",
+        year: (d.year as number) ?? 0,
+        volume: d.volume as number | undefined,
+        reportSeries: (d.reportSeries as string) ?? "",
+        startingPage: (d.startingPage as number) ?? 0,
+        pinpoint: d.pinpoint as Pinpoint | undefined,
+        courtId: d.courtId as string | undefined,
+      });
+      runs.push({ text: `; ${mnc.trim()}` });
+      return runs;
+    }
+  }
+
   return formatReportedCase({
     caseName,
     yearType: (d.yearType as "round" | "square") ?? "round",
@@ -85,15 +118,7 @@ function dispatchReportedCase(citation: Citation): FormattedRun[] {
     startingPage: (d.startingPage as number) ?? 0,
     pinpoint: d.pinpoint as Pinpoint | undefined,
     courtId: d.courtId as string | undefined,
-    parallelCitations: d.parallelCitations as
-      | {
-          yearType: "round" | "square";
-          year: number;
-          volume?: number;
-          reportSeries: string;
-          startingPage: number;
-        }[]
-      | undefined,
+    parallelCitations,
   });
 }
 
@@ -340,7 +365,7 @@ export function formatCitation(
   config?: CitationConfig,
 ): FormattedRun[] {
   // Resolve standard config — default to AGLC4 for backward compatibility
-  const _standardConfig = config ?? getStandardConfig("aglc4");
+  const standardConfig = config ?? getStandardConfig("aglc4");
   // If context indicates a subsequent reference, delegate to the resolver.
   if (context && !context.isFirstCitation) {
     const resolverContext: SubsequentReferenceContext = {
@@ -352,6 +377,7 @@ export function formatCitation(
       firstFootnoteNumber: context.firstFootnoteNumber,
       isWithinSameFootnote: context.isWithinSameFootnote,
       formatPreference: context.formatPreference,
+      config: standardConfig,
     };
 
     const subsequentRuns = resolveSubsequentReference(
@@ -368,7 +394,7 @@ export function formatCitation(
   // Dispatch to the source-type-specific formatter, or fallback to generic.
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
   const runs = dispatcher
-    ? dispatcher(citation)
+    ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
 
   return ensureClosingPunctuation(runs);
@@ -383,10 +409,14 @@ export function formatCitation(
  * @param citation - The citation to preview.
  * @returns An array of FormattedRun objects representing the formatted citation.
  */
-export function getFormattedPreview(citation: Citation): FormattedRun[] {
+export function getFormattedPreview(
+  citation: Citation,
+  config?: CitationConfig,
+): FormattedRun[] {
+  const standardConfig = config ?? getStandardConfig("aglc4");
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
   const runs = dispatcher
-    ? dispatcher(citation)
+    ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
 
   return ensureClosingPunctuation(runs);

@@ -10,7 +10,7 @@
  * standards for use in the UI and engine.
  */
 
-export type { CitationStandardId, CitationConfig } from "./types";
+export type { CitationStandardId, CitationConfig, WritingMode } from "./types";
 export { STANDARD_PROFILES, type StandardProfile } from "./profiles";
 
 import type { CitationConfig, CitationStandardId } from "./types";

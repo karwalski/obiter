@@ -820,6 +820,13 @@ section:nth-child(even) {
   margin-bottom: var(--space-sm);
 }
 
+.letter__bio {
+  margin-top: var(--space-md);
+  font-size: 0.9rem;
+  color: var(--colour-text-secondary, #555);
+  font-style: italic;
+}
+
 /* ============================================================
    Signatories
    ============================================================ */

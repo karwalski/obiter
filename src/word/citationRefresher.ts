@@ -21,6 +21,8 @@ import {
 } from "./footnoteTracker";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint } from "../types/citation";
+import { getStandardConfig } from "../engine/standards";
+import type { CitationConfig } from "../engine/standards/types";
 
 /** Result of a full citation refresh pass. */
 export interface RefreshResult {
@@ -108,6 +110,12 @@ export async function refreshAllCitations(
   context: Word.RequestContext,
   store: CitationStore,
 ): Promise<RefreshResult> {
+  // Build config from the store's standard and writing mode (MULTI-014)
+  const standardId = store.getStandardId();
+  const baseConfig = getStandardConfig(standardId);
+  const writingMode = store.getWritingMode();
+  const config: CitationConfig = { ...baseConfig, writingMode };
+
   // Step 1: Rebuild footnote map and update store
   const footnoteMap = await buildFootnoteMap(context);
   await updateFirstFootnoteNumbers(store, footnoteMap);
@@ -217,7 +225,7 @@ export async function refreshAllCitations(
       formatPreference: "auto",
     };
 
-    const runs = formatCitation(citation, citationContext);
+    const runs = formatCitation(citation, citationContext, config);
     const newText = runsToPlainText(runs);
     const existingText = entry.cc.text ?? "";
 

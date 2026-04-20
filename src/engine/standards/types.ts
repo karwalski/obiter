@@ -12,6 +12,12 @@
 
 export type CitationStandardId = "aglc4" | "aglc5" | "oscola4" | "oscola5" | "nzlsg3" | "nzlsg4";
 
+/**
+ * MULTI-014: Writing mode — determines whether the engine produces academic
+ * footnote citations or practitioner court-submission citations.
+ */
+export type WritingMode = "academic" | "court";
+
 export interface CitationConfig {
   standardId: CitationStandardId;
   standardLabel: string;          // "AGLC4", "OSCOLA 5", "NZLSG 3"
@@ -23,4 +29,14 @@ export interface CitationConfig {
   editionAbbreviation: "ed" | "edn";
   homeJurisdiction: string | null;  // null = always show, "UK" = suppress UK, "NZ" = suppress NZ
   bibliographyStructure: "aglc" | "oscola" | "nzlsg";
+  /**
+   * MULTI-014: Writing mode — "academic" (default) for standard footnote
+   * citations, "court" for practitioner court submissions.
+   *
+   * Court mode disables ibid, uses short case name without (n X)
+   * cross-references, emits parallel citations by default, generates
+   * a List of Authorities instead of a bibliography, and suppresses
+   * AGLC4 heading styles.
+   */
+  writingMode: WritingMode;
 }

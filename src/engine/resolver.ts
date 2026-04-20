@@ -169,6 +169,11 @@ export function formatShortReference(
   const format = config?.subsequentReferenceFormat ?? "n";
   const pinpointPrefix = config?.pinpointPrefix ?? "";
 
+  // MULTI-014: Court mode — short name only, no (n X) cross-reference
+  if (config?.writingMode === "court") {
+    return formatCourtShortReference(citation, pinpoint, disambiguate);
+  }
+
   // NZLSG "above n" format: Author, above n X, at pinpoint
   if (format === "above n") {
     return formatAboveNReference(
@@ -281,6 +286,49 @@ function formatAboveNReference(
 }
 
 // ─── GEN-008: Ibid (Rule 1.4.3) ─────────────────────────────────────────────
+
+/**
+ * Formats a court-mode short reference: short case name or author surname
+ * followed by an optional pinpoint. No footnote cross-reference `(n X)`.
+ *
+ * MULTI-014: In court submissions, every subsequent reference uses the short
+ * case name (or author surname for secondary sources) without ibid and
+ * without footnote cross-references.
+ */
+function formatCourtShortReference(
+  citation: Citation,
+  pinpoint?: Pinpoint,
+  disambiguate?: boolean,
+): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  if (isSecondarySource(citation.sourceType)) {
+    const surname = getAuthorSurname(citation);
+    if (surname) {
+      runs.push({ text: surname });
+    }
+    if (disambiguate) {
+      const title = getTitle(citation);
+      if (title) {
+        runs.push({ text: ", " });
+        runs.push({ text: `'${title}'` });
+      }
+    }
+  } else {
+    // Cases and legislation: use short title (italic)
+    const title = getTitle(citation);
+    if (title) {
+      runs.push({ text: title, italic: true });
+    }
+  }
+
+  if (pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatPinpoint(pinpoint));
+  }
+
+  return runs;
+}
 
 /**
  * Resolves an ibid reference.
@@ -511,7 +559,8 @@ export function resolveSubsequentReference(
   }
 
   const config = context.config;
-  const ibidEnabled = config?.ibidEnabled ?? true;
+  // MULTI-014: Court mode always disables ibid
+  const ibidEnabled = config?.writingMode === "court" ? false : (config?.ibidEnabled ?? true);
 
   // Explicit format preferences override auto logic
   if (context.formatPreference !== "auto") {

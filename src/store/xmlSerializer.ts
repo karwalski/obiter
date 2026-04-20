@@ -66,11 +66,12 @@ export function serializeStore(
   schemaVersion: string = DEFAULT_SCHEMA_VERSION,
   aglcVersion: string = DEFAULT_AGLC_VERSION,
   standardId: string = "aglc4",
+  writingMode: string = "academic",
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}">`,
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}">`,
   );
 
   for (const citation of citations) {
@@ -149,6 +150,10 @@ export function deserializeStore(xml: string): CitationStoreData {
   const standardIdMatch = xml.match(/<obiter:citationStore[^>]*\sstandardId="([^"]*)"/);
   const standardId = standardIdMatch ? standardIdMatch[1] : "aglc4";
 
+  // Extract writingMode attribute (MULTI-014 — defaults to "academic")
+  const writingModeMatch = xml.match(/<obiter:citationStore[^>]*\swritingMode="([^"]*)"/);
+  const writingMode = (writingModeMatch ? writingModeMatch[1] : "academic") as "academic" | "court";
+
   // Extract all <obiter:citation ...>...</obiter:citation> blocks
   const citations: Citation[] = [];
   const citationRegex = /<obiter:citation\s[^>]*>[\s\S]*?<\/obiter:citation>/g;
@@ -162,6 +167,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       schemaVersion,
       aglcVersion,
       standardId,
+      writingMode,
     },
     citations,
   };

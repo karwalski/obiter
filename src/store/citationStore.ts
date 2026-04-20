@@ -168,6 +168,24 @@ export class CitationStore {
   }
 
   /**
+   * Return the current writing mode (MULTI-014).
+   * Defaults to "academic" for backward compatibility.
+   */
+  getWritingMode(): "academic" | "court" {
+    this.ensureInitialised();
+    return this.storeData!.metadata.writingMode ?? "academic";
+  }
+
+  /**
+   * Update the writing mode and persist (MULTI-014).
+   */
+  async setWritingMode(mode: "academic" | "court"): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.writingMode = mode;
+    await this.persist();
+  }
+
+  /**
    * Return a snapshot of the store metadata.
    */
   getMetadata(): StoreMetadata {
@@ -188,6 +206,7 @@ export class CitationStore {
       this.storeData!.metadata.schemaVersion,
       this.storeData!.metadata.aglcVersion,
       this.storeData!.metadata.standardId ?? DEFAULT_STANDARD_ID,
+      this.storeData!.metadata.writingMode ?? "academic",
     );
 
     await Word.run(async (context) => {

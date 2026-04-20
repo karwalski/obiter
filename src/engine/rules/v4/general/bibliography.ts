@@ -5,7 +5,7 @@
 
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
-import type { CitationConfig } from "../../../standards/types";
+import type { CitationConfig, WritingMode } from "../../../standards/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -516,19 +516,110 @@ export function generateNzlsgBibliography(
   return sections;
 }
 
-// ─── Bibliography Dispatcher (MULTI-010) ────────────────────────────────────
+// ─── MULTI-014: List of Authorities (Court Mode) ────────────────────────────
 
 /**
- * Generates a bibliography structured according to the active citation standard.
+ * Extracts the first party name for sorting in the List of Authorities.
+ * Uses party1 for cases, title for legislation.
+ */
+function getLoaSortKey(citation: Citation): string {
+  const d = citation.data;
+  const party1 = d.party1 as string | undefined;
+  if (party1) return party1.toLowerCase();
+  const title = (d.title as string | undefined) ?? "";
+  return title.toLowerCase();
+}
+
+/**
+ * Formats a case entry for the List of Authorities, including parallel
+ * citations where available.
+ *
+ * Format: Case Name (year) volume Series startingPage; [MNC or parallels]
+ */
+function formatLoaCaseEntry(citation: Citation): FormattedRun[] {
+  const entry = formatBibliographyEntry(citation);
+  const d = citation.data;
+
+  // Append MNC if available and not already represented
+  const mnc = d.mnc as string | undefined;
+  if (mnc && mnc.trim()) {
+    const entryText = entry.map((r) => r.text).join("");
+    if (!entryText.includes(mnc.trim())) {
+      entry.push({ text: `; ${mnc.trim()}` });
+    }
+  }
+
+  return entry;
+}
+
+/**
+ * Generates a List of Authorities for court submissions per Federal Court
+ * GPN-AUTH conventions.
+ *
+ * MULTI-014: Replaces bibliography generation in court mode. Produces:
+ * 1. Cases — listed alphabetically by first party name, with parallel citations
+ * 2. Legislation — listed alphabetically by short title
+ *
+ * No secondary sources section is included.
+ *
+ * @param citations - All citations referenced in the document.
+ * @returns An array of BibliographySection objects for the List of Authorities.
+ */
+export function generateListOfAuthorities(
+  citations: Citation[],
+): BibliographySection[] {
+  const cases: Citation[] = [];
+  const legislation: Citation[] = [];
+
+  for (const citation of citations) {
+    if (citation.sourceType.startsWith("case.")) {
+      cases.push(citation);
+    } else if (citation.sourceType.startsWith("legislation.")) {
+      legislation.push(citation);
+    }
+    // Secondary sources, treaties, etc. are excluded from LoA
+  }
+
+  const sections: BibliographySection[] = [];
+
+  if (cases.length > 0) {
+    const deduplicated = deduplicateById(cases);
+    deduplicated.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+    const entries = deduplicated.map((c) => formatLoaCaseEntry(c));
+    sections.push({ heading: "Cases", entries });
+  }
+
+  if (legislation.length > 0) {
+    const deduplicated = deduplicateById(legislation);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Legislation", entries });
+  }
+
+  return sections;
+}
+
+// ─── Bibliography Dispatcher (MULTI-010 + MULTI-014) ────────────────────────
+
+/**
+ * Generates a bibliography or List of Authorities structured according to
+ * the active citation standard and writing mode.
  *
  * @param citations - All citations referenced in the document.
  * @param structure - The bibliography structure to use: "aglc", "oscola", or "nzlsg".
- * @returns An array of BibliographySection objects appropriate to the standard.
+ * @param writingMode - Optional writing mode; "court" generates a List of Authorities.
+ * @returns An array of BibliographySection objects appropriate to the standard/mode.
  */
 export function generateBibliographyForStandard(
   citations: Citation[],
   structure: CitationConfig["bibliographyStructure"],
+  writingMode?: WritingMode,
 ): BibliographySection[] {
+  // MULTI-014: Court mode generates List of Authorities
+  if (writingMode === "court") {
+    return generateListOfAuthorities(citations);
+  }
+
   switch (structure) {
     case "oscola":
       return generateOscolaBibliography(citations);
