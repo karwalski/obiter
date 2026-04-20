@@ -683,6 +683,16 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: DOCS — User Documentation
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| DOCS-001 | Website tutorial/documentation — walkthrough of every feature with placeholder screenshots | FEATURE | NOT STARTED |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0
@@ -741,4 +751,5 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | AI | 3 | 3 | 0 | 3 | 0 |
 | A11Y | 3 | 3 | 0 | 3 | 0 |
 | RIBBON | 6 | 6 | 0 | 6 | 0 |
-| **TOTAL** | **313** | **298** | **15** | **308** | **0** |
+| DOCS | 1 | 1 | 0 | 0 | 0 |
+| **TOTAL** | **314** | **299** | **15** | **308** | **0** |

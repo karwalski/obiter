@@ -168,12 +168,14 @@ export default function Layout(): JSX.Element {
       </nav>
       {showHeadingBar && (
         <div className="obiter-heading-bar" role="toolbar" aria-label="Heading levels">
+          <span className="obiter-heading-label">Headings</span>
           {HEADING_LEVELS.map((level) => (
             <button
               key={level}
               className="obiter-heading-btn"
               type="button"
               onClick={() => void handleApplyHeading(level)}
+              title={`Level ${level}: ${level === "I" ? "Small caps, centred" : level === "II" ? "Italic, centred" : "Italic, left-aligned"}`}
               aria-label={`Apply heading level ${level}`}
             >
               {level}

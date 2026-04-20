@@ -19,12 +19,31 @@ import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHisto
 
 type AglcVersion = "4" | "5";
 
-const LLM_MODELS: Record<string, string[]> = {
-  openai: ["gpt-5", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
-  anthropic: ["claude-opus-4-20250514", "claude-sonnet-4-20250514", "claude-haiku-4-20250414"],
-  gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
-  grok: ["grok-3", "grok-3-mini"],
-  deepseek: ["deepseek-chat", "deepseek-reasoner"],
+interface ModelOption { value: string; label: string }
+const LLM_MODELS: Record<string, ModelOption[]> = {
+  openai: [
+    { value: "gpt-4o", label: "GPT-4o" },
+    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+  ],
+  anthropic: [
+    { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
+    { value: "claude-opus-4-20250514", label: "Claude Opus 4" },
+    { value: "claude-haiku-4-20250414", label: "Claude Haiku 4" },
+  ],
+  gemini: [
+    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+  ],
+  grok: [
+    { value: "grok-3", label: "Grok 3" },
+    { value: "grok-3-mini", label: "Grok 3 Mini" },
+  ],
+  deepseek: [
+    { value: "deepseek-chat", label: "DeepSeek Chat" },
+    { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
+  ],
 };
 
 const LLM_API_KEY_URLS: Record<string, string> = {
@@ -776,7 +795,7 @@ export default function Settings(): JSX.Element {
               const provider = e.target.value as LLMConfig["provider"];
               setLlmProvider(provider);
               if (LLM_MODELS[provider]) {
-                setLlmModel(LLM_MODELS[provider][0]);
+                setLlmModel(LLM_MODELS[provider][0].value);
               } else {
                 setLlmModel("");
               }
@@ -832,7 +851,7 @@ export default function Settings(): JSX.Element {
               onChange={(e) => setLlmModel(e.target.value)}
             >
               {LLM_MODELS[llmProvider].map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           )}

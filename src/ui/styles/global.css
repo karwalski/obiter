@@ -2061,3 +2061,10 @@ body {
   font-weight: 600;
   flex-shrink: 0;
 }
+
+.obiter-heading-label {
+  font-size: 10px;
+  color: var(--colour-text-secondary);
+  margin-right: 2px;
+  white-space: nowrap;
+}
