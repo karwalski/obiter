@@ -1,24 +1,34 @@
 # AppSource Submission Guide — Obiter
 
-This document covers everything required to submit Obiter to Microsoft AppSource (the Office Add-in marketplace).
+Complete guide for submitting Obiter to Microsoft AppSource.
 
 ---
 
 ## 1. Partner Center Registration
 
-| Field         | Value                                              |
-|---------------|----------------------------------------------------|
-| Dashboard     | https://partner.microsoft.com/dashboard            |
-| Account type  | Individual developer                               |
-| Legal name    | Matthew Watt                                       |
-| Fee           | ~USD $19 (one-time)                                |
-| Email         | mr.matthew.watt@gmail.com                          |
+| Field | Value |
+|-------|-------|
+| Dashboard | https://partner.microsoft.com/dashboard |
+| Account type | Individual developer |
+| Legal name | Matthew Watt |
+| Fee | ~USD $19 (one-time) |
+| Email | mr.matthew.watt@gmail.com |
 
-Sign in with a Microsoft account, complete identity verification, and pay the registration fee. The account is approved within 48 hours.
+Sign in with a Microsoft account, complete identity verification, and pay the registration fee. Account is approved within 48 hours.
 
 ---
 
-## 2. App Listing Details
+## 2. Product Type
+
+When creating a new product in Partner Center, select:
+
+**Office add-in**
+
+This is not an MSIX, PWA, EXE, MSI, or Game. Office Add-ins are a distinct product type in Partner Center under "Office and SharePoint" > "Office add-in". The manifest.xml is uploaded directly.
+
+---
+
+## 3. App Listing Details
 
 ### App name
 
@@ -26,13 +36,13 @@ Sign in with a Microsoft account, complete identity verification, and pay the re
 Obiter — AGLC4 Citation Engine
 ```
 
-### Short description (100 chars max)
+### Short description (96/100 characters)
 
 ```
 Full AGLC4 citation formatting, ibid resolution, and bibliography generation for Microsoft Word.
 ```
 
-### Long description (4000 chars max)
+### Long description (under 4000 characters)
 
 ```
 Obiter is a free, open-source Microsoft Word add-in that implements the full
@@ -76,128 +86,171 @@ user-provided API keys and only process text that users explicitly select.
 See our full privacy policy at https://obiter.com.au/privacy.html.
 ```
 
-### Metadata
-
-| Field              | Value                           |
-|--------------------|---------------------------------|
-| Categories         | Productivity, Reference         |
-| Supported products | Word (Desktop, Web, iPad)       |
-| Supported locales  | en-US, en-AU, en-GB             |
-
----
-
-## 3. Screenshots Needed
-
-Capture each screenshot at **1280x720** or **1366x768** resolution. Use a clean document with realistic legal content.
-
-| #  | View                   | What to show                                                               |
-|----|------------------------|----------------------------------------------------------------------------|
-| 1  | Insert Citation        | Case citation form filled out with a live preview of the formatted output  |
-| 2  | Citation Library       | Multiple citations of varied types (case, legislation, journal article)    |
-| 3  | Validation             | Scan results showing a mix of errors, warnings, and passes                 |
-| 4  | Bibliography           | Preview pane with AGLC4 section headings (A through E)                    |
-| 5  | Reference Guide        | Search field with results displayed, showing rule details                  |
-| 6  | Settings               | Settings view showing configuration options                                |
-| 7  | Ribbon Tab             | The AGLC4 ribbon tab showing all button groups (Citation, Document, Tools) |
-
-Save as PNG. AppSource also accepts JPEG but PNG preserves text clarity in UI screenshots.
-
----
-
-## 4. Icon Assets Required
-
-| Asset       | Size      | Format | Notes                                          |
-|-------------|-----------|--------|-------------------------------------------------|
-| Store icon  | 300x300   | PNG    | Create from `obiter.png` — required for listing |
-| Icon 16px   | 16x16     | PNG    | Already exists at `assets/icon-16.png`          |
-| Icon 32px   | 32x32     | PNG    | Already exists at `assets/icon-32.png`          |
-| Icon 48px   | 48x48     | PNG    | Already exists at `assets/icon-48.png`          |
-| Icon 64px   | 64x64     | PNG    | Already exists at `assets/icon-64.png`          |
-| Icon 80px   | 80x80     | PNG    | Already exists at `assets/icon-80.png`          |
-| Icon 128px  | 128x128   | PNG    | Already exists at `assets/icon-128.png`         |
-
-The 300x300 store icon is the only new asset needed. Generate it from the source `obiter.png` with padding appropriate for the AppSource tile grid.
-
----
-
-## 5. URLs for Submission
+### Release notes (v1.0.0)
 
 ```
-Support URL:      https://obiter.com.au/contact.html
-Privacy policy:   https://obiter.com.au/privacy.html
-Terms of use:     https://obiter.com.au/terms.html
-Source location:  https://obiter.com.au/app/taskpane.html  (production)
+Initial release of Obiter — AGLC4 Citation Engine.
+
+- Full AGLC4 citation formatting across all 26 chapters and ~80 source types
+- Ibid and subsequent reference resolution
+- Cross-reference fields with automatic renumbering
+- One-click bibliography generation with AGLC4 section headings
+- Document validation against AGLC4 formatting rules
+- AGLC4 heading styles (5 levels)
+- Searchable reference guide for all AGLC4 rules
+- Click-to-edit citations via content controls
+- BibTeX and Word Source Manager import
+- Optional AI integration (user-provided API key)
+- Dark mode support
+- WCAG 2.1 AA accessible
+- Works offline
 ```
 
-All four URLs must be live and returning 200 before submission.
+---
+
+## 4. Metadata
+
+| Field | Value |
+|-------|-------|
+| Categories | Productivity, Reference |
+| Supported products | Word (Desktop, Web, iPad) |
+| Supported locales | en-US (default), en-AU, en-GB |
+| Markets | All markets (Australia primary) |
+| Age rating | All ages |
+| Language | English |
+| Pricing | Free |
 
 ---
 
-## 6. Manifest Changes for Production
+## 5. URLs
 
-Every `localhost:3000` URL in `manifest.xml` must be changed to `obiter.com.au/app` for the production manifest. The full list:
+| Field | URL |
+|-------|-----|
+| Support URL | https://obiter.com.au/contact.html |
+| Privacy policy | https://obiter.com.au/privacy.html |
+| Terms of use | https://obiter.com.au/terms.html |
+| Source location | https://obiter.com.au/app/taskpane.html |
 
-| Resource ID                  | Development (localhost)                              | Production                                              |
-|------------------------------|------------------------------------------------------|---------------------------------------------------------|
-| `IconUrl`                    | `https://localhost:3000/assets/icon-32.png`          | `https://obiter.com.au/app/assets/icon-32.png`          |
-| `HighResolutionIconUrl`      | `https://localhost:3000/assets/icon-64.png`          | `https://obiter.com.au/app/assets/icon-64.png`          |
-| `SourceLocation`             | `https://localhost:3000/taskpane.html`               | `https://obiter.com.au/app/taskpane.html`               |
-| `Icon.16x16`                 | `https://localhost:3000/assets/icon-16.png`          | `https://obiter.com.au/app/assets/icon-16.png`          |
-| `Icon.32x32`                 | `https://localhost:3000/assets/icon-32.png`          | `https://obiter.com.au/app/assets/icon-32.png`          |
-| `Icon.80x80`                 | `https://localhost:3000/assets/icon-80.png`          | `https://obiter.com.au/app/assets/icon-80.png`          |
-| `Commands.Url`               | `https://localhost:3000/commands.html`               | `https://obiter.com.au/app/commands.html`               |
-| `Taskpane.Url`               | `https://localhost:3000/taskpane.html`               | `https://obiter.com.au/app/taskpane.html`               |
-| `Taskpane.Library.Url`       | `https://localhost:3000/taskpane.html#library`       | `https://obiter.com.au/app/taskpane.html#library`       |
-| `Taskpane.Validate.Url`      | `https://localhost:3000/taskpane.html#validation`    | `https://obiter.com.au/app/taskpane.html#validation`    |
-| `Taskpane.Bibliography.Url`  | `https://localhost:3000/taskpane.html#bibliography`  | `https://obiter.com.au/app/taskpane.html#bibliography`  |
-| `Taskpane.Guide.Url`         | `https://localhost:3000/taskpane.html#guide`         | `https://obiter.com.au/app/taskpane.html#guide`         |
-| `Taskpane.Settings.Url`      | `https://localhost:3000/taskpane.html#settings`      | `https://obiter.com.au/app/taskpane.html#settings`      |
-
-That is **13 URLs** total. A find-and-replace of `https://localhost:3000` with `https://obiter.com.au/app` covers all of them.
-
-Maintain a separate production manifest (e.g. `manifest.prod.xml`) or use a build-time substitution so the development manifest is never accidentally submitted.
+All URLs must be live and returning 200 before submission.
 
 ---
 
-## 7. Certification Checklist
+## 6. Icon Assets
 
-Before submitting, verify every item:
+| Asset | Size | Format | Status |
+|-------|------|--------|--------|
+| Store icon | 300x300 | PNG | `assets/icons/obiter-300.png` |
+| Icon 16px | 16x16 | PNG | `assets/icon-16.png` |
+| Icon 32px | 32x32 | PNG | `assets/icon-32.png` |
+| Icon 48px | 48x48 | PNG | `assets/icons/obiter-48.png` |
+| Icon 64px | 64x64 | PNG | `assets/icon-64.png` |
+| Icon 80px | 80x80 | PNG | `assets/icon-80.png` |
+| Icon 128px | 128x128 | PNG | `assets/icon-128.png` |
+
+---
+
+## 7. Screenshots
+
+Capture at **1280x720** or **1366x768**. Use a clean document with realistic legal content. Save as PNG.
+
+| # | View | What to show |
+|---|------|-------------|
+| 1 | Insert Citation | Case citation form filled out with live preview |
+| 2 | Citation Library | Multiple citations of varied types |
+| 3 | Validation | Scan results showing errors, warnings, passes |
+| 4 | Bibliography | Preview with AGLC4 section headings (A-E) |
+| 5 | Reference Guide | Search field with results and rule details |
+| 6 | Settings | Configuration options visible |
+| 7 | Ribbon Tab | The AGLC4 tab showing all button groups |
+
+---
+
+## 8. Production Manifest
+
+The production manifest (`manifest.prod.xml`) replaces all `https://localhost:3000` URLs with `https://obiter.com.au/app`. There are **13 URLs** total — a find-and-replace covers all of them.
+
+Build the production version: `npm run build:prod`
+
+This copies `manifest.prod.xml` into `dist/manifest.xml` with the correct URLs.
+
+---
+
+## 9. Certification Checklist
 
 - [ ] All URLs use HTTPS
-- [ ] Privacy policy URL accessible (`https://obiter.com.au/privacy.html`)
-- [ ] Terms of use URL accessible (`https://obiter.com.au/terms.html`)
-- [ ] Support URL accessible (`https://obiter.com.au/contact.html`)
+- [ ] Privacy policy URL accessible
+- [ ] Terms of use URL accessible
+- [ ] Support URL accessible
 - [ ] No external scripts from untrusted domains
-- [ ] Office.js loaded from official CDN (`https://appsforoffice.microsoft.com/lib/1/hosted/office.js`)
-- [ ] Manifest validates with `npm run validate`
+- [ ] Office.js loaded from official CDN
+- [ ] Manifest validates: `npm run validate`
+- [ ] Production manifest validates: `npx office-addin-manifest validate manifest.prod.xml`
 - [ ] Works on Word for Windows
 - [ ] Works on Word for Mac
 - [ ] Works on Word for Web
 - [ ] No console errors on load
 - [ ] All features work offline (except API search and LLM)
-- [ ] No advertising or promotional content in the add-in
+- [ ] No advertising or promotional content
 - [ ] Description accurately represents functionality
+- [ ] All 7 screenshots captured
+- [ ] 300x300 store icon ready
 
 ---
 
-## 8. Common Rejection Reasons
+## 10. Common Rejection Reasons
 
-| Rejection reason                | How we address it                                                        |
-|---------------------------------|--------------------------------------------------------------------------|
-| Missing privacy policy          | Created at `https://obiter.com.au/privacy.html`                         |
-| Broken functionality            | Run full test suite (`npm test`) and manual QA on all three platforms    |
-| External script loading         | Only Office.js from the Microsoft CDN; no other external scripts        |
-| Missing screenshots             | Capture all 7 screenshots listed in Section 3                           |
-| Description too vague           | Use the specific long description text from Section 2                   |
-| Icons missing or wrong size     | Provide all required sizes including the 300x300 store icon             |
-| Manifest validation errors      | Run `npm run validate` and fix any issues before submission             |
-| Privacy policy lacks substance  | Policy explicitly states no data collection, no telemetry, no analytics |
+| Reason | Mitigation |
+|--------|-----------|
+| Missing privacy policy | Created at obiter.com.au/privacy.html |
+| Broken functionality | Run `npm test` (464 tests) + manual QA on all platforms |
+| External script loading | Only Office.js from Microsoft CDN |
+| Missing screenshots | Capture all 7 listed in Section 7 |
+| Description too vague | Use the specific text from Section 3 |
+| Icons missing or wrong size | All sizes generated including 300x300 |
+| Manifest validation errors | Run `npm run validate` before submission |
+| Privacy policy lacks substance | Policy covers data handling, LLM, APIs in detail |
 
 ---
 
-## 9. Post-Submission
+## 11. Notes for Certification Team
 
-1. **Review period**: 3-5 business days. Microsoft reviews the manifest, tests basic functionality, and checks policy compliance.
-2. **If rejected**: Read the rejection report, fix every cited issue, and resubmit. Each resubmission restarts the review timer.
-3. **Once approved**: The add-in appears in AppSource within 24 hours of approval.
-4. **After listing**: Update the Obiter website download page (`https://obiter.com.au`) with the AppSource link so users can install directly from Word.
+Paste this into the "Notes for certification" field:
+
+```
+Obiter is a citation formatting tool for Australian legal citations. To test:
+1. Open a Word document with footnotes.
+2. Go to the AGLC4 tab in the ribbon.
+3. Click "Insert Citation" to open the task pane.
+4. Select a source type (e.g. "Reported Case") and fill in the fields.
+5. Click "Insert" to add a formatted citation as a footnote.
+6. Use "Validate" to check the document against AGLC4 rules.
+7. Use "Bibliography" to generate a formatted bibliography.
+
+No login or account is required. The add-in works fully offline.
+Optional AI features require the user to provide their own API key in Settings.
+```
+
+---
+
+## 12. Submission Steps
+
+1. Log in to https://partner.microsoft.com/dashboard
+2. Go to **Marketplace offers** > **Office and SharePoint**
+3. Click **+ New offer** > **Office add-in**
+4. Upload `manifest.prod.xml`
+5. Fill in listing details from Sections 3-4
+6. Upload screenshots from Section 7
+7. Upload store icon (300x300) from Section 6
+8. Enter URLs from Section 5
+9. Set pricing to Free
+10. Paste certification notes from Section 11
+11. Click **Submit for review**
+
+---
+
+## 13. Post-Submission
+
+1. **Review period**: 3-5 business days
+2. **If rejected**: Fix cited issues and resubmit (restarts the review timer)
+3. **Once approved**: Add-in appears in AppSource within 24 hours
+4. **After listing**: Update the download page with the AppSource URL
