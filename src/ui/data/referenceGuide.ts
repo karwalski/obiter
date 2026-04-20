@@ -720,3 +720,490 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     ],
   },
 ];
+
+// ──────────────────────────────────────────────
+// OSCOLA Reference Guide Entries (GUIDE-EXT-001)
+// ──────────────────────────────────────────────
+
+export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
+  {
+    id: "OSC-REF-001",
+    ruleNumber: "OSCOLA 1.1",
+    title: "Footnotes and Citation Order",
+    summary:
+      "OSCOLA uses footnotes (not endnotes) numbered consecutively through the text. Each citation in a footnote ends with a full stop. Multiple sources in a single footnote are separated by semicolons. Pinpoints follow the citation without a comma for paragraphs, or with a comma for page numbers after a starting page.",
+    examples: [
+      "1 R v Smith [2020] UKSC 15, [45].",
+      "2 Human Rights Act 1998, s 6.",
+    ],
+    tips: [
+      "Footnotes are numbered consecutively; do not restart numbering at chapters.",
+      "Each footnote ends with a full stop.",
+      "Pinpoint paragraphs in square brackets: [45]. Page numbers use comma then page: 884, 890.",
+    ],
+  },
+  {
+    id: "OSC-REF-002",
+    ruleNumber: "OSCOLA 1.2",
+    title: "Quotation Marks and Block Quotations",
+    summary:
+      "OSCOLA uses single quotation marks for all short quotations. Double quotation marks are used only for quotations within quotations. Quotations of three lines or more are set as indented block quotations without quotation marks. Punctuation follows the British/logical convention (outside the closing quotation mark unless part of the original).",
+    examples: [
+      "Lord Bingham observed that 'the rule of law requires compliance'.",
+      "The witness stated that 'he heard someone say \"stop\" before leaving'.",
+    ],
+    tips: [
+      "Use single quotation marks for all short quotations, not double.",
+      "Place punctuation outside the closing quotation mark unless it is part of the quoted text.",
+      "Block quotations (3+ lines) are indented and have no quotation marks.",
+    ],
+  },
+  {
+    id: "OSC-REF-003",
+    ruleNumber: "OSCOLA 1.3",
+    title: "Subsequent References and Short Forms",
+    summary:
+      "In OSCOLA 5, ibid is formally deprecated. All subsequent references use the short-form cross-reference: author surname and '(n X)' where X is the footnote number of the first full citation. For cases, use the short case name and '(n X)'. For statutes, repeat the short title.",
+    examples: [
+      "Smith (n 3) 42.",
+      "R v Jones (n 7) [15].",
+    ],
+    tips: [
+      "Do not use 'ibid' in OSCOLA 5 — always use the short-form '(n X)' cross-reference.",
+      "The short form is: Author surname (n X) pinpoint.",
+      "For cases, use the short case name: Jones (n X) [para].",
+    ],
+  },
+  {
+    id: "OSC-REF-004",
+    ruleNumber: "OSCOLA 1.4",
+    title: "Bibliography Structure",
+    summary:
+      "OSCOLA requires a three-part bibliography: (1) Table of Cases, (2) Table of Legislation, and (3) Bibliography of secondary sources. Case names in the Table of Cases are not italicised. The bibliography of secondary sources may be subdivided into books, articles, official publications, and online sources.",
+    examples: [
+      "TABLE OF CASES\nCorr v IBC Vehicles Ltd [2008] UKHL 15, [2008] 1 AC 884",
+      "TABLE OF LEGISLATION\nHuman Rights Act 1998",
+      "BIBLIOGRAPHY\nSmith J, Contract Law (OUP 2020)",
+    ],
+    tips: [
+      "Case names are NOT italicised in the Table of Cases (unlike footnotes).",
+      "Legislation titles are roman (not italic) in the Table of Legislation.",
+      "Secondary sources are listed alphabetically by author surname.",
+    ],
+  },
+  {
+    id: "OSC-REF-005",
+    ruleNumber: "OSCOLA 2.1",
+    title: "Cases — Neutral Citations (Post-2001)",
+    summary:
+      "UK cases from 2001 onwards should be cited with the neutral citation followed by the best law report. The neutral citation format is: [year] court number. The hierarchy of law reports is: Law Reports (AC, QB, Ch, Fam) > WLR > All ER > specialist reports. Case names are italic; 'v' is italic.",
+    examples: [
+      "Corr v IBC Vehicles Ltd [2008] UKHL 15, [2008] 1 AC 884.",
+      "R (Miller) v Secretary of State for Exiting the European Union [2017] UKSC 5.",
+    ],
+    tips: [
+      "Always include the neutral citation for post-2001 cases.",
+      "Follow the neutral citation with the best available law report, separated by a comma.",
+      "Court identifiers: UKSC, UKPC, EWCA Civ/Crim, EWHC (QB/Ch/Fam/Admin/Comm).",
+    ],
+  },
+  {
+    id: "OSC-REF-006",
+    ruleNumber: "OSCOLA 2.1.6",
+    title: "Cases — Pre-2001 and Historical",
+    summary:
+      "Cases before 2001 are cited using the law report only, without a neutral citation. Include the court in parentheses at the end if it is not apparent from the report series. Historical nominate reports use their specific abbreviation.",
+    examples: [
+      "Donoghue v Stevenson [1932] AC 562 (HL).",
+      "Carlill v Carbolic Smoke Ball Co [1893] 1 QB 256 (CA).",
+    ],
+    tips: [
+      "Do not use retrospective BAILII neutral citations for pre-2001 cases.",
+      "Include the court identifier in parentheses if not apparent from the report series.",
+      "Use round or square brackets for the year depending on the report series convention.",
+    ],
+  },
+  {
+    id: "OSC-REF-007",
+    ruleNumber: "OSCOLA 2.2",
+    title: "Legislation — Primary",
+    summary:
+      "UK legislation titles are in roman (not italic). The format is: Short Title Year. No comma appears between the title and year. Pinpoints use 's' for section. Scottish Acts use '(asp X)', Welsh Acts use '(anaw X)' pre-2020 or '(asc X)' post-2020.",
+    examples: [
+      "Human Rights Act 1998, s 6.",
+      "Scotland Act 1998, s 29.",
+      "Renting Homes (Wales) Act 2016 (anaw 1), s 7.",
+    ],
+    tips: [
+      "Legislation titles are NEVER italic in OSCOLA — always roman.",
+      "Use 's' (no full stop) for section and 'ss' for multiple sections.",
+      "No comma between the short title and year: 'Human Rights Act 1998'.",
+    ],
+  },
+  {
+    id: "OSC-REF-008",
+    ruleNumber: "OSCOLA 2.2.6",
+    title: "Legislation — Secondary (Statutory Instruments)",
+    summary:
+      "Statutory Instruments are cited with: Short Title Year, SI Year/Number. Scottish Statutory Instruments use SSI, Welsh use WSI, and Northern Ireland Statutory Rules use SR.",
+    examples: [
+      "Civil Procedure Rules 1998, SI 1998/3132, r 3.4.",
+      "National Health Service (General Medical Services Contracts) (Scotland) Regulations 2018, SSI 2018/66.",
+    ],
+    tips: [
+      "Include the SI number after the year: SI 1998/3132.",
+      "Pinpoints in SIs use 'r' for rule, 'reg' for regulation, 'art' for article.",
+      "SI titles are roman, like primary legislation.",
+    ],
+  },
+  {
+    id: "OSC-REF-009",
+    ruleNumber: "OSCOLA 2.3",
+    title: "Parliamentary Materials",
+    summary:
+      "Hansard is cited as: HC Deb or HL Deb, date, vol X, col Y. Command Papers use the appropriate prefix per series (C, Cd, Cmd, Cmnd, Cm). Law Commission reports cite the body, title, and report number.",
+    examples: [
+      "HC Deb 3 July 2019, vol 662, col 1234.",
+      "Law Commission, Cohabitation: The Financial Consequences of Relationship Breakdown (Law Com No 307, 2007).",
+    ],
+    tips: [
+      "Hansard: HC Deb (Commons) or HL Deb (Lords), then date, volume, column.",
+      "Command Paper prefixes vary by year: Cm (1986+), Cmnd (1956-86), Cmd (1919-56).",
+      "Law Commission: 'Law Commission, Title (Law Com No X, Year)'.",
+    ],
+  },
+  {
+    id: "OSC-REF-010",
+    ruleNumber: "OSCOLA 3.1",
+    title: "Books",
+    summary:
+      "Books are cited: Author, Title (Publisher, Edition, Year) pinpoint. The title is italic. The publisher name is abbreviated where conventional. Edition uses 'edn' (British English). Pinpoints follow the closing parenthesis without a comma.",
+    examples: [
+      "Andrew Burrows, The Law of Restitution (3rd edn, OUP 2011) 42.",
+      "HLA Hart, The Concept of Law (Clarendon Press 1961).",
+    ],
+    tips: [
+      "Use 'edn' (not 'ed') for edition in OSCOLA: '3rd edn'.",
+      "Pinpoint page numbers follow the closing parenthesis directly: (OUP 2011) 42.",
+      "Omit initials spaces: 'HLA Hart' not 'H L A Hart'.",
+    ],
+  },
+  {
+    id: "OSC-REF-011",
+    ruleNumber: "OSCOLA 3.2",
+    title: "Chapters in Edited Collections",
+    summary:
+      "Chapters in edited books: Author, 'Chapter Title' in Editor (ed), Book Title (Publisher, Year) starting page. Use '(eds)' for multiple editors.",
+    examples: [
+      "John Gardner, 'The Purity and Priority of Private Law' in Andrew Robertson and Tang Hang Wu (eds), The Goals of Private Law (Hart Publishing 2009) 1.",
+    ],
+    tips: [
+      "Chapter titles in single quotation marks; book titles in italics.",
+      "Use 'in' (roman, not italic) to connect chapter to book.",
+      "Pinpoint is the starting page of the chapter.",
+    ],
+  },
+  {
+    id: "OSC-REF-012",
+    ruleNumber: "OSCOLA 3.3",
+    title: "Journal Articles",
+    summary:
+      "Journal articles: Author, 'Title' [Year] or (Year) Volume Journal Abbreviation Starting Page. Use square brackets when the year identifies the volume; round brackets with a volume number otherwise.",
+    examples: [
+      "John Eekelaar, 'The End of an Era' (2006) 33 Journal of Law and Society 230.",
+      "Thomas Poole, 'Questioning Common Law Constitutionalism' [2005] LS 142.",
+    ],
+    tips: [
+      "Article titles in single quotation marks.",
+      "Journal names are abbreviated and not italic.",
+      "Use standard abbreviations; do not spell out journal names in full.",
+    ],
+  },
+  {
+    id: "OSC-REF-013",
+    ruleNumber: "OSCOLA 3.7",
+    title: "Online and Digital Sources",
+    summary:
+      "Websites and blogs: Author, 'Title' (Site Name, Date) <URL> accessed Date. Include the access date for online sources. Blog posts treat the blog name as the site name.",
+    examples: [
+      "Emily Henderson, 'Supreme Court Rules on Prorogation' (UK Constitutional Law Blog, 25 September 2019) <https://example.com> accessed 1 October 2019.",
+    ],
+    tips: [
+      "Include 'accessed [date]' after the URL for online sources.",
+      "Enclose the URL in angle brackets.",
+      "Blog name functions as the site/publication name.",
+    ],
+  },
+  {
+    id: "OSC-REF-014",
+    ruleNumber: "OSCOLA 4.1",
+    title: "International Treaties",
+    summary:
+      "Treaties are cited: Title (adopted/opened for signature Date, entered into force Date) Treaty Series. The title is italic. Include the UNTS, UKTS, or ETS reference as appropriate.",
+    examples: [
+      "Convention for the Protection of Human Rights and Fundamental Freedoms (European Convention on Human Rights, as amended) (ECHR).",
+      "Vienna Convention on the Law of Treaties (adopted 23 May 1969, entered into force 27 January 1980) 1155 UNTS 331.",
+    ],
+    tips: [
+      "Treaty titles are italic.",
+      "Include both the adoption/signature date and entry-into-force date where known.",
+      "Well-known treaties may use short forms after first full citation.",
+    ],
+  },
+  {
+    id: "OSC-REF-015",
+    ruleNumber: "OSCOLA 4.3",
+    title: "European Court of Human Rights",
+    summary:
+      "ECtHR cases: Case Name v State App No XXXXX/YY (Court, Date). Grand Chamber is noted. Reports references may be included where available.",
+    examples: [
+      "Othman (Abu Qatada) v United Kingdom App No 8139/09 (ECtHR, 17 January 2012).",
+      "Al-Skeini v United Kingdom [GC] App No 55721/07 (ECtHR, 7 July 2011).",
+    ],
+    tips: [
+      "Include the application number: App No XXXXX/YY.",
+      "Grand Chamber is indicated with [GC] after the case name.",
+      "The date is the judgment date, not the application date.",
+    ],
+  },
+];
+
+// ──────────────────────────────────────────────
+// NZLSG Reference Guide Entries (GUIDE-EXT-002)
+// ──────────────────────────────────────────────
+
+export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
+  {
+    id: "NZLSG-REF-001",
+    ruleNumber: "NZLSG 2.1",
+    title: "Footnotes and First Citations",
+    summary:
+      "NZLSG uses footnotes numbered consecutively. The first citation of a source must be in full. Subsequent references use 'above n X, at [pinpoint]' in general style, or short-form only in commercial style. Each footnote ends with a full stop.",
+    examples: [
+      "1 Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary (2nd ed, LexisNexis, Wellington, 2015) at 42.",
+    ],
+    tips: [
+      "First citations must always be the full form.",
+      "Footnotes are numbered consecutively through the document.",
+      "Each footnote ends with a full stop.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-002",
+    ruleNumber: "NZLSG 2.3",
+    title: "Subsequent References — General Style",
+    summary:
+      "In NZLSG general style (academic/court), subsequent references use 'above n X, at [pinpoint]'. Ibid is not used. The format is: Author, above n X, at pinpoint. For cases, use the short case name, above n X, at [pinpoint].",
+    examples: [
+      "Butler and Butler, above n 1, at 55.",
+      "Couch v Attorney-General, above n 3, at [42].",
+    ],
+    tips: [
+      "Do not use 'ibid' — always use 'above n X, at [pinpoint]'.",
+      "Note the comma after the author name and before 'above'.",
+      "Use 'at' before all pinpoints in NZLSG.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-003",
+    ruleNumber: "NZLSG 2.3",
+    title: "Subsequent References — Commercial Style",
+    summary:
+      "In NZLSG commercial style (publisher), subsequent references use a short-form citation only: author/short title + pinpoint. No cross-reference numbering, no 'above n X', no ibid.",
+    examples: [
+      "Butler and Butler, at 55.",
+      "Couch v Attorney-General at [42].",
+    ],
+    tips: [
+      "Do not use '(n X)' or 'above n X' in commercial style.",
+      "The short form is simply: Author, at pinpoint.",
+      "Ibid is also not used in commercial style.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-004",
+    ruleNumber: "NZLSG 3.2",
+    title: "NZ Cases — Neutral Citation",
+    summary:
+      "NZ cases from 2001+ use a neutral citation: [Year] CourtIdentifier Number. The neutral citation is followed by the best report citation, separated by a comma. Case names are italic. Court identifiers include NZSC, NZCA, NZHC, NZDC.",
+    examples: [
+      "Couch v Attorney-General [2008] NZSC 45.",
+      "R v Fonotia [2007] NZCA 188, [2007] 3 NZLR 338.",
+    ],
+    tips: [
+      "Always include the neutral citation for post-2001 NZ cases.",
+      "Report series hierarchy: NZLR > NZFLR > CRNZ > NZAR.",
+      "Court identifiers: NZSC, NZCA, NZHC, NZDC, NZFC, NZEnvC, etc.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-005",
+    ruleNumber: "NZLSG 3.5",
+    title: "Maori Land Court Citations",
+    summary:
+      "Maori Land Court decisions use a block/minute book format: Name (Year) BlockNumber CourtAbbrev MinuteBookPage (BlockNumber CourtAbbrev MinuteBookPage). Te reo Maori diacritics (macrons) must be preserved in all names and place names.",
+    examples: [
+      "Pomare \u2014 Peter Here Pomare (2015) 103 Taitokerau MB 95 (103 TTK 95).",
+    ],
+    tips: [
+      "Use the full minute book reference followed by the abbreviated form in parentheses.",
+      "Preserve macrons in all te reo Maori names and place names.",
+      "The Maori Land Court uses a full stop after 'v.' in case names (departing from the general rule).",
+    ],
+  },
+  {
+    id: "NZLSG-REF-006",
+    ruleNumber: "NZLSG 3.6",
+    title: "Waitangi Tribunal Reports",
+    summary:
+      "Waitangi Tribunal reports are cited as primary sources: Waitangi Tribunal Title (Wai Number, Year). The title is in italics. The Wai number is the tribunal's claim number. These appear in a dedicated section of the bibliography.",
+    examples: [
+      "Waitangi Tribunal Te Whanganui a Tara me ona Takiwa: Report on the Wellington District (Wai 145, 2003).",
+    ],
+    tips: [
+      "The Wai number is the tribunal's claim number, not a page reference.",
+      "Report title is italic.",
+      "Waitangi Tribunal reports have their own section in the bibliography.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-007",
+    ruleNumber: "NZLSG 4.1",
+    title: "NZ Legislation",
+    summary:
+      "NZ legislation is cited: Short Title Year — in roman (not italic). No jurisdiction identifier for NZ Acts. Foreign legislation includes the jurisdiction in parentheses. Sections use 's' and 'ss'. Delegated legislation follows the same format.",
+    examples: [
+      "Privacy Act 2020, s 22.",
+      "Counter-Terrorism Act 2008 (UK), s 1.",
+    ],
+    tips: [
+      "NZ legislation titles are NEVER italic.",
+      "Do not include a jurisdiction identifier for NZ domestic legislation.",
+      "Include the jurisdiction in parentheses for foreign legislation: '(UK)', '(Cth)'.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-008",
+    ruleNumber: "NZLSG 5.4",
+    title: "NZ Parliamentary Debates (NZPD)",
+    summary:
+      "NZ Hansard is cited: (Date) Volume NZPD Page (Speaker). The date is in parentheses at the start. The speaker's name appears in parentheses at the end.",
+    examples: [
+      "(12 June 2019) 739 NZPD 12345 (Andrew Little).",
+    ],
+    tips: [
+      "Date comes first in parentheses: (12 June 2019).",
+      "Volume number precedes 'NZPD'.",
+      "Speaker name in parentheses at the end.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-009",
+    ruleNumber: "NZLSG 6.1",
+    title: "Books",
+    summary:
+      "Books in NZLSG: Author Title (edition, Publisher, Place, Year) at page. Note the 'at' pinpoint prefix and the inclusion of place of publication. Edition uses 'ed' (not 'edn'). No spaces between author initials.",
+    examples: [
+      "Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary (2nd ed, LexisNexis, Wellington, 2015) at 42.",
+    ],
+    tips: [
+      "Include the place of publication: (Publisher, Place, Year).",
+      "Use 'at' before pinpoint references: 'at 42' not just '42'.",
+      "Use 'ed' (not 'edn') for edition.",
+      "No spaces between initials: 'JF Burrows' not 'J F Burrows'.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-010",
+    ruleNumber: "NZLSG 6.2",
+    title: "Journal Articles",
+    summary:
+      "Journal articles in NZLSG: Author \"Title\" (Year) Volume Journal Starting Page at pinpoint. Note double quotation marks for the title and 'at' before the pinpoint. Journal abbreviations follow the LCANZ database.",
+    examples: [
+      "Claudia Geiringer \"Tavita and All That: Confronting the Confusion Surrounding Unincorporated Treaties and Administrative Law\" (2004) 21 NZULR 66 at 70.",
+    ],
+    tips: [
+      "Use double quotation marks for article titles (not single).",
+      "Journal abbreviations per LCANZ — no spaces between initials in abbreviations.",
+      "Pinpoint uses 'at': 'at 70' not ', 70'.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-011",
+    ruleNumber: "NZLSG 6.5",
+    title: "Online Looseleaf Commentaries",
+    summary:
+      "Online looseleaf services: Author (ed) Title (online ed, Publisher) at [paragraph]. Include the retrieval date when citing content that may change.",
+    examples: [
+      "Stephen Todd (ed) The Law of Torts in New Zealand (online ed, Brookers) at [5.3.01].",
+    ],
+    tips: [
+      "Include '(online ed, Publisher)' for online looseleaf services.",
+      "Pinpoint to paragraph numbers in square brackets.",
+      "Consider including a retrieval date for frequently updated content.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-012",
+    ruleNumber: "NZLSG 6.7",
+    title: "NZ Law Commission Reports",
+    summary:
+      "NZ Law Commission reports: Law Commission Title (NZLC R/SP/IP/PP Number, Year). The title is italic. Use the correct prefix: R for reports, SP for study papers, IP for issues papers, PP for preliminary papers.",
+    examples: [
+      "Law Commission Strangulation: The Case for a New Offence (NZLC R138, 2016).",
+      "Law Commission The News Media Meets 'New Media' (NZLC IP27, 2011).",
+    ],
+    tips: [
+      "Use the correct NZLC prefix: R (report), SP (study paper), IP (issues paper), PP (preliminary paper).",
+      "Title is italic.",
+      "Include the year in parentheses after the report number.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-013",
+    ruleNumber: "NZLSG 10.1",
+    title: "Treaty of Waitangi",
+    summary:
+      "The Treaty of Waitangi is cited by its English or te reo Maori name with article references. Both the English text (Treaty of Waitangi) and the Maori text (Te Tiriti o Waitangi) are available as citation forms.",
+    examples: [
+      "Treaty of Waitangi, art 2.",
+      "Te Tiriti o Waitangi, art 2.",
+    ],
+    tips: [
+      "Use 'Treaty of Waitangi' for the English text and 'Te Tiriti o Waitangi' for the Maori text.",
+      "Preamble references are supported: 'Treaty of Waitangi, preamble'.",
+      "The Treaty is a primary source in the bibliography.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-014",
+    ruleNumber: "NZLSG 1.1.2",
+    title: "Quotation Marks — Double Quotes",
+    summary:
+      "NZLSG uses double quotation marks for short quotations and titles of articles and chapters. Single quotation marks are used for quotations within quotations. This differs from AGLC4 and OSCOLA which use single quotation marks.",
+    examples: [
+      "The court observed that \"the duty is non-delegable\".",
+      "Geiringer \"Tavita and All That\" (2004) 21 NZULR 66.",
+    ],
+    tips: [
+      "Use double quotation marks (\u201C \u201D) for short quotations and titles.",
+      "Use single quotation marks for quotes within quotes.",
+      "This is the opposite of AGLC4 and OSCOLA convention.",
+    ],
+  },
+  {
+    id: "NZLSG-REF-015",
+    ruleNumber: "NZLSG 10.2",
+    title: "International Materials",
+    summary:
+      "International materials in NZLSG follow the same general format as AGLC4 but with 'at' before pinpoints. Treaties, UN documents, and ICJ decisions adapt the closest AGLC4 rule with NZLSG conventions applied.",
+    examples: [
+      "International Covenant on Civil and Political Rights (adopted 16 December 1966, entered into force 23 March 1976) 999 UNTS 171, art 14.",
+    ],
+    tips: [
+      "Apply NZLSG pinpoint conventions ('at') to international materials.",
+      "Where NZLSG is silent, adapt the closest AGLC4 rule (Rules 8-14).",
+      "Treaty titles are italic.",
+    ],
+  },
+];

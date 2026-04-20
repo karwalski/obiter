@@ -5,6 +5,7 @@
 
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
+import type { CitationConfig } from "../../../standards/types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -324,4 +325,232 @@ export function generateBibliography(
   }
 
   return sections;
+}
+
+// ─── OSCOLA Bibliography Structure (MULTI-010) ──────────────────────────────
+
+/**
+ * Maps a SourceType to an OSCOLA bibliography section.
+ *
+ * OSCOLA Rule 1.4: Bibliography is divided into:
+ * - Table of Cases (case names de-italicised)
+ * - Table of Legislation
+ * - Bibliography (secondary sources, subdivided)
+ */
+function getOscolaBibliographySection(
+  sourceType: SourceType,
+): "cases" | "legislation" | "secondary" {
+  if (sourceType.startsWith("case.")) return "cases";
+  if (sourceType.startsWith("legislation.")) return "legislation";
+  return "secondary";
+}
+
+/**
+ * Formats a case name for the OSCOLA Table of Cases by removing italics.
+ *
+ * OSCOLA Rule 1.4: Case names in the Table of Cases are NOT italicised.
+ * "Re X" is sorted under R.
+ */
+function deItaliciseCaseEntry(entry: FormattedRun[]): FormattedRun[] {
+  return entry.map((run) => ({ ...run, italic: false }));
+}
+
+/**
+ * Extracts the sort key for an OSCOLA Table of Cases entry.
+ * Uses the first party name; "Re X" sorts under R.
+ */
+function getCaseSortKey(citation: Citation): string {
+  const title = (citation.data["title"] as string | undefined) ?? "";
+  // Sort by first significant word (Re sorts under R naturally)
+  return title.toLowerCase();
+}
+
+/**
+ * Generates an OSCOLA bibliography with three parts:
+ * 1. Table of Cases (de-italicised, sorted by first party)
+ * 2. Table of Legislation
+ * 3. Bibliography (secondary sources)
+ *
+ * @param citations - All citations referenced in the document.
+ * @returns An array of BibliographySection objects for OSCOLA.
+ *
+ * @see OSCOLA, Rule 1.4.
+ */
+export function generateOscolaBibliography(
+  citations: Citation[],
+): BibliographySection[] {
+  const groups: Record<"cases" | "legislation" | "secondary", Citation[]> = {
+    cases: [],
+    legislation: [],
+    secondary: [],
+  };
+
+  for (const citation of citations) {
+    const section = getOscolaBibliographySection(citation.sourceType);
+    groups[section].push(citation);
+  }
+
+  const sections: BibliographySection[] = [];
+
+  // Table of Cases
+  if (groups.cases.length > 0) {
+    const deduplicated = deduplicateById(groups.cases);
+    deduplicated.sort((a, b) =>
+      getCaseSortKey(a).localeCompare(getCaseSortKey(b)),
+    );
+    const entries = deduplicated.map((c) =>
+      deItaliciseCaseEntry(formatBibliographyEntry(c)),
+    );
+    sections.push({ heading: "Table of Cases", entries });
+  }
+
+  // Table of Legislation
+  if (groups.legislation.length > 0) {
+    const deduplicated = deduplicateById(groups.legislation);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Table of Legislation", entries });
+  }
+
+  // Bibliography (secondary)
+  if (groups.secondary.length > 0) {
+    const deduplicated = deduplicateById(groups.secondary);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Bibliography", entries });
+  }
+
+  return sections;
+}
+
+// ─── NZLSG Bibliography Structure (MULTI-010) ───────────────────────────────
+
+/**
+ * Maps a SourceType to an NZLSG bibliography section.
+ *
+ * NZLSG Rule 1.5: Bibliography divided into primary sources (with dedicated
+ * Waitangi Tribunal section) and secondary sources.
+ */
+function getNzlsgBibliographySection(
+  sourceType: SourceType,
+): "cases" | "legislation" | "waitangi" | "secondary" {
+  if (sourceType.startsWith("case.")) return "cases";
+  if (sourceType.startsWith("legislation.")) return "legislation";
+  // Waitangi Tribunal reports are identified by source type or tag
+  // For now, they would be a report type; we use a convention check.
+  return "secondary";
+}
+
+/**
+ * Generates an NZLSG bibliography with primary sources (subdivided,
+ * including a dedicated Waitangi Tribunal section) and secondary sources.
+ *
+ * @param citations - All citations referenced in the document.
+ * @returns An array of BibliographySection objects for NZLSG.
+ *
+ * @see NZLSG, Rule 1.5.
+ */
+export function generateNzlsgBibliography(
+  citations: Citation[],
+): BibliographySection[] {
+  const groups: Record<
+    "cases" | "legislation" | "waitangi" | "secondary",
+    Citation[]
+  > = {
+    cases: [],
+    legislation: [],
+    waitangi: [],
+    secondary: [],
+  };
+
+  for (const citation of citations) {
+    // Check for Waitangi Tribunal reports (identified by tag or data field)
+    const isWaitangi =
+      citation.tags.includes("waitangi_tribunal") ||
+      (citation.data["body"] as string | undefined)
+        ?.toLowerCase()
+        .includes("waitangi tribunal");
+
+    if (isWaitangi) {
+      groups.waitangi.push(citation);
+    } else {
+      const section = getNzlsgBibliographySection(citation.sourceType);
+      groups[section].push(citation);
+    }
+  }
+
+  const sections: BibliographySection[] = [];
+
+  // Primary Sources: Cases
+  if (groups.cases.length > 0) {
+    const deduplicated = deduplicateById(groups.cases);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Cases", entries });
+  }
+
+  // Primary Sources: Legislation
+  if (groups.legislation.length > 0) {
+    const deduplicated = deduplicateById(groups.legislation);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Legislation", entries });
+  }
+
+  // Primary Sources: Waitangi Tribunal
+  if (groups.waitangi.length > 0) {
+    const deduplicated = deduplicateById(groups.waitangi);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Waitangi Tribunal", entries });
+  }
+
+  // Secondary Sources
+  if (groups.secondary.length > 0) {
+    const deduplicated = deduplicateById(groups.secondary);
+    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Secondary Sources", entries });
+  }
+
+  return sections;
+}
+
+// ─── Bibliography Dispatcher (MULTI-010) ────────────────────────────────────
+
+/**
+ * Generates a bibliography structured according to the active citation standard.
+ *
+ * @param citations - All citations referenced in the document.
+ * @param structure - The bibliography structure to use: "aglc", "oscola", or "nzlsg".
+ * @returns An array of BibliographySection objects appropriate to the standard.
+ */
+export function generateBibliographyForStandard(
+  citations: Citation[],
+  structure: CitationConfig["bibliographyStructure"],
+): BibliographySection[] {
+  switch (structure) {
+    case "oscola":
+      return generateOscolaBibliography(citations);
+    case "nzlsg":
+      return generateNzlsgBibliography(citations);
+    case "aglc":
+    default:
+      return generateBibliography(citations);
+  }
+}
+
+// ─── Shared Helpers ─────────────────────────────────────────────────────────
+
+/** Deduplicates citations by ID, preserving order. */
+function deduplicateById(citations: Citation[]): Citation[] {
+  const seen = new Set<string>();
+  const result: Citation[] = [];
+  for (const c of citations) {
+    if (!seen.has(c.id)) {
+      seen.add(c.id);
+      result.push(c);
+    }
+  }
+  return result;
 }

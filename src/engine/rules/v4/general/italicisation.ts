@@ -5,6 +5,7 @@
 
 import { SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
+import type { CitationConfig } from "../../../standards/types";
 
 /**
  * AGLC4 Rule 1.8.2 — Italicisation of Source Titles
@@ -46,14 +47,30 @@ const QUOTED_TYPES: ReadonlySet<SourceType> = new Set<SourceType>([
  * Italicised source types: case names, statute titles, book titles,
  * report titles, treaty titles, film/TV/media titles.
  *
+ * MULTI-006: When `config.italiciseLegislation === false` (OSCOLA/NZLSG),
+ * legislation source types return false (roman, not italic).
+ *
  * @param sourceType - The AGLC4 source type.
+ * @param config - Optional citation config for multi-standard support.
  * @returns Whether the title should be italicised.
  *
  * @see AGLC4, Rule 1.8.2.
  */
-export function shouldItaliciseTitle(sourceType: SourceType): boolean {
+export function shouldItaliciseTitle(
+  sourceType: SourceType,
+  config?: CitationConfig,
+): boolean {
   // Quoted types are never italicised even if they match a prefix (e.g. book.chapter).
   if (QUOTED_TYPES.has(sourceType)) return false;
+
+  // MULTI-006: Legislation italicisation toggle
+  if (
+    config &&
+    config.italiciseLegislation === false &&
+    sourceType.startsWith("legislation.")
+  ) {
+    return false;
+  }
 
   return ITALICISED_PREFIXES.some(
     (prefix) => sourceType === prefix || sourceType.startsWith(prefix)
@@ -81,29 +98,38 @@ export function shouldQuoteTitle(sourceType: SourceType): boolean {
  * per Rule 1.8.2, returning an array of FormattedRun objects.
  *
  * - Italicised types: returns a single run with `italic: true`.
- * - Quoted types: returns three runs — opening single quote, title text,
- *   closing single quote.
+ * - Quoted types: returns three runs — opening quote, title text,
+ *   closing quote.
  * - Other types: returns a single plain-text run.
+ *
+ * MULTI-007: When `quotationMarkStyle` is `"double"`, uses Unicode
+ * double curly quotes (\u201C / \u201D) instead of single (\u2018 / \u2019).
  *
  * @param title - The title text to format.
  * @param sourceType - The AGLC4 source type.
+ * @param quotationMarkStyle - Optional quotation mark style override.
+ *   Defaults to `"single"` (AGLC4/OSCOLA). NZLSG uses `"double"`.
  * @returns An array of FormattedRun objects with appropriate formatting.
  *
  * @see AGLC4, Rule 1.8.2.
  */
 export function wrapTitle(
   title: string,
-  sourceType: SourceType
+  sourceType: SourceType,
+  quotationMarkStyle?: "single" | "double",
 ): FormattedRun[] {
   if (shouldItaliciseTitle(sourceType)) {
     return [{ text: title, italic: true }];
   }
 
   if (shouldQuoteTitle(sourceType)) {
+    const style = quotationMarkStyle ?? "single";
+    const openQuote = style === "double" ? "\u201C" : "\u2018";
+    const closeQuote = style === "double" ? "\u201D" : "\u2019";
     return [
-      { text: "\u2018" },
+      { text: openQuote },
       { text: title },
-      { text: "\u2019" },
+      { text: closeQuote },
     ];
   }
 

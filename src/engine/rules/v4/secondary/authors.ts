@@ -176,6 +176,53 @@ function collapseInitials(name: string): string {
 }
 
 /**
+ * Stricter initials collapsing for NZLSG (MULTI-012).
+ *
+ * NZLSG Rule 6.1: No spaces between initials, even when mixed with names.
+ * E.g. "A J P Taylor" -> "AJP Taylor", "A. J. P. Taylor" -> "AJP Taylor".
+ *
+ * This mode additionally collapses runs of single uppercase letters that
+ * precede a multi-character word, removing spaces between them. The standard
+ * collapseInitials already handles this for consecutive initials, but this
+ * mode is explicit about the NZLSG requirement.
+ *
+ * @param name - The name string to process.
+ * @returns The name with all initials collapsed without spaces.
+ */
+export function collapseInitialsStrict(name: string): string {
+  // First apply normal collapse
+  const collapsed = collapseInitials(name);
+
+  // Then merge any remaining single-letter tokens that are adjacent to
+  // initial blocks. E.g. "A JP Taylor" is already handled, but ensure
+  // edge cases like separated initials before names are caught.
+  const tokens = collapsed.split(/\s+/);
+  const result: string[] = [];
+  let initialBlock = "";
+
+  for (const token of tokens) {
+    if (/^[A-Z]+$/.test(token) && token.length <= 3) {
+      // Could be an initial block or a short abbreviation
+      // If it looks like initials (all caps, 1-3 chars), accumulate
+      initialBlock += token;
+      continue;
+    }
+
+    if (initialBlock) {
+      result.push(initialBlock);
+      initialBlock = "";
+    }
+    result.push(token);
+  }
+
+  if (initialBlock) {
+    result.push(initialBlock);
+  }
+
+  return result.join(" ").trim();
+}
+
+/**
  * Processes given names: strips honorifics, post-nominals, collapses initials.
  */
 function processGivenNames(givenNames: string): string {

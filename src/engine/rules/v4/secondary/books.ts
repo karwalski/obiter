@@ -41,21 +41,33 @@ function ordinalSuffix(n: number): string {
  * AGLC4 Rule 6.3.3: Where a book has been revised without a new edition
  * number, 'rev' should appear before 'ed' (eg '3rd rev ed').
  *
+ * OSCOLA uses 'edn' (British English): '2nd edn', '3rd edn'.
+ * NZLSG uses 'ed' (same as AGLC4).
+ *
  * First editions are omitted (returns empty string).
  *
  * @param edition - The edition number.
  * @param revised - Whether the edition is a revised edition.
+ * @param options - Optional configuration.
+ * @param options.abbreviation - The edition abbreviation: "ed" (default) or "edn" (OSCOLA).
  * @returns The formatted edition string, or empty string for 1st edition.
  *
  * @see AGLC4, Rules 6.3.2, 6.3.3.
+ * @see OSCOLA, Rule 3.1.2.
+ * @see NZLSG, Rule 6.1.
  */
-export function formatEdition(edition: number, revised?: boolean): string {
+export function formatEdition(
+  edition: number,
+  revised?: boolean,
+  options?: { abbreviation?: "ed" | "edn" },
+): string {
   if (edition <= 1) return "";
   const suffix = ordinalSuffix(edition);
+  const abbr = options?.abbreviation ?? "ed";
   if (revised) {
-    return `${edition}${suffix} rev ed`;
+    return `${edition}${suffix} rev ${abbr}`;
   }
-  return `${edition}${suffix} ed`;
+  return `${edition}${suffix} ${abbr}`;
 }
 
 // ─── Publication Details ──────────────────────────────────────────────────────

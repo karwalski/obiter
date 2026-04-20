@@ -233,12 +233,18 @@ function formatSingleParallel(parallel: ParallelCitation): string {
 }
 
 /**
- * Formats parallel citations, joined with `; ` separators.
+ * Formats parallel citations, joined with a configurable separator.
  *
  * AGLC4 Rule 2.2.7: When a case is reported in more than one report
  * series, parallel citations are provided, separated by semicolons.
  * Authorised reports are cited first, followed by unauthorised reports
  * in order of preference (Rule 2.2.3).
+ *
+ * OSCOLA Rule 2.1.3 / NZLSG Rule 3.2.10: Use comma separator instead.
+ *
+ * @param parallels - The parallel citation entries to format.
+ * @param separator - The separator string between parallels. Defaults to
+ *   `"; "` (AGLC4). OSCOLA and NZLSG use `", "`.
  *
  * @example
  *   formatParallelCitations([
@@ -248,12 +254,13 @@ function formatSingleParallel(parallel: ParallelCitation): string {
  *   => [{ text: "[1974] VR 1; (1974) 4 ALR 57" }]
  */
 export function formatParallelCitations(
-  parallels: ParallelCitation[]
+  parallels: ParallelCitation[],
+  separator: string = "; "
 ): FormattedRun[] {
   if (parallels.length === 0) {
     return [];
   }
-  const text = parallels.map(formatSingleParallel).join("; ");
+  const text = parallels.map(formatSingleParallel).join(separator);
   return [{ text }];
 }
 

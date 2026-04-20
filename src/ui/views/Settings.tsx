@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { CitationStore } from "../../store";
+import { AVAILABLE_STANDARDS, type CitationStandardId } from "../../engine/standards";
 import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
 // styleInstaller import removed — XSL now downloaded via button
 import { applyAglc4Styles, applyHeadingLevel } from "../../word/styles";
@@ -80,6 +81,7 @@ const isDev = typeof window !== "undefined" && window.location.hostname === "loc
 
 export default function Settings(): JSX.Element {
   const [version, setVersion] = useState<AglcVersion>("4");
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [showAttribution, setShowAttribution] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +123,7 @@ export default function Settings(): JSX.Element {
         await store.initStore();
         if (!cancelled) {
           setVersion(store.getAglcVersion());
+          setStandardId(store.getStandardId());
 
           // Load attribution preference
           const savedPref = getSetting("obiter-showAttribution");
@@ -194,6 +197,29 @@ export default function Settings(): JSX.Element {
       setError(message);
     }
   }, []);
+
+  const handleStandardChange = useCallback(async (newStandardId: CitationStandardId) => {
+    // Warn when changing standard mid-document
+    if (standardId !== newStandardId && store.getAll().length > 0) {
+      const confirmed = window.confirm(
+        "This will not reformat existing citations. Continue?"
+      );
+      if (!confirmed) return;
+    }
+    try {
+      await store.setStandardId(newStandardId);
+      setStandardId(newStandardId);
+      // Keep aglcVersion in sync for backward compatibility
+      if (newStandardId === "aglc4" || newStandardId === "aglc5") {
+        const aglcVer = newStandardId === "aglc5" ? "5" : "4";
+        await store.setAglcVersion(aglcVer);
+        setVersion(aglcVer);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save standard";
+      setError(message);
+    }
+  }, [standardId]);
 
   const handleApplyStyles = useCallback(async () => {
     try {
@@ -311,30 +337,64 @@ export default function Settings(): JSX.Element {
       )}
 
       <fieldset className="settings-section">
-        <legend className="settings-section-title">AGLC Version</legend>
+        <legend className="settings-section-title">Citation Standard</legend>
 
-        <label className="settings-radio">
-          <input
-            type="radio"
-            name="aglcVersion"
-            value="4"
-            checked={version === "4"}
-            onChange={() => void handleVersionChange("4")}
-          />
-          <span className="settings-radio-label">AGLC4</span>
+        <label style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+          Standard
+          <select
+            className="ic-select"
+            style={{ width: "100%", marginTop: 4 }}
+            value={
+              standardId.startsWith("aglc") ? "AGLC"
+                : standardId.startsWith("oscola") ? "OSCOLA"
+                : "NZLSG"
+            }
+            onChange={(e) => {
+              const family = e.target.value;
+              // Select the first non-coming-soon edition for the family
+              const firstAvailable = AVAILABLE_STANDARDS.find(
+                (s) => s.family === family && !s.comingSoon
+              );
+              if (firstAvailable) {
+                void handleStandardChange(firstAvailable.id);
+              }
+            }}
+          >
+            <option value="AGLC">AGLC</option>
+            <option value="OSCOLA">OSCOLA</option>
+            <option value="NZLSG">NZLSG</option>
+          </select>
         </label>
 
-        <label className="settings-radio settings-radio--disabled">
-          <input
-            type="radio"
-            name="aglcVersion"
-            value="5"
-            disabled
-          />
-          <span className="settings-radio-label">
-            AGLC5
-            <span className="settings-badge">Coming soon</span>
-          </span>
+        <label style={{ fontSize: 12, display: "block" }}>
+          Edition
+          <div style={{ marginTop: 4 }}>
+            {AVAILABLE_STANDARDS
+              .filter((s) => {
+                const currentFamily = standardId.startsWith("aglc") ? "AGLC"
+                  : standardId.startsWith("oscola") ? "OSCOLA"
+                  : "NZLSG";
+                return s.family === currentFamily;
+              })
+              .map((s) => (
+                <label key={s.id} className={`settings-radio${s.comingSoon ? " settings-radio--disabled" : ""}`}>
+                  <input
+                    type="radio"
+                    name="standardEdition"
+                    value={s.id}
+                    checked={standardId === s.id}
+                    disabled={s.comingSoon}
+                    onChange={() => void handleStandardChange(s.id)}
+                  />
+                  <span className="settings-radio-label">
+                    {s.label} — {s.edition}
+                    {s.comingSoon && (
+                      <span className="settings-badge">Coming soon</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+          </div>
         </label>
       </fieldset>
 

@@ -441,6 +441,270 @@ function getRuleForSourceType(sourceType: string): string {
   return "1";
 }
 
+// ─── VALID-EXT-001: OSCOLA-specific validation ────────────────────────────────
+
+/**
+ * Common Maori legal terms that should carry macrons.
+ * Used by NZLSG validation to flag missing diacritics.
+ */
+const MAORI_MACRON_TERMS: ReadonlyArray<{ plain: string; correct: string }> = [
+  { plain: "Maori", correct: "Māori" },
+  { plain: "Aotearoa", correct: "Aotearoa" }, // no macron needed
+  { plain: "whanau", correct: "whānau" },
+  { plain: "hapu", correct: "hapū" },
+  { plain: "iwi", correct: "iwi" }, // no macron needed
+  { plain: "kawanatanga", correct: "kāwanatanga" },
+  { plain: "rangatiratanga", correct: "rangatiratanga" }, // no macron needed
+  { plain: "taonga", correct: "taonga" }, // no macron needed
+  { plain: "tikanga", correct: "tikanga" }, // no macron needed
+  { plain: "mana", correct: "mana" }, // no macron needed
+  { plain: "Waitangi", correct: "Waitangi" }, // no macron needed
+  { plain: "whanganui", correct: "Whanganui" }, // no macron needed — context-dependent
+  { plain: "kaupapa", correct: "kaupapa" }, // no macron needed
+  { plain: "rohe", correct: "rohe" }, // no macron needed
+  { plain: "Tamaki Makaurau", correct: "Tāmaki Makaurau" },
+  { plain: "Otautahi", correct: "Ōtautahi" },
+];
+
+/** Subset of MAORI_MACRON_TERMS that actually require a macron correction. */
+const MAORI_TERMS_NEEDING_MACRONS = MAORI_MACRON_TERMS.filter(
+  (t) => t.plain !== t.correct,
+);
+
+/**
+ * OSCOLA-specific validation rules (VALID-EXT-001).
+ *
+ * Checks:
+ * - Italicised legislation titles (should be roman in OSCOLA)
+ * - Missing neutral citation for post-2001 UK cases
+ * - Ibid usage in OSCOLA 5 mode (deprecated)
+ * - Double quotation marks (OSCOLA uses single)
+ * - Missing Table of Cases in bibliography
+ *
+ * @remarks OSCOLA 5 Rules 1.3, 2.1.1, 2.2, 1.4
+ */
+export function checkOscolaRules(
+  citations: Citation[],
+  footnoteTexts: string[],
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  // Check for ibid usage (deprecated in OSCOLA 5)
+  for (let i = 0; i < footnoteTexts.length; i++) {
+    const text = footnoteTexts[i];
+    const ibidRegex = /\bIbid\b/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = ibidRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: "OSCOLA 1.3",
+        message: `Footnote ${i + 1}: 'Ibid' is deprecated in OSCOLA 5 — use short-form '(n X)' for all subsequent references`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+        suggestion: "(n X)",
+      });
+    }
+
+    // Check for double quotation marks (OSCOLA uses single)
+    const doubleQuoteRegex = /[\u201C\u201D]/g;
+    while ((match = doubleQuoteRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: "OSCOLA 1.2",
+        message: `Footnote ${i + 1}: OSCOLA uses single quotation marks for titles, not double`,
+        severity: "warning",
+        offset: match.index,
+        length: 1,
+        suggestion: match[0] === "\u201C" ? "\u2018" : "\u2019",
+      });
+    }
+  }
+
+  // Check citations for OSCOLA-specific issues
+  for (const citation of citations) {
+    const label = citation.shortTitle || citation.id;
+
+    // Flag italicised legislation (OSCOLA uses roman)
+    if (citation.sourceType.startsWith("legislation.")) {
+      issues.push({
+        ruleNumber: "OSCOLA 2.2",
+        message: `Legislation '${label}': OSCOLA requires legislation titles in roman (not italic)`,
+        severity: "warning",
+        offset: 0,
+        length: 0,
+      });
+    }
+
+    // Flag missing neutral citation for post-2001 UK cases
+    if (citation.sourceType.startsWith("case.")) {
+      const d = citation.data;
+      const year = d.year as number | undefined;
+      const mnc = d.mnc as string | undefined;
+      const courtId = d.courtId as string | undefined;
+
+      // Heuristic: UK court identifiers start with UK, EW, or are EWHC etc.
+      const isUkCase =
+        typeof courtId === "string" &&
+        /^(UK|EW|EWHC|EWCA|EWFC|UKSC|UKPC|UKUT|UKFTT)/.test(courtId);
+
+      if (isUkCase && typeof year === "number" && year >= 2001) {
+        const hasMnc = typeof mnc === "string" && mnc.trim().length > 0;
+        if (!hasMnc) {
+          issues.push({
+            ruleNumber: "OSCOLA 2.1.1",
+            message: `Case '${label}': post-2001 UK case should include a neutral citation`,
+            severity: "warning",
+            offset: 0,
+            length: 0,
+          });
+        }
+      }
+    }
+  }
+
+  // Check for missing Table of Cases (heuristic: if there are case citations
+  // but no footnote text mentions "Table of Cases")
+  const hasCaseCitations = citations.some((c) => c.sourceType.startsWith("case."));
+  if (hasCaseCitations) {
+    const allText = footnoteTexts.join(" ");
+    if (!allText.includes("Table of Cases") && !allText.includes("TABLE OF CASES")) {
+      issues.push({
+        ruleNumber: "OSCOLA 1.4",
+        message:
+          "OSCOLA requires a Table of Cases listing all cited cases — consider generating one",
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
+// ─── VALID-EXT-002: NZLSG-specific validation ────────────────────────────────
+
+/**
+ * NZLSG-specific validation rules (VALID-EXT-002).
+ *
+ * Checks:
+ * - Italicised legislation titles (should be roman in NZLSG)
+ * - Single quotation marks in titles (NZLSG uses double)
+ * - `(n X)` in commercial style (should be short-form only)
+ * - Ibid usage (NZLSG general style does not use ibid)
+ * - Missing `at` before pinpoints
+ * - Missing macrons in common te reo Maori legal terms
+ *
+ * @remarks NZLSG 3rd ed Rules 2.3, 4.1, 1.1.2, 6.1
+ */
+export function checkNzlsgRules(
+  citations: Citation[],
+  footnoteTexts: string[],
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (let i = 0; i < footnoteTexts.length; i++) {
+    const text = footnoteTexts[i];
+    let match: RegExpExecArray | null;
+
+    // Flag ibid usage (NZLSG general style does not use ibid)
+    const ibidRegex = /\bIbid\b/gi;
+    while ((match = ibidRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: "NZLSG 2.3",
+        message: `Footnote ${i + 1}: NZLSG does not use 'Ibid' — use 'above n X, at [pinpoint]' instead`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+
+    // Flag single quotation marks (NZLSG uses double for titles)
+    const singleQuoteRegex = /[\u2018\u2019]/g;
+    while ((match = singleQuoteRegex.exec(text)) !== null) {
+      // Skip apostrophes within words (e.g., "it's", "don't")
+      const before = text[match.index - 1] ?? "";
+      const after = text[match.index + 1] ?? "";
+      const isApostrophe = /[a-zA-Z]/.test(before) && /[a-zA-Z]/.test(after);
+
+      if (!isApostrophe) {
+        issues.push({
+          ruleNumber: "NZLSG 1.1.2",
+          message: `Footnote ${i + 1}: NZLSG uses double quotation marks for titles, not single`,
+          severity: "warning",
+          offset: match.index,
+          length: 1,
+          suggestion: match[0] === "\u2018" ? "\u201C" : "\u201D",
+        });
+      }
+    }
+
+    // Flag (n X) in commercial style — this is a general check; the caller
+    // should only invoke this when commercial style is active
+    const nXRegex = /\(n\s+\d+\)/g;
+    while ((match = nXRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: "NZLSG 2.3",
+        message: `Footnote ${i + 1}: '${match[0]}' cross-reference style is not used in NZLSG commercial style — use short-form citation only`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+
+    // Flag missing 'at' before pinpoints — heuristic: number after comma
+    // at end of citation (e.g., ", 42." should be ", at 42.")
+    const missingAtRegex = /,\s+(\d+)\s*\./g;
+    while ((match = missingAtRegex.exec(text)) !== null) {
+      // Check this is not already preceded by 'at'
+      const precedingText = text.substring(Math.max(0, match.index - 4), match.index);
+      if (!precedingText.includes("at")) {
+        issues.push({
+          ruleNumber: "NZLSG 2.2",
+          message: `Footnote ${i + 1}: NZLSG requires 'at' before pinpoint references`,
+          severity: "info",
+          offset: match.index + 2,
+          length: match[1].length,
+          suggestion: `at ${match[1]}`,
+        });
+      }
+    }
+
+    // Flag missing macrons in common Maori legal terms
+    for (const term of MAORI_TERMS_NEEDING_MACRONS) {
+      const termRegex = new RegExp(`\\b${term.plain}\\b`, "g");
+      while ((match = termRegex.exec(text)) !== null) {
+        issues.push({
+          ruleNumber: "NZLSG",
+          message: `Footnote ${i + 1}: '${term.plain}' should include macrons: '${term.correct}'`,
+          severity: "info",
+          offset: match.index,
+          length: match[0].length,
+          suggestion: term.correct,
+        });
+      }
+    }
+  }
+
+  // Check citations for NZLSG-specific issues
+  for (const citation of citations) {
+    const label = citation.shortTitle || citation.id;
+
+    // Flag italicised legislation (NZLSG uses roman)
+    if (citation.sourceType.startsWith("legislation.")) {
+      issues.push({
+        ruleNumber: "NZLSG 4.1",
+        message: `Legislation '${label}': NZLSG requires legislation titles in roman (not italic)`,
+        severity: "warning",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
 // ─── VALID-007: Parallel citation checks ──────────────────────────────────────
 
 /**

@@ -16,9 +16,11 @@ import {
   serializeStore,
   deserializeStore,
 } from "./xmlSerializer";
+import type { CitationStandardId } from "../engine/standards/types";
 
 const DEFAULT_SCHEMA_VERSION = "1.0";
 const DEFAULT_AGLC_VERSION: "4" | "5" = "4";
+const DEFAULT_STANDARD_ID: CitationStandardId = "aglc4";
 
 export class CitationStore {
   private storeData: CitationStoreData | null = null;
@@ -52,6 +54,7 @@ export class CitationStore {
           metadata: {
             schemaVersion: DEFAULT_SCHEMA_VERSION,
             aglcVersion: DEFAULT_AGLC_VERSION,
+            standardId: DEFAULT_STANDARD_ID,
           },
           citations: [],
         };
@@ -147,6 +150,24 @@ export class CitationStore {
   }
 
   /**
+   * Return the current citation standard ID (MULTI-001).
+   * Defaults to "aglc4" for backward compatibility.
+   */
+  getStandardId(): CitationStandardId {
+    this.ensureInitialised();
+    return (this.storeData!.metadata.standardId as CitationStandardId) ?? DEFAULT_STANDARD_ID;
+  }
+
+  /**
+   * Update the citation standard ID and persist (MULTI-001).
+   */
+  async setStandardId(standardId: CitationStandardId): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.standardId = standardId;
+    await this.persist();
+  }
+
+  /**
    * Return a snapshot of the store metadata.
    */
   getMetadata(): StoreMetadata {
@@ -166,6 +187,7 @@ export class CitationStore {
       this.storeData!.citations,
       this.storeData!.metadata.schemaVersion,
       this.storeData!.metadata.aglcVersion,
+      this.storeData!.metadata.standardId ?? DEFAULT_STANDARD_ID,
     );
 
     await Word.run(async (context) => {

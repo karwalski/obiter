@@ -34,6 +34,8 @@ import {
   shouldItaliciseTitle,
   shouldQuoteTitle,
 } from "./rules/v4/general/italicisation";
+import type { CitationConfig } from "./standards/types";
+import { getStandardConfig } from "./standards";
 
 // ─── Citation Context ────────────────────────────────────────────────────────
 
@@ -322,14 +324,23 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
  * Formats a citation, applying subsequent reference resolution when context
  * is provided, and ensuring closing punctuation per AGLC4 Rule 1.1.1.
  *
+ * The optional `config` parameter receives the active standard's configuration
+ * (MULTI-002). When omitted, AGLC4 config is used as default. Individual
+ * config fields will be wired to formatting behaviour in MULTI-003 through
+ * MULTI-013.
+ *
  * @param citation - The citation to format.
  * @param context - Optional document context for subsequent reference handling.
+ * @param config - Optional citation standard configuration (defaults to AGLC4).
  * @returns An array of FormattedRun objects representing the formatted citation.
  */
 export function formatCitation(
   citation: Citation,
   context?: CitationContext,
+  config?: CitationConfig,
 ): FormattedRun[] {
+  // Resolve standard config — default to AGLC4 for backward compatibility
+  const _standardConfig = config ?? getStandardConfig("aglc4");
   // If context indicates a subsequent reference, delegate to the resolver.
   if (context && !context.isFirstCitation) {
     const resolverContext: SubsequentReferenceContext = {

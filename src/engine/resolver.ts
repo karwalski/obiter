@@ -13,6 +13,7 @@
 
 import type { Citation, Pinpoint, SourceType } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
+import type { CitationConfig } from "./standards/types";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
 
@@ -145,6 +146,9 @@ function getTitle(citation: Citation): string {
  * - Cases: `Short Title (n X) pinpoint.`
  * - Legislation: `Short Title (n X) pinpoint.`
  *
+ * NZLSG Rule 2.3: Uses "above n X, at pinpoint" format when
+ * `config.subsequentReferenceFormat === "above n"`.
+ *
  * When multiple works by the same author exist (indicated by
  * `disambiguate = true`), the title/short title is included after the
  * surname to distinguish between works.
@@ -153,13 +157,30 @@ function getTitle(citation: Citation): string {
  * @param firstFootnoteNumber - The footnote number where the citation first appeared
  * @param pinpoint - Optional pinpoint for the subsequent reference
  * @param disambiguate - Whether to include the title for disambiguation
+ * @param config - Optional citation config for multi-standard support
  */
 export function formatShortReference(
   citation: Citation,
   firstFootnoteNumber: number,
   pinpoint?: Pinpoint,
   disambiguate?: boolean,
+  config?: CitationConfig,
 ): FormattedRun[] {
+  const format = config?.subsequentReferenceFormat ?? "n";
+  const pinpointPrefix = config?.pinpointPrefix ?? "";
+
+  // NZLSG "above n" format: Author, above n X, at pinpoint
+  if (format === "above n") {
+    return formatAboveNReference(
+      citation,
+      firstFootnoteNumber,
+      pinpoint,
+      disambiguate,
+      pinpointPrefix,
+    );
+  }
+
+  // AGLC4 / OSCOLA "n" format: Author (n X) pinpoint
   const runs: FormattedRun[] = [];
 
   if (isSecondarySource(citation.sourceType)) {
@@ -197,6 +218,62 @@ export function formatShortReference(
 
   if (pinpoint) {
     runs.push({ text: " " });
+    if (pinpointPrefix) {
+      runs.push({ text: pinpointPrefix });
+    }
+    runs.push(...formatPinpoint(pinpoint));
+  }
+
+  return runs;
+}
+
+/**
+ * Formats a short reference in NZLSG "above n" style.
+ *
+ * NZLSG Rule 2.3: `Author, above n X, at pinpoint` — note comma after
+ * author/title, `above` keyword before footnote number, `at` before pinpoint.
+ */
+function formatAboveNReference(
+  citation: Citation,
+  firstFootnoteNumber: number,
+  pinpoint?: Pinpoint,
+  disambiguate?: boolean,
+  pinpointPrefix: string = "",
+): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  if (isSecondarySource(citation.sourceType)) {
+    const surname = getAuthorSurname(citation);
+    if (surname) {
+      runs.push({ text: surname });
+    }
+
+    if (disambiguate) {
+      const title = getTitle(citation);
+      if (title) {
+        runs.push({ text: ", " });
+        runs.push({ text: `'${title}'` });
+      }
+    }
+  } else if (isCase(citation.sourceType)) {
+    const title = getTitle(citation);
+    if (title) {
+      runs.push({ text: title, italic: true });
+    }
+  } else if (isLegislation(citation.sourceType)) {
+    const title = getTitle(citation);
+    if (title) {
+      runs.push({ text: title, italic: true });
+    }
+  }
+
+  runs.push({ text: `, above n ${firstFootnoteNumber}` });
+
+  if (pinpoint) {
+    runs.push({ text: ", " });
+    if (pinpointPrefix) {
+      runs.push({ text: pinpointPrefix });
+    }
     runs.push(...formatPinpoint(pinpoint));
   }
 
@@ -397,6 +474,11 @@ export interface SubsequentReferenceContext {
    * - `"below"`: Force a "below n X" cross-reference.
    */
   crossReferenceDirection?: "auto" | "above" | "below";
+  /**
+   * Optional citation config for multi-standard support (MULTI-004/005).
+   * When provided, controls subsequent reference format and ibid behaviour.
+   */
+  config?: CitationConfig;
 }
 
 // ─── Main Resolver ───────────────────────────────────────────────────────────
@@ -428,12 +510,25 @@ export function resolveSubsequentReference(
     return null;
   }
 
+  const config = context.config;
+  const ibidEnabled = config?.ibidEnabled ?? true;
+
   // Explicit format preferences override auto logic
   if (context.formatPreference !== "auto") {
     switch (context.formatPreference) {
       case "full":
         return null;
       case "ibid":
+        // If ibid is disabled by config, fall through to short reference
+        if (!ibidEnabled) {
+          return formatShortReference(
+            citation,
+            context.firstFootnoteNumber,
+            context.currentPinpoint,
+            context.disambiguate,
+            config,
+          );
+        }
         return resolveIbid(context.currentPinpoint, context.precedingPinpoint);
       case "short":
         return formatShortReference(
@@ -441,6 +536,7 @@ export function resolveSubsequentReference(
           context.firstFootnoteNumber,
           context.currentPinpoint,
           context.disambiguate,
+          config,
         );
     }
   }
@@ -454,7 +550,9 @@ export function resolveSubsequentReference(
   //    - Same source as preceding footnote
   //    - Preceding footnote had exactly 1 citation
   //    - If preceding had a pinpoint but current doesn't, ibid is not used
+  //    - Ibid must be enabled by config (MULTI-005)
   const ibidEligible =
+    ibidEnabled &&
     context.isSameAsPreceding &&
     context.precedingFootnoteCitationCount === 1 &&
     !(context.precedingPinpoint !== undefined && context.currentPinpoint === undefined);
@@ -469,5 +567,6 @@ export function resolveSubsequentReference(
     context.firstFootnoteNumber,
     context.currentPinpoint,
     context.disambiguate,
+    config,
   );
 }

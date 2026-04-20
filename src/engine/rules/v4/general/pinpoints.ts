@@ -46,24 +46,34 @@ const PINPOINT_PREFIX: Partial<Record<Pinpoint["type"], string>> = {
  *
  * @remarks AGLC4 Rule 1.1.7: Spans of pinpoints use an en-dash (–).
  *
+ * MULTI-008: When `prefix` is provided (e.g. `"at "`), it is prepended
+ * before the pinpoint value. NZLSG uses `"at "` for all pinpoints.
+ *
  * @param pinpoint - The pinpoint to format
+ * @param prefix - Optional prefix to prepend before the pinpoint value
+ *   (e.g. `"at "` for NZLSG). Defaults to `""` (no prefix, AGLC4 style).
  * @returns An array of FormattedRun representing the pinpoint
  */
-export function formatPinpoint(pinpoint: Pinpoint): FormattedRun[] {
+export function formatPinpoint(
+  pinpoint: Pinpoint,
+  prefix?: string,
+): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const configPrefix = prefix ?? "";
 
-  const prefix = PINPOINT_PREFIX[pinpoint.type];
+  const typePrefix = PINPOINT_PREFIX[pinpoint.type];
 
-  if (prefix) {
-    runs.push({ text: `${prefix} ${pinpoint.value}` });
+  if (typePrefix) {
+    runs.push({ text: `${configPrefix}${typePrefix} ${pinpoint.value}` });
   } else {
     // Page and paragraph pinpoints render their value directly.
     // Paragraph values already include square brackets in the value field.
-    runs.push({ text: pinpoint.value });
+    runs.push({ text: `${configPrefix}${pinpoint.value}` });
   }
 
   if (pinpoint.subPinpoint) {
     runs.push({ text: " " });
+    // Sub-pinpoints do not repeat the config prefix
     runs.push(...formatPinpoint(pinpoint.subPinpoint));
   }
 

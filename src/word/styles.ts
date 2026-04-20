@@ -5,6 +5,8 @@
 
 /* global Word */
 
+import type { CitationStandardId } from "../engine/standards/types";
+
 // ─── Roman Numeral Conversion ────────────────────────────────────────────────
 
 /**
@@ -446,4 +448,32 @@ function stripPrefix(text: string, level: number): string {
     /^\([ivxlcdm]+\)\s+/,  // Level 5: Lower Roman in parens
   ];
   return text.replace(patterns[level - 1], "");
+}
+
+// ─── MULTI-011: Heading styles per standard ─────────────────────────────────
+
+/**
+ * Returns whether the given citation standard prescribes custom heading styles.
+ *
+ * AGLC4 Rule 1.12: Five heading levels with specific formatting.
+ * OSCOLA: No heading prescription — use standard Word headings.
+ * NZLSG: No heading prescription — use standard Word headings.
+ *
+ * When this returns false, the AGLC heading buttons should be hidden in the
+ * ribbon and standard Word heading styles used instead.
+ *
+ * @param standardId - The active citation standard identifier.
+ * @returns true if the standard prescribes custom headings (AGLC), false otherwise.
+ */
+export function hasCustomHeadings(standardId: CitationStandardId): boolean {
+  switch (standardId) {
+    case "aglc4":
+    case "aglc5":
+      return true;
+    case "oscola4":
+    case "oscola5":
+    case "nzlsg3":
+    case "nzlsg4":
+      return false;
+  }
 }
