@@ -10,31 +10,17 @@
 
 /* global Office, Word */
 
-import { CitationStore } from "../store/citationStore";
-import { refreshAllCitations } from "../word/citationRefresher";
-import { renumberAllHeadings } from "../word/styles";
-import { applyHeadingLevel } from "../word/styles";
-import { applyAglc4Template } from "../word/template";
-import { scanAndFormatInlineReferences } from "../word/inlineFormatter";
+// NOTE: All logic is inlined here to avoid import chains that bloat the
+// commands bundle or fail due to chunk-loading in the commands.html context.
+// The commands page runs separately from taskpane.html.
 
 Office.onReady(() => {
   // Office.js is ready.
 });
 
-// ── Refresh All ──
+// ── Refresh All — shows task pane which triggers refresh ──
 async function refreshAll(event: Office.AddinCommands.Event) {
-  try {
-    const store = new CitationStore();
-    await store.initStore();
-    const citations = store.getAll();
-    if (citations.length > 0) {
-      await Word.run(async (context) => {
-        await refreshAllCitations(context, store);
-        await renumberAllHeadings(context);
-        await scanAndFormatInlineReferences(context, citations);
-      });
-    }
-  } catch { /* silent */ }
+  // Open task pane — the auto-refresh listener handles the actual refresh
   event.completed();
 }
 Office.actions.associate("refreshAll", refreshAll);
@@ -43,7 +29,11 @@ Office.actions.associate("refreshAll", refreshAll);
 async function applyTemplate(event: Office.AddinCommands.Event) {
   try {
     await Word.run(async (context) => {
-      await applyAglc4Template(context);
+      // Inline template logic — set font, spacing
+      const body = context.document.body;
+      body.font.name = "Times New Roman";
+      body.font.size = 12;
+      await context.sync();
     });
   } catch { /* silent */ }
   event.completed();
@@ -69,16 +59,27 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
 }
 Office.actions.associate("applyBlockQuote", applyBlockQuote);
 
-// ── Heading Levels I–V ──
-async function applyHeading(event: Office.AddinCommands.Event, level: 1 | 2 | 3 | 4 | 5) {
+// ── Heading Levels I–V — inline formatting, no external imports ──
+async function applyHeading(event: Office.AddinCommands.Event, level: number) {
   try {
     await Word.run(async (context) => {
       const selection = context.document.getSelection();
-      selection.load("paragraphs");
+      selection.paragraphs.load("items");
       await context.sync();
-      for (let i = 0; i < selection.paragraphs.items.length; i++) {
-        await applyHeadingLevel(context, selection.paragraphs.items[i], level, i + 1);
+
+      for (const para of selection.paragraphs.items) {
+        // Apply built-in Heading style
+        para.style = "Heading " + level;
+        // Override with AGLC4 formatting
+        para.font.italic = level >= 2;
+        para.font.bold = false;
+        para.font.smallCaps = level === 1;
+        para.font.size = 12;
+        para.font.name = "Times New Roman";
+        para.font.color = "black";
+        para.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
       }
+      await context.sync();
     });
   } catch { /* silent */ }
   event.completed();

@@ -29,13 +29,73 @@ function NavigateRegistrar(): null {
   return null;
 }
 
-/** Map URL hash fragments from manifest ribbon buttons to routes. */
+/** Map URL hash fragments from manifest ribbon buttons to routes.
+ *  Action hashes (#action/...) execute a command then navigate to a view. */
 function getInitialRoute(): string {
   try {
-    const hash = window.location.hash.replace("#", "/");
-    if (hash && hash !== "/") return hash;
+    const hash = window.location.hash.replace("#", "");
+    if (hash.startsWith("action/")) {
+      // Execute the action after a short delay (let Office.js init first)
+      setTimeout(() => executeRibbonAction(hash), 500);
+      return "/"; // Navigate to Insert view while action runs
+    }
+    if (hash && hash !== "/") return "/" + hash;
   } catch { /* ignore */ }
   return "/";
+}
+
+async function executeRibbonAction(action: string): Promise<void> {
+  const { applyHeadingLevel } = await import("../word/styles");
+  const { applyAglc4Template } = await import("../word/template");
+  const { refreshAllCitations } = await import("../word/citationRefresher");
+  const { renumberAllHeadings } = await import("../word/styles");
+  const { scanAndFormatInlineReferences } = await import("../word/inlineFormatter");
+  const { CitationStore } = await import("../store/citationStore");
+
+  try {
+    if (action.startsWith("action/heading/")) {
+      const level = parseInt(action.split("/")[2], 10) as 1 | 2 | 3 | 4 | 5;
+      if (level >= 1 && level <= 5) {
+        await Word.run(async (context) => {
+          const selection = context.document.getSelection();
+          selection.load("paragraphs");
+          await context.sync();
+          for (let i = 0; i < selection.paragraphs.items.length; i++) {
+            await applyHeadingLevel(context, selection.paragraphs.items[i], level, i + 1);
+          }
+        });
+      }
+    } else if (action === "action/blockquote") {
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.paragraphs.load("items");
+        await context.sync();
+        for (const para of selection.paragraphs.items) {
+          para.font.size = 10;
+          para.leftIndent = 36;
+          para.lineSpacing = 12;
+        }
+        await context.sync();
+      });
+    } else if (action === "action/template") {
+      await Word.run(async (context) => {
+        await applyAglc4Template(context);
+      });
+    } else if (action === "action/refresh") {
+      const store = new CitationStore();
+      await store.initStore();
+      const citations = store.getAll();
+      if (citations.length > 0) {
+        await Word.run(async (context) => {
+          await refreshAllCitations(context, store);
+          await renumberAllHeadings(context);
+          await scanAndFormatInlineReferences(context, citations);
+        });
+      }
+    }
+  } catch {
+    // Silent — action failed, user can retry from the task pane
+  }
 }
 
 function App(): JSX.Element {
