@@ -6,6 +6,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
+import { getSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
@@ -292,7 +293,7 @@ function BibTeXModal({
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const store = new CitationStore();
+let store: InstanceType<typeof CitationStore>;
 
 export default function CitationLibrary(): JSX.Element {
   const navigate = useNavigate();
@@ -318,7 +319,7 @@ export default function CitationLibrary(): JSX.Element {
     let cancelled = false;
     async function load(): Promise<void> {
       try {
-        await store.initStore();
+        store = await getSharedStore();
         if (!cancelled) {
           setCitations(store.getAll());
           setLoading(false);

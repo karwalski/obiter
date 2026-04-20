@@ -5,6 +5,7 @@
  */
 
 export { CitationStore } from "./citationStore";
+export { getSharedStore, resetSharedStore } from "./singleton";
 export {
   OBITER_NAMESPACE,
   serializeCitation,

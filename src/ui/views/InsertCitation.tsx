@@ -7,6 +7,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation } from "../../types/citation";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
 import { getFormattedPreview, formatCitation, CitationContext as EngineCitationContext } from "../../engine/engine";
 import CitationPreview from "../components/CitationPreview";
@@ -367,16 +368,10 @@ function suggestShortTitle(sourceType: SourceType, data: SourceData): string {
   return "";
 }
 
-// ─── Singleton Store Instance ────────────────────────────────────────────────
-
-let storeInstance: CitationStore | null = null;
+// ─── Shared Store ────────────────────────────────────────────────────────────
 
 async function getStore(): Promise<CitationStore> {
-  if (!storeInstance) {
-    storeInstance = new CitationStore();
-    await storeInstance.initStore();
-  }
-  return storeInstance;
+  return getSharedStore();
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
