@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Obiter</title>
+  <meta name="description" content="Privacy policy for Obiter, a free and open-source Microsoft Word add-in for AGLC4 citation formatting.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="container">
+      <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="aglc4.html">What is AGLC4?</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#open-source">Open Source</a></li>
+        <li><a href="index.html#support">Support</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Page Header
+       ============================================================ -->
+  <header class="page-header">
+    <div class="container">
+      <h1>Privacy Policy</h1>
+      <p>
+        How Obiter handles your data. The short version: it mostly does not.
+      </p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Privacy Policy Content
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+
+        <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
+          Last updated: 18 April 2026
+        </p>
+
+        <h2>Who We Are</h2>
+        <p>
+          Obiter is developed and maintained by Matthew Watt, an individual
+          developer based in Australia. The project website is
+          <a href="https://obiter.com.au">obiter.com.au</a>. Obiter is a free,
+          open-source Microsoft Word add-in that automates AGLC4 citation
+          formatting.
+        </p>
+
+        <h2>Data Stored in Your Document</h2>
+        <p>
+          When you use Obiter to insert citations, the citation metadata is
+          stored in a Custom XML Part within the <code>.docx</code> file itself.
+          This data never leaves your document. It includes: source type, author
+          names, titles, years, report series, pinpoints, and short titles.
+        </p>
+        <p>
+          All citation data remains under your full control. It is saved as part
+          of your Word document and is not transmitted to any server during
+          normal add-in operation.
+        </p>
+
+        <h2>Data Stored Locally</h2>
+        <p>
+          The following preferences are stored in your browser's
+          <code>localStorage</code> on your device:
+        </p>
+        <ul class="explainer__list">
+          <li>Template preferences</li>
+          <li>AGLC version selection</li>
+          <li>Branding preferences</li>
+          <li>LLM API keys (if configured)</li>
+        </ul>
+        <p>
+          No data stored in <code>localStorage</code> is transmitted to Obiter
+          servers.
+        </p>
+
+        <h2>No Telemetry, No Analytics</h2>
+        <p>
+          Obiter does not collect usage data, analytics, crash reports, or any
+          telemetry. No data is sent to obiter.com.au or any other server during
+          normal add-in operation.
+        </p>
+
+        <h2>Third-Party LLM Integration (Optional, User-Controlled)</h2>
+        <p>
+          LLM features are entirely optional and disabled by default. Users must
+          explicitly enable LLM integration and provide their own API key before
+          any data is sent to a third-party provider.
+        </p>
+        <p>
+          When enabled, the following data may be sent to the user's chosen LLM
+          provider (OpenAI, Anthropic, or a custom endpoint):
+        </p>
+        <ul class="explainer__list">
+          <li>
+            <strong>User-selected text only.</strong> Only text that you
+            explicitly select and submit is sent. Obiter never sends your entire
+            document, unseen content, or background data to any LLM.
+          </li>
+          <li>
+            <strong>Citation verification:</strong> the selected citation text
+            and relevant AGLC4 rule text.
+          </li>
+          <li>
+            <strong>Citation parsing:</strong> a raw citation string pasted by
+            you.
+          </li>
+          <li>
+            <strong>Short title suggestion:</strong> the citation's title and
+            source type.
+          </li>
+          <li>
+            <strong>Source type classification:</strong> a user-provided
+            description of a source.
+          </li>
+          <li>
+            <strong>Future features</strong> (e.g., "find me a reference") will
+            always be limited to user-selected text that you explicitly review
+            and approve before submission.
+          </li>
+        </ul>
+        <p>
+          API keys are stored locally in your browser and are never sent to
+          Obiter servers. LLM requests are made directly from your browser to
+          the provider's API &mdash; they do not pass through Obiter servers.
+          Obiter has no access to your LLM provider account or usage data.
+        </p>
+        <p>
+          You can disable LLM integration at any time in Settings.
+        </p>
+
+        <h2>External API Search (Optional)</h2>
+        <p>
+          Obiter includes an optional typeahead search feature for cases and
+          legislation. Search queries are routed through the Obiter proxy server
+          (obiter.com.au) to bypass browser security restrictions, and are
+          forwarded to AustLII, Jade.io, and the Federal Register of
+          Legislation.
+        </p>
+        <p>
+          The proxy does not log, store, or retain search queries. Search is
+          triggered only by your typing in the search field &mdash; no automatic
+          or background searches are performed.
+        </p>
+
+        <h2>Website Contact Forms and Signatures</h2>
+        <p>
+          Contact form submissions (name, email, message) are stored in a
+          database on the Obiter server and forwarded via email to the
+          developer.
+        </p>
+        <p>
+          Open letter signatures (name, title, institution, email) are stored in
+          a database. Email addresses are used for verification only and are
+          never displayed publicly. Signatures can be withdrawn at any time by
+          contacting the developer.
+        </p>
+
+        <h2>Children</h2>
+        <p>
+          Obiter is not directed at children under 13. We do not knowingly
+          collect personal information from children.
+        </p>
+
+        <h2>Changes to This Policy</h2>
+        <p>
+          We may update this privacy policy from time to time. Changes will be
+          posted on this page with an updated "last updated" date.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          If you have questions about this privacy policy, you can reach the
+          developer at
+          <a href="mailto:mr.matthew.watt@gmail.com">mr.matthew.watt@gmail.com</a>.
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <!-- Placeholder: replace with actual AppSource URL once published -->
+        <li><a href="#">AppSource</a></li>
+        <!-- Placeholder: register at ko-fi.com and replace 'obiter' with your username -->
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

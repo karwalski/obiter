@@ -1116,6 +1116,326 @@ section:nth-child(even) {
   }
 }
 
+/* ============================================================
+   Nav CTA Button
+   ============================================================ */
+
+.site-nav__cta {
+  background-color: var(--colour-accent);
+  color: #FFFFFF !important;
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: background-color var(--transition-fast);
+}
+
+.site-nav__cta:hover {
+  background-color: var(--colour-accent-hover);
+  color: #FFFFFF !important;
+}
+
+.site-nav__cta.site-nav__active {
+  background-color: var(--colour-accent-hover);
+  color: #FFFFFF !important;
+}
+
+/* ============================================================
+   Download Page
+   ============================================================ */
+
+.download-detect {
+  padding: 24px 0;
+  background-color: var(--colour-accent-subtle);
+  text-align: center;
+}
+
+.download-detect__message {
+  color: var(--colour-ink);
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+
+.download-options {
+  padding: 60px 0 80px;
+  background-color: var(--colour-bg);
+}
+
+.download-options__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xxl);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.download-card {
+  background-color: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xxl);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.download-card--recommended {
+  border-color: var(--colour-accent);
+  border-width: 2px;
+}
+
+.download-card__badge {
+  position: absolute;
+  top: -12px;
+  left: var(--space-xl);
+  background-color: var(--colour-accent);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.download-card h2 {
+  font-size: 1.375rem;
+  margin-bottom: var(--space-md);
+}
+
+.download-card p {
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.download-card__steps {
+  padding-left: var(--space-xl);
+  margin-bottom: var(--space-xl);
+  flex-grow: 1;
+}
+
+.download-card__steps li {
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: var(--space-sm);
+}
+
+.download-card .btn {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* Sideload instructions */
+
+.sideload-instructions {
+  padding: 80px 0;
+  background-color: var(--colour-surface);
+}
+
+.sideload__tabs {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-bottom: var(--space-xxl);
+}
+
+.sideload__tab {
+  background: none;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  padding: 8px 24px;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--colour-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sideload__tab:hover {
+  border-color: var(--colour-accent);
+  color: var(--colour-accent);
+}
+
+.sideload__tab--active {
+  background-color: var(--colour-accent);
+  border-color: var(--colour-accent);
+  color: #FFFFFF;
+}
+
+.sideload__tab--active:hover {
+  color: #FFFFFF;
+}
+
+.sideload__panel {
+  display: none;
+}
+
+.sideload__panel--active {
+  display: block;
+}
+
+.sideload__content {
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xxl);
+}
+
+.sideload__content h3 {
+  font-family: var(--font-ui);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: var(--space-xl);
+}
+
+.sideload__steps {
+  padding-left: var(--space-xl);
+}
+
+.sideload__steps li {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: var(--space-md);
+  color: var(--colour-ink);
+}
+
+.sideload__steps code {
+  background-color: var(--colour-surface);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+/* Requirements */
+
+.requirements {
+  padding: 80px 0;
+  background-color: var(--colour-bg);
+}
+
+.requirements__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xl);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.requirements__item {
+  text-align: center;
+}
+
+.requirements__item h3 {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.requirements__item p {
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+/* FAQ */
+
+.faq {
+  padding: 80px 0;
+  background-color: var(--colour-surface);
+}
+
+.faq__list {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.faq__item {
+  background-color: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  transition: border-color var(--transition-fast);
+}
+
+.faq__item:hover {
+  border-color: var(--colour-accent);
+}
+
+.faq__item[open] {
+  border-color: var(--colour-accent);
+}
+
+.faq__question {
+  padding: var(--space-lg) var(--space-xl);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--colour-ink);
+}
+
+.faq__question::-webkit-details-marker {
+  display: none;
+}
+
+.faq__question::marker {
+  content: "";
+}
+
+.faq__question::after {
+  content: "+";
+  float: right;
+  font-size: 1.25rem;
+  color: var(--colour-accent);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.faq__item[open] .faq__question::after {
+  content: "\2212";
+}
+
+.faq__answer {
+  padding: 0 var(--space-xl) var(--space-lg);
+}
+
+.faq__answer p {
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+
+/* ============================================================
+   Download Page — Responsive
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .download-options__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .requirements__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-xxl);
+  }
+
+  .sideload__tabs {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sideload__tab {
+    width: 200px;
+    text-align: center;
+  }
+}
+
 @media (max-width: 480px) {
   h1 {
     font-size: 1.875rem;

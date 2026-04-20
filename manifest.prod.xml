@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
+  <Id>933c30ed-e129-4844-9880-c4009e3969a5</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Matthew Watt</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Obiter — AGLC4 Citation Engine"/>
+  <Description DefaultValue="Full AGLC4 citation formatting, document validation, and bibliography generation for Microsoft Word."/>
+  <IconUrl DefaultValue="https://obiter.com.au/app/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://obiter.com.au/app/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://obiter.com.au"/>
+  <AppDomains>
+    <AppDomain>https://obiter.com.au</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+  <Requirements>
+    <Sets>
+      <Set Name="WordApi" MinVersion="1.5"/>
+    </Sets>
+  </Requirements>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://obiter.com.au/app/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <FunctionFile resid="Commands.Url"/>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ObiterTab">
+
+              <!-- ── Citation Group ── -->
+              <Group id="CitationGroup">
+                <Label resid="CitationGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+
+                <!-- Insert Citation (opens task pane to Insert view) -->
+                <Control xsi:type="Button" id="InsertCitationBtn">
+                  <Label resid="InsertCitation.Label"/>
+                  <Supertip>
+                    <Title resid="InsertCitation.Label"/>
+                    <Description resid="InsertCitation.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+
+                <!-- Citation Library -->
+                <Control xsi:type="Button" id="LibraryBtn">
+                  <Label resid="Library.Label"/>
+                  <Supertip>
+                    <Title resid="Library.Label"/>
+                    <Description resid="Library.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Library.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+
+              <!-- ── Document Group ── -->
+              <Group id="DocumentGroup">
+                <Label resid="DocumentGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+
+                <!-- Validate Document -->
+                <Control xsi:type="Button" id="ValidateBtn">
+                  <Label resid="Validate.Label"/>
+                  <Supertip>
+                    <Title resid="Validate.Label"/>
+                    <Description resid="Validate.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Validate.Url"/>
+                  </Action>
+                </Control>
+
+                <!-- Bibliography -->
+                <Control xsi:type="Button" id="BibliographyBtn">
+                  <Label resid="Bibliography.Label"/>
+                  <Supertip>
+                    <Title resid="Bibliography.Label"/>
+                    <Description resid="Bibliography.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Bibliography.Url"/>
+                  </Action>
+                </Control>
+
+                <!-- Reference Guide -->
+                <Control xsi:type="Button" id="GuideBtn">
+                  <Label resid="Guide.Label"/>
+                  <Supertip>
+                    <Title resid="Guide.Label"/>
+                    <Description resid="Guide.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Guide.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+
+              <!-- ── Tools Group ── -->
+              <Group id="ToolsGroup">
+                <Label resid="ToolsGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+
+                <!-- Settings -->
+                <Control xsi:type="Button" id="SettingsBtn">
+                  <Label resid="Settings.Label"/>
+                  <Supertip>
+                    <Title resid="Settings.Label"/>
+                    <Description resid="Settings.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Settings.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+
+              <Label resid="ObiterTab.Label"/>
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://obiter.com.au"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://obiter.com.au/app/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://obiter.com.au/app/taskpane.html"/>
+        <bt:Url id="Taskpane.Library.Url" DefaultValue="https://obiter.com.au/app/taskpane.html#library"/>
+        <bt:Url id="Taskpane.Validate.Url" DefaultValue="https://obiter.com.au/app/taskpane.html#validation"/>
+        <bt:Url id="Taskpane.Bibliography.Url" DefaultValue="https://obiter.com.au/app/taskpane.html#bibliography"/>
+        <bt:Url id="Taskpane.Guide.Url" DefaultValue="https://obiter.com.au/app/taskpane.html#guide"/>
+        <bt:Url id="Taskpane.Settings.Url" DefaultValue="https://obiter.com.au/app/taskpane.html#settings"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Obiter — AGLC4 Citation Engine"/>
+        <bt:String id="ObiterTab.Label" DefaultValue="AGLC4"/>
+        <bt:String id="CitationGroup.Label" DefaultValue="Citation"/>
+        <bt:String id="DocumentGroup.Label" DefaultValue="Document"/>
+        <bt:String id="ToolsGroup.Label" DefaultValue="Tools"/>
+        <bt:String id="InsertCitation.Label" DefaultValue="Insert Citation"/>
+        <bt:String id="Library.Label" DefaultValue="Library"/>
+        <bt:String id="Validate.Label" DefaultValue="Validate"/>
+        <bt:String id="Bibliography.Label" DefaultValue="Bibliography"/>
+        <bt:String id="Guide.Label" DefaultValue="Guide"/>
+        <bt:String id="Settings.Label" DefaultValue="Settings"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Obiter loaded successfully. Go to the AGLC4 tab to insert citations, validate formatting, and generate bibliographies."/>
+        <bt:String id="InsertCitation.Tooltip" DefaultValue="Insert a new AGLC4 citation as a footnote"/>
+        <bt:String id="Library.Tooltip" DefaultValue="View and manage all citations in this document"/>
+        <bt:String id="Validate.Tooltip" DefaultValue="Check the document against AGLC4 formatting rules"/>
+        <bt:String id="Bibliography.Tooltip" DefaultValue="Preview and insert an AGLC4 bibliography"/>
+        <bt:String id="Guide.Tooltip" DefaultValue="Search AGLC4 rules, abbreviations, and source types"/>
+        <bt:String id="Settings.Tooltip" DefaultValue="Configure Obiter settings and document formatting"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

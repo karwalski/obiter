@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download — Obiter</title>
+  <meta name="description" content="Download Obiter, the free Microsoft Word add-in for AGLC4 citation formatting. Available from Microsoft AppSource or as a manual sideload from GitHub.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" aria-label="Primary navigation">
+    <div class="container">
+      <a href="index.html" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="aglc4.html">What is AGLC4?</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#open-source">Open Source</a></li>
+        <li><a href="index.html#support">Support</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="download.html" class="site-nav__active site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Hero
+       ============================================================ -->
+  <section class="page-header">
+    <div class="container">
+      <h1>Download Obiter</h1>
+      <p>
+        Install the free AGLC4 citation add-in for Microsoft Word. Choose the
+        method that works best for your setup.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       OS Detection Banner
+       ============================================================ -->
+  <section class="download-detect" id="download-detect">
+    <div class="container">
+      <p class="download-detect__message" id="os-message">
+        Detecting your operating system...
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Download Options
+       ============================================================ -->
+  <section class="download-options" id="download-options">
+    <div class="container">
+      <div class="download-options__grid">
+
+        <!-- Option A: AppSource (recommended) -->
+        <div class="download-card download-card--recommended">
+          <div class="download-card__badge">Recommended</div>
+          <h2>From AppSource</h2>
+          <p>
+            Install directly from Microsoft AppSource. This is the easiest
+            method and ensures automatic updates.
+          </p>
+          <ol class="download-card__steps">
+            <li>Click the button below to open AppSource.</li>
+            <li>Sign in with your Microsoft account.</li>
+            <li>Click <strong>Get it now</strong> to add Obiter to Word.</li>
+            <li>Open Word and find Obiter in the <strong>Home</strong> tab.</li>
+          </ol>
+          <!-- Placeholder: replace with actual AppSource URL once published -->
+          <a href="#" class="btn btn--primary" aria-label="Get Obiter from Microsoft AppSource">Get from AppSource</a>
+        </div>
+
+        <!-- Option B: Manual Install -->
+        <div class="download-card">
+          <h2>Manual Install</h2>
+          <p>
+            Download the add-in manifest from GitHub and sideload it into Word.
+            Useful for testing, development, or restricted environments.
+          </p>
+          <a href="https://github.com/karwalski/obiter/releases/latest" class="btn btn--secondary" target="_blank" rel="noopener noreferrer">Download from GitHub</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Sideloading Instructions
+       ============================================================ -->
+  <section class="sideload-instructions" id="sideload">
+    <div class="container">
+      <div class="section-header">
+        <h2>Sideloading Instructions</h2>
+        <p>
+          After downloading the manifest file from GitHub, follow the steps
+          for your operating system to sideload Obiter into Word.
+        </p>
+      </div>
+
+      <div class="sideload__tabs">
+        <button class="sideload__tab sideload__tab--active" data-tab="mac" aria-pressed="true">Mac</button>
+        <button class="sideload__tab" data-tab="windows" aria-pressed="false">Windows</button>
+        <button class="sideload__tab" data-tab="web" aria-pressed="false">Word for Web</button>
+      </div>
+
+      <!-- Mac instructions -->
+      <div class="sideload__panel sideload__panel--active" id="tab-mac">
+        <div class="sideload__content">
+          <h3>Mac (Word 2024 / Microsoft 365)</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open Finder and press <strong>Cmd + Shift + G</strong> to open the Go to Folder dialog.</li>
+            <li>Paste this path: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code></li>
+            <li>If the <code>wef</code> folder does not exist, create it.</li>
+            <li>Copy <code>manifest.xml</code> into the <code>wef</code> folder.</li>
+            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
+            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Windows instructions -->
+      <div class="sideload__panel" id="tab-windows">
+        <div class="sideload__content">
+          <h3>Windows (Word 2024 / Microsoft 365)</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open File Explorer and navigate to: <code>\\%LOCALAPPDATA%\Microsoft\Office\16.0\Wef\</code></li>
+            <li>If the <code>Wef</code> folder does not exist, create it.</li>
+            <li>Copy <code>manifest.xml</code> into the <code>Wef</code> folder.</li>
+            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
+            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Web instructions -->
+      <div class="sideload__panel" id="tab-web">
+        <div class="sideload__content">
+          <h3>Word for Web</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open a document in Word for Web at <a href="https://www.office.com" target="_blank" rel="noopener noreferrer">office.com</a>.</li>
+            <li>Go to <strong>Insert &gt; Office Add-ins</strong>.</li>
+            <li>Select <strong>Upload My Add-in</strong> in the upper-right corner.</li>
+            <li>Click <strong>Browse</strong> and select the <code>manifest.xml</code> file.</li>
+            <li>Click <strong>Upload</strong>. Obiter will appear in the Home tab.</li>
+          </ol>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       System Requirements
+       ============================================================ -->
+  <section class="requirements" id="requirements">
+    <div class="container">
+      <div class="section-header">
+        <h2>System Requirements</h2>
+      </div>
+      <div class="requirements__grid">
+        <div class="requirements__item">
+          <h3>Microsoft Word</h3>
+          <p>Word 2024 or Microsoft 365 (desktop, web, or iPad).</p>
+        </div>
+        <div class="requirements__item">
+          <h3>Operating System</h3>
+          <p>Windows 10 or later, macOS 12 (Monterey) or later, or any modern browser for Word for Web.</p>
+        </div>
+        <div class="requirements__item">
+          <h3>Internet</h3>
+          <p>Required only for initial installation. Obiter works fully offline after that.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FAQ
+       ============================================================ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div class="faq__list">
+        <details class="faq__item">
+          <summary class="faq__question">Is Obiter free?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. Obiter is free and open-source software, licensed under the
+              <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer">GNU General Public License v3.0</a>.
+              You can use, modify, and distribute it freely.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Does it work on Word for Web?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. Obiter supports Word for Web through the Office Add-ins
+              platform. You can sideload it or install it from AppSource.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Does it work on iPad?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. Obiter works on iPad through Microsoft Word for iPad, which
+              supports Office Add-ins. Install from AppSource for the easiest setup.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Do I need an internet connection?</summary>
+          <div class="faq__answer">
+            <p>
+              No. After the initial installation, Obiter works fully offline.
+              All citation formatting, validation, and bibliography generation
+              happens locally within your document.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">What data does Obiter collect?</summary>
+          <div class="faq__answer">
+            <p>
+              None. Obiter does not collect, transmit, or store any personal
+              data. All citation data remains in your document. See the
+              <a href="contact.html">contact page</a> for any privacy questions.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <!-- Placeholder: replace with actual AppSource URL once published -->
+        <li><a href="#">AppSource</a></li>
+        <!-- Placeholder: register at ko-fi.com and replace 'obiter' with your username -->
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    // OS detection
+    (function() {
+      var msg = document.getElementById('os-message');
+      if (!msg) return;
+      var ua = navigator.userAgent || '';
+      if (/Mac/i.test(ua)) {
+        msg.textContent = 'It looks like you are on a Mac. See the Mac sideloading instructions below, or install from AppSource.';
+      } else if (/Win/i.test(ua)) {
+        msg.textContent = 'It looks like you are on Windows. See the Windows sideloading instructions below, or install from AppSource.';
+      } else if (/iPad|iPhone/i.test(ua)) {
+        msg.textContent = 'It looks like you are on an iPad or iPhone. Install Obiter from AppSource in Microsoft Word for the easiest setup.';
+      } else {
+        msg.textContent = 'Install Obiter from AppSource for the easiest setup, or sideload manually from GitHub.';
+      }
+    })();
+
+    // Tab switching for sideload instructions
+    (function() {
+      var tabs = document.querySelectorAll('.sideload__tab');
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var target = this.getAttribute('data-tab');
+          // Deactivate all tabs and panels
+          tabs.forEach(function(t) {
+            t.classList.remove('sideload__tab--active');
+            t.setAttribute('aria-pressed', 'false');
+          });
+          document.querySelectorAll('.sideload__panel').forEach(function(p) {
+            p.classList.remove('sideload__panel--active');
+          });
+          // Activate selected
+          this.classList.add('sideload__tab--active');
+          this.setAttribute('aria-pressed', 'true');
+          var panel = document.getElementById('tab-' + target);
+          if (panel) panel.classList.add('sideload__panel--active');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

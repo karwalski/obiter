@@ -524,10 +524,20 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| PKG-001 | Package add-in as single-file download (manifest + dist bundle) per OS | FEATURE | NOT STARTED |
-| PKG-002 | Create GitHub Release with packaged add-in assets | FEATURE | NOT STARTED |
-| PKG-003 | Add download page to website with OS detection and direct GitHub download links | FEATURE | NOT STARTED |
-| PKG-004 | GitHub Actions workflow to auto-build and create release on version tag | FEATURE | NOT STARTED |
+| PKG-001 | Package add-in as single-file download (manifest + dist bundle) per OS | FEATURE | DONE |
+| PKG-002 | Create GitHub Release with packaged add-in assets | FEATURE | DONE |
+| PKG-003 | Add download page to website with OS detection and direct GitHub download links | FEATURE | DONE |
+| PKG-004 | GitHub Actions workflow to auto-build and create release on version tag | FEATURE | DONE |
+
+---
+
+## EPIC: A11Y — Accessibility Audit & Compliance
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | FEATURE | NOT STARTED |
 
 ---
 
@@ -578,5 +588,6 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | WEBSITE | 7 | 7 | 0 | 5 | 0 |
 | LETTER | 5 | 5 | 0 | 5 | 0 |
 | DEPLOY | 3 | 3 | 0 | 2 | 0 |
-| PACKAGE | 4 | 4 | 0 | 0 | 0 |
-| **TOTAL** | **251** | **236** | **15** | **232** | **0** |
+| PACKAGE | 4 | 4 | 0 | 4 | 0 |
+| A11Y | 1 | 1 | 0 | 0 | 0 |
+| **TOTAL** | **252** | **237** | **15** | **236** | **0** |
