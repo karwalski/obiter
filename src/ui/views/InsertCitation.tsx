@@ -18,6 +18,7 @@ import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
+import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
 
 // ─── Source Type Grouping ────────────────────────────────────────────────────
 
@@ -396,11 +397,86 @@ export default function InsertCitation(): JSX.Element {
   const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
 
+  // RIBBON-002: Recent citations state
+  const [recentCitations, setRecentCitations] = useState<Citation[]>([]);
+  const [recentExpanded, setRecentExpanded] = useState(true);
+
   // Load LLM config on mount to determine if AI suggest is available
   useEffect(() => {
     const config = loadLlmConfig();
     setLlmConfig(config);
   }, []);
+
+  // RIBBON-002: Load recent citations (sorted by modifiedAt desc, top 5)
+  const { refreshCounter, triggerRefresh } = useCitationContext();
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const store = await getStore();
+        const all = store.getAll();
+        const sorted = [...all]
+          .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
+          .slice(0, 5);
+        if (!cancelled) setRecentCitations(sorted);
+      } catch {
+        // Silently fail
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [refreshCounter]);
+
+  // RIBBON-002: Re-insert a recent citation (auto mode — same logic as Library)
+  const handleReinsert = useCallback(async (citation: Citation) => {
+    try {
+      const existing = await getAllCitationFootnotes();
+      const firstFn = existing.find((e) => e.citationId === citation.id);
+      const totalFootnotes = existing.length;
+
+      const precedingCitations = existing.filter(
+        (e) => e.footnoteIndex === totalFootnotes
+      );
+
+      const isFirst = !firstFn;
+      const isSameAsPreceding =
+        precedingCitations.length === 1 &&
+        precedingCitations[0].citationId === citation.id;
+
+      let runs;
+      if (isFirst) {
+        runs = getFormattedPreview(citation);
+      } else {
+        const ctx: EngineCitationContext = {
+          footnoteNumber: totalFootnotes + 1,
+          isFirstCitation: false,
+          isSameAsPreceding,
+          precedingFootnoteCitationCount: precedingCitations.length,
+          firstFootnoteNumber: firstFn?.footnoteIndex ?? 1,
+          isWithinSameFootnote: false,
+          formatPreference: "auto",
+        };
+        const result = formatCitation(citation, ctx);
+        runs = result ?? getFormattedPreview(citation);
+      }
+
+      const title = citation.shortTitle || getCitationLabel(citation);
+      await insertCitationFootnote(citation.id, title, runs);
+
+      // Update store with firstFootnoteNumber if this is the first citation
+      if (isFirst) {
+        const store = await getStore();
+        citation.firstFootnoteNumber = totalFootnotes + 1;
+        await store.update(citation);
+      }
+
+      triggerRefresh();
+      setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to re-insert citation";
+      setFeedback({ type: "error", message });
+    }
+  }, [triggerRefresh]);
 
   // ─── Field Updater ──────────────────────────────────────────────────────
 
@@ -576,8 +652,6 @@ export default function InsertCitation(): JSX.Element {
 
   // ─── Insert Handler ─────────────────────────────────────────────────────
 
-  const { triggerRefresh } = useCitationContext();
-
   const handleInsert = useCallback(async () => {
     const overrideText = formData._overrideText as string | undefined;
     if (!selectedSourceType || (previewRuns.length === 0 && !overrideText)) {
@@ -706,6 +780,49 @@ export default function InsertCitation(): JSX.Element {
   return (
     <div className="insert-citation">
       <h2>Insert Citation</h2>
+
+      {/* RIBBON-002: Recent Citations */}
+      {recentCitations.length > 0 && (
+        <div className="ic-recent-section">
+          <div
+            className="ic-recent-header"
+            role="button"
+            tabIndex={0}
+            onClick={() => setRecentExpanded((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setRecentExpanded((prev) => !prev);
+              }
+            }}
+            aria-expanded={recentExpanded}
+          >
+            <span className="ic-recent-title">Recent</span>
+            <span className="ic-recent-chevron">{recentExpanded ? "\u25B2" : "\u25BC"}</span>
+          </div>
+          {recentExpanded && (
+            <div className="ic-recent-list">
+              {recentCitations.map((citation) => (
+                <div key={citation.id} className="ic-recent-card">
+                  <span className="ic-recent-badge">
+                    {getSourceTypeBadge(citation.sourceType)}
+                  </span>
+                  <span className="ic-recent-label">
+                    {getCitationLabel(citation)}
+                  </span>
+                  <button
+                    type="button"
+                    className="ic-recent-insert-btn"
+                    onClick={() => void handleReinsert(citation)}
+                  >
+                    Re-insert
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Help Me Choose — AI source type classifier */}
       {llmConfig?.enabled ? (

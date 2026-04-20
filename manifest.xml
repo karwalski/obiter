@@ -145,6 +145,152 @@
                     <SourceLocation resid="Taskpane.Guide.Url"/>
                   </Action>
                 </Control>
+
+                <!-- Refresh All -->
+                <Control xsi:type="Button" id="RefreshAllBtn">
+                  <Label resid="RefreshAll.Label"/>
+                  <Supertip>
+                    <Title resid="RefreshAll.Label"/>
+                    <Description resid="RefreshAll.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>refreshAll</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Apply Template -->
+                <Control xsi:type="Button" id="ApplyTemplateBtn">
+                  <Label resid="ApplyTemplate.Label"/>
+                  <Supertip>
+                    <Title resid="ApplyTemplate.Label"/>
+                    <Description resid="ApplyTemplate.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyTemplate</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Block Quote -->
+                <Control xsi:type="Button" id="BlockQuoteBtn">
+                  <Label resid="BlockQuote.Label"/>
+                  <Supertip>
+                    <Title resid="BlockQuote.Label"/>
+                    <Description resid="BlockQuote.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyBlockQuote</FunctionName>
+                  </Action>
+                </Control>
+              </Group>
+
+              <!-- ── Formatting Group ── -->
+              <Group id="FormattingGroup">
+                <Label resid="FormattingGroup.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
+
+                <!-- Level I -->
+                <Control xsi:type="Button" id="HeadingIBtn">
+                  <Label resid="HeadingI.Label"/>
+                  <Supertip>
+                    <Title resid="HeadingI.Label"/>
+                    <Description resid="HeadingI.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyHeadingI</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Level II -->
+                <Control xsi:type="Button" id="HeadingIIBtn">
+                  <Label resid="HeadingII.Label"/>
+                  <Supertip>
+                    <Title resid="HeadingII.Label"/>
+                    <Description resid="HeadingII.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyHeadingII</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Level III -->
+                <Control xsi:type="Button" id="HeadingIIIBtn">
+                  <Label resid="HeadingIII.Label"/>
+                  <Supertip>
+                    <Title resid="HeadingIII.Label"/>
+                    <Description resid="HeadingIII.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyHeadingIII</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Level IV -->
+                <Control xsi:type="Button" id="HeadingIVBtn">
+                  <Label resid="HeadingIV.Label"/>
+                  <Supertip>
+                    <Title resid="HeadingIV.Label"/>
+                    <Description resid="HeadingIV.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyHeadingIV</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Level V -->
+                <Control xsi:type="Button" id="HeadingVBtn">
+                  <Label resid="HeadingV.Label"/>
+                  <Supertip>
+                    <Title resid="HeadingV.Label"/>
+                    <Description resid="HeadingV.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>applyHeadingV</FunctionName>
+                  </Action>
+                </Control>
               </Group>
 
               <!-- ── Tools Group ── -->
@@ -209,6 +355,15 @@
         <bt:String id="Bibliography.Label" DefaultValue="Bibliography"/>
         <bt:String id="Guide.Label" DefaultValue="Guide"/>
         <bt:String id="Settings.Label" DefaultValue="Settings"/>
+        <bt:String id="FormattingGroup.Label" DefaultValue="Formatting"/>
+        <bt:String id="RefreshAll.Label" DefaultValue="Refresh All"/>
+        <bt:String id="ApplyTemplate.Label" DefaultValue="Apply Template"/>
+        <bt:String id="BlockQuote.Label" DefaultValue="Block Quote"/>
+        <bt:String id="HeadingI.Label" DefaultValue="Level I"/>
+        <bt:String id="HeadingII.Label" DefaultValue="Level II"/>
+        <bt:String id="HeadingIII.Label" DefaultValue="Level III"/>
+        <bt:String id="HeadingIV.Label" DefaultValue="Level IV"/>
+        <bt:String id="HeadingV.Label" DefaultValue="Level V"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Obiter loaded successfully. Go to the AGLC4 tab to insert citations, validate formatting, and generate bibliographies."/>
@@ -218,6 +373,14 @@
         <bt:String id="Bibliography.Tooltip" DefaultValue="Preview and insert an AGLC4 bibliography"/>
         <bt:String id="Guide.Tooltip" DefaultValue="Search AGLC4 rules, abbreviations, and source types"/>
         <bt:String id="Settings.Tooltip" DefaultValue="Configure Obiter settings and document formatting"/>
+        <bt:String id="RefreshAll.Tooltip" DefaultValue="Rebuild all citations, headings, and inline formatting"/>
+        <bt:String id="ApplyTemplate.Tooltip" DefaultValue="Apply the AGLC4 document template styles"/>
+        <bt:String id="BlockQuote.Tooltip" DefaultValue="Format selected paragraphs as an AGLC4 block quote"/>
+        <bt:String id="HeadingI.Tooltip" DefaultValue="Apply AGLC4 Level I heading style to selection"/>
+        <bt:String id="HeadingII.Tooltip" DefaultValue="Apply AGLC4 Level II heading style to selection"/>
+        <bt:String id="HeadingIII.Tooltip" DefaultValue="Apply AGLC4 Level III heading style to selection"/>
+        <bt:String id="HeadingIV.Tooltip" DefaultValue="Apply AGLC4 Level IV heading style to selection"/>
+        <bt:String id="HeadingV.Tooltip" DefaultValue="Apply AGLC4 Level V heading style to selection"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

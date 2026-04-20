@@ -20,7 +20,7 @@ import CitationFinder from "../components/CitationFinder";
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Map a SourceType to a short human-readable badge label. */
-function getSourceTypeBadge(sourceType: SourceType): string {
+export function getSourceTypeBadge(sourceType: SourceType): string {
   if (sourceType.startsWith("case.")) return "Case";
   if (sourceType.startsWith("legislation.")) return "Legislation";
   if (sourceType.startsWith("journal.")) return "Journal";

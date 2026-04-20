@@ -668,6 +668,21 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: RIBBON — Context-Aware Ribbon & Commands
+
+**Phase:** Post-backlog | **Stories:** 6 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| RIBBON-001 | Context-sensitive ribbon — runtime checks in command functions | FEATURE | DONE |
+| RIBBON-002 | Insert Citation recent citations section with re-insert | FEATURE | DONE |
+| RIBBON-003 | Heading level quick-apply toolbar in task pane | FEATURE | DONE |
+| RIBBON-004 | Quick actions toolbar — Block Quote + Refresh All | FEATURE | DONE |
+| RIBBON-005 | Refresh All button in ribbon + task pane | FEATURE | DONE |
+| RIBBON-006 | Document Formatting group in ribbon — Template, Block Quote, Headings I-V | FEATURE | DONE |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0
@@ -725,4 +740,5 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | PACKAGE | 4 | 4 | 0 | 4 | 0 |
 | AI | 3 | 3 | 0 | 3 | 0 |
 | A11Y | 3 | 3 | 0 | 3 | 0 |
-| **TOTAL** | **307** | **292** | **15** | **302** | **0** |
+| RIBBON | 6 | 6 | 0 | 6 | 0 |
+| **TOTAL** | **313** | **298** | **15** | **308** | **0** |
