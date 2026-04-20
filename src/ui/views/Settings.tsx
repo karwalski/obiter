@@ -896,8 +896,8 @@ export default function Settings(): JSX.Element {
                 maxTokens: llmMaxTokens,
                 enabled: llmEnabled,
               };
-              const ok = await testConnection(config);
-              setLlmTestStatus(ok ? "Connected" : "Failed");
+              const result = await testConnection(config);
+              setLlmTestStatus(result.ok ? "Connected" : `Failed: ${result.error ?? "Unknown error"}`);
             }}
           >
             Test Connection

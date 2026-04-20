@@ -60,11 +60,11 @@ export function loadLlmConfig(): LLMConfig | null {
 }
 
 /**
- * Smoke-test the LLM connection by sending a trivial prompt and checking
- * for a non-empty response.
+ * Smoke-test the LLM connection by sending a trivial prompt.
+ * Returns { ok: true } on success, or { ok: false, error: string } with
+ * the actual error message on failure.
  */
-export async function testConnection(config: LLMConfig): Promise<boolean> {
-  // Inline import to avoid circular dependency at module load time.
+export async function testConnection(config: LLMConfig): Promise<{ ok: boolean; error?: string }> {
   const { callLlm } = await import("./client");
   try {
     const response = await callLlm(
@@ -72,8 +72,9 @@ export async function testConnection(config: LLMConfig): Promise<boolean> {
       "You are a connection test.",
       "Respond with the single word OK.",
     );
-    return response.length > 0;
-  } catch {
-    return false;
+    return response.length > 0 ? { ok: true } : { ok: false, error: "Empty response from API" };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: message };
   }
 }
