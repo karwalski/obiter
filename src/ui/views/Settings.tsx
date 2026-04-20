@@ -27,8 +27,8 @@ const LLM_MODELS: Record<string, ModelOption[]> = {
     { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
   ],
   anthropic: [
-    { value: "claude-sonnet-4-6-latest", label: "Claude Sonnet 4.6" },
     { value: "claude-opus-4-6-latest", label: "Claude Opus 4.6" },
+    { value: "claude-sonnet-4-6-latest", label: "Claude Sonnet 4.6" },
     { value: "claude-haiku-4-5-latest", label: "Claude Haiku 4.5" },
   ],
   gemini: [

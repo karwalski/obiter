@@ -158,12 +158,23 @@ export async function callLlm(
     ? buildAnthropicRequest(config, systemPrompt, userPrompt)
     : buildOpenAIRequest(config, systemPrompt, userPrompt);
 
-  const response = await fetch(url, init);
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (fetchErr: unknown) {
+    // Network error — likely CORS block or no connectivity
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    throw new Error(
+      `Cannot reach ${config.provider} API. This may be a CORS restriction — ` +
+      `browser-based add-ins cannot always connect directly to LLM APIs. ` +
+      `Error: ${msg}`,
+    );
+  }
 
   if (!response.ok) {
-    const errorBody = await response.text();
+    const errorBody = await response.text().catch(() => "");
     throw new Error(
-      `LLM request failed (${response.status}): ${errorBody}`,
+      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`,
     );
   }
 
