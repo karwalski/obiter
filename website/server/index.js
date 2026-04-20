@@ -709,6 +709,93 @@ app.get("/api/proxy/legislation", proxyCors, async function (req, res) {
 });
 
 // -------------------------------------------------------
+// LLM Proxy — bypasses CORS for providers that block browser requests
+// No data is logged, stored, or retained. The proxy relays the request
+// server-side and returns the response.
+// -------------------------------------------------------
+
+app.post("/api/proxy/llm", proxyCors, async function (req, res) {
+  try {
+    var { provider, model, apiKey, maxTokens, systemPrompt, userPrompt } = req.body;
+    if (!provider || !model || !apiKey || !systemPrompt || !userPrompt) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    var endpoints = {
+      anthropic: "https://api.anthropic.com/v1/messages",
+      gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      grok: "https://api.x.ai/v1/chat/completions",
+      deepseek: "https://api.deepseek.com/chat/completions",
+    };
+
+    var url = endpoints[provider];
+    if (!url) {
+      return res.status(400).json({ error: "Unsupported provider: " + provider });
+    }
+
+    var fetchFn = typeof fetch !== "undefined" ? fetch : require("node-fetch");
+    var response;
+
+    if (provider === "anthropic") {
+      response = await fetchFn(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2024-10-22",
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: maxTokens || 1024,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        }),
+      });
+    } else {
+      // OpenAI-compatible (Gemini, Grok, DeepSeek)
+      response = await fetchFn(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + apiKey,
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: maxTokens || 1024,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+    }
+
+    if (!response.ok) {
+      var errorText = await response.text();
+      return res.status(response.status).json({
+        error: provider + " API error (" + response.status + "): " + errorText.slice(0, 300),
+      });
+    }
+
+    var json = await response.json();
+    var text = "";
+
+    if (provider === "anthropic") {
+      var block = (json.content || []).find(function (b) { return b.type === "text"; });
+      text = block ? block.text : "";
+    } else {
+      text = json.choices && json.choices[0] && json.choices[0].message
+        ? json.choices[0].message.content
+        : "";
+    }
+
+    res.json({ text: text.trim() });
+  } catch (err) {
+    res.status(500).json({ error: "Proxy error: " + (err.message || String(err)) });
+  }
+});
+
+// -------------------------------------------------------
 // Start server
 // -------------------------------------------------------
 

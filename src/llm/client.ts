@@ -46,8 +46,10 @@ interface AnthropicResponse {
 
 // ─── Endpoint resolution ────────────────────────────────────────────────────
 
-/** Provider endpoint map. Gemini, Grok, and DeepSeek all use OpenAI-compatible APIs. */
-const PROVIDER_ENDPOINTS: Record<string, string> = {
+import { WEBSITE_URL } from "../constants";
+
+/** Direct provider endpoints (used when CORS is supported). */
+const DIRECT_ENDPOINTS: Record<string, string> = {
   openai: "https://api.openai.com/v1/chat/completions",
   anthropic: "https://api.anthropic.com/v1/messages",
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
@@ -55,17 +57,26 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
   deepseek: "https://api.deepseek.com/chat/completions",
 };
 
-function resolveEndpoint(config: LLMConfig): string {
+/**
+ * Providers known to block browser CORS. These are routed through
+ * the Obiter proxy server to avoid cross-origin restrictions.
+ */
+const CORS_BLOCKED_PROVIDERS = new Set(["anthropic", "gemini", "grok", "deepseek"]);
+
+function resolveEndpoint(config: LLMConfig): { url: string; useProxy: boolean } {
   if (config.endpoint) {
-    return config.endpoint;
+    return { url: config.endpoint, useProxy: false };
   }
-  const endpoint = PROVIDER_ENDPOINTS[config.provider];
+  const endpoint = DIRECT_ENDPOINTS[config.provider];
   if (!endpoint) {
     throw new Error(
       `Provider "${config.provider}" requires an explicit endpoint in LLMConfig.`,
     );
   }
-  return endpoint;
+  if (CORS_BLOCKED_PROVIDERS.has(config.provider)) {
+    return { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true };
+  }
+  return { url: endpoint, useProxy: false };
 }
 
 // ─── Build request ──────────────────────────────────────────────────────────
@@ -153,10 +164,36 @@ export async function callLlm(
   userPrompt: string,
 ): Promise<string> {
   const isAnthropic = config.provider === "anthropic";
+  const endpoint = resolveEndpoint(config);
 
-  const { url, init } = isAnthropic
-    ? buildAnthropicRequest(config, systemPrompt, userPrompt)
-    : buildOpenAIRequest(config, systemPrompt, userPrompt);
+  let url: string;
+  let init: RequestInit;
+
+  if (endpoint.useProxy) {
+    // Route through Obiter proxy to bypass CORS
+    url = endpoint.url;
+    const proxyBody = {
+      provider: config.provider,
+      model: config.model,
+      apiKey: config.apiKey,
+      maxTokens: config.maxTokens,
+      systemPrompt,
+      userPrompt,
+    };
+    init = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proxyBody),
+    };
+  } else if (isAnthropic) {
+    const req = buildAnthropicRequest(config, systemPrompt, userPrompt);
+    url = req.url;
+    init = req.init;
+  } else {
+    const req = buildOpenAIRequest(config, systemPrompt, userPrompt);
+    url = req.url;
+    init = req.init;
+  }
 
   let response: Response;
   try {
@@ -179,6 +216,14 @@ export async function callLlm(
   }
 
   const json: unknown = await response.json();
+
+  // Proxy returns { text: "..." } directly
+  if (endpoint.useProxy) {
+    const proxyResult = json as { text?: string; error?: string };
+    if (proxyResult.error) throw new Error(proxyResult.error);
+    if (!proxyResult.text) throw new Error("Empty response from proxy");
+    return proxyResult.text.trim();
+  }
 
   return isAnthropic
     ? extractAnthropicText(json as AnthropicResponse)

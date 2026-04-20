@@ -142,10 +142,18 @@
           </li>
         </ul>
         <p>
-          API keys are stored locally in your browser and are never sent to
-          Obiter servers. LLM requests are made directly from your browser to
-          the provider's API &mdash; they do not pass through Obiter servers.
-          Obiter has no access to your LLM provider account or usage data.
+          API keys are stored locally in your browser. For providers that support
+          browser connections (such as OpenAI), requests go directly from your
+          browser to the provider. For providers that do not support browser
+          connections (such as Anthropic, Google Gemini, Grok, DeepSeek),
+          requests are relayed through the Obiter gateway server (obiter.com.au)
+          to bypass browser security restrictions. In this case, your API key
+          and prompt text are transmitted to the gateway, forwarded immediately
+          to the provider, and the response is returned to your browser.
+          <strong>The gateway does not log, store, cache, or retain any request
+          data, API keys, prompts, or responses.</strong> The relay is stateless
+          &mdash; no data persists after the response is delivered. Obiter has
+          no access to your LLM provider account or usage data.
         </p>
         <p>
           You can disable LLM integration at any time in Settings.
