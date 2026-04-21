@@ -94,7 +94,7 @@ import {
 import { formatBook, formatEdition } from "../../src/engine/rules/v4/secondary/books";
 import { formatJournalArticle } from "../../src/engine/rules/v4/secondary/journals";
 import { formatCitation } from "../../src/engine/engine";
-import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
+import { STANDARD_PROFILES, StandardProfile } from "../../src/engine/standards/profiles";
 
 // ─── Data Files ───────────────────────────────────────────────────────────────
 import {
@@ -2381,5 +2381,68 @@ describe("OSC-ENH-004: OSCOLA secondary source formatting", () => {
       expect(text).not.toContain("\u201C");
       expect(text).not.toContain("\u201D");
     });
+  });
+});
+
+// =============================================================================
+// 18. OSC-ENH-007: OSCOLA 4 Config Delta Audit
+// =============================================================================
+
+describe("OSC-ENH-007: OSCOLA 4 profile config", () => {
+  const oscola4 = STANDARD_PROFILES.oscola4;
+  const oscola5 = STANDARD_PROFILES.oscola5;
+
+  it("OSCOLA 4 profile is not marked comingSoon", () => {
+    expect(oscola4.comingSoon).toBe(false);
+  });
+
+  it("OSCOLA 4 has ibidEnabled: true (OSCOLA 4 uses ibid)", () => {
+    expect(oscola4.config.ibidEnabled).toBe(true);
+  });
+
+  it("OSCOLA 5 has ibidEnabled: false (OSCOLA 5 deprecates ibid)", () => {
+    expect(oscola5.config.ibidEnabled).toBe(false);
+  });
+
+  it("OSCOLA 4 and 5 share the same quotation mark style (single)", () => {
+    expect(oscola4.config.quotationMarkStyle).toBe("single");
+    expect(oscola5.config.quotationMarkStyle).toBe("single");
+  });
+
+  it("OSCOLA 4 and 5 share roman (non-italic) legislation", () => {
+    expect(oscola4.config.italiciseLegislation).toBe(false);
+    expect(oscola5.config.italiciseLegislation).toBe(false);
+  });
+
+  it('OSCOLA 4 and 5 share edition abbreviation "edn"', () => {
+    expect(oscola4.config.editionAbbreviation).toBe("edn");
+    expect(oscola5.config.editionAbbreviation).toBe("edn");
+  });
+
+  it("OSCOLA 4 and 5 share homeJurisdiction UK", () => {
+    expect(oscola4.config.homeJurisdiction).toBe("UK");
+    expect(oscola5.config.homeJurisdiction).toBe("UK");
+  });
+
+  it("OSCOLA 4 and 5 share oscola bibliography structure", () => {
+    expect(oscola4.config.bibliographyStructure).toBe("oscola");
+    expect(oscola5.config.bibliographyStructure).toBe("oscola");
+  });
+
+  it("OSCOLA 4 and 5 share subsequent reference format (n)", () => {
+    expect(oscola4.config.subsequentReferenceFormat).toBe("n");
+    expect(oscola5.config.subsequentReferenceFormat).toBe("n");
+  });
+
+  it("OSCOLA 4 has correct standardId and label", () => {
+    expect(oscola4.config.standardId).toBe("oscola4");
+    expect(oscola4.config.standardLabel).toBe("OSCOLA 4");
+  });
+
+  it("ibidEnabled is the only config difference between OSCOLA 4 and 5", () => {
+    // Every config field should match except standardId, standardLabel, and ibidEnabled
+    const { standardId: _id4, standardLabel: _label4, ibidEnabled: _ibid4, ...rest4 } = oscola4.config;
+    const { standardId: _id5, standardLabel: _label5, ibidEnabled: _ibid5, ...rest5 } = oscola5.config;
+    expect(rest4).toEqual(rest5);
   });
 });

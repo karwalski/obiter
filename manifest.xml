@@ -54,9 +54,9 @@
                     <Description resid="InsertCitation.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Insert.16x16"/>
+                    <bt:Image size="32" resid="Icon.Insert.32x32"/>
+                    <bt:Image size="80" resid="Icon.Insert.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -72,9 +72,9 @@
                     <Description resid="Library.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Library.16x16"/>
+                    <bt:Image size="32" resid="Icon.Library.32x32"/>
+                    <bt:Image size="80" resid="Icon.Library.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -100,9 +100,9 @@
                     <Description resid="Validate.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Validate.16x16"/>
+                    <bt:Image size="32" resid="Icon.Validate.32x32"/>
+                    <bt:Image size="80" resid="Icon.Validate.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -118,9 +118,9 @@
                     <Description resid="Bibliography.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Bibliography.16x16"/>
+                    <bt:Image size="32" resid="Icon.Bibliography.32x32"/>
+                    <bt:Image size="80" resid="Icon.Bibliography.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -136,9 +136,9 @@
                     <Description resid="Guide.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Guide.16x16"/>
+                    <bt:Image size="32" resid="Icon.Guide.32x32"/>
+                    <bt:Image size="80" resid="Icon.Guide.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -154,9 +154,9 @@
                     <Description resid="RefreshAll.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Refresh.16x16"/>
+                    <bt:Image size="32" resid="Icon.Refresh.32x32"/>
+                    <bt:Image size="80" resid="Icon.Refresh.80x80"/>
                   </Icon>
                   <Action xsi:type="ExecuteFunction">
                     <FunctionName>refreshAll</FunctionName>
@@ -171,9 +171,9 @@
                     <Description resid="ApplyTemplate.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Template.16x16"/>
+                    <bt:Image size="32" resid="Icon.Template.32x32"/>
+                    <bt:Image size="80" resid="Icon.Template.80x80"/>
                   </Icon>
                   <Action xsi:type="ExecuteFunction">
                     <FunctionName>applyTemplate</FunctionName>
@@ -188,9 +188,9 @@
                     <Description resid="BlockQuote.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.BlockQuote.16x16"/>
+                    <bt:Image size="32" resid="Icon.BlockQuote.32x32"/>
+                    <bt:Image size="80" resid="Icon.BlockQuote.80x80"/>
                   </Icon>
                   <Action xsi:type="ExecuteFunction">
                     <FunctionName>applyBlockQuote</FunctionName>
@@ -217,9 +217,9 @@
                     <Description resid="Settings.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16"/>
-                    <bt:Image size="32" resid="Icon.32x32"/>
-                    <bt:Image size="80" resid="Icon.80x80"/>
+                    <bt:Image size="16" resid="Icon.Settings.16x16"/>
+                    <bt:Image size="32" resid="Icon.Settings.32x32"/>
+                    <bt:Image size="80" resid="Icon.Settings.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -239,6 +239,33 @@
         <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/assets/icon-16.png"/>
         <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/assets/icon-32.png"/>
         <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/assets/icon-80.png"/>
+        <bt:Image id="Icon.Insert.16x16" DefaultValue="https://localhost:3000/assets/icon-insert-16.png"/>
+        <bt:Image id="Icon.Insert.32x32" DefaultValue="https://localhost:3000/assets/icon-insert-32.png"/>
+        <bt:Image id="Icon.Insert.80x80" DefaultValue="https://localhost:3000/assets/icon-insert-80.png"/>
+        <bt:Image id="Icon.Library.16x16" DefaultValue="https://localhost:3000/assets/icon-library-16.png"/>
+        <bt:Image id="Icon.Library.32x32" DefaultValue="https://localhost:3000/assets/icon-library-32.png"/>
+        <bt:Image id="Icon.Library.80x80" DefaultValue="https://localhost:3000/assets/icon-library-80.png"/>
+        <bt:Image id="Icon.Validate.16x16" DefaultValue="https://localhost:3000/assets/icon-validate-16.png"/>
+        <bt:Image id="Icon.Validate.32x32" DefaultValue="https://localhost:3000/assets/icon-validate-32.png"/>
+        <bt:Image id="Icon.Validate.80x80" DefaultValue="https://localhost:3000/assets/icon-validate-80.png"/>
+        <bt:Image id="Icon.Bibliography.16x16" DefaultValue="https://localhost:3000/assets/icon-bibliography-16.png"/>
+        <bt:Image id="Icon.Bibliography.32x32" DefaultValue="https://localhost:3000/assets/icon-bibliography-32.png"/>
+        <bt:Image id="Icon.Bibliography.80x80" DefaultValue="https://localhost:3000/assets/icon-bibliography-80.png"/>
+        <bt:Image id="Icon.Guide.16x16" DefaultValue="https://localhost:3000/assets/icon-guide-16.png"/>
+        <bt:Image id="Icon.Guide.32x32" DefaultValue="https://localhost:3000/assets/icon-guide-32.png"/>
+        <bt:Image id="Icon.Guide.80x80" DefaultValue="https://localhost:3000/assets/icon-guide-80.png"/>
+        <bt:Image id="Icon.Refresh.16x16" DefaultValue="https://localhost:3000/assets/icon-refresh-16.png"/>
+        <bt:Image id="Icon.Refresh.32x32" DefaultValue="https://localhost:3000/assets/icon-refresh-32.png"/>
+        <bt:Image id="Icon.Refresh.80x80" DefaultValue="https://localhost:3000/assets/icon-refresh-80.png"/>
+        <bt:Image id="Icon.Template.16x16" DefaultValue="https://localhost:3000/assets/icon-template-16.png"/>
+        <bt:Image id="Icon.Template.32x32" DefaultValue="https://localhost:3000/assets/icon-template-32.png"/>
+        <bt:Image id="Icon.Template.80x80" DefaultValue="https://localhost:3000/assets/icon-template-80.png"/>
+        <bt:Image id="Icon.BlockQuote.16x16" DefaultValue="https://localhost:3000/assets/icon-blockquote-16.png"/>
+        <bt:Image id="Icon.BlockQuote.32x32" DefaultValue="https://localhost:3000/assets/icon-blockquote-32.png"/>
+        <bt:Image id="Icon.BlockQuote.80x80" DefaultValue="https://localhost:3000/assets/icon-blockquote-80.png"/>
+        <bt:Image id="Icon.Settings.16x16" DefaultValue="https://localhost:3000/assets/icon-settings-16.png"/>
+        <bt:Image id="Icon.Settings.32x32" DefaultValue="https://localhost:3000/assets/icon-settings-32.png"/>
+        <bt:Image id="Icon.Settings.80x80" DefaultValue="https://localhost:3000/assets/icon-settings-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://obiter.com.au"/>

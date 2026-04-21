@@ -778,7 +778,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | OSC-ENH-004 | Verify OSCOLA secondary source formatting (edn abbreviation, publisher, pinpoint) | MEDIUM | FEATURE | DONE |
 | OSC-ENH-005 | OSCOLA online/digital source formatters (websites, blogs, social media, podcasts) | MEDIUM | FEATURE | DONE |
 | OSC-ENH-006 | OSCOLA thesis/dissertation formatter (Rule 3.6) | LOW | FEATURE | DONE |
-| OSC-ENH-007 | OSCOLA 4 delta audit from OSCOLA 5 | LOW | RESEARCH | NOT STARTED |
+| OSC-ENH-007 | OSCOLA 4 delta audit from OSCOLA 5 | LOW | RESEARCH | DONE |
 
 ---
 
@@ -793,7 +793,38 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | NZLSG-ENH-003 | Add report.waitangi_tribunal source type for reliable bibliography classification | LOW | FEATURE | DONE |
 | NZLSG-ENH-004 | NZLSG online/internet source formatters (websites, blogs, social media) | MEDIUM | FEATURE | DONE |
 | NZLSG-ENH-005 | NZLSG newspaper/media formatters | MEDIUM | FEATURE | DONE |
-| NZLSG-ENH-006 | NZLSG 4 delta audit from NZLSG 3 | LOW | RESEARCH | NOT STARTED |
+| NZLSG-ENH-006 | NZLSG 4 delta audit from NZLSG 3 | LOW | RESEARCH | DONE |
+
+---
+
+## EPIC: RIBBON-ENH — Ribbon Icon Enhancement
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| RIBBON-ENH-001 | Distinct ribbon icons per button — same colour scheme, different glyphs | FEATURE | DONE |
+
+**RIBBON-ENH-001 Details:**
+Currently every ribbon button (Insert Citation, Library, Validate, Bibliography, Guide, Refresh All, Apply Template, Block Quote, Settings) uses the same Obiter logo icon. Each button should have a visually distinct icon that communicates its function at a glance.
+
+**AC:**
+- Generate 9 icon sets (16px, 32px, 80px each = 27 PNG files) using the Obiter colour scheme (#1a1a2e primary, #e94560 accent, white background)
+- Icon concepts per button:
+  - **Insert Citation** — footnote/plus symbol (fn+)
+  - **Library** — book/shelf
+  - **Validate** — checkmark/shield
+  - **Bibliography** — stacked list/document
+  - **Guide** — question mark/compass
+  - **Refresh All** — circular arrows
+  - **Apply Template** — page with formatting lines
+  - **Block Quote** — indented quote marks
+  - **Settings** — gear/cog
+- Update `manifest.xml` and `manifest.prod.xml` bt:Images section with new resource IDs (e.g., `Icon.Insert.16x16`, `Icon.Library.16x16`, etc.)
+- Update each button's `<Icon>` block to reference its specific icon
+- Place icon files in `assets/` directory
+- Icons must work on both light and dark ribbon backgrounds (dark variants if needed)
+- Requires manifest version bump and sideload after change
 
 ---
 
@@ -861,6 +892,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | COURT-VALID | 3 | 3 | 0 | 3 | 0 |
 | COURT-GUIDE | 2 | 2 | 0 | 2 | 0 |
 | REVIEW | 2 | 2 | 0 | 2 | 0 |
-| OSC-ENH | 7 | 6 | 0 | 6 | 0 |
-| NZLSG-ENH | 6 | 6 | 0 | 5 | 0 |
-| **TOTAL** | **351** | **333** | **17** | **344** | **0** |
+| OSC-ENH | 7 | 6 | 0 | 7 | 0 |
+| NZLSG-ENH | 6 | 6 | 0 | 6 | 0 |
+| RIBBON-ENH | 1 | 1 | 0 | 1 | 0 |
+| **TOTAL** | **352** | **334** | **17** | **347** | **0** |

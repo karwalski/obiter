@@ -40,6 +40,7 @@ import {
   formatUNDocument,
   formatICJCase,
 } from "../../src/engine/rules/nzlsg/international";
+import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
 import {
   searchNZReportSeries,
   getNZReportSeriesByAbbreviation,
@@ -1486,7 +1487,39 @@ describe("NZ Court Identifiers — NZ_COURT_IDENTIFIERS array", () => {
 });
 
 // =============================================================================
-// 12. NZLSG Bibliography — Waitangi Tribunal Section (NZLSG-ENH-003)
+// 12. NZLSG 4 Placeholder Profile (NZLSG-ENH-006)
+// =============================================================================
+
+describe("NZLSG 4 placeholder profile (NZLSG-ENH-006)", () => {
+  const nzlsg3 = STANDARD_PROFILES.nzlsg3;
+  const nzlsg4 = STANDARD_PROFILES.nzlsg4;
+
+  test("NZLSG 4 profile exists and is marked comingSoon", () => {
+    expect(nzlsg4).toBeDefined();
+    expect(nzlsg4.comingSoon).toBe(true);
+  });
+
+  test("NZLSG 3 profile is NOT marked comingSoon", () => {
+    expect(nzlsg3.comingSoon).toBe(false);
+  });
+
+  test("NZLSG 4 config values match NZLSG 3 (placeholder copy)", () => {
+    // Compare every config field except standardId and standardLabel,
+    // which are intentionally different between editions.
+    const { standardId: _id3, standardLabel: _label3, ...nzlsg3Rest } = nzlsg3.config;
+    const { standardId: _id4, standardLabel: _label4, ...nzlsg4Rest } = nzlsg4.config;
+
+    expect(nzlsg4Rest).toEqual(nzlsg3Rest);
+  });
+
+  test("NZLSG 4 has correct standardId and standardLabel", () => {
+    expect(nzlsg4.config.standardId).toBe("nzlsg4");
+    expect(nzlsg4.config.standardLabel).toBe("NZLSG 4");
+  });
+});
+
+// =============================================================================
+// 13. NZLSG Bibliography — Waitangi Tribunal Section (NZLSG-ENH-003)
 // =============================================================================
 
 import { generateNzlsgBibliography } from "../../src/engine/rules/v4/general/bibliography";
