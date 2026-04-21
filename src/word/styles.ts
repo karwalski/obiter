@@ -358,9 +358,15 @@ export async function applyHeadingLevel(
     } else {
       // Create list, configure all 5 levels, then sync
       const list = paragraph.startNewList();
-      list.setLevelNumbering(0, "UpperRoman" as Word.ListNumbering);
-      list.setLevelNumbering(1, "UpperLetter" as Word.ListNumbering);
-      list.setLevelNumbering(2, "Arabic" as Word.ListNumbering);
+      // Configure all 5 AGLC4 heading levels (Rule 1.12.2)
+      // Level I:   I, II, III        (UpperRoman)
+      // Level II:  A, B, C           (UpperLetter)
+      // Level III: 1, 2, 3           (Arabic)
+      // Level IV:  (a), (b), (c)     (LowerLetter with parens)
+      // Level V:   (i), (ii), (iii)  (LowerRoman with parens)
+      list.setLevelNumbering(0, "UpperRoman" as Word.ListNumbering, [0]);
+      list.setLevelNumbering(1, "UpperLetter" as Word.ListNumbering, [1]);
+      list.setLevelNumbering(2, "Arabic" as Word.ListNumbering, [2]);
       list.setLevelNumbering(3, "LowerLetter" as Word.ListNumbering, ["(", 3, ")"]);
       list.setLevelNumbering(4, "LowerRoman" as Word.ListNumbering, ["(", 4, ")"]);
       for (let i = 0; i < 5; i++) {

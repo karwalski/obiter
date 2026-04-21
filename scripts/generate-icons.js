@@ -3,7 +3,7 @@
  * generate-icons.js
  *
  * Generates distinct ribbon icons for each Obiter button using ImageMagick.
- * Each icon is a rounded square in the Obiter brand colour (#1a1a2e) with a
+ * Each icon is a rounded square in the Obiter brand colour (#2AA198) with a
  * white glyph/symbol to distinguish it from the others.
  *
  * Usage: node scripts/generate-icons.js
@@ -15,7 +15,7 @@ const path = require('path');
 const ASSETS_DIR = path.resolve(__dirname, '..', 'assets');
 
 // Obiter brand colours
-const BG_COLOUR = '#1a1a2e';
+const BG_COLOUR = '#2AA198';
 const FG_COLOUR = '#FFFFFF';
 const ACCENT = '#e94560';
 
@@ -95,6 +95,35 @@ function generateIcon(cmd, name, glyph, size) {
       `-gravity center -annotate +0+0 'R'`,
       // Add a small curved arrow accent in the corner
       `-fill '${ACCENT}' -draw "circle ${Math.round(size * 0.75)},${Math.round(size * 0.25)} ${Math.round(size * 0.75)},${Math.round(size * 0.15)}"`,
+      `"${outFile}"`,
+    ];
+    execSync(args.join(' '), { stdio: 'inherit' });
+    return;
+  }
+
+  // Settings: draw a gear using circles and rectangles
+  if (name === 'settings') {
+    const cx = Math.round(size / 2);
+    const cy = Math.round(size / 2);
+    const outerR = Math.round(size * 0.28);
+    const innerR = Math.round(size * 0.15);
+    const toothW = Math.round(size * 0.08);
+    const toothH = Math.round(size * 0.12);
+    // Draw outer circle with 8 teeth (rectangles at 45-degree intervals)
+    const teeth = [];
+    for (let i = 0; i < 8; i++) {
+      const angle = (i * 45) * Math.PI / 180;
+      const tx = Math.round(cx + Math.cos(angle) * outerR);
+      const ty = Math.round(cy + Math.sin(angle) * outerR);
+      teeth.push(`rectangle ${tx - toothW},${ty - toothW} ${tx + toothW},${ty + toothW}`);
+    }
+    const args = [
+      `${cmd}`,
+      `-size ${size}x${size} xc:none`,
+      `-fill '${BG_COLOUR}' -draw "roundrectangle 0,0 ${size - 1},${size - 1} ${radius},${radius}"`,
+      `-fill '${FG_COLOUR}' -draw "circle ${cx},${cy} ${cx},${cy - outerR}"`,
+      ...teeth.map(t => `-draw "${t}"`),
+      `-fill '${BG_COLOUR}' -draw "circle ${cx},${cy} ${cx},${cy - innerR}"`,
       `"${outFile}"`,
     ];
     execSync(args.join(' '), { stdio: 'inherit' });
