@@ -108,6 +108,7 @@ export type SourceType =
   | "report.parliamentary" // Rule 7.1.2
   | "report.royal_commission" // Rule 7.1.3
   | "report.law_reform" // Rule 7.1.4
+  | "report.waitangi_tribunal" // NZLSG — Waitangi Tribunal reports
   | "report.abs" // Rule 7.1.5
   | "research_paper" // Rule 7.2
   | "research_paper.parliamentary" // Rule 7.2.3

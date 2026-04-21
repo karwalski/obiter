@@ -108,6 +108,7 @@ export function formatBook(data: {
   edition?: number;
   year: number;
   pinpoint?: Pinpoint;
+  editionAbbreviation?: "ed" | "edn";
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -128,7 +129,7 @@ export function formatBook(data: {
   // Publication details
   const pubParts: string[] = [data.publisher];
   if (data.edition && data.edition > 1) {
-    pubParts.push(formatEdition(data.edition));
+    pubParts.push(formatEdition(data.edition, false, { abbreviation: data.editionAbbreviation ?? "ed" }));
   }
   pubParts.push(String(data.year));
   runs.push({ text: buildPublicationDetails(pubParts) });
@@ -166,6 +167,7 @@ export function formatMultiVolumeBook(data: {
   year: number;
   volume: number;
   pinpoint?: Pinpoint;
+  editionAbbreviation?: "ed" | "edn";
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -180,7 +182,7 @@ export function formatMultiVolumeBook(data: {
   // Publication details
   const pubParts: string[] = [data.publisher];
   if (data.edition && data.edition > 1) {
-    pubParts.push(formatEdition(data.edition));
+    pubParts.push(formatEdition(data.edition, false, { abbreviation: data.editionAbbreviation ?? "ed" }));
   }
   pubParts.push(String(data.year));
   runs.push({ text: buildPublicationDetails(pubParts) });
@@ -284,6 +286,7 @@ export function formatTranslatedBook(data: {
   year: number;
   translator: string;
   pinpoint?: Pinpoint;
+  editionAbbreviation?: "ed" | "edn";
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -298,7 +301,7 @@ export function formatTranslatedBook(data: {
   // Publication details with translator
   const pubParts: string[] = [`tr ${data.translator}`, data.publisher];
   if (data.edition && data.edition > 1) {
-    pubParts.push(formatEdition(data.edition));
+    pubParts.push(formatEdition(data.edition, false, { abbreviation: data.editionAbbreviation ?? "ed" }));
   }
   pubParts.push(String(data.year));
   runs.push({ text: buildPublicationDetails(pubParts) });
@@ -370,6 +373,7 @@ export function formatAudiobook(data: {
   year: number;
   narrator: string;
   pinpoint?: Pinpoint;
+  editionAbbreviation?: "ed" | "edn";
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -384,7 +388,7 @@ export function formatAudiobook(data: {
   // Publication details
   const pubParts: string[] = [data.publisher];
   if (data.edition && data.edition > 1) {
-    pubParts.push(formatEdition(data.edition));
+    pubParts.push(formatEdition(data.edition, false, { abbreviation: data.editionAbbreviation ?? "ed" }));
   }
   pubParts.push(String(data.year));
   runs.push({ text: buildPublicationDetails(pubParts) });

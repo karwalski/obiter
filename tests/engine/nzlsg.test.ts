@@ -1484,3 +1484,102 @@ describe("NZ Court Identifiers — NZ_COURT_IDENTIFIERS array", () => {
     expect(sc?.neutralCitationFrom).toBe(2004);
   });
 });
+
+// =============================================================================
+// 12. NZLSG Bibliography — Waitangi Tribunal Section (NZLSG-ENH-003)
+// =============================================================================
+
+import { generateNzlsgBibliography } from "../../src/engine/rules/v4/general/bibliography";
+import type { Citation } from "../../src/types/citation";
+
+/** Helper: creates a minimal Citation for bibliography tests. */
+function makeCitation(overrides: Partial<Citation>): Citation {
+  return {
+    id: overrides.id ?? "test-id",
+    aglcVersion: "4",
+    sourceType: overrides.sourceType ?? "report",
+    data: overrides.data ?? {},
+    tags: overrides.tags ?? [],
+    createdAt: "2026-01-01T00:00:00Z",
+    modifiedAt: "2026-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
+describe("NZLSG Bibliography — Waitangi Tribunal section (NZLSG-ENH-003)", () => {
+  test("report.waitangi_tribunal sourceType is classified into Waitangi Tribunal section", () => {
+    const citations: Citation[] = [
+      makeCitation({
+        id: "wt-1",
+        sourceType: "report.waitangi_tribunal",
+        data: { title: "Ko Aotearoa Tēnei", authors: [{ givenNames: "", surname: "Waitangi Tribunal" }] },
+        tags: [],
+      }),
+      makeCitation({
+        id: "case-1",
+        sourceType: "case.reported",
+        data: { title: "R v Fonotia" },
+        tags: [],
+      }),
+    ];
+
+    const sections = generateNzlsgBibliography(citations);
+    const waitangiSection = sections.find((s) => s.heading === "Waitangi Tribunal");
+    const casesSection = sections.find((s) => s.heading === "Cases");
+
+    expect(waitangiSection).toBeDefined();
+    expect(waitangiSection!.entries.length).toBe(1);
+    expect(casesSection).toBeDefined();
+    expect(casesSection!.entries.length).toBe(1);
+  });
+
+  test("tag-based heuristic still works as fallback for non-typed Waitangi citations", () => {
+    const citations: Citation[] = [
+      makeCitation({
+        id: "wt-tag",
+        sourceType: "report",
+        data: { title: "Te Whanau o Waipareira Report" },
+        tags: ["waitangi_tribunal"],
+      }),
+    ];
+
+    const sections = generateNzlsgBibliography(citations);
+    const waitangiSection = sections.find((s) => s.heading === "Waitangi Tribunal");
+
+    expect(waitangiSection).toBeDefined();
+    expect(waitangiSection!.entries.length).toBe(1);
+  });
+
+  test("body-text heuristic still works as fallback", () => {
+    const citations: Citation[] = [
+      makeCitation({
+        id: "wt-body",
+        sourceType: "report",
+        data: { title: "Some Report", body: "Report of the Waitangi Tribunal" },
+        tags: [],
+      }),
+    ];
+
+    const sections = generateNzlsgBibliography(citations);
+    const waitangiSection = sections.find((s) => s.heading === "Waitangi Tribunal");
+
+    expect(waitangiSection).toBeDefined();
+    expect(waitangiSection!.entries.length).toBe(1);
+  });
+
+  test("report.waitangi_tribunal does not appear in Secondary Sources", () => {
+    const citations: Citation[] = [
+      makeCitation({
+        id: "wt-2",
+        sourceType: "report.waitangi_tribunal",
+        data: { title: "Hauora Report" },
+        tags: [],
+      }),
+    ];
+
+    const sections = generateNzlsgBibliography(citations);
+    const secondarySection = sections.find((s) => s.heading === "Secondary Sources");
+
+    expect(secondarySection).toBeUndefined();
+  });
+});

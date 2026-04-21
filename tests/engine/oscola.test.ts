@@ -70,6 +70,9 @@ import {
   formatWtoReport,
 } from "../../src/engine/rules/oscola/international";
 
+// ─── Secondary Sources ───────────────────────────────────────────────────────
+import { formatOscolaThesis } from "../../src/engine/rules/oscola/secondary";
+
 // ─── GenAI ────────────────────────────────────────────────────────────────────
 import { formatGenAiCitation } from "../../src/engine/rules/oscola/genai";
 
@@ -86,6 +89,12 @@ import {
   formatIrishStatutoryInstrument,
   formatBunreachtNaHEireann,
 } from "../../src/engine/rules/oscola/ireland";
+
+// ─── Secondary Sources (shared formatters via engine dispatcher) ─────────────
+import { formatBook, formatEdition } from "../../src/engine/rules/v4/secondary/books";
+import { formatJournalArticle } from "../../src/engine/rules/v4/secondary/journals";
+import { formatCitation } from "../../src/engine/engine";
+import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
 
 // ─── Data Files ───────────────────────────────────────────────────────────────
 import {
@@ -2178,5 +2187,199 @@ describe("Data: EU Case Prefixes", () => {
 
   it("OJ_SERIES has entries", () => {
     expect(OJ_SERIES.length).toBeGreaterThan(3);
+  });
+});
+
+// =============================================================================
+// 16. OSCOLA THESIS/DISSERTATION (secondary.ts)
+// =============================================================================
+
+describe("OSC-ENH-006: formatOscolaThesis", () => {
+  it("formats DPhil thesis (JSDoc example)", () => {
+    const runs = formatOscolaThesis({
+      author: "John Smith",
+      title: "The Doctrine of Legitimate Expectations in EU Law",
+      thesisType: "DPhil thesis",
+      university: "University of Oxford",
+      year: 2020,
+      pinpoint: "45",
+    });
+    expect(joinText(runs)).toBe(
+      "John Smith, \u2018The Doctrine of Legitimate Expectations in EU Law\u2019 (DPhil thesis, University of Oxford 2020) 45"
+    );
+  });
+
+  it("formats PhD thesis", () => {
+    const runs = formatOscolaThesis({
+      author: "Jane Doe",
+      title: "Comparative Constitutional Review",
+      thesisType: "PhD thesis",
+      university: "University of Cambridge",
+      year: 2018,
+      pinpoint: "112",
+    });
+    expect(joinText(runs)).toBe(
+      "Jane Doe, \u2018Comparative Constitutional Review\u2019 (PhD thesis, University of Cambridge 2018) 112"
+    );
+  });
+
+  it("formats LLM thesis", () => {
+    const runs = formatOscolaThesis({
+      author: "Alice Brown",
+      title: "The Regulation of FinTech in the UK",
+      thesisType: "LLM thesis",
+      university: "London School of Economics",
+      year: 2022,
+    });
+    expect(joinText(runs)).toBe(
+      "Alice Brown, \u2018The Regulation of FinTech in the UK\u2019 (LLM thesis, London School of Economics 2022)"
+    );
+  });
+
+  it("omits pinpoint when not provided", () => {
+    const runs = formatOscolaThesis({
+      author: "Bob White",
+      title: "International Humanitarian Law",
+      thesisType: "MPhil thesis",
+      university: "University of Edinburgh",
+      year: 2019,
+    });
+    const text = joinText(runs);
+    expect(text).toBe(
+      "Bob White, \u2018International Humanitarian Law\u2019 (MPhil thesis, University of Edinburgh 2019)"
+    );
+    // Ensure no trailing space or 'at'
+    expect(text).not.toContain(" at ");
+    expect(text.endsWith(")")).toBe(true);
+  });
+
+  it("title is NOT italic (single curly quotes instead)", () => {
+    const runs = formatOscolaThesis({
+      author: "Test Author",
+      title: "Test Title",
+      thesisType: "PhD thesis",
+      university: "Test University",
+      year: 2021,
+    });
+    // The title run should contain single curly quotes and NOT be italic
+    const titleRun = runs.find((r) => r.text.includes("Test Title"));
+    expect(titleRun).toBeDefined();
+    expect(titleRun!.italic).toBeUndefined();
+    expect(titleRun!.text).toContain("\u2018");
+    expect(titleRun!.text).toContain("\u2019");
+    // No run should be italic
+    runs.forEach((r) => {
+      expect(r.italic).toBeUndefined();
+    });
+  });
+});
+
+// =============================================================================
+// 17. OSC-ENH-004: OSCOLA Secondary Source Formatting
+// =============================================================================
+
+describe("OSC-ENH-004: OSCOLA secondary source formatting", () => {
+  const oscolaConfig = STANDARD_PROFILES.oscola5.config;
+
+  describe("Book edition abbreviation", () => {
+    it('formatBook with editionAbbreviation "edn" produces "3rd edn"', () => {
+      const runs = formatBook({
+        authors: [{ givenNames: "Andrew", surname: "Ashworth" }],
+        title: "Principles of Criminal Law",
+        publisher: "OUP",
+        edition: 3,
+        year: 1999,
+        editionAbbreviation: "edn",
+      });
+      const text = joinText(runs);
+      expect(text).toContain("3rd edn");
+      expect(text).not.toContain("3rd ed,");
+      expect(text).not.toContain("3rd ed)");
+    });
+
+    it('formatBook without editionAbbreviation defaults to "ed"', () => {
+      const runs = formatBook({
+        authors: [{ givenNames: "Andrew", surname: "Ashworth" }],
+        title: "Principles of Criminal Law",
+        publisher: "OUP",
+        edition: 3,
+        year: 1999,
+      });
+      const text = joinText(runs);
+      expect(text).toContain("3rd ed");
+      expect(text).not.toContain("3rd edn");
+    });
+
+    it("formatEdition directly produces correct OSCOLA abbreviation", () => {
+      expect(formatEdition(2, false, { abbreviation: "edn" })).toBe("2nd edn");
+      expect(formatEdition(3, false, { abbreviation: "edn" })).toBe("3rd edn");
+      expect(formatEdition(5, false, { abbreviation: "edn" })).toBe("5th edn");
+    });
+
+    it("formatEdition with revised edition and OSCOLA abbreviation", () => {
+      expect(formatEdition(3, true, { abbreviation: "edn" })).toBe("3rd rev edn");
+    });
+  });
+
+  describe("Book via engine dispatcher with OSCOLA config", () => {
+    it('dispatchBook passes editionAbbreviation "edn" from OSCOLA config', () => {
+      const runs = formatCitation(
+        {
+          id: "test-book-1",
+          aglcVersion: "4",
+          sourceType: "book",
+          data: {
+            authors: [{ givenNames: "Andrew", surname: "Ashworth" }],
+            title: "Principles of Criminal Law",
+            publisher: "OUP",
+            edition: 6,
+            year: 2009,
+          },
+          tags: [],
+          createdAt: "2026-01-01T00:00:00Z",
+          modifiedAt: "2026-01-01T00:00:00Z",
+        },
+        { footnoteNumber: 1, isFirstCitation: true, isSameAsPreceding: false, precedingFootnoteCitationCount: 0, firstFootnoteNumber: 1, isWithinSameFootnote: false, formatPreference: "full" },
+        oscolaConfig,
+      );
+      const text = joinText(runs);
+      expect(text).toContain("6th edn");
+      expect(text).not.toContain("6th ed,");
+      expect(text).not.toContain("6th ed)");
+    });
+
+    it("publisher renders correctly for OSCOLA books (OUP)", () => {
+      const runs = formatBook({
+        authors: [{ givenNames: "HLA", surname: "Hart" }],
+        title: "The Concept of Law",
+        publisher: "OUP",
+        edition: 3,
+        year: 2012,
+        editionAbbreviation: "edn",
+      });
+      const text = joinText(runs);
+      expect(text).toContain("(OUP, 3rd edn, 2012)");
+    });
+  });
+
+  describe("Journal article title quoting", () => {
+    it("journal article title uses single curly quotes (OSCOLA convention)", () => {
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "William", surname: "Twining" }],
+        title: "The Ratio Decidendi of Premises",
+        year: 1988,
+        volume: 52,
+        journal: "Modern Law Review",
+        startingPage: 1,
+      });
+      const text = joinText(runs);
+      // Single curly quotes: U+2018 and U+2019
+      expect(text).toContain("\u2018");
+      expect(text).toContain("\u2019");
+      // Not double quotes
+      expect(text).not.toContain('"');
+      expect(text).not.toContain("\u201C");
+      expect(text).not.toContain("\u201D");
+    });
   });
 });

@@ -766,6 +766,37 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: OSC-ENH — OSCOLA Enhancement Stories (from REVIEW-001 audit)
+
+**Phase:** Post-backlog | **Stories:** 7 | **Completed:** 0
+
+| ID | Title | Priority | Type | Status |
+|----|-------|----------|------|--------|
+| OSC-ENH-001 | Wire OSCOLA formatters into engine dispatch pipeline | HIGH | FEATURE | DONE |
+| OSC-ENH-002 | OSCOLA integration tests — end-to-end Citation → FormattedRun[] via engine | HIGH | FEATURE | DONE |
+| OSC-ENH-003 | Consolidate duplicate Table of Cases logic (tables.ts vs bibliography.ts) | MEDIUM | REFACTOR | DONE |
+| OSC-ENH-004 | Verify OSCOLA secondary source formatting (edn abbreviation, publisher, pinpoint) | MEDIUM | FEATURE | DONE |
+| OSC-ENH-005 | OSCOLA online/digital source formatters (websites, blogs, social media, podcasts) | MEDIUM | FEATURE | DONE |
+| OSC-ENH-006 | OSCOLA thesis/dissertation formatter (Rule 3.6) | LOW | FEATURE | DONE |
+| OSC-ENH-007 | OSCOLA 4 delta audit from OSCOLA 5 | LOW | RESEARCH | NOT STARTED |
+
+---
+
+## EPIC: NZLSG-ENH — NZLSG Enhancement Stories (from REVIEW-001 audit)
+
+**Phase:** Post-backlog | **Stories:** 6 | **Completed:** 0
+
+| ID | Title | Priority | Type | Status |
+|----|-------|----------|------|--------|
+| NZLSG-ENH-001 | Wire NZLSG formatters into engine dispatch pipeline | HIGH | FEATURE | DONE |
+| NZLSG-ENH-002 | NZLSG integration tests — end-to-end Citation → FormattedRun[] via engine | HIGH | FEATURE | DONE |
+| NZLSG-ENH-003 | Add report.waitangi_tribunal source type for reliable bibliography classification | LOW | FEATURE | DONE |
+| NZLSG-ENH-004 | NZLSG online/internet source formatters (websites, blogs, social media) | MEDIUM | FEATURE | DONE |
+| NZLSG-ENH-005 | NZLSG newspaper/media formatters | MEDIUM | FEATURE | DONE |
+| NZLSG-ENH-006 | NZLSG 4 delta audit from NZLSG 3 | LOW | RESEARCH | NOT STARTED |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0
@@ -830,4 +861,6 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | COURT-VALID | 3 | 3 | 0 | 3 | 0 |
 | COURT-GUIDE | 2 | 2 | 0 | 2 | 0 |
 | REVIEW | 2 | 2 | 0 | 2 | 0 |
-| **TOTAL** | **338** | **321** | **17** | **333** | **0** |
+| OSC-ENH | 7 | 6 | 0 | 6 | 0 |
+| NZLSG-ENH | 6 | 6 | 0 | 5 | 0 |
+| **TOTAL** | **351** | **333** | **17** | **344** | **0** |

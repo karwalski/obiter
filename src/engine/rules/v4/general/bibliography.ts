@@ -6,6 +6,11 @@
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import type { CitationConfig, WritingMode } from "../../../standards/types";
+import {
+  generateTableOfCases,
+  generateTableOfLegislation,
+} from "../../oscola/tables";
+import type { CaseEntry, LegislationEntry } from "../../oscola/tables";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +60,7 @@ export function getBibliographyCategory(sourceType: SourceType): string {
     "report.parliamentary",
     "report.royal_commission",
     "report.law_reform",
+    "report.waitangi_tribunal",
     "report.abs",
     "research_paper",
     "research_paper.parliamentary",
@@ -345,31 +351,90 @@ function getOscolaBibliographySection(
   return "secondary";
 }
 
+// ─── OSCOLA Adapters (OSC-ENH-003) ──────────────────────────────────────────
+
 /**
- * Formats a case name for the OSCOLA Table of Cases by removing italics.
+ * Converts a Citation with a case source type to a CaseEntry suitable for
+ * the canonical generateTableOfCases() in tables.ts.
  *
- * OSCOLA Rule 1.4: Case names in the Table of Cases are NOT italicised.
- * "Re X" is sorted under R.
+ * Extracts the case name from data.title, builds a citation string from the
+ * formatted bibliography entry, and maps the source type to an OSCOLA
+ * jurisdiction grouping. This avoids duplicating the sorting, grouping, and
+ * de-italicisation logic that already exists in tables.ts.
  */
-function deItaliciseCaseEntry(entry: FormattedRun[]): FormattedRun[] {
-  return entry.map((run) => ({ ...run, italic: false }));
+function citationToCaseEntry(citation: Citation): CaseEntry {
+  const d = citation.data;
+  const caseName = (d["title"] as string | undefined) ?? "";
+
+  // Build citation text from the formatted entry, stripping the case name prefix.
+  const fullEntry = formatBibliographyEntry(citation);
+  const fullText = fullEntry.map((r) => r.text).join("");
+  const citationText = fullText.startsWith(caseName)
+    ? fullText.slice(caseName.length).replace(/^,?\s*/, "")
+    : fullText;
+
+  // Map source type to OSCOLA jurisdiction grouping.
+  let jurisdiction: CaseEntry["jurisdiction"] = "UK";
+  if (citation.sourceType === "eu.court") {
+    jurisdiction = "EU";
+  } else if (citation.sourceType === "echr.decision") {
+    jurisdiction = "ECtHR";
+  } else if (
+    citation.sourceType.startsWith("icj.") ||
+    citation.sourceType.startsWith("arbitral.") ||
+    citation.sourceType.startsWith("icc_tribunal.") ||
+    citation.sourceType.startsWith("wto.") ||
+    citation.sourceType.startsWith("gatt.") ||
+    citation.sourceType === "un.document" ||
+    citation.sourceType === "un.communication"
+  ) {
+    jurisdiction = "International";
+  } else if (citation.sourceType.startsWith("foreign.")) {
+    jurisdiction = "Foreign";
+  }
+
+  return {
+    caseName,
+    citation: citationText,
+    jurisdiction,
+  };
 }
 
 /**
- * Extracts the sort key for an OSCOLA Table of Cases entry.
- * Uses the first party name; "Re X" sorts under R.
+ * Converts a Citation with a legislation source type to a LegislationEntry
+ * suitable for the canonical generateTableOfLegislation() in tables.ts.
  */
-function getCaseSortKey(citation: Citation): string {
-  const title = (citation.data["title"] as string | undefined) ?? "";
-  // Sort by first significant word (Re sorts under R naturally)
-  return title.toLowerCase();
+function citationToLegislationEntry(citation: Citation): LegislationEntry {
+  const d = citation.data;
+  const title = (d["title"] as string | undefined) ?? "";
+  const year = d["year"] as number | undefined;
+
+  // Map source type to OSCOLA legislation category.
+  let category: LegislationEntry["category"] = "primary";
+  if (citation.sourceType === "legislation.delegated") {
+    category = "secondary";
+  } else if (
+    citation.sourceType === "eu.official_journal" ||
+    citation.sourceType.startsWith("supranational.")
+  ) {
+    category = "eu";
+  } else if (citation.sourceType === "treaty") {
+    category = "treaty";
+  }
+
+  return { title, year, category };
 }
 
 /**
  * Generates an OSCOLA bibliography with three parts:
- * 1. Table of Cases (de-italicised, sorted by first party)
- * 2. Table of Legislation
+ * 1. Table of Cases — delegates to generateTableOfCases() from tables.ts
+ *    for jurisdiction-based grouping and de-italicised formatting
+ * 2. Table of Legislation — delegates to generateTableOfLegislation() from
+ *    tables.ts for category-based grouping
  * 3. Bibliography (secondary sources)
+ *
+ * OSC-ENH-003: Consolidates duplicate Table of Cases / Table of Legislation
+ * logic by reusing the canonical implementations in tables.ts.
  *
  * @param citations - All citations referenced in the document.
  * @returns An array of BibliographySection objects for OSCOLA.
@@ -392,24 +457,40 @@ export function generateOscolaBibliography(
 
   const sections: BibliographySection[] = [];
 
-  // Table of Cases
+  // Table of Cases — delegate to tables.ts (OSC-ENH-003)
   if (groups.cases.length > 0) {
     const deduplicated = deduplicateById(groups.cases);
-    deduplicated.sort((a, b) =>
-      getCaseSortKey(a).localeCompare(getCaseSortKey(b)),
-    );
-    const entries = deduplicated.map((c) =>
-      deItaliciseCaseEntry(formatBibliographyEntry(c)),
-    );
-    sections.push({ heading: "Table of Cases", entries });
+    const caseEntries = deduplicated.map(citationToCaseEntry);
+    const caseSections = generateTableOfCases(caseEntries);
+    // Single jurisdiction: use unified "Table of Cases" heading.
+    // Multiple jurisdictions: preserve the sub-headings from tables.ts.
+    if (caseSections.length === 1) {
+      sections.push({
+        heading: "Table of Cases",
+        entries: caseSections[0].entries,
+      });
+    } else {
+      for (const caseSection of caseSections) {
+        sections.push(caseSection);
+      }
+    }
   }
 
-  // Table of Legislation
+  // Table of Legislation — delegate to tables.ts (OSC-ENH-003)
   if (groups.legislation.length > 0) {
     const deduplicated = deduplicateById(groups.legislation);
-    deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
-    sections.push({ heading: "Table of Legislation", entries });
+    const legEntries = deduplicated.map(citationToLegislationEntry);
+    const legSections = generateTableOfLegislation(legEntries);
+    if (legSections.length === 1) {
+      sections.push({
+        heading: "Table of Legislation",
+        entries: legSections[0].entries,
+      });
+    } else {
+      for (const legSection of legSections) {
+        sections.push(legSection);
+      }
+    }
   }
 
   // Bibliography (secondary)
@@ -436,8 +517,7 @@ function getNzlsgBibliographySection(
 ): "cases" | "legislation" | "waitangi" | "secondary" {
   if (sourceType.startsWith("case.")) return "cases";
   if (sourceType.startsWith("legislation.")) return "legislation";
-  // Waitangi Tribunal reports are identified by source type or tag
-  // For now, they would be a report type; we use a convention check.
+  if (sourceType === "report.waitangi_tribunal") return "waitangi";
   return "secondary";
 }
 

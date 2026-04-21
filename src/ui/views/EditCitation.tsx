@@ -47,6 +47,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   "report.parliamentary": "Parliamentary Report",
   "report.royal_commission": "Royal Commission Report",
   "report.law_reform": "Law Reform Report",
+  "report.waitangi_tribunal": "Waitangi Tribunal Report",
   "report.abs": "ABS Report",
   research_paper: "Research Paper",
   "research_paper.parliamentary": "Parliamentary Research Paper",
