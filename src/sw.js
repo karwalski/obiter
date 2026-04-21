@@ -6,7 +6,7 @@
  * disabled when offline.
  */
 
-const CACHE_NAME = "obiter-v1.2.3";
+const CACHE_NAME = "obiter-v1.3.0";
 const ASSETS_TO_CACHE = [
   "./taskpane.html",
   "./taskpane.js",
