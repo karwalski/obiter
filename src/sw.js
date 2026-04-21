@@ -7,27 +7,9 @@
  */
 
 const CACHE_NAME = "obiter-v1.3.0";
-const ASSETS_TO_CACHE = [
-  "./taskpane.html",
-  "./taskpane.js",
-  "./commands.html",
-  "./commands.js",
-  "./polyfill.js",
-  "./assets/icon-16.png",
-  "./assets/icon-32.png",
-  "./assets/icon-64.png",
-  "./assets/icon-80.png",
-  "./assets/icon-128.png",
-  "./assets/logo-filled.png",
-];
 
-// Install — cache all core assets
-self.addEventListener("install", function (event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
+// Install — skip waiting, no precache (hashed filenames handle cache busting)
+self.addEventListener("install", function () {
   self.skipWaiting();
 });
 
@@ -45,7 +27,7 @@ self.addEventListener("activate", function (event) {
   self.clients.claim();
 });
 
-// Fetch — serve from cache, fall back to network
+// Fetch — network-first for HTML/JS, cache-first for images
 self.addEventListener("fetch", function (event) {
   var url = new URL(event.request.url);
 
@@ -56,25 +38,29 @@ self.addEventListener("fetch", function (event) {
     return;
   }
 
+  // Network-first for HTML and JS (always get fresh, cache as fallback)
+  if (url.pathname.endsWith(".html") || url.pathname.endsWith(".js")) {
+    event.respondWith(
+      fetch(event.request).then(function (response) {
+        if (response && response.status === 200) {
+          var clone = response.clone();
+          caches.open(CACHE_NAME).then(function (cache) {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      }).catch(function () {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // Cache-first for images and other static assets
   event.respondWith(
     caches.match(event.request).then(function (cached) {
-      if (cached) {
-        // Return cache, update in background
-        var fetchPromise = fetch(event.request).then(function (response) {
-          if (response && response.status === 200) {
-            var clone = response.clone();
-            caches.open(CACHE_NAME).then(function (cache) {
-              cache.put(event.request, clone);
-            });
-          }
-          return response;
-        }).catch(function () { /* offline — cache is fine */ });
+      if (cached) return cached;
 
-        // Return cached immediately, don't wait for network
-        return cached;
-      }
-
-      // Not in cache — try network, cache the response
       return fetch(event.request).then(function (response) {
         if (response && response.status === 200 && event.request.method === "GET") {
           var clone = response.clone();
