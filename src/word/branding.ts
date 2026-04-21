@@ -6,12 +6,40 @@
 /* global Word */
 
 const ATTRIBUTION_TAG = "obiter-attribution";
-const ATTRIBUTION_TEXT = "Formatted with Obiter";
 
 /**
- * Inserts "Formatted with Obiter" into the default (first section) footer,
- * centred, 8pt grey text. Does not replace any existing footer content —
- * appends a new paragraph at the end of the footer.
+ * Checks whether the legacy attribution content control exists in the document.
+ * Retained for migration detection (INFRA-008).
+ */
+export async function hasAttribution(context: Word.RequestContext): Promise<boolean> {
+  return hasAttributionControl(context);
+}
+
+/**
+ * INFRA-008 Layer 3: Insert an acknowledgment line at the current cursor position.
+ * Plain text, no content control, no formatting.
+ */
+export async function insertAcknowledgment(
+  context: Word.RequestContext,
+  standardLabel: string,
+): Promise<void> {
+  const text = `Citations managed with Obiter (obiter.com.au), a free, open-source ${standardLabel} citation engine.`;
+  const selection = context.document.getSelection();
+  selection.insertText(text, Word.InsertLocation.replace);
+  await context.sync();
+}
+
+/**
+ * Build the acknowledgment text for a given standard label.
+ * Used by the "Copy acknowledgment" button.
+ */
+export function getAcknowledgmentText(standardLabel: string): string {
+  return `Citations managed with Obiter (obiter.com.au), a free, open-source ${standardLabel} citation engine.`;
+}
+
+/**
+ * @deprecated Retained for backward compatibility. No longer called from Settings.
+ * Inserts "Formatted with Obiter" into the default (first section) footer.
  */
 export async function insertAttribution(context: Word.RequestContext): Promise<void> {
   const existing = await hasAttributionControl(context);
@@ -29,8 +57,7 @@ export async function insertAttribution(context: Word.RequestContext): Promise<v
   footer.load("paragraphs");
   await context.sync();
 
-  // Append to footer — don't clear existing content
-  const paragraph = footer.insertParagraph(ATTRIBUTION_TEXT, Word.InsertLocation.end);
+  const paragraph = footer.insertParagraph("Formatted with Obiter", Word.InsertLocation.end);
   paragraph.font.size = 8;
   paragraph.font.color = "#a0a0a0";
   paragraph.alignment = Word.Alignment.centered;
@@ -44,6 +71,7 @@ export async function insertAttribution(context: Word.RequestContext): Promise<v
 }
 
 /**
+ * @deprecated Retained for backward compatibility. No longer called from Settings.
  * Finds and removes the attribution content control from the footer.
  */
 export async function removeAttribution(context: Word.RequestContext): Promise<void> {
@@ -58,13 +86,6 @@ export async function removeAttribution(context: Word.RequestContext): Promise<v
   }
 
   await context.sync();
-}
-
-/**
- * Checks whether the attribution content control exists in the document.
- */
-export async function hasAttribution(context: Word.RequestContext): Promise<boolean> {
-  return hasAttributionControl(context);
 }
 
 async function hasAttributionControl(context: Word.RequestContext): Promise<boolean> {

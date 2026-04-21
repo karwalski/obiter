@@ -265,5 +265,11 @@ export interface StoreMetadata {
 
 export interface CitationStoreData {
   metadata: StoreMetadata;
+  generator?: {
+    name: string;
+    version: string;
+    standard: string;
+    mode: string;
+  };
   citations: Citation[];
 }

@@ -1390,6 +1390,85 @@ body {
   flex: 1;
 }
 
+/* ─── UX-004: Occurrences Section ─── */
+
+.edit-occurrences-section {
+  margin-top: var(--space-sm);
+}
+
+.edit-occurrences-toggle {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--colour-ink);
+}
+
+.edit-occurrences-toggle:hover {
+  color: var(--colour-link);
+}
+
+.edit-occurrences-chevron {
+  font-size: 10px;
+}
+
+.edit-occurrences-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.edit-occurrences-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-occurrences-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--colour-surface);
+  border: 1px solid var(--colour-border);
+  border-radius: 4px;
+  font-size: var(--text-sm);
+}
+
+.edit-occurrences-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--colour-ink);
+}
+
+.edit-occurrences-note {
+  font-size: var(--text-sm);
+  color: var(--colour-muted);
+  margin: 0;
+}
+
+.edit-btn-small {
+  padding: 3px 8px;
+  font-size: var(--text-sm);
+}
+
+.edit-add-to-footnote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 /* ─── Insert Citation View ─── */
 
 .insert-citation {

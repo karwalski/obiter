@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCitationContext } from "../context/CitationContext";
-import { getSharedStore } from "../../store/singleton";
+import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
 import { Citation, SourceType, SourceData, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
@@ -13,7 +13,9 @@ import {
   updateCitationContent,
   deleteCitationFootnote,
   getAllCitationFootnotes,
+  appendToFootnoteByIndex,
 } from "../../word/footnoteManager";
+import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getCitationLabel } from "./CitationLibrary";
 
 // ─── Format Preference ───────────────────────────────────────────────────────
@@ -258,10 +260,21 @@ export default function EditCitation(): JSX.Element {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
+  // UX-002: Track load errors separately so we can show a Reload button
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   // SIGNAL-001: Introductory signal and commentary
   const [signal, setSignal] = useState<IntroductorySignal | "">("");
   const [commentaryBefore, setCommentaryBefore] = useState("");
   const [commentaryAfter, setCommentaryAfter] = useState("");
+
+  // UX-004: Occurrences — footnotes where this citation appears
+  const [occurrences, setOccurrences] = useState<CitationFootnoteEntry[]>([]);
+  const [occurrencesOpen, setOccurrencesOpen] = useState(false);
+  const [occurrencesLoading, setOccurrencesLoading] = useState(false);
+  const [removingFootnote, setRemovingFootnote] = useState<number | null>(null);
+  const [addToFootnoteOpen, setAddToFootnoteOpen] = useState(false);
+  const [allFootnoteEntries, setAllFootnoteEntries] = useState<CitationFootnoteEntry[]>([]);
 
   // Load the active standard on mount
   useEffect(() => {
@@ -276,6 +289,27 @@ export default function EditCitation(): JSX.Element {
   }, []);
 
   const standardConfig = getStandardConfig(standardId);
+
+  // UX-002: Re-initialise the store and reload all citations from the document.
+  const refreshCitations = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    setError(null);
+
+    try {
+      // Reset the singleton so initStore re-reads the Custom XML Part
+      resetSharedStore();
+      const store = await getSharedStore();
+      setAllCitations(store.getAll());
+      setSuccessMessage("Citations reloaded from document.");
+    } catch (err) {
+      setLoadError(
+        err instanceof Error ? err.message : "Failed to reload citations from the document."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Load all citations on mount so the manual picker dropdown is populated.
   useEffect(() => {
@@ -309,6 +343,7 @@ export default function EditCitation(): JSX.Element {
       setCommentaryBefore("");
       setCommentaryAfter("");
       setError(null);
+      setLoadError(null);
       setSuccessMessage(null);
       return;
     }
@@ -328,11 +363,16 @@ export default function EditCitation(): JSX.Element {
         if (cancelled) return;
 
         if (!found) {
-          setError(`Citation "${selectedCitationId}" not found in the document store.`);
+          // UX-002: Citation not found — may have been removed by undo
+          setLoadError(
+            `Citation "${selectedCitationId}" not found in the document store. ` +
+            "This can happen after an undo. Try reloading."
+          );
           setCitation(null);
           return;
         }
 
+        setLoadError(null);
         setCitation(found);
         setFormData({ ...found.data });
         setShortTitle(found.shortTitle ?? "");
@@ -351,7 +391,10 @@ export default function EditCitation(): JSX.Element {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load citation.");
+          // UX-002: Store or content control error — surface reload option
+          setLoadError(
+            err instanceof Error ? err.message : "Failed to load citation."
+          );
         }
       } finally {
         if (!cancelled) {
@@ -367,12 +410,109 @@ export default function EditCitation(): JSX.Element {
     };
   }, [selectedCitationId]);
 
+  // ─── UX-004: Load Occurrences ─────────────────────────────────────────────
+
+  const loadOccurrences = useCallback(async (citationId: string) => {
+    setOccurrencesLoading(true);
+    try {
+      const allEntries = await getAllCitationFootnotes();
+      setAllFootnoteEntries(allEntries);
+      const matching = allEntries.filter((e) => e.citationId === citationId);
+      setOccurrences(matching);
+    } catch {
+      // Non-critical — the list will simply be empty.
+      setOccurrences([]);
+    } finally {
+      setOccurrencesLoading(false);
+    }
+  }, []);
+
+  // Reload occurrences when the selected citation changes
+  useEffect(() => {
+    if (selectedCitationId && citation) {
+      void loadOccurrences(selectedCitationId);
+    } else {
+      setOccurrences([]);
+      setOccurrencesOpen(false);
+      setAddToFootnoteOpen(false);
+    }
+  }, [selectedCitationId, citation, loadOccurrences]);
+
+  // ─── UX-004: Remove Single Occurrence ───────────────────────────────────
+
+  const handleRemoveOccurrence = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+
+    setRemovingFootnote(footnoteIndex);
+    setError(null);
+
+    try {
+      await deleteCitationFootnote(citation.id, footnoteIndex);
+      // Refresh the occurrences list after removal
+      await loadOccurrences(citation.id);
+      setSuccessMessage(`Removed from footnote ${footnoteIndex}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove occurrence.");
+    } finally {
+      setRemovingFootnote(null);
+    }
+  }, [citation, loadOccurrences]);
+
+  // ─── UX-004: Add to Existing Footnote ──────────────────────────────────
+
+  const handleAddToFootnote = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const displayTitle =
+        citation.shortTitle ||
+        (citation.data.title as string) ||
+        (citation.data.caseName as string) ||
+        "Citation";
+      await appendToFootnoteByIndex(
+        footnoteIndex,
+        citation.id,
+        displayTitle,
+        [{ text: displayTitle }],
+      );
+      setAddToFootnoteOpen(false);
+      // Refresh occurrences to show the new entry
+      await loadOccurrences(citation.id);
+      setSuccessMessage(`Added to footnote ${footnoteIndex}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add to footnote.");
+    } finally {
+      setLoading(false);
+    }
+  }, [citation, loadOccurrences]);
+
   // ─── Field Change Handler ────────────────────────────────────────────────
 
   const handleFieldChange = useCallback((key: string, value: string) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     setSuccessMessage(null);
   }, []);
+
+  // ─── UX-003: Discard Changes ──────────────────────────────────────────────
+
+  const handleDiscard = useCallback(() => {
+    // Clear selection and reset all form state to return to the list view
+    setSelectedCitationId(null);
+    setCitation(null);
+    setFormData({});
+    setShortTitle("");
+    setFormatPreference("auto");
+    setSignal("");
+    setCommentaryBefore("");
+    setCommentaryAfter("");
+    setError(null);
+    setLoadError(null);
+    setSuccessMessage(null);
+    setConfirmingDelete(false);
+  }, [setSelectedCitationId]);
 
   // ─── Update Citation ─────────────────────────────────────────────────────
 
@@ -470,6 +610,31 @@ export default function EditCitation(): JSX.Element {
         <p className="edit-empty-message">
           Click a citation in the document to edit it, or select one below.
         </p>
+
+        {/* UX-002: Refresh button to re-sync with document after undo */}
+        <button
+          className="edit-btn edit-btn-secondary"
+          onClick={() => void refreshCitations()}
+          disabled={loading}
+          style={{ marginBottom: "var(--space-sm)" }}
+        >
+          {loading ? "Refreshing..." : "Refresh Citations"}
+        </button>
+
+        {loadError && (
+          <div aria-live="polite" role="alert">
+            <p className="edit-error">{loadError}</p>
+            <button
+              className="edit-btn edit-btn-secondary"
+              onClick={() => void refreshCitations()}
+              disabled={loading}
+              style={{ marginTop: "var(--space-xs)" }}
+            >
+              Reload
+            </button>
+          </div>
+        )}
+
         {allCitations.length > 0 && (
           <label className="edit-field">
             <span className="edit-field-label">Select a citation</span>
@@ -506,11 +671,23 @@ export default function EditCitation(): JSX.Element {
 
   // ─── Error State (no citation loaded) ─────────────────────────────────────
 
-  if (error && !citation) {
+  if ((error || loadError) && !citation) {
     return (
       <div>
         <h2>Edit Citation</h2>
-        <p className="edit-error">{error}</p>
+        <p className="edit-error">{loadError || error}</p>
+        {/* UX-002: Reload button to re-initialise the store after undo */}
+        <button
+          className="edit-btn edit-btn-secondary"
+          onClick={() => {
+            setSelectedCitationId(null);
+            void refreshCitations();
+          }}
+          disabled={loading}
+          style={{ marginTop: "var(--space-xs)" }}
+        >
+          {loading ? "Reloading..." : "Reload"}
+        </button>
       </div>
     );
   }
@@ -656,6 +833,119 @@ export default function EditCitation(): JSX.Element {
         ))}
       </fieldset>
 
+      {/* UX-004: Occurrences */}
+      <fieldset className="edit-occurrences-section settings-section">
+        <legend className="settings-section-title">
+          <button
+            type="button"
+            className="edit-occurrences-toggle"
+            onClick={() => setOccurrencesOpen((prev) => !prev)}
+            aria-expanded={occurrencesOpen}
+          >
+            Occurrences ({occurrences.length})
+            <span className="edit-occurrences-chevron" aria-hidden="true">
+              {occurrencesOpen ? "\u25B2" : "\u25BC"}
+            </span>
+          </button>
+        </legend>
+
+        {occurrencesOpen && (
+          <div className="edit-occurrences-body">
+            {occurrencesLoading && <p className="edit-occurrences-note">Scanning document...</p>}
+
+            {!occurrencesLoading && occurrences.length === 0 && (
+              <p className="edit-occurrences-note">
+                This citation does not appear in any footnote.
+              </p>
+            )}
+
+            {!occurrencesLoading && occurrences.length > 0 && (
+              <ul className="edit-occurrences-list">
+                {occurrences.map((entry) => (
+                  <li key={entry.footnoteIndex} className="edit-occurrences-item">
+                    <span className="edit-occurrences-label">
+                      Footnote {entry.footnoteIndex}
+                      {entry.title ? ` \u2014 ${entry.title}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="edit-btn edit-btn-danger edit-btn-small"
+                      onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
+                      disabled={removingFootnote === entry.footnoteIndex || loading}
+                    >
+                      {removingFootnote === entry.footnoteIndex ? "Removing..." : "Remove"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Add to footnote */}
+            {!addToFootnoteOpen ? (
+              <button
+                type="button"
+                className="edit-btn edit-btn-secondary edit-btn-small"
+                onClick={() => setAddToFootnoteOpen(true)}
+                disabled={loading}
+              >
+                Add to footnote...
+              </button>
+            ) : (
+              <div className="edit-add-to-footnote">
+                <p className="edit-occurrences-note">Select a footnote to append this citation to:</p>
+                <ul className="edit-occurrences-list">
+                  {(() => {
+                    // Build list of unique footnote numbers from all entries,
+                    // excluding footnotes that already contain this citation.
+                    const existingFootnotes = new Set(occurrences.map((o) => o.footnoteIndex));
+                    const uniqueFootnotes = new Map<number, string>();
+                    for (const entry of allFootnoteEntries) {
+                      if (!existingFootnotes.has(entry.footnoteIndex) && !uniqueFootnotes.has(entry.footnoteIndex)) {
+                        uniqueFootnotes.set(entry.footnoteIndex, entry.title);
+                      }
+                    }
+                    const footnoteList = Array.from(uniqueFootnotes.entries()).sort((a, b) => a[0] - b[0]);
+
+                    if (footnoteList.length === 0) {
+                      return (
+                        <li className="edit-occurrences-note">
+                          No other footnotes available.
+                        </li>
+                      );
+                    }
+
+                    return footnoteList.map(([fnIndex, fnTitle]) => (
+                      <li key={fnIndex} className="edit-occurrences-item">
+                        <span className="edit-occurrences-label">
+                          Footnote {fnIndex}
+                          {fnTitle ? ` \u2014 ${fnTitle}` : ""}
+                        </span>
+                        <button
+                          type="button"
+                          className="edit-btn edit-btn-primary edit-btn-small"
+                          onClick={() => void handleAddToFootnote(fnIndex)}
+                          disabled={loading}
+                        >
+                          Add
+                        </button>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+                <button
+                  type="button"
+                  className="edit-btn edit-btn-secondary edit-btn-small"
+                  onClick={() => setAddToFootnoteOpen(false)}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </fieldset>
+
       {/* Action Buttons */}
       <div className="edit-actions">
         <button
@@ -664,6 +954,15 @@ export default function EditCitation(): JSX.Element {
           disabled={loading}
         >
           {loading ? "Updating..." : "Update Citation"}
+        </button>
+
+        {/* UX-003: Discard unsaved changes and return to list */}
+        <button
+          className="edit-btn edit-btn-secondary"
+          onClick={handleDiscard}
+          disabled={loading}
+        >
+          Discard
         </button>
 
         {!confirmingDelete ? (

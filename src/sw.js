@@ -6,7 +6,7 @@
  * disabled when offline.
  */
 
-const CACHE_NAME = "obiter-v1.4.1";
+const CACHE_NAME = "obiter-v1.5.0";
 
 // Install — skip waiting, no precache (hashed filenames handle cache busting)
 self.addEventListener("install", function () {
@@ -35,6 +35,18 @@ self.addEventListener("fetch", function (event) {
   if (url.pathname.startsWith("/api/") ||
       url.hostname.includes("openai.com") ||
       url.hostname.includes("anthropic.com")) {
+    return;
+  }
+
+  // Never intercept Office.js or Word internal requests (UX-005).
+  // The service worker fetch handler can delay or break Office.js API
+  // responses, causing Word's native footnote rendering to lose numbering.
+  if (url.hostname.includes("appsforoffice.microsoft.com") ||
+      url.hostname.includes("officeapps.live.com") ||
+      url.hostname.includes("office.net") ||
+      url.hostname.includes("microsoft.com") ||
+      url.hostname.includes("officeppe.com") ||
+      url.hostname.includes("office365.com")) {
     return;
   }
 

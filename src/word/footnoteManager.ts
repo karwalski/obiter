@@ -188,6 +188,31 @@ async function appendCitationToFootnote(
 
   const lastPara = paragraphs.items[paragraphs.items.length - 1];
 
+  // Strip the trailing full stop from the existing footnote content and
+  // insert the semicolon separator (AGLC4 Rule 1.1.3). The existing
+  // footnote ends with '.' from ensureClosingPunctuation — we remove it
+  // so the combined result becomes "citationA; citationB." rather than
+  // "citationA.; citationB." (the new citation's runs already include
+  // closing punctuation).
+  lastPara.load("text");
+  await context.sync();
+
+  const paraText = lastPara.text;
+  const trimmed = paraText.trimEnd();
+
+  if (trimmed.endsWith(".")) {
+    // Find every '.' in the paragraph, then delete only the last one.
+    const searchResults = lastPara.search(".", { matchWildcards: false });
+    searchResults.load("items");
+    await context.sync();
+
+    if (searchResults.items.length > 0) {
+      const lastDot = searchResults.items[searchResults.items.length - 1];
+      lastDot.delete();
+      await context.sync();
+    }
+  }
+
   // Insert the semicolon separator per AGLC4 Rule 1.1.3.
   const separator = lastPara.insertText("; ", "End");
   separator.font.italic = false;

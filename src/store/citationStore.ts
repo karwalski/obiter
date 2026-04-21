@@ -17,6 +17,7 @@ import {
   deserializeStore,
 } from "./xmlSerializer";
 import type { CitationStandardId } from "../engine/standards/types";
+import { APP_VERSION } from "../constants";
 
 const DEFAULT_SCHEMA_VERSION = "1.0";
 const DEFAULT_AGLC_VERSION: "4" | "5" = "4";
@@ -245,6 +246,7 @@ export class CitationStore {
       this.storeData!.metadata.writingMode ?? "academic",
       this.storeData!.metadata.courtJurisdiction,
       this.storeData!.metadata.headingListId,
+      APP_VERSION,
     );
 
     await Word.run(async (context) => {

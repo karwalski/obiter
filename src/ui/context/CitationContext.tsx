@@ -29,6 +29,19 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const refreshingRef = useRef(false);
 
+  // UX-005: Delay auto-refresh until Word finishes its initial document
+  // render (including footnote numbering). Without this guard, the change
+  // listener fires during startup and the citation refresher modifies
+  // footnote content controls before Word has finished rendering them,
+  // causing footnote numbers to briefly appear then disappear.
+  const startupReadyRef = useRef(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      startupReadyRef.current = true;
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const setSelectedCitationId = useCallback((id: string | null) => {
     setSelectedCitationIdRaw(id);
   }, []);
@@ -36,8 +49,10 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   const triggerRefresh = useCallback(() => {
     setRefreshCounter((prev) => prev + 1);
 
-    // Auto-refresh ibid/subsequent references when enabled
-    if (!autoRefreshEnabled || refreshingRef.current) return;
+    // Auto-refresh ibid/subsequent references when enabled.
+    // UX-005: Skip during the startup window to let Word finish rendering
+    // footnotes before we touch content controls inside them.
+    if (!autoRefreshEnabled || refreshingRef.current || !startupReadyRef.current) return;
     refreshingRef.current = true;
 
     void Word.run(async (context) => {

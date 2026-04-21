@@ -12,6 +12,19 @@ export const OBITER_NAMESPACE = "urn:obiter:aglc";
 const DEFAULT_SCHEMA_VERSION = "1.0";
 const DEFAULT_AGLC_VERSION = "4";
 
+// ─── Generator info (INFRA-008 Layer 2) ─────────────────────────────────────
+
+/**
+ * Metadata about the Obiter instance that last wrote the store.
+ * Embedded as `<obiter:generator>` inside the citation store XML.
+ */
+export interface GeneratorInfo {
+  name: string;
+  version: string;
+  standard: string;
+  mode: string;
+}
+
 // ─── Serialization ───────────────────────────────────────────────────────────
 
 /**
@@ -69,6 +82,7 @@ export function serializeStore(
   writingMode: string = "academic",
   courtJurisdiction?: string,
   headingListId?: number,
+  generatorVersion?: string,
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
@@ -77,6 +91,13 @@ export function serializeStore(
   lines.push(
     `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}>`,
   );
+
+  // INFRA-008 Layer 2: generator element
+  if (generatorVersion) {
+    lines.push(
+      `  <obiter:generator name="Obiter" version="${escapeXml(generatorVersion)}" standard="${escapeXml(standardId)}" mode="${escapeXml(writingMode)}" />`,
+    );
+  }
 
   for (const citation of citations) {
     lines.push(serializeCitation(citation));
@@ -166,6 +187,18 @@ export function deserializeStore(xml: string): CitationStoreData {
   const headingListIdMatch = xml.match(/<obiter:citationStore[^>]*\sheadingListId="(\d+)"/);
   const headingListId = headingListIdMatch ? parseInt(headingListIdMatch[1], 10) : undefined;
 
+  // INFRA-008 Layer 2: read generator element for migration detection
+  let generator: GeneratorInfo | undefined;
+  const generatorMatch = xml.match(/<obiter:generator\s([^/]*)\s*\/>/);
+  if (generatorMatch) {
+    generator = {
+      name: getAttr(generatorMatch[0], "name") || "Obiter",
+      version: getAttr(generatorMatch[0], "version") || "",
+      standard: getAttr(generatorMatch[0], "standard") || "",
+      mode: getAttr(generatorMatch[0], "mode") || "",
+    };
+  }
+
   // Extract all <obiter:citation ...>...</obiter:citation> blocks
   const citations: Citation[] = [];
   const citationRegex = /<obiter:citation\s[^>]*>[\s\S]*?<\/obiter:citation>/g;
@@ -183,6 +216,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       courtJurisdiction,
       headingListId,
     },
+    generator,
     citations,
   };
 }

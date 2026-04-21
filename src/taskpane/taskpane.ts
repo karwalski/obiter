@@ -18,6 +18,8 @@ import { applyAglc4Template } from "../word/template";
 import { CitationStore } from "../store/citationStore";
 import { hideAddinNotice, setDocumentMetadata } from "../word/documentMeta";
 import { removeTemplateNotice } from "../word/templateExporter";
+import { writeObiterProperties } from "../word/documentProperties";
+import { APP_VERSION } from "../constants";
 
 /** Check if this document has already been set up by Obiter. */
 async function isDocumentSetUp(): Promise<boolean> {
@@ -94,5 +96,18 @@ Office.onReady((info) => {
       try { await removeTemplateNotice(context); } catch { /* non-critical */ }
       try { await setDocumentMetadata(context); } catch { /* non-critical */ }
     });
+
+    // INFRA-008 Layer 1: Write document properties on startup
+    void (async () => {
+      try {
+        const store = new CitationStore();
+        await store.initStore();
+        const stdId = store.getStandardId();
+        const mode = store.getWritingMode();
+        await Word.run(async (context) => {
+          await writeObiterProperties(context, APP_VERSION, stdId, mode);
+        });
+      } catch { /* non-critical */ }
+    })();
   }
 });

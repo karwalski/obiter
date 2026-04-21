@@ -875,6 +875,47 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 ---
 
+## EPIC: INFRA-ENH — Infrastructure Enhancements
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: GUIDE-FULL — Comprehensive Standard Reference Guides
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| GUIDE-FULL-001 | Full OSCOLA 5 reference guide — expand from 15 to 40+ entries covering all OSCOLA sections | FEATURE | NOT STARTED |
+| GUIDE-FULL-002 | Full NZLSG 3 reference guide — expand from 15 to 40+ entries covering all NZLSG rules | FEATURE | NOT STARTED |
+
+**GUIDE-FULL-001 Details:**
+Current OSCOLA guide has 15 summary entries. Expand to cover: footnotes (Rule 1.1-1.3), subsequent references (Rule 1.3), bibliography/tables (Rule 1.4), UK cases — modern and pre-2001 (Rule 2.1), Scottish cases (Rule 2.1.5), NI cases (Rule 2.1.6), UK primary legislation (Rule 2.2), UK secondary legislation (Rule 2.3), parliamentary materials — Hansard, command papers, law commission (Rule 2.3), EU legislation and CJEU cases (Rule 3.1-3.2), ECHR (Rule 3.3), international materials — treaties, UN, ICJ (Rule 4), secondary sources — books, journals, chapters, theses, online (Rule 3.4-3.7), GenAI (Rule 3.7.13), Ireland overlay. Each entry with rule number, description, format template, and example.
+
+**GUIDE-FULL-002 Details:**
+Current NZLSG guide has 15 summary entries. Expand to cover: footnotes and subsequent references — general vs commercial style (Rules 2.1-2.3), NZ cases — neutral citation and pre-neutral (Rules 3.2-3.4), Maori Land Court (Rule 3.5), Waitangi Tribunal (Rule 3.6), NZ legislation — primary, delegated, bills (Rules 4.1-4.2), parliamentary materials — NZPD, select committee, cabinet, gazette (Rule 5), secondary sources — books, journals, law commission, thesis, looseleaf (Rule 6), Treaty of Waitangi (Rule 10.1), international materials (Rules 10.1-10.3), te reo Maori conventions. Each entry with rule number, description, format template, and example.
+
+---
+
+## EPIC: UX-FIX — User Experience Fixes
+
+**Phase:** Post-backlog | **Stories:** 5 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| UX-001 | Fix: multi-citation footnote uses full stop instead of semicolon separator | BUG | NOT STARTED |
+| UX-002 | Fix: undo breaks edit citation list — add defensive reload on error | BUG | NOT STARTED |
+| UX-003 | Add discard/cancel button to Edit Citation view | FEATURE | NOT STARTED |
+| UX-004 | Edit occurrences — view/remove/move individual citation instances from Edit view | FEATURE | NOT STARTED |
+| UX-005 | Fix: footnote numbers disappear — investigate Word footnote rendering stability | BUG | NOT STARTED |
+
+---
+
 ## EPIC: AI-ENH — AI Feature Enhancements
 
 **Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0

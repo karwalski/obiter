@@ -20,7 +20,8 @@ import {
   type IbidSuppression,
   type LoaType,
 } from "../../engine/court/presets";
-import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
+import { hasAttribution, insertAcknowledgment, getAcknowledgmentText } from "../../word/branding";
+import { writeObiterProperties } from "../../word/documentProperties";
 // styleInstaller import removed — XSL now downloaded via button
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
@@ -112,8 +113,9 @@ const isDev = typeof window !== "undefined" && window.location.hostname === "loc
 export default function Settings(): JSX.Element {
   const [version, setVersion] = useState<AglcVersion>("4");
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
-  const [showAttribution, setShowAttribution] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [migrationNotice, setMigrationNotice] = useState(false);
+  const [ackStatus, setAckStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formatStatus, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
@@ -189,11 +191,6 @@ export default function Settings(): JSX.Element {
             }
           }
 
-          // Load attribution preference
-          const savedPref = getSetting("obiter-showAttribution");
-          const prefValue = savedPref === undefined || savedPref === null ? true : (savedPref as boolean);
-          setShowAttribution(prefValue);
-
           // Load auto-refresh preference
           const savedAutoRefresh = getSetting("obiter-autoRefresh");
           const autoRefreshValue = savedAutoRefresh === undefined || savedAutoRefresh === null ? true : (savedAutoRefresh as boolean);
@@ -211,12 +208,22 @@ export default function Settings(): JSX.Element {
             setLlmEnabled(savedLlmConfig.enabled);
           }
 
-          // Check current document for existing attribution
+          // INFRA-008: Migration detection — check for legacy footer branding
+          const migrationShown = getSetting("obiter-migrationNoticeShown");
+          if (!migrationShown) {
+            await Word.run(async (context) => {
+              const exists = await hasAttribution(context);
+              if (exists) {
+                setMigrationNotice(true);
+              }
+            });
+          }
+
+          // INFRA-008 Layer 1: Write document properties
+          const currentStandard = store.getStandardId();
+          const currentMode = store.getWritingMode();
           await Word.run(async (context) => {
-            const exists = await hasAttribution(context);
-            if (prefValue && !exists) {
-              await insertAttribution(context);
-            }
+            await writeObiterProperties(context, APP_VERSION, currentStandard, currentMode);
           });
 
           setLoading(false);
@@ -233,23 +240,6 @@ export default function Settings(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const handleAttributionChange = useCallback(async (enabled: boolean) => {
-    try {
-      setShowAttribution(enabled);
-      setSetting("obiter-showAttribution", enabled);
-      await Word.run(async (context) => {
-        if (enabled) {
-          await insertAttribution(context);
-        } else {
-          await removeAttribution(context);
-        }
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to update attribution";
-      setError(message);
-    }
   }, []);
 
   const handleVersionChange = useCallback(async (newVersion: AglcVersion) => {
@@ -409,6 +399,47 @@ export default function Settings(): JSX.Element {
               View release
             </a>
           )}
+        </div>
+      )}
+
+      {migrationNotice && (
+        <div
+          style={{
+            fontSize: 12,
+            padding: "8px 10px",
+            marginBottom: 12,
+            borderRadius: 4,
+            background: "var(--colour-surface)",
+            border: "1px solid var(--colour-border)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 8,
+          }}
+        >
+          <span>
+            Obiter no longer adds visible branding to documents. The footer line
+            has been preserved but can be safely deleted.
+          </span>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 14,
+              color: "var(--colour-text-secondary)",
+              flexShrink: 0,
+              padding: 0,
+              lineHeight: 1,
+            }}
+            aria-label="Dismiss notice"
+            onClick={() => {
+              setMigrationNotice(false);
+              setSetting("obiter-migrationNoticeShown", true);
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -642,18 +673,57 @@ export default function Settings(): JSX.Element {
         </summary>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">Branding</legend>
+        <legend className="settings-section-title">Acknowledgment</legend>
 
-        <label className="settings-toggle">
-          <input
-            type="checkbox"
-            checked={showAttribution}
-            onChange={(e) => void handleAttributionChange(e.target.checked)}
-          />
-          <span className="settings-toggle-label">
-            Show &ldquo;Formatted with Obiter&rdquo; in document
-          </span>
-        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          Obiter is free and open-source. If you find it useful, consider
+          acknowledging it in your document.
+        </p>
+
+        <div style={{ display: "flex", gap: 4 }}>
+          <button
+            className="library-btn library-btn--insert"
+            onClick={async () => {
+              try {
+                const store = await getSharedStore();
+                const stdId = store.getStandardId();
+                const label = AVAILABLE_STANDARDS.find((s) => s.id === stdId)?.label ?? "AGLC4";
+                await Word.run(async (context) => {
+                  await insertAcknowledgment(context, label);
+                });
+                setAckStatus("Inserted");
+                setTimeout(() => setAckStatus(null), 2000);
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Failed to insert acknowledgment");
+              }
+            }}
+          >
+            Insert acknowledgment
+          </button>
+          <button
+            className="library-btn"
+            onClick={async () => {
+              try {
+                const store = await getSharedStore();
+                const stdId = store.getStandardId();
+                const label = AVAILABLE_STANDARDS.find((s) => s.id === stdId)?.label ?? "AGLC4";
+                await navigator.clipboard.writeText(getAcknowledgmentText(label));
+                setAckStatus("Copied");
+                setTimeout(() => setAckStatus(null), 2000);
+              } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Failed to copy acknowledgment");
+              }
+            }}
+          >
+            Copy acknowledgment
+          </button>
+        </div>
+
+        {ackStatus && (
+          <p style={{ fontSize: 11, margin: "6px 0 0", color: "var(--colour-success)" }}>
+            {ackStatus}
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
