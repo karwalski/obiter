@@ -1343,7 +1343,7 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
       return oscolaFormatIrishStatutoryInstrument({
         shortTitle: (d.title as string) ?? "",
         year: toNumber(d.year, 0),
-        siNumber: d.siNumber as number,
+        siNumber: toNumber(d.siNumber, 0),
         pinpoint: extractOscolaPinpoint(d),
       });
     }
@@ -1358,7 +1358,7 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
     title: (d.title as string) ?? "",
     year: toNumber(d.year, 0),
     type: (d.ukLegislationType as "uk" | "asp" | "anaw" | "asc" | "ni") ?? "uk",
-    number: d.number as number | undefined,
+    number: toOptionalNumber(d.number),
     pinpoint: extractOscolaPinpoint(d),
     regnalYear: d.regnalYear as string | undefined,
     chapter: d.chapter as string | undefined,
@@ -1414,7 +1414,7 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
   if (reportType === "law_commission" || d.reportNumber !== undefined) {
     return formatOscolaLawCommission({
       title: (d.title as string) ?? "",
-      reportNumber: (d.reportNumber as number | string) ?? 0,
+      reportNumber: toNumber(d.reportNumber, 0),
       year: toNumber(d.year, 0),
       pinpoint: extractOscolaPinpoint(d),
     });
@@ -1454,7 +1454,7 @@ function dispatchOscolaEuCourt(citation: Citation): FormattedRun[] {
     caseNumber: (d.caseNumber as string) ?? "",
     caseName: buildOscolaCaseName(d),
     ecli: d.ecli as string | undefined,
-    year: d.year as number | undefined,
+    year: toOptionalNumber(d.year),
     reportSeries: d.reportSeries as string | undefined,
     page: d.page as string | undefined,
     pinpoint: extractOscolaPinpoint(d),
@@ -1497,7 +1497,7 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
   if (d.ojReference) {
     return oscolaFormatEuTreaty({
       title: (d.title as string) ?? "",
-      year: d.year as number | undefined,
+      year: toOptionalNumber(d.year),
       ojReference: d.ojReference as string | undefined,
       pinpoint: extractOscolaPinpoint(d),
     });
@@ -1519,8 +1519,8 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
     entryIntoForceDate: d.entryIntoForceDate as string | undefined,
     notYetInForce: d.notYetInForce as boolean | undefined,
     treatySeries: d.treatySeries as string | undefined,
-    seriesVolume: d.seriesVolume as number | undefined,
-    startingPage: d.startingPage as number | undefined,
+    seriesVolume: toOptionalNumber(d.seriesVolume),
+    startingPage: toOptionalNumber(d.startingPage),
     pinpoint: extractOscolaPinpoint(d),
   });
 }
@@ -1551,7 +1551,7 @@ function dispatchOscolaIcjCase(citation: Citation): FormattedRun[] {
     phase: d.phase as string | undefined,
     year: toNumber(d.year, 0),
     reportSeries: d.reportSeries as string | undefined,
-    page: d.page as number | undefined,
+    page: toOptionalNumber(d.page),
     pinpoint: extractOscolaPinpoint(d),
     judge: d.judge as string | undefined,
   });
