@@ -281,6 +281,16 @@ export default function Settings(): JSX.Element {
         const aglcVer = newStandardId === "aglc5" ? "5" : "4";
         await store.setAglcVersion(aglcVer);
         setVersion(aglcVer);
+      } else {
+        // Court mode is AGLC-only — reset when switching to another standard
+        if (writingMode === "court") {
+          await store.setWritingMode("academic");
+          setWritingMode("academic");
+          setCourtJurisdiction("");
+          await store.setCourtJurisdiction(undefined);
+          setSetting("obiter-writingMode", "academic");
+          setSetting("obiter-courtToggles", undefined);
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save standard";
@@ -524,6 +534,7 @@ export default function Settings(): JSX.Element {
         </label>
       </fieldset>
 
+      {standardId.startsWith("aglc") && (
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Writing Mode</legend>
 
@@ -654,6 +665,7 @@ export default function Settings(): JSX.Element {
           </>
         )}
       </fieldset>
+      )}
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Citation Management</legend>
