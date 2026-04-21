@@ -112,7 +112,8 @@ export default function Styling(): JSX.Element {
             i + 1,
             aglcHeadingListId,
           );
-          if (list && aglcHeadingListId === undefined) {
+          if (list) {
+            // New list was created (either first time, or old list was dead)
             aglcHeadingListId = list.id;
           }
         }

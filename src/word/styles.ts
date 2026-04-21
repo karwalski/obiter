@@ -352,10 +352,20 @@ export async function applyHeadingLevel(
 
   // Use Word's multilevel list for real numbering
   try {
+    let needsNewList = _existingListId === undefined;
+
+    // Try attaching to the existing list first
     if (_existingListId !== undefined) {
-      paragraph.attachToList(_existingListId, level - 1);
-      await context.sync();
-    } else {
+      try {
+        paragraph.attachToList(_existingListId, level - 1);
+        await context.sync();
+      } catch {
+        // List was deleted — fall through to create a new one
+        needsNewList = true;
+      }
+    }
+
+    if (needsNewList) {
       // Create list, configure all 5 levels, then sync
       const list = paragraph.startNewList();
       // Configure all 5 AGLC4 heading levels (Rule 1.12.2)
