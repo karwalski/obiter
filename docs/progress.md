@@ -834,9 +834,14 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| SWITCH-001 | Guide view switches content based on active standard (AGLC4/OSCOLA/NZLSG/Court) | FEATURE | NOT STARTED |
-| SWITCH-002 | Full UI audit — identify all elements that should change when standard is switched | RESEARCH | NOT STARTED |
-| SWITCH-003 | Implement UI element visibility/content changes per active standard | FEATURE | NOT STARTED |
+| SWITCH-001 | Guide view switches content based on active standard (AGLC4/OSCOLA/NZLSG/Court) | FEATURE | DONE |
+| SWITCH-002 | Full UI audit — identify all elements that should change when standard is switched | RESEARCH | DONE |
+| SWITCH-003 | Implement UI element visibility/content changes per active standard | FEATURE | DONE |
+| SWITCH-004 | InsertCitation: filter source types, jurisdiction dropdown, rule numbers per standard | FEATURE | DONE |
+| SWITCH-005 | Layout: refresh standardId when Settings changes standard mid-session | FEATURE | DONE |
+| SWITCH-006 | EditCitation/Library: hide ibid option when standard disables ibid | FEATURE | DONE |
+| SWITCH-007 | Settings: add OSCOLA 4 to AVAILABLE_STANDARDS picker | FEATURE | DONE |
+| SWITCH-008 | Styling: hide AGLC4-specific heading levels and template for non-AGLC standards | FEATURE | DONE |
 
 ---
 
@@ -907,4 +912,5 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 | OSC-ENH | 7 | 6 | 0 | 7 | 0 |
 | NZLSG-ENH | 6 | 6 | 0 | 6 | 0 |
 | RIBBON-ENH | 1 | 1 | 0 | 1 | 0 |
-| **TOTAL** | **352** | **334** | **17** | **347** | **0** |
+| STANDARD-SWITCH | 8 | 8 | 0 | 8 | 0 |
+| **TOTAL** | **360** | **342** | **17** | **355** | **0** |

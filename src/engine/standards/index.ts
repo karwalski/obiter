@@ -34,6 +34,7 @@ export const AVAILABLE_STANDARDS: AvailableStandard[] = [
   { id: "aglc4", label: "AGLC4", family: "AGLC", edition: "4th ed (2018)", comingSoon: false },
   { id: "aglc5", label: "AGLC5", family: "AGLC", edition: "5th ed", comingSoon: true },
   { id: "oscola5", label: "OSCOLA 5", family: "OSCOLA", edition: "5th ed (2026)", comingSoon: false },
+  { id: "oscola4", label: "OSCOLA 4", family: "OSCOLA", edition: "4th ed (2012)", comingSoon: false },
   { id: "nzlsg3", label: "NZLSG 3", family: "NZLSG", edition: "3rd ed (2018)", comingSoon: false },
   { id: "nzlsg4", label: "NZLSG 4", family: "NZLSG", edition: "4th ed", comingSoon: true },
 ];

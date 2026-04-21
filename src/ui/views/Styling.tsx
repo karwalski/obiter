@@ -175,14 +175,18 @@ export default function Styling(): JSX.Element {
       setStatus(null);
       setError(null);
       await Word.run(async (context) => {
-        try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+        if (isAglc) {
+          try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+        }
         await applyAglc4Template(context);
       });
-      setStatus("Document set up with AGLC4 styles and template.");
+      setStatus(isAglc
+        ? "Document set up with AGLC4 styles and template."
+        : "Document set up with template formatting.");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Setup failed");
     }
-  }, []);
+  }, [isAglc]);
 
   return (
     <div>
@@ -191,73 +195,78 @@ export default function Styling(): JSX.Element {
       <fieldset className="settings-section">
         <legend className="settings-section-title">Document Setup</legend>
         <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
-          Apply AGLC4 heading styles, template formatting, and document metadata.
+          {isAglc
+            ? "Apply AGLC4 heading styles, template formatting, and document metadata."
+            : "Apply template formatting and document metadata."}
         </p>
         <button
           className="bib-insert-btn"
           style={{ width: "100%" }}
           onClick={() => void handleSetupDocument()}
         >
-          Set Up Document (Styles + Template)
+          {isAglc ? "Set Up Document (Styles + Template)" : "Set Up Document (Template)"}
         </button>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Heading Levels</legend>
-        <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
-          Select text, then click a heading level to apply.{isAglc ? " Per AGLC4 Rule 1.12.2." : ""}
-        </p>
-        {!isAglc && (
-          <p style={{ fontSize: 11, margin: "0 0 8px", color: "var(--colour-text-secondary)" }}>
-            Heading formatting follows {standardLabel} conventions. Word heading styles are applied universally.
+        {isAglc ? (
+          <>
+            <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
+              Select text, then click a heading level to apply. Per AGLC4 Rule 1.12.2.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {HEADINGS.map((h) => (
+                <button
+                  key={h.level}
+                  className="library-btn"
+                  style={{
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    border: "1px solid var(--colour-border)",
+                    borderRadius: "var(--radius-md)",
+                  }}
+                  onClick={() => void handleApplyHeading(h.level)}
+                >
+                  <span style={{
+                    flex: "0 0 auto",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--colour-accent)",
+                    width: 50,
+                  }}>
+                    {h.label}
+                  </span>
+                  <span style={{
+                    flex: 1,
+                    fontFamily: "'Times New Roman', Georgia, serif",
+                    ...h.previewStyle,
+                  }}>
+                    {h.numbering.split(",")[0].trim()} {SAMPLE_TEXTS[h.level]}
+                  </span>
+                  <span style={{
+                    flex: "0 0 auto",
+                    fontSize: 10,
+                    color: "var(--colour-text-secondary)",
+                    textAlign: "right",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {h.numbering}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p style={{ fontSize: 12, margin: "4px 0 8px", color: "var(--colour-text-secondary)" }}>
+            Heading styles for {standardLabel} follow the standard's conventions.
+            Use Word's built-in Heading 1–5 styles directly from the Home tab.
           </p>
         )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {HEADINGS.map((h) => (
-            <button
-              key={h.level}
-              className="library-btn"
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "8px 10px",
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                border: "1px solid var(--colour-border)",
-                borderRadius: "var(--radius-md)",
-              }}
-              onClick={() => void handleApplyHeading(h.level)}
-            >
-              <span style={{
-                flex: "0 0 auto",
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--colour-accent)",
-                width: 50,
-              }}>
-                {h.label}
-              </span>
-              <span style={{
-                flex: 1,
-                fontFamily: "'Times New Roman', Georgia, serif",
-                ...h.previewStyle,
-              }}>
-                {h.numbering.split(",")[0].trim()} {SAMPLE_TEXTS[h.level]}
-              </span>
-              <span style={{
-                flex: "0 0 auto",
-                fontSize: 10,
-                color: "var(--colour-text-secondary)",
-                textAlign: "right",
-                whiteSpace: "nowrap",
-              }}>
-                {h.numbering}
-              </span>
-            </button>
-          ))}
-        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

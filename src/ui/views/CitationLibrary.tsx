@@ -17,6 +17,8 @@ import type { RefreshResult } from "../../word/citationRefresher";
 import type { Citation, SourceType } from "../../types/citation";
 import { useCitationContext } from "../context/CitationContext";
 import CitationFinder from "../components/CitationFinder";
+import type { CitationStandardId } from "../../engine/standards/types";
+import { getStandardConfig } from "../../engine/standards";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -313,6 +315,9 @@ export default function CitationLibrary(): JSX.Element {
   const [bibtexModalOpen, setBibtexModalOpen] = useState(false);
   const [bibtexText, setBibtexText] = useState("");
   const [bibtexImporting, setBibtexImporting] = useState(false);
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+
+  const standardConfig = getStandardConfig(standardId);
 
   // Load citations on mount and when refreshCounter changes
   useEffect(() => {
@@ -322,6 +327,7 @@ export default function CitationLibrary(): JSX.Element {
         store = await getSharedStore();
         if (!cancelled) {
           setCitations(store.getAll());
+          setStandardId(store.getStandardId());
           setLoading(false);
         }
       } catch (err: unknown) {
@@ -785,14 +791,18 @@ export default function CitationLibrary(): JSX.Element {
                     className="library-insert-option"
                     onClick={() => void handleInsertAs(citation, "short")}
                   >
-                    Short reference (n {citation.firstFootnoteNumber ?? "X"})
+                    {standardConfig.subsequentReferenceFormat === "above n"
+                      ? `Short reference (above n ${citation.firstFootnoteNumber ?? "X"})`
+                      : `Short reference (n ${citation.firstFootnoteNumber ?? "X"})`}
                   </button>
-                  <button
-                    className="library-insert-option"
-                    onClick={() => void handleInsertAs(citation, "ibid")}
-                  >
-                    Ibid
-                  </button>
+                  {standardConfig.ibidEnabled && (
+                    <button
+                      className="library-insert-option"
+                      onClick={() => void handleInsertAs(citation, "ibid")}
+                    >
+                      Ibid
+                    </button>
+                  )}
                   <div className="library-insert-pinpoint">
                     <input
                       type="text"

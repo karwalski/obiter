@@ -39,7 +39,7 @@ async function getLayoutStore(): Promise<CitationStore> {
 export default function Layout(): JSX.Element {
   useTheme();
   const online = useOnlineStatus();
-  const { triggerRefresh } = useCitationContext();
+  const { triggerRefresh, refreshCounter } = useCitationContext();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [refreshing, setRefreshing] = useState(false);
@@ -55,7 +55,7 @@ export default function Layout(): JSX.Element {
         // Default to aglc4, academic
       }
     })();
-  }, []);
+  }, [refreshCounter]);
 
   const handleRefreshAll = useCallback(async () => {
     if (refreshing) return;

@@ -5,6 +5,8 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation } from "../../types/citation";
+import type { CitationStandardId } from "../../engine/standards";
+import { getStandardConfig } from "../../engine/standards";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
@@ -216,7 +218,7 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
 
 // ─── Jurisdiction Options ────────────────────────────────────────────────────
 
-const JURISDICTIONS: { value: AustralianJurisdiction; label: string }[] = [
+const JURISDICTIONS_AU: { value: AustralianJurisdiction; label: string }[] = [
   { value: "Cth", label: "Commonwealth" },
   { value: "ACT", label: "ACT" },
   { value: "NSW", label: "New South Wales" },
@@ -227,6 +229,73 @@ const JURISDICTIONS: { value: AustralianJurisdiction; label: string }[] = [
   { value: "Vic", label: "Victoria" },
   { value: "WA", label: "Western Australia" },
 ];
+
+const JURISDICTIONS_UK: { value: string; label: string }[] = [
+  { value: "UK", label: "United Kingdom" },
+  { value: "England and Wales", label: "England and Wales" },
+  { value: "Scotland", label: "Scotland" },
+  { value: "Northern Ireland", label: "Northern Ireland" },
+];
+
+const JURISDICTIONS_NZ: { value: string; label: string }[] = [
+  { value: "NZ", label: "New Zealand" },
+];
+
+/**
+ * SWITCH-004: Returns the jurisdiction options appropriate for the active
+ * citation standard.
+ */
+function getJurisdictionsForStandard(
+  standardId: CitationStandardId,
+): { value: string; label: string }[] {
+  if (standardId.startsWith("oscola")) return JURISDICTIONS_UK;
+  if (standardId.startsWith("nzlsg")) return JURISDICTIONS_NZ;
+  return JURISDICTIONS_AU;
+}
+
+/**
+ * SWITCH-004: Filters SOURCE_TYPE_CATEGORIES to hide foreign jurisdiction
+ * types irrelevant to the active standard.
+ *
+ * - AGLC: show all (no filtering)
+ * - OSCOLA: hide foreign.* except foreign.uk
+ * - NZLSG: hide foreign.* except foreign.new_zealand
+ */
+function filterCategoriesForStandard(
+  categories: SourceTypeCategory[],
+  standardId: CitationStandardId,
+): SourceTypeCategory[] {
+  if (standardId.startsWith("aglc")) return categories;
+
+  const keepForeign = standardId.startsWith("oscola")
+    ? "foreign.uk"
+    : standardId.startsWith("nzlsg")
+      ? "foreign.new_zealand"
+      : null;
+
+  return categories
+    .map((cat) => {
+      const filteredGroups = cat.groups
+        .map((group) => ({
+          ...group,
+          types: group.types.filter((t) => {
+            if (!t.value.startsWith("foreign.")) return true;
+            return keepForeign !== null && t.value === keepForeign;
+          }),
+        }))
+        .filter((group) => group.types.length > 0);
+      return { ...cat, groups: filteredGroups };
+    })
+    .filter((cat) => cat.groups.length > 0);
+}
+
+/**
+ * SWITCH-004: Returns the aglcVersion string for a given standard.
+ */
+function getVersionForStandard(standardId: CitationStandardId): "4" | "5" {
+  if (standardId === "aglc5" || standardId === "oscola5") return "5";
+  return "4";
+}
 
 // ─── Core Source Types (with dedicated forms) ────────────────────────────────
 
@@ -297,10 +366,10 @@ interface FeedbackState {
  * Builds a temporary Citation object from the form state so the engine's
  * getFormattedPreview can produce the preview runs.
  */
-function buildPreviewCitation(sourceType: SourceType, data: SourceData, shortTitle?: string): Citation {
+function buildPreviewCitation(sourceType: SourceType, data: SourceData, shortTitle?: string, aglcVersion?: "4" | "5"): Citation {
   return {
     id: "",
-    aglcVersion: "4",
+    aglcVersion: aglcVersion ?? "4",
     sourceType,
     data: { ...data },
     shortTitle: shortTitle || undefined,
@@ -409,6 +478,9 @@ export default function InsertCitation(): JSX.Element {
   const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
 
+  // SWITCH-004: Active citation standard
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+
   // COURT-007 / COURT-010: Court mode state
   const [courtJurisdiction, setCourtJurisdiction] = useState<CourtJurisdiction | null>(null);
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
@@ -433,6 +505,10 @@ export default function InsertCitation(): JSX.Element {
     void (async () => {
       try {
         const store = await getStore();
+        // SWITCH-004: Load active standard
+        if (!cancelled) {
+          setStandardId(store.getStandardId());
+        }
         const mode = store.getWritingMode();
         const jurisdictionId = store.getCourtJurisdiction();
         if (!cancelled) {
@@ -448,6 +524,19 @@ export default function InsertCitation(): JSX.Element {
     })();
     return () => { cancelled = true; };
   }, [refreshCounter]);
+
+  // ─── SWITCH-004: Derived standard values ────────────────────────────────
+  const standardConfig = getStandardConfig(standardId);
+  const standardLabel = standardConfig.standardLabel;
+  const isAglcStandard = standardId.startsWith("aglc");
+  const filteredCategories = useMemo(
+    () => filterCategoriesForStandard(SOURCE_TYPE_CATEGORIES, standardId),
+    [standardId],
+  );
+  const jurisdictionOptions = useMemo(
+    () => getJurisdictionsForStandard(standardId),
+    [standardId],
+  );
 
   // ─── Derived court mode flags ──────────────────────────────────────────
   const isUnreportedGateActive = courtJurisdiction !== null &&
@@ -736,7 +825,7 @@ export default function InsertCitation(): JSX.Element {
       const now = new Date().toISOString();
       const citation: Citation = {
         id,
-        aglcVersion: "4",
+        aglcVersion: getVersionForStandard(standardId),
         sourceType: selectedSourceType as SourceType,
         data: { ...formData },
         shortTitle: shortTitle || undefined,
@@ -805,15 +894,15 @@ export default function InsertCitation(): JSX.Element {
     } finally {
       setInserting(false);
     }
-  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh]);
+  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId]);
 
   // ─── Available sub-types for selected category ──────────────────────────
 
   const availableGroups = useMemo(() => {
     if (!selectedCategory) return [];
-    const category = SOURCE_TYPE_CATEGORIES.find((c) => c.label === selectedCategory);
+    const category = filteredCategories.find((c) => c.label === selectedCategory);
     return category ? category.groups : [];
-  }, [selectedCategory]);
+  }, [selectedCategory, filteredCategories]);
 
   // ─── Determine whether a dedicated form exists ──────────────────────────
 
@@ -919,7 +1008,7 @@ export default function InsertCitation(): JSX.Element {
       {/* Category selector */}
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-category">
-          AGLC4 Part
+          {standardLabel} Part
         </label>
         <select
           id="ic-category"
@@ -928,7 +1017,7 @@ export default function InsertCitation(): JSX.Element {
           onChange={(e) => handleCategoryChange(e.target.value)}
         >
           <option value="">Select a category...</option>
-          {SOURCE_TYPE_CATEGORIES.map((cat) => (
+          {filteredCategories.map((cat) => (
             <option key={cat.label} value={cat.label}>
               {cat.label}
             </option>
@@ -963,18 +1052,18 @@ export default function InsertCitation(): JSX.Element {
       )}
 
       {/* Dynamic Form */}
-      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect)}
-      {selectedSourceType === "legislation.statute" && renderLegislationForm(formData, updateField, handleLegislationSelect)}
+      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard)}
+      {selectedSourceType === "legislation.statute" && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "journal.article" &&
-        renderJournalForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor)}
+        renderJournalForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "book" &&
-        renderBookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor)}
-      {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField)}
-      {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField)}
+        renderBookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField, isAglcStandard)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
 
-      {/* COURT-007: Unreported-judgment gate notification */}
-      {unreportedGateVisible && courtJurisdiction && (
+      {/* COURT-007: Unreported-judgment gate notification (AGLC only) */}
+      {isAglcStandard && unreportedGateVisible && courtJurisdiction && (
         <div className="ic-court-gate" role="alert">
           <div className="ic-court-gate-text">
             Practice directions in {getCourtPreset(courtJurisdiction)?.label ?? courtJurisdiction} restrict
@@ -1000,8 +1089,8 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
-      {/* COURT-010: Queensland subsequent-treatment field */}
-      {selectedSourceType && selectedSourceType.startsWith("case.") && isQldMode && (
+      {/* COURT-010: Queensland subsequent-treatment field (AGLC only) */}
+      {isAglcStandard && selectedSourceType && selectedSourceType.startsWith("case.") && isQldMode && (
         <div className="ic-field">
           <label className="ic-label" htmlFor="ic-subsequent-treatment">
             Subsequent Treatment
@@ -1032,8 +1121,8 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
-      {/* COURT-011: Qld / NSW selectivity duty reminder */}
-      {courtJurisdiction && !courtGuideReminderDismissed && (isQldMode || isNswMode) && (
+      {/* COURT-011: Qld / NSW selectivity duty reminder (AGLC only) */}
+      {isAglcStandard && courtJurisdiction && !courtGuideReminderDismissed && (isQldMode || isNswMode) && (
         <div className="ic-court-reminder" role="note">
           <div className="ic-court-reminder-text">
             {isQldMode ? courtGuideQldSelectivity.summary : courtGuideNswSelectivity.summary}
@@ -1049,8 +1138,8 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
-      {/* COURT-012: Victoria AGLC adoption note */}
-      {courtJurisdiction && !courtGuideReminderDismissed && isVicMode && (
+      {/* COURT-012: Victoria AGLC adoption note (AGLC only) */}
+      {isAglcStandard && courtJurisdiction && !courtGuideReminderDismissed && isVicMode && (
         <div className="ic-court-reminder" role="note">
           <div className="ic-court-reminder-text">
             {courtGuideVicAglcAdoption.summary}
@@ -1072,7 +1161,7 @@ export default function InsertCitation(): JSX.Element {
           <label className="ic-label" htmlFor="ic-short-title">
             Short Title
             <FieldHelp
-              ruleNumber="1.4"
+              {...(isAglcStandard ? { ruleNumber: "1.4" } : {})}
               description="A short title may be assigned to a source for use in subsequent references."
               example="Mabo (No 2)"
             />
@@ -1182,6 +1271,7 @@ function renderCaseReportedForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
   onCaseSelect: (result: LookupResult) => void,
+  isAglcStandard: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -1189,7 +1279,7 @@ function renderCaseReportedForm(
         <label className="ic-label" htmlFor="ic-party1">
           Party 1
           <FieldHelp
-            ruleNumber="2.2.1"
+            {...(isAglcStandard ? { ruleNumber: "2.2.1" } : {})}
             description="The first-named party in the case name. Italicised in the citation."
             example="Mabo"
           />
@@ -1256,7 +1346,7 @@ function renderCaseReportedForm(
           <label className="ic-label" htmlFor="ic-year-type">
             Year Type
             <FieldHelp
-              ruleNumber="2.2.1"
+              {...(isAglcStandard ? { ruleNumber: "2.2.1" } : {})}
               description="Round brackets for volume-organised series; square brackets for year-organised series."
               example="(1992) = round, [1974] = square"
             />
@@ -1292,7 +1382,7 @@ function renderCaseReportedForm(
           <label className="ic-label" htmlFor="ic-report-series">
             Report Series
             <FieldHelp
-              ruleNumber="2.2.2"
+              {...(isAglcStandard ? { ruleNumber: "2.2.2" } : {})}
               description="The abbreviation of the report series. Use the authorised abbreviation where possible."
               example="CLR, FCR, NSWLR"
             />
@@ -1327,7 +1417,7 @@ function renderCaseReportedForm(
           <label className="ic-label" htmlFor="ic-court-id">
             Court ID
             <FieldHelp
-              ruleNumber="2.2.6"
+              {...(isAglcStandard ? { ruleNumber: "2.2.6" } : {})}
               description="Omitted when apparent from the report series (e.g. CLR implies HCA)."
               example="HCA, FCA, NSWSC"
             />
@@ -1348,7 +1438,7 @@ function renderCaseReportedForm(
         <div className="ic-label">
           Parallel Citations
           <FieldHelp
-            ruleNumber="2.2.7"
+            {...(isAglcStandard ? { ruleNumber: "2.2.7" } : {})}
             description="When a case is reported in more than one report series, parallel citations are provided, separated by semicolons."
             example="[1974] VR 1; (1974) 4 ALR 57"
           />
@@ -1500,7 +1590,7 @@ function renderCaseReportedForm(
         <label className="ic-label" htmlFor="ic-pinpoint">
           Pinpoint
           <FieldHelp
-            ruleNumber="2.2.5"
+            {...(isAglcStandard ? { ruleNumber: "2.2.5" } : {})}
             description="A specific page, paragraph, or other reference within the source."
             example="6 or [23]"
           />
@@ -1522,6 +1612,8 @@ function renderLegislationForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
   onLegislationSelect: (result: LookupResult) => void,
+  jurisdictionOptions: { value: string; label: string }[],
+  isAglcStandard: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -1529,7 +1621,7 @@ function renderLegislationForm(
         <label className="ic-label" htmlFor="ic-leg-title">
           Title
           <FieldHelp
-            ruleNumber="3.1"
+            {...(isAglcStandard ? { ruleNumber: "3.1" } : {})}
             description="The title of the Act as it appears in the statute book. Italicised in the citation."
             example="Competition and Consumer Act 2010"
           />
@@ -1563,11 +1655,13 @@ function renderLegislationForm(
         <div className="ic-field ic-field--grow">
           <label className="ic-label" htmlFor="ic-leg-jurisdiction">
             Jurisdiction
-            <FieldHelp
-              ruleNumber="3.1"
-              description="The abbreviated jurisdiction of the legislation."
-              example="Cth, NSW, Vic"
-            />
+            {isAglcStandard && (
+              <FieldHelp
+                ruleNumber="3.1"
+                description="The abbreviated jurisdiction of the legislation."
+                example="Cth, NSW, Vic"
+              />
+            )}
           </label>
           <select
             id="ic-leg-jurisdiction"
@@ -1576,7 +1670,7 @@ function renderLegislationForm(
             onChange={(e) => updateField("jurisdiction", e.target.value)}
           >
             <option value="">Select...</option>
-            {JURISDICTIONS.map((j) => (
+            {jurisdictionOptions.map((j) => (
               <option key={j.value} value={j.value}>
                 {j.label}
               </option>
@@ -1589,7 +1683,7 @@ function renderLegislationForm(
         <label className="ic-label" htmlFor="ic-leg-pinpoint">
           Pinpoint
           <FieldHelp
-            ruleNumber="3.1.4"
+            {...(isAglcStandard ? { ruleNumber: "3.1.4" } : {})}
             description="Section, part, schedule, or other subdivision reference."
             example="s 51(xxxi)"
           />
@@ -1614,16 +1708,17 @@ function renderJournalForm(
   updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
   addAuthor: () => void,
   removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
-      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, "5")}
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "5" : undefined)}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-ja-title">
           Article Title
           <FieldHelp
-            ruleNumber="5.1"
+            {...(isAglcStandard ? { ruleNumber: "5.1" } : {})}
             description="The title of the article, enclosed in single quotation marks."
             example="'The Rule of Law'"
           />
@@ -1686,7 +1781,7 @@ function renderJournalForm(
         <label className="ic-label" htmlFor="ic-ja-journal">
           Journal Name
           <FieldHelp
-            ruleNumber="5.2"
+            {...(isAglcStandard ? { ruleNumber: "5.2" } : {})}
             description="The abbreviated journal name. Italicised in the citation."
             example="Melbourne University Law Review"
           />
@@ -1741,16 +1836,17 @@ function renderBookForm(
   updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
   addAuthor: () => void,
   removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
-      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, "6")}
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "6" : undefined)}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-book-title">
           Title
           <FieldHelp
-            ruleNumber="6.1"
+            {...(isAglcStandard ? { ruleNumber: "6.1" } : {})}
             description="The title of the book. Italicised in the citation."
             example="The Common Law"
           />
@@ -1813,7 +1909,7 @@ function renderBookForm(
         <label className="ic-label" htmlFor="ic-book-pinpoint">
           Pinpoint
           <FieldHelp
-            ruleNumber="6.4"
+            {...(isAglcStandard ? { ruleNumber: "6.4" } : {})}
             description="A specific page, paragraph, or chapter reference within the book."
             example="42"
           />
@@ -1834,6 +1930,7 @@ function renderBookForm(
 function renderTreatyForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -1841,7 +1938,7 @@ function renderTreatyForm(
         <label className="ic-label" htmlFor="ic-treaty-title">
           Treaty Title
           <FieldHelp
-            ruleNumber="8.1"
+            {...(isAglcStandard ? { ruleNumber: "8.1" } : {})}
             description="The full title of the treaty. Italicised in the citation."
             example="Convention on the Rights of the Child"
           />
@@ -1951,6 +2048,7 @@ function renderTreatyForm(
 function renderGenaiForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
 ): JSX.Element {
   const isOtherPlatform = (data.platform as string) === "__other__";
   return (
@@ -1959,7 +2057,7 @@ function renderGenaiForm(
         <label className="ic-label" htmlFor="ic-genai-platform">
           Platform
           <FieldHelp
-            ruleNumber="7.12"
+            {...(isAglcStandard ? { ruleNumber: "7.12" } : {})}
             description="The AI platform used to generate the output."
             example="ChatGPT, Claude, Gemini"
           />
@@ -2138,14 +2236,14 @@ function renderAuthorsFields(
   updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
   addAuthor: () => void,
   removeAuthor: (index: number) => void,
-  ruleNumber: string,
+  ruleNumber: string | undefined,
 ): JSX.Element {
   return (
     <div className="ic-authors-section">
       <div className="ic-label">
         Authors
         <FieldHelp
-          ruleNumber={ruleNumber}
+          {...(ruleNumber ? { ruleNumber } : {})}
           description="Enter the author's given names and surname separately. Add multiple authors as needed."
           example="James Crawford"
         />

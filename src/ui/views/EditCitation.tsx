@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useCitationContext } from "../context/CitationContext";
 import { CitationStore } from "../../store/citationStore";
+import type { CitationStandardId } from "../../engine/standards/types";
+import { getStandardConfig } from "../../engine/standards";
 import { Citation, SourceType, SourceData } from "../../types/citation";
 import {
   updateCitationContent,
@@ -263,6 +265,22 @@ export default function EditCitation(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+
+  // Load the active standard on mount
+  useEffect(() => {
+    void (async () => {
+      try {
+        const store = getStore();
+        await store.initStore();
+        setStandardId(store.getStandardId());
+      } catch {
+        // Default to aglc4
+      }
+    })();
+  }, []);
+
+  const standardConfig = getStandardConfig(standardId);
 
   // Load all citations on mount so the manual picker dropdown is populated.
   useEffect(() => {
@@ -561,7 +579,9 @@ export default function EditCitation(): JSX.Element {
       {/* Format Preference */}
       <fieldset className="edit-format-section settings-section">
         <legend className="settings-section-title">Format Preference</legend>
-        {(["auto", "full", "short", "ibid"] as FormatPreference[]).map((pref) => (
+        {(["auto", "full", "short", "ibid"] as FormatPreference[]).filter(
+          (pref) => pref !== "ibid" || standardConfig.ibidEnabled
+        ).map((pref) => (
           <label key={pref} className="settings-radio">
             <input
               type="radio"

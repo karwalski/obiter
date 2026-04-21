@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 export interface FieldHelpProps {
-  ruleNumber: string;
+  ruleNumber?: string;
   description: string;
   example?: string;
 }
@@ -60,7 +60,9 @@ export default function FieldHelp({
 
   const handleViewInGuide = (): void => {
     setOpen(false);
-    navigate(`/abbreviations?rule=${encodeURIComponent(ruleNumber)}`);
+    if (ruleNumber) {
+      navigate(`/abbreviations?rule=${encodeURIComponent(ruleNumber)}`);
+    }
   };
 
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
@@ -93,27 +95,29 @@ export default function FieldHelp({
         className="field-help-btn"
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={`Help for Rule ${ruleNumber}`}
+        aria-label={ruleNumber ? `Help for Rule ${ruleNumber}` : "Help"}
         aria-expanded={open}
       >
         ?
       </button>
       {open && (
         <div className="field-help-popover" role="tooltip" style={popoverStyle}>
-          <div className="field-help-rule">Rule {ruleNumber}</div>
+          {ruleNumber && <div className="field-help-rule">Rule {ruleNumber}</div>}
           <p className="field-help-desc">{description}</p>
           {example && (
             <div className="field-help-example">
               <strong>Example:</strong> {example}
             </div>
           )}
-          <button
-            className="field-help-link"
-            type="button"
-            onClick={handleViewInGuide}
-          >
-            View in guide
-          </button>
+          {ruleNumber && (
+            <button
+              className="field-help-link"
+              type="button"
+              onClick={handleViewInGuide}
+            >
+              View in guide
+            </button>
+          )}
         </div>
       )}
     </span>
