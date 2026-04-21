@@ -2,9 +2,11 @@
  * LLM-001: LLM Configuration Management
  *
  * Provides configuration persistence for the optional LLM integration layer.
- * Settings are stored via Office.context.roamingSettings so they follow the
- * user across machines.
+ * INFRA-009: LLM config is a device-level preference stored in localStorage
+ * so it carries across all documents on this device.
  */
+
+import { getDevicePref, setDevicePref } from "../store/devicePreferences";
 
 export interface LLMConfig {
   provider: "openai" | "anthropic" | "gemini" | "grok" | "deepseek" | "custom";
@@ -15,45 +17,37 @@ export interface LLMConfig {
   enabled: boolean;
 }
 
-const SETTINGS_KEY = "obiter.llmConfig";
+const SETTINGS_KEY = "llmConfig";
 
 /**
- * Persist the LLM configuration using Office document settings with
- * localStorage fallback. roamingSettings is Outlook-only and unavailable
- * in Word add-ins.
+ * Persist the LLM configuration to device-level localStorage.
  */
 export function saveLlmConfig(config: LLMConfig): void {
-  const serialised = JSON.stringify(config);
-  try {
-    if (typeof Office !== "undefined" && Office.context?.document?.settings) {
-      Office.context.document.settings.set(SETTINGS_KEY, serialised);
-      Office.context.document.settings.saveAsync();
-    }
-  } catch { /* fall through */ }
-  try {
-    localStorage.setItem(SETTINGS_KEY, serialised);
-  } catch { /* ignore */ }
+  setDevicePref(SETTINGS_KEY, config);
 }
 
 /**
- * Load the persisted LLM configuration. Tries Office document settings
- * first, then localStorage. Returns null when nothing is saved.
+ * Load the persisted LLM configuration from device-level localStorage.
+ * Falls back to legacy keys for one-time migration.
  */
 export function loadLlmConfig(): LLMConfig | null {
-  let raw: string | undefined | null;
-  try {
-    if (typeof Office !== "undefined" && Office.context?.document?.settings) {
-      raw = Office.context.document.settings.get(SETTINGS_KEY) as string | undefined;
-    }
-  } catch { /* fall through */ }
-  if (!raw) {
-    try {
-      raw = localStorage.getItem(SETTINGS_KEY);
-    } catch { /* ignore */ }
+  // Try new device-pref key first
+  const saved = getDevicePref(SETTINGS_KEY);
+  if (saved && typeof saved === "object") {
+    return saved as LLMConfig;
   }
+
+  // One-time migration: read from legacy localStorage key
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem("obiter.llmConfig");
+  } catch { /* ignore */ }
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as LLMConfig;
+    const config = JSON.parse(raw) as LLMConfig;
+    // Migrate to new key
+    setDevicePref(SETTINGS_KEY, config);
+    return config;
   } catch {
     return null;
   }

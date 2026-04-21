@@ -372,13 +372,23 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
  */
 function dispatchTreaty(citation: Citation): FormattedRun[] {
   const d = citation.data;
+
+  // The UI stores parties as a comma-separated string; the formatter expects
+  // string[]. Accept both shapes for robustness.
+  let parties: string[] | undefined;
+  if (Array.isArray(d.parties)) {
+    parties = d.parties as string[];
+  } else if (typeof d.parties === "string" && d.parties.trim()) {
+    parties = (d.parties as string).split(",").map((p) => p.trim()).filter(Boolean);
+  }
+
   return formatTreaty({
     title: (d.title as string) ?? "",
-    parties: d.parties as string[] | undefined,
+    parties,
     openedDate: d.openedDate as string | undefined,
     signedDate: d.signedDate as string | undefined,
     treatySeries: (d.treatySeries as string) ?? "",
-    seriesVolume: toOptionalNumber(d.seriesVolume),
+    seriesVolume: toOptionalNumber(d.seriesVolume ?? d.volume),
     startingPage: toOptionalNumber(d.startingPage),
     entryIntoForceDate: d.entryIntoForceDate as string | undefined,
     notYetInForce: d.notYetInForce as boolean | undefined,

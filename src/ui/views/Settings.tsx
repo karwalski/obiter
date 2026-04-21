@@ -28,6 +28,7 @@ import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
+import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
 import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
@@ -80,31 +81,30 @@ const LLM_PROVIDER_LABELS: Record<string, string> = {
 
 
 /** Persists the AGLC4 heading list ID across button clicks so all headings join the same list. */
-/** Read a setting, using Office.context.document.settings (Word) with localStorage fallback. */
-function getSetting(key: string): unknown {
+/**
+ * INFRA-009: Read a document-level setting from Office.context.document.settings.
+ * Used only for per-document preferences (writing mode, auto-refresh, attribution).
+ */
+function getDocSetting(key: string): unknown {
   try {
     if (typeof Office !== "undefined" && Office.context?.document?.settings) {
       return Office.context.document.settings.get(key);
     }
   } catch { /* fall through */ }
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw !== null) return JSON.parse(raw);
-  } catch { /* fall through */ }
   return undefined;
 }
 
-/** Write a setting, using Office.context.document.settings (Word) with localStorage fallback. */
-function setSetting(key: string, value: unknown): void {
+/**
+ * INFRA-009: Write a document-level setting to Office.context.document.settings.
+ * Used only for per-document preferences (writing mode, auto-refresh, attribution).
+ */
+function setDocSetting(key: string, value: unknown): void {
   try {
     if (typeof Office !== "undefined" && Office.context?.document?.settings) {
       Office.context.document.settings.set(key, value);
       Office.context.document.settings.saveAsync();
     }
   } catch { /* fall through */ }
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch { /* ignore */ }
 }
 
 /** Debug/test/screenshot tools only visible on localhost (dev server). */
@@ -169,6 +169,21 @@ export default function Settings(): JSX.Element {
       try {
         const store = await getSharedStore();
         if (!cancelled) {
+          // INFRA-009: For new documents, apply device-level default standard
+          const docStandard = getDocSetting("obiter-standardId") as CitationStandardId | undefined;
+          if (!docStandard) {
+            const deviceDefault = getDevicePref("defaultStandard") as CitationStandardId | undefined;
+            if (deviceDefault) {
+              await store.setStandardId(deviceDefault);
+              setDocSetting("obiter-standardId", deviceDefault);
+              // Keep AGLC version in sync
+              if (deviceDefault === "aglc4" || deviceDefault === "aglc5") {
+                const aglcVer = deviceDefault === "aglc5" ? "5" : "4";
+                await store.setAglcVersion(aglcVer);
+              }
+            }
+          }
+
           setVersion(store.getAglcVersion());
           setStandardId(store.getStandardId());
           setWritingMode(store.getWritingMode());
@@ -180,7 +195,7 @@ export default function Settings(): JSX.Element {
             const preset = getCourtPreset(savedJurisdiction);
             if (preset) {
               // Load saved toggle overrides, falling back to preset defaults
-              const savedToggles = getSetting("obiter-courtToggles") as Record<string, string> | undefined;
+              const savedToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
               setCourtToggles({
                 parallelCitations: (savedToggles?.parallelCitations as ParallelCitationMode) ?? preset.parallelCitations,
                 pinpointStyle: (savedToggles?.pinpointStyle as PinpointStyle) ?? preset.pinpointStyle,
@@ -192,7 +207,7 @@ export default function Settings(): JSX.Element {
           }
 
           // Load auto-refresh preference
-          const savedAutoRefresh = getSetting("obiter-autoRefresh");
+          const savedAutoRefresh = getDocSetting("obiter-autoRefresh");
           const autoRefreshValue = savedAutoRefresh === undefined || savedAutoRefresh === null ? true : (savedAutoRefresh as boolean);
           setAutoRefreshCitations(autoRefreshValue);
           setAutoRefreshEnabled(autoRefreshValue);
@@ -209,7 +224,7 @@ export default function Settings(): JSX.Element {
           }
 
           // INFRA-008: Migration detection — check for legacy footer branding
-          const migrationShown = getSetting("obiter-migrationNoticeShown");
+          const migrationShown = getDevicePref("migrationNoticeShown");
           if (!migrationShown) {
             await Word.run(async (context) => {
               const exists = await hasAttribution(context);
@@ -265,6 +280,9 @@ export default function Settings(): JSX.Element {
     try {
       await store.setStandardId(newStandardId);
       setStandardId(newStandardId);
+      // INFRA-009: Persist as document-level and device-level default
+      setDocSetting("obiter-standardId", newStandardId);
+      setDevicePref("defaultStandard", newStandardId);
       // Keep aglcVersion in sync for backward compatibility
       if (newStandardId === "aglc4" || newStandardId === "aglc5") {
         const aglcVer = newStandardId === "aglc5" ? "5" : "4";
@@ -277,8 +295,8 @@ export default function Settings(): JSX.Element {
           setWritingMode("academic");
           setCourtJurisdiction("");
           await store.setCourtJurisdiction(undefined);
-          setSetting("obiter-writingMode", "academic");
-          setSetting("obiter-courtToggles", undefined);
+          setDocSetting("obiter-writingMode", "academic");
+          setDevicePref("courtToggles", undefined);
         }
       }
     } catch (err: unknown) {
@@ -292,12 +310,12 @@ export default function Settings(): JSX.Element {
       const store = await getSharedStore();
       await store.setWritingMode(mode);
       setWritingMode(mode);
-      setSetting("obiter-writingMode", mode);
+      setDocSetting("obiter-writingMode", mode);
       // Clear jurisdiction when switching to academic mode
       if (mode === "academic") {
         setCourtJurisdiction("");
         await store.setCourtJurisdiction(undefined);
-        setSetting("obiter-courtToggles", undefined);
+        setDevicePref("courtToggles", undefined);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save writing mode";
@@ -311,7 +329,7 @@ export default function Settings(): JSX.Element {
       if (!jurisdictionId) {
         setCourtJurisdiction("");
         await store.setCourtJurisdiction(undefined);
-        setSetting("obiter-courtToggles", undefined);
+        setDevicePref("courtToggles", undefined);
         return;
       }
       if (!isCourtJurisdiction(jurisdictionId)) return;
@@ -330,7 +348,7 @@ export default function Settings(): JSX.Element {
         loaType: preset.loaType,
       };
       setCourtToggles(newToggles);
-      setSetting("obiter-courtToggles", newToggles);
+      setDevicePref("courtToggles", newToggles);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save jurisdiction";
       setError(message);
@@ -343,7 +361,7 @@ export default function Settings(): JSX.Element {
   ) => {
     setCourtToggles((prev) => {
       const updated = { ...prev, [key]: value };
-      setSetting("obiter-courtToggles", updated);
+      setDevicePref("courtToggles", updated);
       return updated;
     });
   }, []);
@@ -435,7 +453,7 @@ export default function Settings(): JSX.Element {
             aria-label="Dismiss notice"
             onClick={() => {
               setMigrationNotice(false);
-              setSetting("obiter-migrationNoticeShown", true);
+              setDevicePref("migrationNoticeShown", true);
             }}
           >
             ×
@@ -648,7 +666,7 @@ export default function Settings(): JSX.Element {
             onChange={(e) => {
               setAutoRefreshCitations(e.target.checked);
               setAutoRefreshEnabled(e.target.checked);
-              setSetting("obiter-autoRefresh", e.target.checked);
+              setDocSetting("obiter-autoRefresh", e.target.checked);
             }}
           />
           <span className="settings-toggle-label">

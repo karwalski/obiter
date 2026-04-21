@@ -881,7 +881,22 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | NOT STARTED |
+| INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | DONE |
+| INFRA-009 | Separate device-level preferences (localStorage) from document-level settings | FEATURE | NOT STARTED |
+
+---
+
+## EPIC: FORMS — Source Type Form Field Completeness
+
+**Phase:** Post-backlog | **Stories:** 5 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| FORMS-001 | Add missing fields to case forms (MNC, pinpoint, judicial officer, date, proceeding number) | FEATURE | NOT STARTED |
+| FORMS-002 | Add dedicated forms for quasi-judicial, arbitration, transcript, submission | FEATURE | NOT STARTED |
+| FORMS-003 | Add missing fields to legislation forms (number, constitution title/year, EM fields, quasi-legislative) | FEATURE | NOT STARTED |
+| FORMS-004 | Add missing fields to treaty form (parties, signedDate, pinpoint, fix volume mismatch) | FEATURE | NOT STARTED |
+| FORMS-005 | Add MNC field to reported case form for court mode parallel citations | FEATURE | NOT STARTED |
 
 ---
 
