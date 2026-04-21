@@ -21,7 +21,7 @@ import {
 import {
   validateDocument,
 } from "../../src/engine/validator";
-import type { CitationConfig } from "../../src/engine/standards/types";
+import type { CitationConfig, PinpointStyle } from "../../src/engine/standards/types";
 import type { Citation, Pinpoint } from "../../src/types/citation";
 import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
 
@@ -287,5 +287,193 @@ describe("MULTI-014: Court Mode — Config", () => {
     // AGLC4 has ibidEnabled: true, but court mode should override
     expect(AGLC4_COURT.ibidEnabled).toBe(true); // profile still says true
     // The resolver reads writingMode to override — tested above
+  });
+
+  test("all standard profiles default to page-only pinpoint style", () => {
+    for (const [id, profile] of Object.entries(STANDARD_PROFILES)) {
+      expect(profile.config.pinpointStyle).toBe("page-only");
+    }
+  });
+});
+
+// ─── COURT-005: Pinpoint Style Parameterisation Tests ─────────────────────────
+
+describe("COURT-005: Pinpoint Style — formatStartingPageAndPinpoint", () => {
+  // Import the function under test directly
+  const { formatStartingPageAndPinpoint } = require("../../src/engine/rules/v4/domestic/cases");
+
+  const paraPinpoint: Pinpoint = { type: "paragraph", value: "[45]" };
+  const paraRangePinpoint: Pinpoint = { type: "paragraph", value: "[45]–[46]" };
+  const pagePinpointVal: Pinpoint = { type: "page", value: "425" };
+
+  // ── page-only (academic default) ──────────────────────────────────────────
+
+  test("page-only: starting page with no pinpoint", () => {
+    const runs = formatStartingPageAndPinpoint(420);
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420");
+  });
+
+  test("page-only: starting page with page pinpoint renders '420, 425'", () => {
+    const runs = formatStartingPageAndPinpoint(420, pagePinpointVal, "page-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420, 425");
+  });
+
+  test("page-only: starting page with paragraph pinpoint renders '420 [45]'", () => {
+    const runs = formatStartingPageAndPinpoint(420, paraPinpoint, "page-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420 [45]");
+  });
+
+  // ── para-only (NSW, Qld court mode) ──────────────────────────────────────
+
+  test("para-only: paragraph pinpoint renders '[45]' without starting page", () => {
+    const runs = formatStartingPageAndPinpoint(420, paraPinpoint, "para-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("[45]");
+  });
+
+  test("para-only: paragraph range pinpoint renders '[45]–[46]' without starting page", () => {
+    const runs = formatStartingPageAndPinpoint(420, paraRangePinpoint, "para-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("[45]–[46]");
+  });
+
+  test("para-only: no pinpoint falls back to starting page", () => {
+    const runs = formatStartingPageAndPinpoint(420, undefined, "para-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420");
+  });
+
+  test("para-only: page pinpoint (edge case) renders page value without starting page", () => {
+    const runs = formatStartingPageAndPinpoint(420, pagePinpointVal, "para-only");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("425");
+  });
+
+  // ── para-and-page (Vic, FCA, HCA, WA, SA, Tas, ACT, NT) ─────────────────
+
+  test("para-and-page: paragraph pinpoint renders '420, [45]'", () => {
+    const runs = formatStartingPageAndPinpoint(420, paraPinpoint, "para-and-page");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420, [45]");
+  });
+
+  test("para-and-page: paragraph range renders '420, [45]–[46]'", () => {
+    const runs = formatStartingPageAndPinpoint(420, paraRangePinpoint, "para-and-page");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420, [45]–[46]");
+  });
+
+  test("para-and-page: no pinpoint renders starting page only", () => {
+    const runs = formatStartingPageAndPinpoint(420, undefined, "para-and-page");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420");
+  });
+
+  test("para-and-page: page pinpoint renders normally '420, 425'", () => {
+    const runs = formatStartingPageAndPinpoint(420, pagePinpointVal, "para-and-page");
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toBe("420, 425");
+  });
+});
+
+describe("COURT-005: Pinpoint Style — formatReportedCase integration", () => {
+  const { formatReportedCase } = require("../../src/engine/rules/v4/domestic/cases");
+  const { formatCaseName } = require("../../src/engine/rules/v4/domestic/case-names");
+
+  const baseCaseData = {
+    caseName: formatCaseName("Pape", "Commissioner of Taxation", "v"),
+    yearType: "round" as const,
+    year: 2009,
+    volume: 238,
+    reportSeries: "CLR",
+    startingPage: 1,
+  };
+
+  const paraPinpoint: Pinpoint = { type: "paragraph", value: "[45]" };
+
+  test("page-only: full citation with paragraph pinpoint includes starting page", () => {
+    const runs = formatReportedCase({
+      ...baseCaseData,
+      pinpoint: paraPinpoint,
+      pinpointStyle: "page-only",
+    });
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toContain("1 [45]");
+  });
+
+  test("para-only: full citation emits paragraph only, no starting page before pinpoint", () => {
+    const runs = formatReportedCase({
+      ...baseCaseData,
+      pinpoint: paraPinpoint,
+      pinpointStyle: "para-only",
+    });
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    // Should contain "[45]" but not "1 [45]" or "1, [45]"
+    expect(text).toContain("CLR [45]");
+  });
+
+  test("para-and-page: full citation emits starting page then paragraph", () => {
+    const runs = formatReportedCase({
+      ...baseCaseData,
+      pinpoint: paraPinpoint,
+      pinpointStyle: "para-and-page",
+    });
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toContain("CLR 1, [45]");
+  });
+});
+
+describe("COURT-005: Pinpoint Style — engine dispatch integration", () => {
+  const { formatCitation } = require("../../src/engine/engine");
+
+  const paraPinpoint: Pinpoint = { type: "paragraph", value: "[45]" };
+
+  const makeCourtConfig = (pinpointStyle: PinpointStyle): CitationConfig => ({
+    ...STANDARD_PROFILES.aglc4.config,
+    writingMode: "court",
+    pinpointStyle,
+  });
+
+  const reportedCase: Citation = {
+    id: "court-005-case",
+    aglcVersion: "4",
+    sourceType: "case.reported",
+    data: {
+      party1: "Pape",
+      party2: "Commissioner of Taxation",
+      yearType: "round",
+      year: 2009,
+      volume: 238,
+      reportSeries: "CLR",
+      startingPage: 1,
+      pinpoint: paraPinpoint,
+    },
+    shortTitle: "Pape",
+    tags: [],
+    createdAt: "2026-01-01T00:00:00Z",
+    modifiedAt: "2026-01-01T00:00:00Z",
+  };
+
+  test("engine dispatches para-only correctly", () => {
+    const runs = formatCitation(reportedCase, undefined, makeCourtConfig("para-only"));
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toContain("CLR [45]");
+    expect(text).not.toContain("CLR 1 [45]");
+    expect(text).not.toContain("CLR 1, [45]");
+  });
+
+  test("engine dispatches para-and-page correctly", () => {
+    const runs = formatCitation(reportedCase, undefined, makeCourtConfig("para-and-page"));
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toContain("CLR 1, [45]");
+  });
+
+  test("engine dispatches page-only correctly (academic default)", () => {
+    const runs = formatCitation(reportedCase, undefined, makeCourtConfig("page-only"));
+    const text = runs.map((r: { text: string }) => r.text).join("");
+    expect(text).toContain("CLR 1 [45]");
   });
 });

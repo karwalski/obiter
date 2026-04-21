@@ -1649,6 +1649,101 @@ body {
   background: #442726;
 }
 
+/* ─── COURT-007 / COURT-010 / COURT-011 / COURT-012: Court Mode UI ─── */
+
+.ic-court-gate {
+  margin: var(--space-sm) 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--colour-warning, #c19c00);
+  background: #fff8e1;
+  font-size: var(--text-sm);
+}
+
+[data-theme="dark"] .ic-court-gate {
+  background: #3d3520;
+  border-left-color: #d4a80a;
+}
+
+.ic-court-gate-text {
+  margin-bottom: var(--space-sm);
+  line-height: 1.45;
+  color: var(--colour-text-primary);
+}
+
+.ic-court-gate-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.ic-court-gate-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  background: var(--colour-surface);
+  color: var(--colour-text-primary);
+}
+
+.ic-court-gate-btn--proceed {
+  background: var(--colour-primary, #0078d4);
+  color: #fff;
+  border-color: var(--colour-primary, #0078d4);
+}
+
+.ic-court-gate-btn--check {
+  background: var(--colour-surface);
+}
+
+.ic-court-treatment-warning {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  color: var(--colour-warning, #c19c00);
+  background: #fff8e1;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="dark"] .ic-court-treatment-warning {
+  background: #3d3520;
+  color: #d4a80a;
+}
+
+.ic-court-reminder {
+  margin: var(--space-sm) 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--colour-info, #0078d4);
+  background: #e8f4fd;
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+[data-theme="dark"] .ic-court-reminder {
+  background: #1a2e3d;
+  border-left-color: #4da3dc;
+}
+
+.ic-court-reminder-text {
+  flex: 1;
+  line-height: 1.4;
+  color: var(--colour-text-primary);
+}
+
+.ic-court-reminder-dismiss {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  background: transparent;
+  color: var(--colour-text-secondary);
+}
+
 /* ─── Typeahead Input ─── */
 
 .ta-container {

@@ -103,6 +103,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
         startingPage: (d.startingPage as number) ?? 0,
         pinpoint: d.pinpoint as Pinpoint | undefined,
         courtId: d.courtId as string | undefined,
+        pinpointStyle: config?.pinpointStyle,
       });
       runs.push({ text: `; ${mnc.trim()}` });
       return runs;
@@ -119,6 +120,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
     pinpoint: d.pinpoint as Pinpoint | undefined,
     courtId: d.courtId as string | undefined,
     parallelCitations,
+    pinpointStyle: config?.pinpointStyle,
   });
 }
 

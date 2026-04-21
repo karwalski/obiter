@@ -32,6 +32,7 @@ const AGLC4_CONFIG: CitationConfig = {
   homeJurisdiction: null,
   bibliographyStructure: "aglc",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── AGLC5 (placeholder) ────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ const AGLC5_CONFIG: CitationConfig = {
   homeJurisdiction: null,
   bibliographyStructure: "aglc",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── OSCOLA 5 ────────────────────────────────────────────────────────────────
@@ -64,6 +66,7 @@ const OSCOLA5_CONFIG: CitationConfig = {
   homeJurisdiction: "UK",
   bibliographyStructure: "oscola",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── OSCOLA 4 (placeholder) ─────────────────────────────────────────────────
@@ -80,6 +83,7 @@ const OSCOLA4_CONFIG: CitationConfig = {
   homeJurisdiction: "UK",
   bibliographyStructure: "oscola",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── NZLSG 3 ─────────────────────────────────────────────────────────────────
@@ -96,6 +100,7 @@ const NZLSG3_CONFIG: CitationConfig = {
   homeJurisdiction: "NZ",
   bibliographyStructure: "nzlsg",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── NZLSG 4 (placeholder) ──────────────────────────────────────────────────
@@ -112,6 +117,7 @@ const NZLSG4_CONFIG: CitationConfig = {
   homeJurisdiction: "NZ",
   bibliographyStructure: "nzlsg",
   writingMode: "academic",
+  pinpointStyle: "page-only",
 };
 
 // ─── Registry ────────────────────────────────────────────────────────────────

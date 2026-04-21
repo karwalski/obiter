@@ -599,6 +599,461 @@ export function generateListOfAuthorities(
   return sections;
 }
 
+// ─── LOA-002: Part A / Part B List of Authorities ───────────────────────────
+
+/** Validation warning returned by LOA generation functions. */
+export interface LoaValidationWarning {
+  level: "warning" | "info";
+  code: string;
+  message: string;
+}
+
+/** Result of Part A/B LOA generation, including sections and validation. */
+export interface PartABLoaResult {
+  partA: BibliographySection[];
+  partB: BibliographySection[];
+  warnings: LoaValidationWarning[];
+}
+
+/**
+ * Groups citations into Cases, Legislation, and (optionally) Secondary sources,
+ * deduplicates and sorts each group alphabetically.
+ */
+function groupAndSortForLoa(
+  citations: Citation[],
+  includeSecondary: boolean,
+): { cases: Citation[]; legislation: Citation[]; secondary: Citation[] } {
+  const cases: Citation[] = [];
+  const legislation: Citation[] = [];
+  const secondary: Citation[] = [];
+
+  for (const c of citations) {
+    if (c.sourceType.startsWith("case.")) {
+      cases.push(c);
+    } else if (c.sourceType.startsWith("legislation.")) {
+      legislation.push(c);
+    } else if (includeSecondary) {
+      secondary.push(c);
+    }
+  }
+
+  const sortAndDedup = (arr: Citation[], keyFn: (c: Citation) => string): Citation[] => {
+    const deduped = deduplicateById(arr);
+    deduped.sort((a, b) => keyFn(a).localeCompare(keyFn(b)));
+    return deduped;
+  };
+
+  return {
+    cases: sortAndDedup(cases, getLoaSortKey),
+    legislation: sortAndDedup(legislation, getSortKey),
+    secondary: sortAndDedup(secondary, getSortKey),
+  };
+}
+
+/**
+ * Builds BibliographySection[] from grouped citations, applying the key
+ * authority asterisk prefix when isKeyAuthority is set (LOA-004).
+ */
+function buildLoaSections(
+  cases: Citation[],
+  legislation: Citation[],
+  secondary: Citation[],
+): BibliographySection[] {
+  const sections: BibliographySection[] = [];
+
+  if (cases.length > 0) {
+    const entries = cases.map((c) => formatLoaEntryWithKeyMarker(c));
+    sections.push({ heading: "Cases", entries });
+  }
+
+  if (legislation.length > 0) {
+    const entries = legislation.map((c) => formatLoaEntryWithKeyMarker(c));
+    sections.push({ heading: "Legislation", entries });
+  }
+
+  if (secondary.length > 0) {
+    const entries = secondary.map((c) => formatBibliographyEntry(c));
+    sections.push({ heading: "Secondary Sources", entries });
+  }
+
+  return sections;
+}
+
+/**
+ * LOA-004: Formats a LOA entry, prepending an asterisk for key authorities.
+ *
+ * NSW Court of Appeal practitioner convention: key authorities (up to 5)
+ * are marked with an asterisk prefix in the List of Authorities.
+ *
+ * @param citation - The citation to format.
+ * @returns An array of FormattedRun for the LOA entry.
+ */
+function formatLoaEntryWithKeyMarker(citation: Citation): FormattedRun[] {
+  const entry = citation.sourceType.startsWith("case.")
+    ? formatLoaCaseEntry(citation)
+    : formatBibliographyEntry(citation);
+
+  if (citation.isKeyAuthority) {
+    return [{ text: "* " }, ...entry];
+  }
+
+  return entry;
+}
+
+/**
+ * Generates a Part A / Part B List of Authorities from all cited
+ * authorities in the document.
+ *
+ * LOA-002: Splits authorities into:
+ * - **Part A** — authorities from which passages are to be read
+ *   (cases and legislation only)
+ * - **Part B** — authorities to which reference may be made
+ *   (cases, legislation, and optionally secondary sources)
+ *
+ * Each citation's `loaPart` field determines placement. Citations
+ * without `loaPart` default to Part B.
+ *
+ * Source: FCA GPN-AUTH cl 2.1, HCA PD 2/2024 (JBA).
+ *
+ * @param citations - All citations referenced in the document.
+ * @param includeSecondary - Whether to include secondary sources in Part B
+ *   (default false, matching LOA-001 convention).
+ * @returns A PartABLoaResult containing Part A sections, Part B sections,
+ *   and any validation warnings.
+ */
+export function generatePartABListOfAuthorities(
+  citations: Citation[],
+  includeSecondary = false,
+): PartABLoaResult {
+  const warnings: LoaValidationWarning[] = [];
+
+  // Split by loaPart (default to "B").
+  const partACitations = citations.filter((c) => c.loaPart === "A");
+  const partBCitations = citations.filter((c) => c.loaPart !== "A");
+
+  // Part A: cases and legislation only (no secondary sources).
+  const partAGroups = groupAndSortForLoa(partACitations, false);
+  const partA = buildLoaSections(partAGroups.cases, partAGroups.legislation, []);
+
+  // Part B: cases, legislation, and optionally secondary sources.
+  const partBGroups = groupAndSortForLoa(partBCitations, includeSecondary);
+  const partB = buildLoaSections(
+    partBGroups.cases,
+    partBGroups.legislation,
+    partBGroups.secondary,
+  );
+
+  // LOA-002 validation: warn if Part A is empty.
+  if (partA.length === 0) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_PART_A_EMPTY",
+      message:
+        "Part A of the List of Authorities is empty. At least one authority " +
+        "should be marked for reading (loaPart: \"A\").",
+    });
+  }
+
+  // LOA-002 validation: warn if total authorities exceed 30.
+  const totalCount = deduplicateById(citations).length;
+  if (totalCount > 30) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_AUTHORITY_COUNT_HIGH",
+      message:
+        `Total authorities (${totalCount}) exceed 30. Practitioner convention ` +
+        "suggests limiting citations to those necessary to establish principles.",
+    });
+  }
+
+  // LOA-004 validation: warn if more than 5 key authorities.
+  const keyAuthorityCount = citations.filter((c) => c.isKeyAuthority).length;
+  if (keyAuthorityCount > 5) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_KEY_AUTHORITY_LIMIT",
+      message:
+        `${keyAuthorityCount} key authorities marked (maximum 5). ` +
+        "NSW Court of Appeal convention limits key authority markers to 5.",
+    });
+  }
+
+  return { partA, partB, warnings };
+}
+
+// ─── LOA-003: HCA Joint Book of Authorities ─────────────────────────────────
+
+/** Case details required for JBA title page and metadata. */
+export interface JbaCaseDetails {
+  caseName: string;
+  fileNumber: string;
+  hearingDate?: string; // ISO date string
+  replyFilingDate?: string; // ISO date string — for 14-day JBA filing reminder
+}
+
+/** A single entry in the JBA index with volume and page range. */
+export interface JbaIndexEntry {
+  authorityLabel: string;
+  volume: number;
+  pageRange: string; // e.g. "1–45"
+}
+
+/** Result of JBA generation. */
+export interface JbaResult {
+  titlePage: BibliographySection;
+  certificatePlaceholder: BibliographySection;
+  index: JbaIndexEntry[];
+  partA: BibliographySection[];
+  partB: BibliographySection[];
+  warnings: LoaValidationWarning[];
+}
+
+/**
+ * Generates a High Court Joint Book of Authorities per HCA PD 2 of 2024.
+ *
+ * LOA-003: Extends LOA-002 (Part A / Part B) with HCA-specific metadata:
+ * - Title page: "Joint Book of Authorities" + case name + HCA file number
+ * - Certificate of senior practitioners (placeholder template)
+ * - Full index listing all authorities with volume and page ranges
+ *
+ * The volume/page allocation is a simplified placeholder — actual page
+ * ranges depend on the physical documents bundled into the JBA volumes.
+ * The index entries provide the structural framework for the Word adapter
+ * to populate with real page numbers.
+ *
+ * @param citations - All citations referenced in the document.
+ * @param caseDetails - HCA case metadata for the title page.
+ * @returns A JbaResult containing all JBA components and validation warnings.
+ */
+export function generateJBA(
+  citations: Citation[],
+  caseDetails: JbaCaseDetails,
+): JbaResult {
+  // Generate the Part A/B split via LOA-002.
+  const loaResult = generatePartABListOfAuthorities(citations, false);
+  const warnings = [...loaResult.warnings];
+
+  // Title page section.
+  const titlePage: BibliographySection = {
+    heading: "Joint Book of Authorities",
+    entries: [
+      [
+        { text: "Joint Book of Authorities", bold: true, size: 14 },
+      ],
+      [
+        { text: caseDetails.caseName, italic: true },
+      ],
+      [
+        { text: `HCA File No: ${caseDetails.fileNumber}` },
+      ],
+    ],
+  };
+
+  // Certificate placeholder section.
+  const certificatePlaceholder: BibliographySection = {
+    heading: "Certificate",
+    entries: [
+      [
+        { text: "Certificate of Senior Practitioners", bold: true },
+      ],
+      [
+        {
+          text:
+            "We, the undersigned senior practitioners for the parties, certify that " +
+            "the authorities contained in this Joint Book of Authorities are those " +
+            "to which the Court will be referred during the hearing of this matter.",
+        },
+      ],
+      [
+        { text: "[Name of Senior Practitioner for the Appellant]" },
+      ],
+      [
+        { text: "[Name of Senior Practitioner for the Respondent]" },
+      ],
+    ],
+  };
+
+  // Build a flat index of all authorities across Part A and Part B.
+  const allSections = [...loaResult.partA, ...loaResult.partB];
+  const index: JbaIndexEntry[] = [];
+  let currentVolume = 1;
+  let pageCounter = 1;
+
+  for (const section of allSections) {
+    for (const entry of section.entries) {
+      const label = entry.map((r) => r.text).join("");
+      const estimatedPages = 10; // Placeholder — real page counts filled by Word adapter.
+      const pageStart = pageCounter;
+      const pageEnd = pageCounter + estimatedPages - 1;
+      index.push({
+        authorityLabel: label,
+        volume: currentVolume,
+        pageRange: `${pageStart}\u2013${pageEnd}`,
+      });
+      pageCounter = pageEnd + 1;
+
+      // Volume break at ~500 pages (per HCA convention for multi-volume JBAs).
+      if (pageCounter > currentVolume * 500) {
+        currentVolume++;
+      }
+    }
+  }
+
+  // LOA-003 validation: warn if JBA not filed within 14 days of reply.
+  if (caseDetails.replyFilingDate) {
+    const replyDate = new Date(caseDetails.replyFilingDate);
+    const deadlineDate = new Date(replyDate);
+    deadlineDate.setDate(deadlineDate.getDate() + 14);
+    const now = new Date();
+    if (now > deadlineDate) {
+      warnings.push({
+        level: "warning",
+        code: "JBA_FILING_OVERDUE",
+        message:
+          `JBA filing deadline was ${deadlineDate.toISOString().slice(0, 10)} ` +
+          `(14 days after reply filing on ${caseDetails.replyFilingDate}). ` +
+          "Check whether the JBA has been filed.",
+      });
+    }
+  }
+
+  return {
+    titlePage,
+    certificatePlaceholder,
+    index,
+    partA: loaResult.partA,
+    partB: loaResult.partB,
+    warnings,
+  };
+}
+
+// ─── LOA-005: LOA Export Formats ─────────────────────────────────────────────
+
+/**
+ * LOA export target — determines how the generated LOA is delivered.
+ *
+ * - "insert-section" — inserts LOA as a new section in the current document
+ *   (with a section break before it)
+ * - "new-document" — creates a separate .docx document (existing default)
+ * - "pdf" — placeholder for PDF export; Word's built-in Save As PDF handles
+ *   the actual conversion. This option signals the UI to prompt the user to
+ *   save as PDF after generation.
+ */
+export type LoaExportTarget = "insert-section" | "new-document" | "pdf";
+
+/**
+ * Options for LOA generation, combining format and export target.
+ */
+export interface LoaGenerationOptions {
+  /** LOA type: "simple" uses LOA-001, "part-ab" uses LOA-002. */
+  loaType: "simple" | "part-ab";
+  /** Whether to include secondary sources (Part B only). */
+  includeSecondary: boolean;
+  /** Export target for the generated LOA. */
+  exportTarget: LoaExportTarget;
+}
+
+/**
+ * Unified LOA result combining all generation variants.
+ *
+ * LOA-005: Provides a single return type for the Word adapter layer to
+ * consume, regardless of whether simple LOA, Part A/B, or JBA was generated.
+ */
+export interface LoaResult {
+  /** Sections to render (simple LOA or combined Part A + Part B). */
+  sections: BibliographySection[];
+  /** Part A sections when Part A/B mode is used (undefined for simple LOA). */
+  partA?: BibliographySection[];
+  /** Part B sections when Part A/B mode is used (undefined for simple LOA). */
+  partB?: BibliographySection[];
+  /** Export target selected by the user. */
+  exportTarget: LoaExportTarget;
+  /** Validation warnings. */
+  warnings: LoaValidationWarning[];
+  /**
+   * LOA-005: Note for PDF export — the engine does not generate PDFs
+   * directly. Word's built-in "Save as PDF" produces a text-searchable
+   * PDF suitable for eLodgment. This flag signals the UI layer.
+   */
+  pdfExportNote?: string;
+}
+
+/**
+ * Generates a List of Authorities with the specified options.
+ *
+ * LOA-005: Unified entry point that handles simple LOA (LOA-001),
+ * Part A/B LOA (LOA-002), and export format selection (LOA-005).
+ *
+ * @param citations - All citations referenced in the document.
+ * @param options - Generation options (LOA type, secondary sources, export target).
+ * @returns A LoaResult containing sections, warnings, and export metadata.
+ */
+export function generateLoaWithOptions(
+  citations: Citation[],
+  options: LoaGenerationOptions,
+): LoaResult {
+  const warnings: LoaValidationWarning[] = [];
+
+  if (options.loaType === "simple") {
+    const sections = generateListOfAuthorities(citations);
+    const result: LoaResult = {
+      sections,
+      exportTarget: options.exportTarget,
+      warnings,
+    };
+    if (options.exportTarget === "pdf") {
+      result.pdfExportNote =
+        "Use Word's built-in Save As PDF to produce a text-searchable PDF " +
+        "suitable for eLodgment filing. Hyperlinks in LOA entries will be " +
+        "preserved in the PDF output.";
+    }
+    return result;
+  }
+
+  // Part A/B mode.
+  const abResult = generatePartABListOfAuthorities(
+    citations,
+    options.includeSecondary,
+  );
+
+  // Combine Part A and Part B into a single sections array for rendering,
+  // with Part A/B headings prepended.
+  const combined: BibliographySection[] = [];
+
+  if (abResult.partA.length > 0) {
+    combined.push({
+      heading: "Part A \u2014 Authorities from which passages are to be read",
+      entries: [],
+    });
+    combined.push(...abResult.partA);
+  }
+
+  if (abResult.partB.length > 0) {
+    combined.push({
+      heading: "Part B \u2014 Authorities to which reference may be made",
+      entries: [],
+    });
+    combined.push(...abResult.partB);
+  }
+
+  const result: LoaResult = {
+    sections: combined,
+    partA: abResult.partA,
+    partB: abResult.partB,
+    exportTarget: options.exportTarget,
+    warnings: [...abResult.warnings],
+  };
+
+  if (options.exportTarget === "pdf") {
+    result.pdfExportNote =
+      "Use Word's built-in Save As PDF to produce a text-searchable PDF " +
+      "suitable for eLodgment filing. Hyperlinks in LOA entries will be " +
+      "preserved in the PDF output.";
+  }
+
+  return result;
+}
+
 // ─── Bibliography Dispatcher (MULTI-010 + MULTI-014) ────────────────────────
 
 /**

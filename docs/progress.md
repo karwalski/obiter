@@ -697,6 +697,75 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 
 ---
 
+## EPIC: COURT — Court Submission Mode
+
+**Phase:** Post-backlog | **Stories:** 12 | **Completed:** 12
+
+| ID | Title | Source | Type | Status |
+|----|-------|--------|------|--------|
+| COURT-001 | Writing mode toggle (Academic / Court Submission) | All practice directions | FEATURE | DONE |
+| COURT-002 | Jurisdictional preset dropdown (12+ courts) | Practice directions | FEATURE | DONE |
+| COURT-003 | Jurisdictional default mappings (6 toggles × 20 presets) | GPN-AUTH, HCA PD 2, NSW Gen 20, Vic Gen 3, Qld PD 1 | FEATURE | DONE |
+| COURT-004 | Parallel citation emission (mandatory/preferred/off) | FCA GPN-AUTH, NSW Gen 20, Vic Gen 3, Qld PD 1 | FEATURE | DONE |
+| COURT-005 | Pinpoint style parameterisation (para-only/para-and-page/page-only) | NSW Gen 20, Qld PD 1, Vic Gen 3 | FEATURE | DONE |
+| COURT-006 | Authorised-report hierarchy engine | AGLC4 Rule 2.2.2, HCA PD 1/2019, FCA GPN-AUTH | FEATURE | DONE |
+| COURT-007 | Unreported-judgment gate (warn in NSW/Qld/Tas) | NSW Gen 20, Qld PD 1, Tas PD 3/2014 | FEATURE | DONE |
+| COURT-008 | Ibid and (n X) suppression | Universal practitioner convention | FEATURE | DONE |
+| COURT-009 | Subsequent reference format in court mode | Practitioner convention | FEATURE | DONE |
+| COURT-010 | Queensland subsequent-treatment warning | Qld SC PD 1/2024 cl 4(c) | FEATURE | DONE |
+| COURT-011 | Qld and NSW selectivity duty reminder | Qld PD 1/2024 cl 5, NSW Gen 20 | PLACEHOLDER | DONE |
+| COURT-012 | Victoria AGLC adoption note | Vic SC PN Gen 3 cl 4.1 | PLACEHOLDER | DONE |
+
+---
+
+## EPIC: LOA — List of Authorities Generation
+
+**Phase:** Post-backlog | **Stories:** 5 | **Completed:** 5
+
+| ID | Title | Source | Type | Status |
+|----|-------|--------|------|--------|
+| LOA-001 | Simple List of Authorities | Convention across all courts | FEATURE | DONE |
+| LOA-002 | Part A / Part B List of Authorities | FCA GPN-AUTH, HCA PD 2/2024 | FEATURE | DONE |
+| LOA-003 | HCA Joint Book of Authorities format | HCA PD 2/2024 | FEATURE | DONE |
+| LOA-004 | NSW Court of Appeal LOA conventions | NSW SC PN CA 1 | FEATURE | DONE |
+| LOA-005 | LOA export formats (Word, PDF, insert as section) | FCA GPN-AUTH cl 2.2 | FEATURE | DONE |
+
+---
+
+## EPIC: COURT-VALID — Court Mode Validation
+
+**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 3
+
+| ID | Title | Source | Type | Status |
+|----|-------|--------|------|--------|
+| COURT-VALID-001 | Court mode validation ruleset | All practice directions | FEATURE | DONE |
+| COURT-VALID-002 | Filing deadline reminders | FCA GPN-AUTH, HCA Rules, NSWCA PN | FEATURE | DONE |
+| COURT-VALID-003 | Submission formatting checks (page limit, font, spacing) | FCA APP 2, HCA Part 44 | FEATURE | DONE |
+
+---
+
+## EPIC: COURT-GUIDE — Court Mode Reference
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 2
+
+| ID | Title | Source | Type | Status |
+|----|-------|--------|------|--------|
+| COURT-GUIDE-001 | Court mode reference panel | Practice directions | FEATURE | DONE |
+| COURT-GUIDE-002 | Practice direction source links database | All courts | FEATURE | DONE |
+
+---
+
+## EPIC: REVIEW — Feature Review & Website Updates
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 2
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| REVIEW-001 | OSCOLA + NZLSG completeness review — audit implementations, create stories for gaps | FEATURE | DONE |
+| REVIEW-002 | Website update — document Court Mode, OSCOLA, NZLSG as available bonus features | FEATURE | DONE |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0
@@ -756,4 +825,9 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | A11Y | 3 | 3 | 0 | 3 | 0 |
 | RIBBON | 6 | 6 | 0 | 6 | 0 |
 | DOCS | 1 | 1 | 0 | 0 | 0 |
-| **TOTAL** | **314** | **299** | **15** | **308** | **0** |
+| COURT | 12 | 10 | 2 | 12 | 0 |
+| LOA | 5 | 5 | 0 | 5 | 0 |
+| COURT-VALID | 3 | 3 | 0 | 3 | 0 |
+| COURT-GUIDE | 2 | 2 | 0 | 2 | 0 |
+| REVIEW | 2 | 2 | 0 | 2 | 0 |
+| **TOTAL** | **338** | **321** | **17** | **333** | **0** |

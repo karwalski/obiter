@@ -6,6 +6,20 @@
 import { useEffect, useState, useCallback } from "react";
 import { CitationStore } from "../../store";
 import { AVAILABLE_STANDARDS, type CitationStandardId, type WritingMode } from "../../engine/standards";
+import {
+  COURT_PRESETS,
+  COURT_GROUPS,
+  getJurisdictionsByGroup,
+  getCourtPreset,
+  isCourtJurisdiction,
+  type CourtJurisdiction,
+  type CourtPreset,
+  type ParallelCitationMode,
+  type PinpointStyle,
+  type UnreportedGate,
+  type IbidSuppression,
+  type LoaType,
+} from "../../engine/court/presets";
 import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
 // styleInstaller import removed — XSL now downloaded via button
 import { applyAglc4Styles, applyHeadingLevel } from "../../word/styles";
@@ -107,6 +121,20 @@ export default function Settings(): JSX.Element {
   const [formatStatus, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
   const [writingMode, setWritingMode] = useState<WritingMode>("academic");
+  const [courtJurisdiction, setCourtJurisdiction] = useState<CourtJurisdiction | "">("");
+  const [courtToggles, setCourtToggles] = useState<{
+    parallelCitations: ParallelCitationMode;
+    pinpointStyle: PinpointStyle;
+    unreportedGate: UnreportedGate;
+    ibidSuppression: IbidSuppression;
+    loaType: LoaType;
+  }>({
+    parallelCitations: "mandatory",
+    pinpointStyle: "para-and-page",
+    unreportedGate: "off",
+    ibidSuppression: "on",
+    loaType: "part-ab",
+  });
   const { autoRefreshEnabled: _are, setAutoRefreshEnabled } = useCitationContext();
   const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
@@ -145,6 +173,24 @@ export default function Settings(): JSX.Element {
           setVersion(store.getAglcVersion());
           setStandardId(store.getStandardId());
           setWritingMode(store.getWritingMode());
+
+          // Load court jurisdiction and toggles (COURT-002)
+          const savedJurisdiction = store.getCourtJurisdiction();
+          if (savedJurisdiction && isCourtJurisdiction(savedJurisdiction)) {
+            setCourtJurisdiction(savedJurisdiction);
+            const preset = getCourtPreset(savedJurisdiction);
+            if (preset) {
+              // Load saved toggle overrides, falling back to preset defaults
+              const savedToggles = getSetting("obiter-courtToggles") as Record<string, string> | undefined;
+              setCourtToggles({
+                parallelCitations: (savedToggles?.parallelCitations as ParallelCitationMode) ?? preset.parallelCitations,
+                pinpointStyle: (savedToggles?.pinpointStyle as PinpointStyle) ?? preset.pinpointStyle,
+                unreportedGate: (savedToggles?.unreportedGate as UnreportedGate) ?? preset.unreportedGate,
+                ibidSuppression: (savedToggles?.ibidSuppression as IbidSuppression) ?? preset.ibidSuppression,
+                loaType: (savedToggles?.loaType as LoaType) ?? preset.loaType,
+              });
+            }
+          }
 
           // Load attribution preference
           const savedPref = getSetting("obiter-showAttribution");
@@ -247,10 +293,58 @@ export default function Settings(): JSX.Element {
       await store.setWritingMode(mode);
       setWritingMode(mode);
       setSetting("obiter-writingMode", mode);
+      // Clear jurisdiction when switching to academic mode
+      if (mode === "academic") {
+        setCourtJurisdiction("");
+        await store.setCourtJurisdiction(undefined);
+        setSetting("obiter-courtToggles", undefined);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save writing mode";
       setError(message);
     }
+  }, []);
+
+  const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
+    try {
+      if (!jurisdictionId) {
+        setCourtJurisdiction("");
+        await store.setCourtJurisdiction(undefined);
+        setSetting("obiter-courtToggles", undefined);
+        return;
+      }
+      if (!isCourtJurisdiction(jurisdictionId)) return;
+      const preset = getCourtPreset(jurisdictionId);
+      if (!preset) return;
+
+      setCourtJurisdiction(jurisdictionId as CourtJurisdiction);
+      await store.setCourtJurisdiction(jurisdictionId);
+
+      // Apply preset defaults and clear any previous overrides
+      const newToggles = {
+        parallelCitations: preset.parallelCitations,
+        pinpointStyle: preset.pinpointStyle,
+        unreportedGate: preset.unreportedGate,
+        ibidSuppression: preset.ibidSuppression,
+        loaType: preset.loaType,
+      };
+      setCourtToggles(newToggles);
+      setSetting("obiter-courtToggles", newToggles);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save jurisdiction";
+      setError(message);
+    }
+  }, []);
+
+  const handleToggleOverride = useCallback(<K extends keyof typeof courtToggles>(
+    key: K,
+    value: (typeof courtToggles)[K],
+  ) => {
+    setCourtToggles((prev) => {
+      const updated = { ...prev, [key]: value };
+      setSetting("obiter-courtToggles", updated);
+      return updated;
+    });
   }, []);
 
   const handleApplyStyles = useCallback(async () => {
@@ -449,6 +543,116 @@ export default function Settings(): JSX.Element {
             ? "Court mode: no ibid, short case names without (n X), parallel citations by default, List of Authorities instead of bibliography."
             : "Standard academic footnote citation with ibid, short references, and bibliography."}
         </p>
+
+        {writingMode === "court" && (
+          <>
+            <label style={{ fontSize: 12, display: "block", marginTop: 10, marginBottom: 6 }}>
+              Jurisdiction
+              <select
+                className="ic-select"
+                style={{ width: "100%", marginTop: 4 }}
+                value={courtJurisdiction}
+                onChange={(e) => void handleJurisdictionChange(e.target.value)}
+              >
+                <option value="">Select a court...</option>
+                {COURT_GROUPS.map((group) => (
+                  <optgroup key={group} label={group}>
+                    {getJurisdictionsByGroup(group).map((id) => (
+                      <option key={id} value={id}>{COURT_PRESETS[id].label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+
+            {courtJurisdiction && (
+              <div style={{ marginTop: 8, padding: "8px 10px", background: "var(--colour-surface)", borderRadius: 4, border: "1px solid var(--colour-border)" }}>
+                <p style={{ fontSize: 11, fontWeight: 600, margin: "0 0 6px", color: "var(--colour-text-secondary)" }}>
+                  Court toggles (override preset defaults)
+                </p>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Parallel citations
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.parallelCitations}
+                    onChange={(e) => handleToggleOverride("parallelCitations", e.target.value as ParallelCitationMode)}
+                  >
+                    <option value="off">Off</option>
+                    <option value="preferred">Preferred</option>
+                    <option value="mandatory">Mandatory</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Pinpoint style
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.pinpointStyle}
+                    onChange={(e) => handleToggleOverride("pinpointStyle", e.target.value as PinpointStyle)}
+                  >
+                    <option value="page-only">Page only</option>
+                    <option value="para-only">Paragraph only</option>
+                    <option value="para-and-page">Paragraph and page</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Authorised-report hierarchy
+                  <input
+                    type="text"
+                    className="ic-input"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={getCourtPreset(courtJurisdiction)?.authorisedReportHierarchy.join(" \u2192 ") ?? "MNC only"}
+                    disabled
+                  />
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Unreported-judgment gate
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.unreportedGate}
+                    onChange={(e) => handleToggleOverride("unreportedGate", e.target.value as UnreportedGate)}
+                  >
+                    <option value="off">Off</option>
+                    <option value="warn">Warn</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Ibid / (n X) suppression
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.ibidSuppression}
+                    onChange={(e) => handleToggleOverride("ibidSuppression", e.target.value as IbidSuppression)}
+                  >
+                    <option value="off">Off</option>
+                    <option value="on">On</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 0 }}>
+                  List of Authorities
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.loaType}
+                    onChange={(e) => handleToggleOverride("loaType", e.target.value as LoaType)}
+                  >
+                    <option value="off">Off</option>
+                    <option value="simple">Simple</option>
+                    <option value="part-ab">Part A / Part B</option>
+                  </select>
+                </label>
+              </div>
+            )}
+          </>
+        )}
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

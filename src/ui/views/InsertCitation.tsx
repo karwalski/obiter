@@ -20,6 +20,23 @@ import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
+import {
+  type CourtJurisdiction,
+  type SubsequentTreatment,
+  SUBSEQUENT_TREATMENT_OPTIONS,
+  NEGATIVE_TREATMENTS,
+  UNREPORTED_GATE_JURISDICTIONS,
+  QLD_JURISDICTIONS,
+  NSW_JURISDICTIONS,
+  VIC_JURISDICTIONS,
+  isCourtJurisdiction,
+  getCourtPreset,
+} from "../../engine/court/presets";
+import {
+  courtGuideQldSelectivity,
+  courtGuideNswSelectivity,
+  courtGuideVicAglcAdoption,
+} from "../data/referenceGuide";
 
 // ─── Source Type Grouping ────────────────────────────────────────────────────
 
@@ -392,6 +409,12 @@ export default function InsertCitation(): JSX.Element {
   const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
 
+  // COURT-007 / COURT-010: Court mode state
+  const [courtJurisdiction, setCourtJurisdiction] = useState<CourtJurisdiction | null>(null);
+  const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
+  const [unreportedGateVisible, setUnreportedGateVisible] = useState(false);
+  const [courtGuideReminderDismissed, setCourtGuideReminderDismissed] = useState(false);
+
   // RIBBON-002: Recent citations state
   const [recentCitations, setRecentCitations] = useState<Citation[]>([]);
   const [recentExpanded, setRecentExpanded] = useState(true);
@@ -402,8 +425,41 @@ export default function InsertCitation(): JSX.Element {
     setLlmConfig(config);
   }, []);
 
-  // RIBBON-002: Load recent citations (sorted by modifiedAt desc, top 5)
+  // COURT-007: Load court jurisdiction from store on mount and refresh
   const { refreshCounter, triggerRefresh } = useCitationContext();
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const store = await getStore();
+        const mode = store.getWritingMode();
+        const jurisdictionId = store.getCourtJurisdiction();
+        if (!cancelled) {
+          if (mode === "court" && jurisdictionId && isCourtJurisdiction(jurisdictionId)) {
+            setCourtJurisdiction(jurisdictionId as CourtJurisdiction);
+          } else {
+            setCourtJurisdiction(null);
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [refreshCounter]);
+
+  // ─── Derived court mode flags ──────────────────────────────────────────
+  const isUnreportedGateActive = courtJurisdiction !== null &&
+    UNREPORTED_GATE_JURISDICTIONS.has(courtJurisdiction);
+  const isQldMode = courtJurisdiction !== null &&
+    QLD_JURISDICTIONS.has(courtJurisdiction);
+  const isNswMode = courtJurisdiction !== null &&
+    NSW_JURISDICTIONS.has(courtJurisdiction);
+  const isVicMode = courtJurisdiction !== null &&
+    VIC_JURISDICTIONS.has(courtJurisdiction);
+
+  // RIBBON-002: Load recent citations (sorted by modifiedAt desc, top 5)
 
   useEffect(() => {
     let cancelled = false;
@@ -600,6 +656,55 @@ export default function InsertCitation(): JSX.Element {
       setClassifyLoading(false);
     }
   }, [llmConfig, classifyDescription]);
+
+  // ─── COURT-007: Unreported-judgment gate check ──────────────────────────
+
+  /**
+   * Determines whether to show the unreported-judgment gate warning.
+   * Active when: court mode with warn gate, case source type, MNC only
+   * (no report series), and not already dismissed for this case.
+   */
+  const shouldShowUnreportedGate = useMemo(() => {
+    if (!isUnreportedGateActive) return false;
+    if (!selectedSourceType || !selectedSourceType.startsWith("case.")) return false;
+
+    // Check if the case has a report series (meaning it is reported)
+    const reportSeries = (formData.reportSeries as string) || "";
+    if (reportSeries.trim()) return false;
+
+    // Must have at least a party name to trigger the gate
+    const party1 = (formData.party1 as string) || "";
+    if (!party1.trim()) return false;
+
+    // Build a key for deduplication (once per case per document)
+    const year = (formData.year as string) || "";
+    const caseKey = `${party1.trim()}_${year.trim()}`;
+    if (unreportedGateShown.has(caseKey)) return false;
+
+    return true;
+  }, [isUnreportedGateActive, selectedSourceType, formData, unreportedGateShown]);
+
+  const handleUnreportedGateProceed = useCallback(() => {
+    const party1 = (formData.party1 as string) || "";
+    const year = (formData.year as string) || "";
+    const caseKey = `${party1.trim()}_${year.trim()}`;
+    setUnreportedGateShown((prev) => new Set(prev).add(caseKey));
+    setUnreportedGateVisible(false);
+  }, [formData]);
+
+  const handleUnreportedGateCheck = useCallback(() => {
+    // Leave citation in review state - user should check before proceeding
+    setUnreportedGateVisible(false);
+    setFeedback({
+      type: "error",
+      message: "Citation flagged for review: unreported judgment requires confirmation of material legal principle.",
+    });
+  }, []);
+
+  // Show the gate notification when conditions are met
+  useEffect(() => {
+    setUnreportedGateVisible(shouldShowUnreportedGate);
+  }, [shouldShowUnreportedGate]);
 
   // ─── Preview ────────────────────────────────────────────────────────────
 
@@ -867,6 +972,99 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField)}
       {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
+
+      {/* COURT-007: Unreported-judgment gate notification */}
+      {unreportedGateVisible && courtJurisdiction && (
+        <div className="ic-court-gate" role="alert">
+          <div className="ic-court-gate-text">
+            Practice directions in {getCourtPreset(courtJurisdiction)?.label ?? courtJurisdiction} restrict
+            citation of unreported judgments to those containing a material statement of legal
+            principle not found in reported authority. Does this case meet that threshold?
+          </div>
+          <div className="ic-court-gate-actions">
+            <button
+              type="button"
+              className="ic-court-gate-btn ic-court-gate-btn--proceed"
+              onClick={handleUnreportedGateProceed}
+            >
+              Yes, proceed
+            </button>
+            <button
+              type="button"
+              className="ic-court-gate-btn ic-court-gate-btn--check"
+              onClick={handleUnreportedGateCheck}
+            >
+              Let me check
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* COURT-010: Queensland subsequent-treatment field */}
+      {selectedSourceType && selectedSourceType.startsWith("case.") && isQldMode && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-subsequent-treatment">
+            Subsequent Treatment
+            <FieldHelp
+              ruleNumber="PD 1/2024 cl 4(c)"
+              description="Queensland practice directions require practitioners to confirm whether cited authorities have been subsequently doubted or not followed."
+              example="Not affected"
+            />
+          </label>
+          <select
+            id="ic-subsequent-treatment"
+            className="ic-select"
+            value={(formData.subsequentTreatment as string) || ""}
+            onChange={(e) => updateField("subsequentTreatment", e.target.value)}
+          >
+            {SUBSEQUENT_TREATMENT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {NEGATIVE_TREATMENTS.has((formData.subsequentTreatment as SubsequentTreatment) || "") && (
+            <p className="ic-court-treatment-warning">
+              This authority has been {(formData.subsequentTreatment as string)?.replace("-", " ")}.
+              Consider whether it remains appropriate to cite.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* COURT-011: Qld / NSW selectivity duty reminder */}
+      {courtJurisdiction && !courtGuideReminderDismissed && (isQldMode || isNswMode) && (
+        <div className="ic-court-reminder" role="note">
+          <div className="ic-court-reminder-text">
+            {isQldMode ? courtGuideQldSelectivity.summary : courtGuideNswSelectivity.summary}
+          </div>
+          <button
+            type="button"
+            className="ic-court-reminder-dismiss"
+            onClick={() => setCourtGuideReminderDismissed(true)}
+            aria-label="Dismiss reminder"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* COURT-012: Victoria AGLC adoption note */}
+      {courtJurisdiction && !courtGuideReminderDismissed && isVicMode && (
+        <div className="ic-court-reminder" role="note">
+          <div className="ic-court-reminder-text">
+            {courtGuideVicAglcAdoption.summary}
+          </div>
+          <button
+            type="button"
+            className="ic-court-reminder-dismiss"
+            onClick={() => setCourtGuideReminderDismissed(true)}
+            aria-label="Dismiss reminder"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Short title */}
       {selectedSourceType && (

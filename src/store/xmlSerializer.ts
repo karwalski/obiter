@@ -67,11 +67,13 @@ export function serializeStore(
   aglcVersion: string = DEFAULT_AGLC_VERSION,
   standardId: string = "aglc4",
   writingMode: string = "academic",
+  courtJurisdiction?: string,
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+  const courtAttr = courtJurisdiction ? ` courtJurisdiction="${escapeXml(courtJurisdiction)}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}">`,
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}>`,
   );
 
   for (const citation of citations) {
@@ -154,6 +156,10 @@ export function deserializeStore(xml: string): CitationStoreData {
   const writingModeMatch = xml.match(/<obiter:citationStore[^>]*\swritingMode="([^"]*)"/);
   const writingMode = (writingModeMatch ? writingModeMatch[1] : "academic") as "academic" | "court";
 
+  // Extract courtJurisdiction attribute (COURT-002 — optional)
+  const courtJurisdictionMatch = xml.match(/<obiter:citationStore[^>]*\scourtJurisdiction="([^"]*)"/);
+  const courtJurisdiction = courtJurisdictionMatch ? courtJurisdictionMatch[1] : undefined;
+
   // Extract all <obiter:citation ...>...</obiter:citation> blocks
   const citations: Citation[] = [];
   const citationRegex = /<obiter:citation\s[^>]*>[\s\S]*?<\/obiter:citation>/g;
@@ -168,6 +174,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       aglcVersion,
       standardId,
       writingMode,
+      courtJurisdiction,
     },
     citations,
   };

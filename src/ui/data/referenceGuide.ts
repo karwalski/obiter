@@ -1207,3 +1207,64 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     ],
   },
 ];
+
+// ──────────────────────────────────────────────
+// Court Mode Reference Guide Entries (COURT-011 / COURT-012)
+// ──────────────────────────────────────────────
+
+/**
+ * COURT-011: Selectivity duty reminder for Queensland courts.
+ * Displayed when any Qld preset is active.
+ *
+ * @source Qld SC PD 1/2024 cl 5
+ */
+export const courtGuideQldSelectivity: ReferenceGuideEntry = {
+  id: "COURT-011-QLD",
+  ruleNumber: "PD 1/2024 cl 5",
+  title: "Queensland Selectivity Duty",
+  summary:
+    "PD 1/2024 cl 5: Limit citation to authorities necessary to establish principles. Do not cite authorities that merely rephrase, illustrate, or apply principles established in other cited authorities.",
+  examples: [],
+  tips: [
+    "Before adding another authority, ask whether it establishes a new principle or merely illustrates one already cited.",
+    "Courts may make adverse costs orders where excessive authorities are cited without justification.",
+  ],
+};
+
+/**
+ * COURT-011: Selectivity duty reminder for NSW courts.
+ * Displayed when any NSW preset is active.
+ *
+ * @source NSW SC PN Gen 20
+ */
+export const courtGuideNswSelectivity: ReferenceGuideEntry = {
+  id: "COURT-011-NSW",
+  ruleNumber: "PN SC Gen 20",
+  title: "NSW Selectivity Duty",
+  summary:
+    "PN SC Gen 20: Citation of unreported judgments is limited to cases containing a material statement of legal principle not found in reported authority.",
+  examples: [],
+  tips: [
+    "Prefer reported authorities where available. Cite unreported judgments only when they contain a novel statement of principle.",
+    "If citing an unreported judgment, be prepared to explain why no reported authority covers the same point.",
+  ],
+};
+
+/**
+ * COURT-012: Victoria AGLC adoption note.
+ * Displayed when any Vic preset is active.
+ *
+ * @source Vic SC PN Gen 3 cl 4.1
+ */
+export const courtGuideVicAglcAdoption: ReferenceGuideEntry = {
+  id: "COURT-012-VIC",
+  ruleNumber: "PN SC Gen 3 cl 4.1",
+  title: "Victoria AGLC Adoption",
+  summary:
+    "The Supreme Court of Victoria uses the AGLC as the basis for citation formats (PN SC Gen 3 cl 4.1). Academic AGLC4 formatting is appropriate for Victorian court submissions, with the addition of parallel citations.",
+  examples: [],
+  tips: [
+    "AGLC4-compliant formatting requires no adjustment for Victorian court submissions beyond adding parallel citations.",
+    "Vic pinpoint style uses both page and paragraph: 420, [45].",
+  ],
+};

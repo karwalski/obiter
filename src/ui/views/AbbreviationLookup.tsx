@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   referenceGuideEntries,
@@ -21,6 +21,16 @@ import {
   PINPOINT_ABBREVIATIONS,
   PinpointAbbreviation,
 } from "../../engine/data/pinpoint-abbrevs";
+import {
+  COURT_GUIDE_GROUPS,
+  searchCourtGuide,
+  type CourtGuideEntry,
+} from "../data/courtReferenceGuide";
+import {
+  getPracticeDirectionsForJurisdiction,
+  getAllPracticeDirections,
+} from "../../engine/court/practiceDirections";
+import { CitationStore } from "../../store/citationStore";
 
 // ─── Guide Tab Type ───────────────────────────────────────────────────────────
 
@@ -494,34 +504,321 @@ function SourceTypesTab(): JSX.Element {
   );
 }
 
+// ─── Court Guide Tab (COURT-GUIDE-001) ───────────────────────────────────────
+
+function CourtGuideCard({
+  entry,
+  defaultOpen,
+}: {
+  entry: CourtGuideEntry;
+  defaultOpen: boolean;
+}): JSX.Element {
+  const [open, setOpen] = useState(defaultOpen);
+  const pdLinks = useMemo(
+    () => getPracticeDirectionsForJurisdiction(entry.jurisdiction),
+    [entry.jurisdiction],
+  );
+
+  return (
+    <div className="guide-card">
+      <button
+        className="guide-card-header"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="guide-card-rule">{entry.practiceDirection.number}</span>
+        <span className="guide-card-title">{entry.courtName}</span>
+        <span className="guide-card-chevron" aria-hidden="true">
+          {open ? "\u25B4" : "\u25BE"}
+        </span>
+      </button>
+      {open && (
+        <div className="guide-card-body">
+          <p className="guide-card-summary">
+            {entry.practiceDirection.name} ({entry.practiceDirection.date})
+          </p>
+
+          {pdLinks.length > 0 && (
+            <div className="guide-card-section">
+              <h4>Practice Direction Links</h4>
+              <ul>
+                {pdLinks.map((link, i) => (
+                  <li key={i}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="guide-pd-link"
+                    >
+                      {link.name}
+                    </a>
+                    <span className="guide-pd-verified">
+                      {" "}(verified {link.lastVerified})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {entry.citationRequirements.length > 0 && (
+            <div className="guide-card-section">
+              <h4>Citation Requirements</h4>
+              <ul>
+                {entry.citationRequirements.map((req, i) => (
+                  <li key={i}>{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {entry.loaRequirements.length > 0 && (
+            <div className="guide-card-section">
+              <h4>LOA Format</h4>
+              <ul>
+                {entry.loaRequirements.map((req, i) => (
+                  <li key={i}>{req}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {entry.filingProcedures.length > 0 && (
+            <div className="guide-card-section">
+              <h4>Filing Deadlines and Procedures</h4>
+              <ul>
+                {entry.filingProcedures.map((proc, i) => (
+                  <li key={i}>{proc}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CourtGuideTab({
+  activeJurisdiction,
+}: {
+  activeJurisdiction: string | undefined;
+}): JSX.Element {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    let entries = searchCourtGuide(query);
+    // When a jurisdiction is active and no search query, show that jurisdiction first
+    if (query.trim() === "" && activeJurisdiction) {
+      const active = entries.filter((e) => e.jurisdiction === activeJurisdiction);
+      const rest = entries.filter((e) => e.jurisdiction !== activeJurisdiction);
+      entries = [...active, ...rest];
+    }
+    return entries;
+  }, [query, activeJurisdiction]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, CourtGuideEntry[]>();
+    for (const entry of filtered) {
+      const list = map.get(entry.group);
+      if (list) {
+        list.push(entry);
+      } else {
+        map.set(entry.group, [entry]);
+      }
+    }
+    return COURT_GUIDE_GROUPS.filter((g) => map.has(g)).map((g) => ({
+      group: g,
+      entries: map.get(g)!,
+    }));
+  }, [filtered]);
+
+  const hasFilter = query.trim() !== "";
+
+  return (
+    <>
+      <input
+        className="guide-search"
+        type="search"
+        placeholder="Search by court, jurisdiction, or topic\u2026"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        aria-label="Search court guide"
+      />
+
+      {groups.length === 0 && (
+        <p className="guide-empty">No court entries match your search.</p>
+      )}
+
+      {groups.map(({ group, entries }) => (
+        <div key={group} className="guide-chapter">
+          <h3 className="guide-chapter-title">{group}</h3>
+          {entries.map((entry) => (
+            <CourtGuideCard
+              key={entry.jurisdiction}
+              entry={entry}
+              defaultOpen={
+                hasFilter || entry.jurisdiction === activeJurisdiction
+              }
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ─── Practice Directions Tab (COURT-GUIDE-002) ──────────────────────────────
+
+function PracticeDirectionsTab(): JSX.Element {
+  const [query, setQuery] = useState("");
+  const allLinks = useMemo(() => getAllPracticeDirections(), []);
+
+  const filtered = useMemo(() => {
+    if (query.trim() === "") return allLinks;
+    const q = query.toLowerCase();
+    return allLinks.filter(
+      (link) =>
+        link.jurisdiction.toLowerCase().includes(q) ||
+        link.name.toLowerCase().includes(q) ||
+        link.url.toLowerCase().includes(q),
+    );
+  }, [query, allLinks]);
+
+  return (
+    <>
+      <input
+        className="guide-search"
+        type="search"
+        placeholder="Search practice directions\u2026"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        aria-label="Search practice directions"
+      />
+
+      {filtered.length === 0 && (
+        <p className="guide-empty">No practice directions match your search.</p>
+      )}
+
+      {filtered.length > 0 && (
+        <div className="guide-chapter">
+          <h3 className="guide-chapter-title">
+            Practice Directions ({filtered.length})
+          </h3>
+          <table className="guide-abbrev-table">
+            <thead>
+              <tr>
+                <th>Court</th>
+                <th>Practice Direction</th>
+                <th>Verified</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((link, i) => (
+                <tr key={i}>
+                  <td className="guide-abbrev-code">{link.jurisdiction}</td>
+                  <td>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="guide-pd-link"
+                    >
+                      {link.name}
+                    </a>
+                  </td>
+                  <td>{link.lastVerified}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
+
+type CourtGuideTabKey = "courtGuide" | "practiceDirections";
+
+const COURT_GUIDE_TAB_ITEMS: { key: CourtGuideTabKey; label: string }[] = [
+  { key: "courtGuide", label: "Court Guide" },
+  { key: "practiceDirections", label: "Practice Directions" },
+];
 
 export default function AbbreviationLookup(): JSX.Element {
   const [activeTab, setActiveTab] = useState<GuideTab>("rules");
+  const [courtTab, setCourtTab] = useState<CourtGuideTabKey>("courtGuide");
+  const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
+  const [courtJurisdiction, setCourtJurisdiction] = useState<string | undefined>(undefined);
+
+  // Load writing mode and jurisdiction from the citation store
+  useEffect(() => {
+    void (async () => {
+      try {
+        const store = new CitationStore();
+        await store.initStore();
+        setWritingMode(store.getWritingMode());
+        setCourtJurisdiction(store.getCourtJurisdiction());
+      } catch {
+        // Default to academic mode
+      }
+    })();
+  }, []);
+
+  const isCourtMode = writingMode === "court";
 
   return (
     <div className="guide-panel">
-      <h2>AGLC4 Reference Guide</h2>
+      <h2>{isCourtMode ? "Court Reference Guide" : "AGLC4 Reference Guide"}</h2>
 
-      <div className="guide-tab-bar" role="tablist">
-        {GUIDE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            className={`guide-tab${activeTab === tab.key ? " guide-tab--active" : ""}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {isCourtMode ? (
+        <>
+          <div className="guide-tab-bar" role="tablist">
+            {COURT_GUIDE_TAB_ITEMS.map((tab) => (
+              <button
+                key={tab.key}
+                role="tab"
+                aria-selected={courtTab === tab.key}
+                className={`guide-tab${courtTab === tab.key ? " guide-tab--active" : ""}`}
+                onClick={() => setCourtTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      <div role="tabpanel">
-        {activeTab === "rules" && <RulesTab />}
-        {activeTab === "abbreviations" && <AbbreviationsTab />}
-        {activeTab === "sourceTypes" && <SourceTypesTab />}
-      </div>
+          <div role="tabpanel">
+            {courtTab === "courtGuide" && (
+              <CourtGuideTab activeJurisdiction={courtJurisdiction} />
+            )}
+            {courtTab === "practiceDirections" && <PracticeDirectionsTab />}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="guide-tab-bar" role="tablist">
+            {GUIDE_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                role="tab"
+                aria-selected={activeTab === tab.key}
+                className={`guide-tab${activeTab === tab.key ? " guide-tab--active" : ""}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div role="tabpanel">
+            {activeTab === "rules" && <RulesTab />}
+            {activeTab === "abbreviations" && <AbbreviationsTab />}
+            {activeTab === "sourceTypes" && <SourceTypesTab />}
+          </div>
+        </>
+      )}
     </div>
   );
 }

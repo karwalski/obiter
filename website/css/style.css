@@ -2059,6 +2059,21 @@ section:nth-child(even) {
   font-size: 0.8125rem;
 }
 
+.docs-note {
+  background-color: var(--colour-accent-subtle);
+  border-left: 3px solid var(--colour-accent);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-xl);
+}
+
+.docs-note p {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--colour-text-secondary);
+  margin-bottom: 0;
+}
+
 @media (max-width: 768px) {
   .docs-toc__list {
     columns: 1;

@@ -186,6 +186,25 @@ export class CitationStore {
   }
 
   /**
+   * Return the current court jurisdiction ID (COURT-002).
+   * Returns undefined when no jurisdiction is set (academic mode or unselected).
+   */
+  getCourtJurisdiction(): string | undefined {
+    this.ensureInitialised();
+    return this.storeData!.metadata.courtJurisdiction;
+  }
+
+  /**
+   * Update the court jurisdiction and persist (COURT-002).
+   * Pass undefined to clear the jurisdiction (e.g. when switching to academic mode).
+   */
+  async setCourtJurisdiction(jurisdictionId: string | undefined): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.courtJurisdiction = jurisdictionId;
+    await this.persist();
+  }
+
+  /**
    * Return a snapshot of the store metadata.
    */
   getMetadata(): StoreMetadata {
@@ -207,6 +226,7 @@ export class CitationStore {
       this.storeData!.metadata.aglcVersion,
       this.storeData!.metadata.standardId ?? DEFAULT_STANDARD_ID,
       this.storeData!.metadata.writingMode ?? "academic",
+      this.storeData!.metadata.courtJurisdiction,
     );
 
     await Word.run(async (context) => {

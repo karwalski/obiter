@@ -11,6 +11,11 @@ import { checkDateFormatting } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
 import { COURT_IDENTIFIERS } from "./data/court-identifiers";
 import type { WritingMode } from "./standards/types";
+import {
+  type CourtJurisdiction as PresetCourtJurisdiction,
+  QLD_JURISDICTIONS,
+  isCourtJurisdiction as isCourtJurisdictionPreset,
+} from "./court/presets";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -22,6 +27,62 @@ export interface ValidationResult {
   errors: ValidationIssue[];
   warnings: ValidationIssue[];
   info: ValidationIssue[];
+}
+
+// ─── Court mode types ─────────────────────────────────────────────────────────
+
+/**
+ * COURT-003: Parallel citation mode — determines whether parallel citations
+ * are required, preferred, or not expected.
+ */
+export type ParallelCitationMode = "mandatory" | "preferred" | "off";
+
+/**
+ * COURT-007: Unreported judgment gate — determines whether unreported
+ * judgments require a material-principle confirmation.
+ */
+export type UnreportedGate = "off" | "warn";
+
+/**
+ * Court jurisdictional preset identifier used by court mode validation.
+ */
+export type CourtJurisdiction =
+  | "HCA" | "FCA" | "FCFCOA"
+  | "NSWCA" | "NSWSC" | "NSW_DISTRICT"
+  | "VSCA" | "VSC" | "VIC_COUNTY"
+  | "QCA" | "QSC" | "QLD_DISTRICT"
+  | "WASC" | "SASC" | "TASCSC" | "ACTSC" | "NTSC"
+  | "ART" | "FWC" | "STATE_TRIBUNAL";
+
+/**
+ * Configuration for court mode validation, derived from the jurisdictional
+ * preset (COURT-003).
+ */
+export interface CourtModeConfig {
+  jurisdiction: CourtJurisdiction;
+  parallelCitationMode: ParallelCitationMode;
+  unreportedGate: UnreportedGate;
+  /** Page limit for submissions (FCA / HCA). */
+  pageLimit?: number;
+  /** Minimum font size in pt (FCA). */
+  minFontSizePt?: number;
+  /** Minimum line spacing multiplier (FCA). */
+  minLineSpacing?: number;
+}
+
+/**
+ * Heuristic document formatting metrics passed to submission formatting
+ * checks (COURT-VALID-003).
+ */
+export interface DocumentFormattingMetrics {
+  /** Estimated page count of the submission. */
+  pageCount?: number;
+  /** Whether this is a reply submission (lower page limit in FCA). */
+  isReply?: boolean;
+  /** Minimum font size detected in the document, in pt. */
+  minFontSizePt?: number;
+  /** Minimum line spacing detected in the document. */
+  minLineSpacing?: number;
 }
 
 // ─── VALID-001: Document-wide orchestration ──────────────────────────────────
@@ -38,6 +99,7 @@ export function validateDocument(
   citations: Citation[],
   bodyText?: string,
   writingMode?: WritingMode,
+  courtJurisdiction?: string,
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
   const isCourtMode = writingMode === "court";
@@ -71,6 +133,17 @@ export function validateDocument(
   // emitted by default and are expected in court submissions)
   if (!isCourtMode) {
     allIssues.push(...checkParallelCitations(citations));
+  }
+
+  // COURT-010: Queensland subsequent-treatment validation
+  // Flags case citations where subsequent treatment is blank in Qld mode
+  if (
+    isCourtMode &&
+    courtJurisdiction &&
+    isCourtJurisdictionPreset(courtJurisdiction) &&
+    QLD_JURISDICTIONS.has(courtJurisdiction as PresetCourtJurisdiction)
+  ) {
+    allIssues.push(...checkSubsequentTreatment(citations));
   }
 
   // Categorise by severity
@@ -715,6 +788,41 @@ export function checkNzlsgRules(
   return issues;
 }
 
+// ─── COURT-010: Subsequent treatment check (Qld) ──────────────────────────────
+
+/**
+ * Checks that all case citations have the subsequentTreatment field populated
+ * when in Queensland court mode.
+ *
+ * @remarks Qld SC PD 1/2024 cl 4(c) requires practitioners to confirm whether
+ * cited authorities have been subsequently doubted or not followed.
+ */
+export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const citation of citations) {
+    if (!citation.sourceType.startsWith("case.")) continue;
+
+    const label = citation.shortTitle || citation.id;
+    const treatment = citation.data.subsequentTreatment as string | undefined;
+
+    if (!treatment || treatment.trim() === "") {
+      issues.push({
+        ruleNumber: "Qld SC PD 1/2024 cl 4(c)",
+        message:
+          `Case '${label}': Subsequent treatment not recorded. Queensland practice ` +
+          `directions require confirmation of whether cited authorities have been ` +
+          `subsequently doubted or not followed.`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
 // ─── VALID-007: Parallel citation checks ──────────────────────────────────────
 
 /**
@@ -784,6 +892,392 @@ export function checkParallelCitations(
         message:
           `Case '${label}': Consider including the medium neutral citation ` +
           "alongside the authorised report.",
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
+// ─── COURT-VALID-001 / COURT-VALID-003: Court mode validation ──────────────
+
+/**
+ * Jurisdictions where the unreported judgment gate applies.
+ * Source: NSW SC Gen 20 cl 5, Qld SC PD 1/2024 cl 4(d), Tas SC PD 3/2014.
+ */
+const UNREPORTED_GATE_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set([
+  "NSWCA", "NSWSC", "NSW_DISTRICT",
+  "QCA", "QSC", "QLD_DISTRICT",
+  "TASCSC",
+]);
+
+/**
+ * Jurisdictions where subsequent treatment recording is required.
+ * Source: Qld SC PD 1/2024 cl 4(c).
+ */
+const SUBSEQUENT_TREATMENT_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set([
+  "QCA", "QSC", "QLD_DISTRICT",
+]);
+
+/**
+ * Returns the practice direction source string for a court jurisdiction.
+ * Each court-mode validation result references the source practice direction,
+ * not an AGLC4 rule number.
+ */
+function getPracticeDirectionSource(jurisdiction: CourtJurisdiction): string {
+  switch (jurisdiction) {
+    case "HCA":
+      return "HCA PD 2 of 2024";
+    case "FCA":
+    case "FCFCOA":
+      return "FCA GPN-AUTH (Dec 2024)";
+    case "NSWCA":
+    case "NSWSC":
+    case "NSW_DISTRICT":
+      return "NSW SC PN Gen 20 (Oct 2023)";
+    case "VSCA":
+    case "VSC":
+    case "VIC_COUNTY":
+      return "Vic SC PN Gen 3 (Jan 2017)";
+    case "QCA":
+    case "QSC":
+    case "QLD_DISTRICT":
+      return "Qld SC PD 1 of 2024";
+    case "WASC":
+      return "WASC Practice Direction";
+    case "SASC":
+      return "SASC Practice Direction";
+    case "TASCSC":
+      return "Tas SC PD 3/2014";
+    case "ACTSC":
+      return "ACTSC Practice Direction";
+    case "NTSC":
+      return "NT SC PD 2 of 2007";
+    case "ART":
+      return "ART Practice Direction";
+    case "FWC":
+      return "FWC Practice Note";
+    case "STATE_TRIBUNAL":
+      return "State Tribunal Practice Direction";
+  }
+}
+
+/**
+ * COURT-VALID-001: Court mode validation ruleset.
+ *
+ * When court mode is active, validates citations and footnotes against
+ * court-specific practice direction requirements instead of (or in
+ * addition to) academic AGLC4 rules.
+ *
+ * Checks:
+ * - **Error:** parallel citation missing when mode is "mandatory" and
+ *   both report + MNC are available
+ * - **Warning:** ibid or `(n X)` pattern detected in footnotes
+ * - **Warning:** unreported judgment cited without confirmation
+ *   (NSW/Qld/Tas)
+ * - **Info:** subsequent treatment not recorded (Qld only)
+ * - **Info:** more than 30 authorities cited (proportionality)
+ * - **Info:** legislation cited without jurisdiction identifier
+ *
+ * Each result references the source practice direction, not an AGLC4
+ * rule number.
+ *
+ * COURT-VALID-003 checks are included when FCA or HCA config is provided.
+ *
+ * @param footnoteTexts - Array of footnote text strings.
+ * @param citations - Array of citation records in the document.
+ * @param config - Court mode configuration from the jurisdictional preset.
+ * @param formatting - Optional heuristic document formatting metrics.
+ * @returns A categorised validation result.
+ */
+export function validateCourtMode(
+  footnoteTexts: string[],
+  citations: Citation[],
+  config: CourtModeConfig,
+  formatting?: DocumentFormattingMetrics,
+): ValidationResult {
+  const allIssues: ValidationIssue[] = [];
+  const pdSource = getPracticeDirectionSource(config.jurisdiction);
+
+  // ── Error: parallel citation missing (mandatory mode) ──────────────
+  if (config.parallelCitationMode === "mandatory") {
+    for (const citation of citations) {
+      if (citation.sourceType !== "case.reported") {
+        continue;
+      }
+
+      const d = citation.data;
+      const label = citation.shortTitle || citation.id;
+      const reportSeries = d.reportSeries as string | undefined;
+      const mncValue = d.mnc as string | undefined;
+      const parallels = d.parallelCitations as ParallelCitation[] | undefined;
+      const hasParallels = Array.isArray(parallels) && parallels.length > 0;
+
+      const hasReport =
+        typeof reportSeries === "string" && reportSeries.trim().length > 0;
+      const hasMnc =
+        typeof mncValue === "string" && mncValue.trim().length > 0;
+
+      // Both are available but no parallel citation structure recorded
+      if (hasReport && hasMnc && !hasParallels) {
+        allIssues.push({
+          ruleNumber: pdSource,
+          message:
+            `Case '${label}': Parallel citation required — both authorised report and MNC ` +
+            `are available but parallel citations are not recorded`,
+          severity: "error",
+          offset: 0,
+          length: 0,
+        });
+      }
+    }
+  }
+
+  // ── Warning: ibid or (n X) pattern in footnotes ────────────────────
+  for (let i = 0; i < footnoteTexts.length; i++) {
+    const text = footnoteTexts[i];
+
+    // Check for ibid
+    const ibidRegex = /\bIbid\b/gi;
+    let match: RegExpExecArray | null;
+    while ((match = ibidRegex.exec(text)) !== null) {
+      allIssues.push({
+        ruleNumber: pdSource,
+        message:
+          `Footnote ${i + 1}: 'Ibid' detected — court submissions should use ` +
+          `short-form subsequent references instead`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+
+    // Check for (n X) cross-references
+    const crossRefRegex = /\(n\s+\d+\)/g;
+    while ((match = crossRefRegex.exec(text)) !== null) {
+      allIssues.push({
+        ruleNumber: pdSource,
+        message:
+          `Footnote ${i + 1}: '${match[0]}' cross-reference detected — court ` +
+          `submissions should use short-form subsequent references instead`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+  }
+
+  // ── Warning: unreported judgment without confirmation (NSW/Qld/Tas) ─
+  if (
+    config.unreportedGate === "warn" &&
+    UNREPORTED_GATE_JURISDICTIONS.has(config.jurisdiction)
+  ) {
+    for (const citation of citations) {
+      if (citation.sourceType !== "case.unreported.mnc") {
+        continue;
+      }
+
+      const label = citation.shortTitle || citation.id;
+      const confirmed = citation.data.unreportedConfirmed as boolean | undefined;
+
+      if (!confirmed) {
+        allIssues.push({
+          ruleNumber: pdSource,
+          message:
+            `Case '${label}': Unreported judgment cited without confirmation ` +
+            `that it contains a material statement of legal principle not found ` +
+            `in reported authority`,
+          severity: "warning",
+          offset: 0,
+          length: 0,
+        });
+      }
+    }
+  }
+
+  // ── Info: subsequent treatment not recorded (Qld only) ─────────────
+  if (SUBSEQUENT_TREATMENT_JURISDICTIONS.has(config.jurisdiction)) {
+    for (const citation of citations) {
+      if (!citation.sourceType.startsWith("case.")) {
+        continue;
+      }
+
+      const label = citation.shortTitle || citation.id;
+      const treatment = citation.data.subsequentTreatment as string | undefined;
+
+      if (!treatment || treatment.trim() === "") {
+        allIssues.push({
+          ruleNumber: "Qld SC PD 1 of 2024 cl 4(c)",
+          message:
+            `Case '${label}': Subsequent treatment not recorded — Qld practice ` +
+            `directions require confirmation of whether cited authorities have ` +
+            `been subsequently doubted or not followed`,
+          severity: "info",
+          offset: 0,
+          length: 0,
+        });
+      }
+    }
+  }
+
+  // ── Info: more than 30 authorities cited (proportionality) ─────────
+  const authorityCount = citations.filter(
+    (c) => c.sourceType.startsWith("case.") || c.sourceType.startsWith("legislation."),
+  ).length;
+
+  if (authorityCount > 30) {
+    allIssues.push({
+      ruleNumber: pdSource,
+      message:
+        `${authorityCount} authorities cited — consider whether all are ` +
+        `necessary (proportionality). Practice directions encourage citation ` +
+        `of only those authorities necessary to establish principles`,
+      severity: "info",
+      offset: 0,
+      length: 0,
+    });
+  }
+
+  // ── Info: legislation without jurisdiction identifier ───────────────
+  for (const citation of citations) {
+    if (!citation.sourceType.startsWith("legislation.")) {
+      continue;
+    }
+
+    const label = citation.shortTitle || citation.id;
+    const jurisdiction = citation.data.jurisdiction as string | undefined;
+
+    if (!jurisdiction || jurisdiction.trim() === "") {
+      allIssues.push({
+        ruleNumber: pdSource,
+        message:
+          `Legislation '${label}': No jurisdiction identifier specified — ` +
+          `court submissions should identify the enacting jurisdiction`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  // ── COURT-VALID-003: Submission formatting checks ──────────────────
+  if (formatting) {
+    allIssues.push(...checkSubmissionFormatting(config, formatting));
+  }
+
+  // Categorise by severity
+  const errors: ValidationIssue[] = [];
+  const warnings: ValidationIssue[] = [];
+  const info: ValidationIssue[] = [];
+
+  for (const issue of allIssues) {
+    switch (issue.severity) {
+      case "error":
+        errors.push(issue);
+        break;
+      case "warning":
+        warnings.push(issue);
+        break;
+      case "info":
+        info.push(issue);
+        break;
+    }
+  }
+
+  return { errors, warnings, info };
+}
+
+/**
+ * COURT-VALID-003: Submission formatting checks.
+ *
+ * Heuristic checks for FCA and HCA submission formatting requirements.
+ * All results are info-level since these are best-effort estimates based
+ * on Word document properties.
+ *
+ * FCA checks (FCA Practice Note APP 2, Dec 2025):
+ * - Warn if submissions exceed 10 pages (5 pages for reply)
+ * - Warn if font size is below 12pt
+ * - Warn if line spacing is below 1.5
+ *
+ * HCA checks (HCA PD 2 of 2024, Part 44):
+ * - Warn if page limit exceeded (20 pages for written submissions)
+ *
+ * @param config - Court mode configuration.
+ * @param formatting - Heuristic document formatting metrics.
+ * @returns Array of info-level validation issues.
+ */
+export function checkSubmissionFormatting(
+  config: CourtModeConfig,
+  formatting: DocumentFormattingMetrics,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const pdSource = getPracticeDirectionSource(config.jurisdiction);
+
+  if (config.jurisdiction === "FCA" || config.jurisdiction === "FCFCOA") {
+    // Page limit check
+    if (formatting.pageCount !== undefined) {
+      const limit = formatting.isReply ? 5 : 10;
+      if (formatting.pageCount > limit) {
+        issues.push({
+          ruleNumber: "FCA Practice Note APP 2 (Dec 2025)",
+          message:
+            `Submission is ${formatting.pageCount} pages — FCA ` +
+            `${formatting.isReply ? "reply" : "submission"} limit is ${limit} pages`,
+          severity: "info",
+          offset: 0,
+          length: 0,
+        });
+      }
+    }
+
+    // Font size check
+    if (
+      formatting.minFontSizePt !== undefined &&
+      formatting.minFontSizePt < 12
+    ) {
+      issues.push({
+        ruleNumber: "FCA Practice Note APP 2 (Dec 2025)",
+        message:
+          `Minimum font size detected is ${formatting.minFontSizePt}pt — ` +
+          `FCA requires at least 12pt`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+
+    // Line spacing check
+    if (
+      formatting.minLineSpacing !== undefined &&
+      formatting.minLineSpacing < 1.5
+    ) {
+      issues.push({
+        ruleNumber: "FCA Practice Note APP 2 (Dec 2025)",
+        message:
+          `Line spacing detected is ${formatting.minLineSpacing} — ` +
+          `FCA requires at least 1.5 line spacing`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  if (config.jurisdiction === "HCA") {
+    // HCA Part 44 page limit (20 pages for written submissions)
+    const hcaPageLimit = config.pageLimit ?? 20;
+    if (
+      formatting.pageCount !== undefined &&
+      formatting.pageCount > hcaPageLimit
+    ) {
+      issues.push({
+        ruleNumber: "HCA PD 2 of 2024, Part 44",
+        message:
+          `Submission is ${formatting.pageCount} pages — HCA Part 44 ` +
+          `limit is ${hcaPageLimit} pages`,
         severity: "info",
         offset: 0,
         length: 0,

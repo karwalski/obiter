@@ -11,6 +11,8 @@
 
 import { Pinpoint, ParallelCitation } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
+import type { PinpointStyle } from "../../../standards/types";
+import { getPreferredReportOrder } from "../../../court/reportHierarchy";
 
 // ─── Court-to-Series Mapping ─────────────────────────────────────────────────
 
@@ -89,10 +91,45 @@ export function formatReportSeries(series: string): FormattedRun[] {
  *   3. Subject-specific unauthorised reports
  *   4. Unreported (medium neutral citation)
  *
- * @returns 1 for authorised, 2 for generalist unauthorised,
- *          3 for subject-specific, 4 for unreported/unknown.
+ * COURT-006: When a jurisdiction is provided, the preference rank is
+ * derived from the jurisdiction-aware hierarchy data instead of the
+ * generic AGLC4 tiers. This supports court mode validation and
+ * auto-ordering of parallel citations.
+ *
+ * @param series - The report series abbreviation to rank.
+ * @param jurisdiction - Optional jurisdiction or court identifier. When
+ *   provided and recognised, uses the jurisdiction's hierarchy ordering
+ *   from COURT-006. When omitted or unrecognised, falls back to the
+ *   generic AGLC4 Rule 2.2.3 tier ordering.
+ * @returns A numeric rank where lower values indicate higher preference.
+ *   Without jurisdiction: 1 for authorised, 2 for generalist unauthorised,
+ *   3 for subject-specific, 4 for unreported/unknown.
+ *   With jurisdiction: 0-based index in the hierarchy list, with unknown
+ *   series ranked just below the last named series.
  */
-export function getReportSeriesPreference(series: string): number {
+export function getReportSeriesPreference(
+  series: string,
+  jurisdiction?: string,
+): number {
+  // COURT-006: jurisdiction-aware ordering when jurisdiction is provided
+  if (jurisdiction !== undefined) {
+    const hierarchy = getPreferredReportOrder(jurisdiction);
+    if (hierarchy.length > 0) {
+      const index = hierarchy.indexOf(series);
+      if (index !== -1) {
+        return index;
+      }
+      // Unknown series: rank just before MNC (subject-specific tier)
+      const mncIndex = hierarchy.indexOf("MNC");
+      if (mncIndex !== -1) {
+        return mncIndex - 0.5;
+      }
+      return hierarchy.length - 0.5;
+    }
+    // Unrecognised jurisdiction — fall through to AGLC4 defaults
+  }
+
+  // AGLC4 Rule 2.2.3: generic tier ordering
   const authorised = new Set([
     "CLR",
     "FCR",
@@ -160,6 +197,11 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  * - Page pinpoints are separated by a comma and space: `1, 6`.
  * - Paragraph pinpoints are separated by a space: `1 [23]`.
  *
+ * COURT-005: Pinpoint style parameterisation adjusts rendering:
+ * - "page-only" (default): starting page + page pinpoint `420, 425`
+ * - "para-only" (NSW, Qld): paragraph pinpoint only `[45]` — no starting page
+ * - "para-and-page" (Vic, FCA, HCA etc): starting page + paragraph `420, [45]–[46]`
+ *
  * @example
  *   formatStartingPageAndPinpoint(1)
  *     => [{ text: "1" }]
@@ -167,11 +209,58 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  *     => [{ text: "1, 6" }]
  *   formatStartingPageAndPinpoint(1, { type: "paragraph", value: "[23]" })
  *     => [{ text: "1 [23]" }]
+ *   formatStartingPageAndPinpoint(1, { type: "paragraph", value: "[45]" }, "para-only")
+ *     => [{ text: "[45]" }]
+ *   formatStartingPageAndPinpoint(420, { type: "paragraph", value: "[45]–[46]" }, "para-and-page")
+ *     => [{ text: "420, [45]–[46]" }]
  */
 export function formatStartingPageAndPinpoint(
   startingPage: number,
-  pinpoint?: Pinpoint
+  pinpoint?: Pinpoint,
+  pinpointStyle: PinpointStyle = "page-only"
 ): FormattedRun[] {
+  // ── COURT-005: para-only — emit paragraph pinpoint only, no starting page ──
+  if (pinpointStyle === "para-only") {
+    if (pinpoint && pinpoint.type === "paragraph") {
+      let text = pinpoint.value;
+      if (pinpoint.subPinpoint) {
+        text += formatPinpointText(pinpoint.subPinpoint);
+      }
+      return [{ text }];
+    }
+    // No paragraph pinpoint provided — fall through to emit starting page
+    // (edge case: user has only a page pinpoint in para-only mode)
+    if (pinpoint) {
+      let text = formatPinpointText(pinpoint).replace(/^, /, "");
+      if (pinpoint.subPinpoint) {
+        text += formatPinpointText(pinpoint.subPinpoint);
+      }
+      return [{ text }];
+    }
+    // No pinpoint at all — emit starting page as fallback
+    return [{ text: `${startingPage}` }];
+  }
+
+  // ── COURT-005: para-and-page — starting page, then paragraph pinpoint ──
+  if (pinpointStyle === "para-and-page") {
+    let text = `${startingPage}`;
+    if (pinpoint && pinpoint.type === "paragraph") {
+      // Comma-separated: "420, [45]–[46]"
+      text += `, ${pinpoint.value}`;
+      if (pinpoint.subPinpoint) {
+        text += formatPinpointText(pinpoint.subPinpoint);
+      }
+    } else if (pinpoint) {
+      // Non-paragraph pinpoint — render normally
+      text += formatPinpointText(pinpoint);
+      if (pinpoint.subPinpoint) {
+        text += formatPinpointText(pinpoint.subPinpoint);
+      }
+    }
+    return [{ text }];
+  }
+
+  // ── Default: page-only (academic) — starting page + pinpoint ──
   let text = `${startingPage}`;
   if (pinpoint) {
     text += formatPinpointText(pinpoint);
@@ -279,6 +368,8 @@ interface ReportedCaseData {
   pinpoint?: Pinpoint;
   courtId?: string;
   parallelCitations?: ParallelCitation[];
+  /** COURT-005: Pinpoint style override. Defaults to "page-only". */
+  pinpointStyle?: PinpointStyle;
 }
 
 /**
@@ -312,10 +403,10 @@ export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
   runs.push({ text: " " });
   runs.push(...formatReportSeries(data.reportSeries));
 
-  // Starting page and pinpoint
+  // Starting page and pinpoint (COURT-005: style-aware)
   runs.push({ text: " " });
   runs.push(
-    ...formatStartingPageAndPinpoint(data.startingPage, data.pinpoint)
+    ...formatStartingPageAndPinpoint(data.startingPage, data.pinpoint, data.pinpointStyle)
   );
 
   // Court identifier (omitted if apparent from series)

@@ -187,6 +187,29 @@ export interface Citation {
   tags: string[]; // User-defined grouping (for bibliography sections)
   createdAt: string; // ISO datetime
   modifiedAt: string; // ISO datetime
+
+  // ─── Court Mode (LOA) Fields ───────────────────────────────────────────────
+
+  /**
+   * LOA-002: Part A / Part B classification for List of Authorities.
+   *
+   * - "A" — authorities from which passages are to be read aloud
+   * - "B" — authorities to which reference may be made (default)
+   *
+   * Only relevant when court submission mode is active and the
+   * jurisdictional preset uses Part A-B LOA generation (HCA, FCA,
+   * NSWCA, VSCA, QCA).
+   */
+  loaPart?: "A" | "B";
+
+  /**
+   * LOA-004: Key authority marker for NSWCA LOA conventions.
+   *
+   * When true, the citation is rendered with an asterisk prefix in
+   * the List of Authorities. NSW Court of Appeal practitioner
+   * convention limits key authorities to a maximum of 5.
+   */
+  isKeyAuthority?: boolean;
 }
 
 // ─── Store Metadata ───────────────────────────────────────────────────────────
@@ -196,6 +219,7 @@ export interface StoreMetadata {
   aglcVersion: "4" | "5"; // Default AGLC version for new citations
   standardId?: string; // CitationStandardId — defaults to "aglc4" if missing (backward compat)
   writingMode?: "academic" | "court"; // MULTI-014 — defaults to "academic" if missing
+  courtJurisdiction?: string; // COURT-002 — CourtJurisdiction ID, present when writingMode is "court"
 }
 
 // ─── Store Shape (deserialized) ───────────────────────────────────────────────
