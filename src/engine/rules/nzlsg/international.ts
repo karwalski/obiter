@@ -135,10 +135,11 @@ export function formatUNDocument(data: NZUNDocumentData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Body
-  runs.push({ text: `${data.body} ` });
+  runs.push({ text: data.body });
 
   // Title in italics (if provided)
   if (data.title) {
+    runs.push({ text: " " });
     runs.push({ text: data.title, italic: true });
   }
 
