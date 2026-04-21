@@ -31,6 +31,8 @@ import {
   getAllPracticeDirections,
 } from "../../engine/court/practiceDirections";
 import { CitationStore } from "../../store/citationStore";
+import { getStandardConfig } from "../../engine/standards";
+import type { CitationStandardId } from "../../engine/standards/types";
 
 // ─── Guide Tab Type ───────────────────────────────────────────────────────────
 
@@ -98,6 +100,24 @@ function matchesRuleQuery(
     entry.ruleNumber.toLowerCase().includes(q) ||
     entry.title.toLowerCase().includes(q) ||
     entry.summary.toLowerCase().includes(q)
+  );
+}
+
+// ─── Standard Filtering Helpers (SWITCH-001) ─────────────────────────────────
+
+function filterEntriesByStandard(
+  entries: ReferenceGuideEntry[],
+  standardId: CitationStandardId,
+): ReferenceGuideEntry[] {
+  if (standardId.startsWith("oscola")) {
+    return entries.filter((e) => e.id.startsWith("OSC-REF"));
+  }
+  if (standardId.startsWith("nzlsg")) {
+    return entries.filter((e) => e.id.startsWith("NZLSG-REF"));
+  }
+  // AGLC (default): exclude OSCOLA and NZLSG entries
+  return entries.filter(
+    (e) => !e.id.startsWith("OSC-REF") && !e.id.startsWith("NZLSG-REF"),
   );
 }
 
@@ -307,7 +327,11 @@ function EntryCard({
 
 // ─── Rules Tab ────────────────────────────────────────────────────────────────
 
-function RulesTab(): JSX.Element {
+function RulesTab({
+  entries,
+}: {
+  entries: ReferenceGuideEntry[];
+}): JSX.Element {
   const [searchParams] = useSearchParams();
   const ruleParam = searchParams.get("rule") ?? "";
   const [query, setQuery] = useState(ruleParam);
@@ -315,9 +339,9 @@ function RulesTab(): JSX.Element {
   const filtered = useMemo(
     () =>
       query.trim() === ""
-        ? referenceGuideEntries
-        : referenceGuideEntries.filter((e) => matchesRuleQuery(e, query.trim())),
-    [query],
+        ? entries
+        : entries.filter((e) => matchesRuleQuery(e, query.trim())),
+    [query, entries],
   );
 
   const groups = useMemo(() => groupByChapter(filtered), [filtered]);
@@ -752,8 +776,9 @@ export default function AbbreviationLookup(): JSX.Element {
   const [courtTab, setCourtTab] = useState<CourtGuideTabKey>("courtGuide");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [courtJurisdiction, setCourtJurisdiction] = useState<string | undefined>(undefined);
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
-  // Load writing mode and jurisdiction from the citation store
+  // Load writing mode, jurisdiction, and standard from the citation store
   useEffect(() => {
     void (async () => {
       try {
@@ -761,17 +786,28 @@ export default function AbbreviationLookup(): JSX.Element {
         await store.initStore();
         setWritingMode(store.getWritingMode());
         setCourtJurisdiction(store.getCourtJurisdiction());
+        setStandardId(store.getStandardId());
       } catch {
-        // Default to academic mode
+        // Default to academic mode / aglc4
       }
     })();
   }, []);
+
+  const standardLabel = useMemo(
+    () => getStandardConfig(standardId).standardLabel,
+    [standardId],
+  );
+
+  const filteredGuideEntries = useMemo(
+    () => filterEntriesByStandard(referenceGuideEntries, standardId),
+    [standardId],
+  );
 
   const isCourtMode = writingMode === "court";
 
   return (
     <div className="guide-panel">
-      <h2>{isCourtMode ? "Court Reference Guide" : "AGLC4 Reference Guide"}</h2>
+      <h2>{isCourtMode ? "Court Reference Guide" : `${standardLabel} Reference Guide`}</h2>
 
       {isCourtMode ? (
         <>
@@ -813,7 +849,7 @@ export default function AbbreviationLookup(): JSX.Element {
           </div>
 
           <div role="tabpanel">
-            {activeTab === "rules" && <RulesTab />}
+            {activeTab === "rules" && <RulesTab entries={filteredGuideEntries} />}
             {activeTab === "abbreviations" && <AbbreviationsTab />}
             {activeTab === "sourceTypes" && <SourceTypesTab />}
           </div>

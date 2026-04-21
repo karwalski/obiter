@@ -3,10 +3,13 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { applyHeadingLevel } from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
+import { CitationStore } from "../../store/citationStore";
+import type { CitationStandardId } from "../../engine/standards/types";
+import { getStandardConfig } from "../../engine/standards";
 
 /** Single shared list ID — prevents the dual-list bug. */
 let aglcHeadingListId: number | undefined;
@@ -93,6 +96,23 @@ const SAMPLE_TEXTS: Record<number, string> = {
 export default function Styling(): JSX.Element {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+
+  // Load the active standard on mount
+  useEffect(() => {
+    void (async () => {
+      try {
+        const store = new CitationStore();
+        await store.initStore();
+        setStandardId(store.getStandardId());
+      } catch {
+        // Default to aglc4
+      }
+    })();
+  }, []);
+
+  const isAglc = standardId.startsWith("aglc");
+  const standardLabel = getStandardConfig(standardId).standardLabel;
 
   const handleApplyHeading = useCallback(async (level: 1 | 2 | 3 | 4 | 5) => {
     try {
@@ -185,8 +205,13 @@ export default function Styling(): JSX.Element {
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Heading Levels</legend>
         <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
-          Select text, then click a heading level to apply. Per AGLC4 Rule 1.12.2.
+          Select text, then click a heading level to apply.{isAglc ? " Per AGLC4 Rule 1.12.2." : ""}
         </p>
+        {!isAglc && (
+          <p style={{ fontSize: 11, margin: "0 0 8px", color: "var(--colour-text-secondary)" }}>
+            Heading formatting follows {standardLabel} conventions. Word heading styles are applied universally.
+          </p>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {HEADINGS.map((h) => (

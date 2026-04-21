@@ -97,6 +97,20 @@ async function insertBibliographyIntoDocument(
 
 // ─── Bibliography View ──────────────────────────────────────────────────────
 
+/**
+ * Returns the appropriate page heading based on writing mode and bibliography
+ * structure. OSCOLA uses "Tables of Cases and Legislation"; court mode uses
+ * "List of Authorities"; all others use "Bibliography".
+ */
+function getBibliographyHeading(
+  writingMode: "academic" | "court",
+  bibStructure: "aglc" | "oscola" | "nzlsg",
+): string {
+  if (writingMode === "court") return "List of Authorities";
+  if (bibStructure === "oscola") return "Tables of Cases and Legislation";
+  return "Bibliography";
+}
+
 export default function Bibliography(): JSX.Element {
   const [citations, setCitations] = useState<Citation[]>([]);
   const [citedOnly, setCitedOnly] = useState(true);
@@ -164,7 +178,7 @@ export default function Bibliography(): JSX.Element {
 
     try {
       await insertBibliographyIntoDocument(sections);
-      setSuccessMessage(writingMode === "court" ? "List of Authorities inserted successfully." : "Bibliography inserted successfully.");
+      setSuccessMessage(`${getBibliographyHeading(writingMode, bibStructure)} inserted successfully.`);
     } catch (err) {
       setError(
         err instanceof Error
@@ -180,7 +194,7 @@ export default function Bibliography(): JSX.Element {
   if (loading) {
     return (
       <div>
-        <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
+        <h2>{getBibliographyHeading(writingMode, bibStructure)}</h2>
         <p>Loading citations...</p>
       </div>
     );
@@ -190,8 +204,8 @@ export default function Bibliography(): JSX.Element {
   if (citations.length === 0) {
     return (
       <div>
-        <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
-        <p>No citations to generate {writingMode === "court" ? "a list of authorities" : "a bibliography"} from.</p>
+        <h2>{getBibliographyHeading(writingMode, bibStructure)}</h2>
+        <p>No citations to generate a {getBibliographyHeading(writingMode, bibStructure).toLowerCase()} from.</p>
       </div>
     );
   }
@@ -200,7 +214,7 @@ export default function Bibliography(): JSX.Element {
 
   return (
     <div className="bib-view">
-      <h2>{writingMode === "court" ? "List of Authorities" : "Bibliography"}</h2>
+      <h2>{getBibliographyHeading(writingMode, bibStructure)}</h2>
 
       {/* Options */}
       <label className="settings-toggle">
@@ -226,7 +240,7 @@ export default function Bibliography(): JSX.Element {
         disabled={isEmpty || inserting}
         onClick={handleInsert}
       >
-        {inserting ? "Inserting..." : writingMode === "court" ? "Insert List of Authorities at Cursor" : "Insert Bibliography at Cursor"}
+        {inserting ? "Inserting..." : `Insert ${getBibliographyHeading(writingMode, bibStructure)} at Cursor`}
       </button>
 
       {/* Preview or filtered-empty message */}

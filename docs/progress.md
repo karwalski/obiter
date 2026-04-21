@@ -828,6 +828,18 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 ---
 
+## EPIC: STANDARD-SWITCH — Standard-Aware UI Behaviour
+
+**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| SWITCH-001 | Guide view switches content based on active standard (AGLC4/OSCOLA/NZLSG/Court) | FEATURE | NOT STARTED |
+| SWITCH-002 | Full UI audit — identify all elements that should change when standard is switched | RESEARCH | NOT STARTED |
+| SWITCH-003 | Implement UI element visibility/content changes per active standard | FEATURE | NOT STARTED |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0

@@ -4,9 +4,10 @@
  */
 
 import { useState, useCallback } from "react";
-import { validateDocument, ValidationIssue } from "../../engine/validator";
+import { validateDocument, checkOscolaRules, checkNzlsgRules, ValidationIssue } from "../../engine/validator";
 import { CitationStore } from "../../store";
 import { ValidationResult } from "../../engine/validator";
+import type { CitationStandardId } from "../../engine/standards/types";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
 import CheckReference from "../components/CheckReference";
 
@@ -141,7 +142,42 @@ export default function Validation(): JSX.Element {
 
       // Run validation (including body text for footnote position checks)
       const currentWritingMode = store.getWritingMode();
+      const currentStandardId: CitationStandardId = store.getStandardId();
       const validationResult = validateDocument(footnoteTexts, citations, bodyText, currentWritingMode);
+
+      // Run standard-specific validation rules
+      if (currentStandardId.startsWith("oscola")) {
+        const oscolaIssues = checkOscolaRules(citations, footnoteTexts);
+        for (const issue of oscolaIssues) {
+          switch (issue.severity) {
+            case "error":
+              validationResult.errors.push(issue);
+              break;
+            case "warning":
+              validationResult.warnings.push(issue);
+              break;
+            case "info":
+              validationResult.info.push(issue);
+              break;
+          }
+        }
+      } else if (currentStandardId.startsWith("nzlsg")) {
+        const nzlsgIssues = checkNzlsgRules(citations, footnoteTexts);
+        for (const issue of nzlsgIssues) {
+          switch (issue.severity) {
+            case "error":
+              validationResult.errors.push(issue);
+              break;
+            case "warning":
+              validationResult.warnings.push(issue);
+              break;
+            case "info":
+              validationResult.info.push(issue);
+              break;
+          }
+        }
+      }
+
       setResult(validationResult);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Validation failed";
@@ -240,7 +276,7 @@ export default function Validation(): JSX.Element {
       {scanning && (
         <div className="validation-scanning">
           <Spinner />
-          <p>Scanning document for AGLC4 issues...</p>
+          <p>Scanning document for citation issues...</p>
         </div>
       )}
 
@@ -256,7 +292,7 @@ export default function Validation(): JSX.Element {
       {/* Empty state (before scanning) */}
       {!scanning && result === null && !error && (
         <div className="validation-empty">
-          <p>Click &lsquo;Validate Document&rsquo; to check your document against AGLC4 rules.</p>
+          <p>Click &lsquo;Validate Document&rsquo; to check your document against citation rules.</p>
         </div>
       )}
 

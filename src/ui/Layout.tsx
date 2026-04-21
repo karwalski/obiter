@@ -12,6 +12,7 @@ import { renumberAllHeadings } from "../word/styles";
 import { refreshAllCitations } from "../word/citationRefresher";
 import { CitationStore } from "../store/citationStore";
 import type { CitationStandardId } from "../engine/standards/types";
+import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
 
 const NAV_ITEMS = [
@@ -80,7 +81,7 @@ export default function Layout(): JSX.Element {
       </a>
       <header className="obiter-header">
         <h1>Obiter</h1>
-        <span>{writingMode === "court" ? "AGLC4 (Court)" : "AGLC4"}</span>
+        <span>{writingMode === "court" ? `${getStandardConfig(standardId).standardLabel} (Court)` : getStandardConfig(standardId).standardLabel}</span>
       </header>
       {!online && (
         <div className="obiter-offline-banner" role="alert">
