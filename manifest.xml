@@ -46,6 +46,24 @@
                   <bt:Image size="80" resid="Icon.80x80"/>
                 </Icon>
 
+                <!-- Show Obiter Pane (opens task pane to default view) -->
+                <Control xsi:type="Button" id="ShowPaneBtn">
+                  <Label resid="ShowPane.Label"/>
+                  <Supertip>
+                    <Title resid="ShowPane.Label"/>
+                    <Description resid="ShowPane.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+
                 <!-- Insert Citation (opens task pane to Insert view) -->
                 <Control xsi:type="Button" id="InsertCitationBtn">
                   <Label resid="InsertCitation.Label"/>
@@ -283,6 +301,7 @@
         <bt:String id="CitationGroup.Label" DefaultValue="Citation"/>
         <bt:String id="DocumentGroup.Label" DefaultValue="Document"/>
         <bt:String id="ToolsGroup.Label" DefaultValue="Tools"/>
+        <bt:String id="ShowPane.Label" DefaultValue="Obiter"/>
         <bt:String id="InsertCitation.Label" DefaultValue="Insert Citation"/>
         <bt:String id="Library.Label" DefaultValue="Library"/>
         <bt:String id="Validate.Label" DefaultValue="Validate"/>
@@ -301,6 +320,7 @@
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Obiter loaded successfully. Go to the AGLC4 tab to insert citations, validate formatting, and generate bibliographies."/>
+        <bt:String id="ShowPane.Tooltip" DefaultValue="Show the Obiter task pane"/>
         <bt:String id="InsertCitation.Tooltip" DefaultValue="Insert a new AGLC4 citation as a footnote"/>
         <bt:String id="Library.Tooltip" DefaultValue="View and manage all citations in this document"/>
         <bt:String id="Validate.Tooltip" DefaultValue="Check the document against AGLC4 formatting rules"/>
