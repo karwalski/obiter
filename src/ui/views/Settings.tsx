@@ -22,7 +22,7 @@ import {
 } from "../../engine/court/presets";
 import { insertAttribution, removeAttribution, hasAttribution } from "../../word/branding";
 // styleInstaller import removed — XSL now downloaded via button
-import { applyAglc4Styles, applyHeadingLevel } from "../../word/styles";
+import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
@@ -80,8 +80,6 @@ const LLM_PROVIDER_LABELS: Record<string, string> = {
 const store = new CitationStore();
 
 /** Persists the AGLC4 heading list ID across button clicks so all headings join the same list. */
-let aglcHeadingListId: number | undefined;
-
 /** Read a setting, using Office.context.document.settings (Word) with localStorage fallback. */
 function getSetting(key: string): unknown {
   try {
@@ -355,67 +353,6 @@ export default function Settings(): JSX.Element {
       setSetting("obiter-courtToggles", updated);
       return updated;
     });
-  }, []);
-
-  const handleApplyStyles = useCallback(async () => {
-    try {
-      setFormatStatus(null);
-      await Word.run(async (context) => {
-        await applyAglc4Styles(context);
-      });
-      setFormatStatus("AGLC4 styles applied successfully.");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to apply styles";
-      setError(message);
-    }
-  }, []);
-
-  const handleApplyTemplate = useCallback(async () => {
-    try {
-      setFormatStatus(null);
-      await Word.run(async (context) => {
-        await applyAglc4Template(context);
-      });
-      setFormatStatus("AGLC4 template applied successfully.");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to apply template";
-      setError(message);
-    }
-  }, []);
-
-  const handleApplyHeading = useCallback(async (level: string) => {
-    const levelMap: Record<string, 1 | 2 | 3 | 4 | 5> = {
-      I: 1, II: 2, III: 3, IV: 4, V: 5,
-    };
-    const numericLevel = levelMap[level];
-    if (!numericLevel) return;
-
-    try {
-      setFormatStatus(null);
-      await Word.run(async (context) => {
-        const selection = context.document.getSelection();
-        selection.load("paragraphs");
-        await context.sync();
-
-        for (let i = 0; i < selection.paragraphs.items.length; i++) {
-          const para = selection.paragraphs.items[i];
-          const list = await applyHeadingLevel(
-            context,
-            para,
-            numericLevel,
-            i + 1,
-            aglcHeadingListId
-          );
-          if (list && aglcHeadingListId === undefined) {
-            aglcHeadingListId = list.id;
-          }
-        }
-      });
-      setFormatStatus(`Applied AGLC4 Level ${level} heading style.`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to apply heading style";
-      setError(message);
-    }
   }, []);
 
   if (loading) {
@@ -717,36 +654,7 @@ export default function Settings(): JSX.Element {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">Document Formatting</legend>
-
-        <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
-          Apply AGLC4 formatting styles and template settings to the
-          current document.
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <button
-            className="bib-insert-btn"
-            onClick={async () => {
-              try {
-                setFormatStatus(null);
-                await Word.run(async (context) => {
-                  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
-                  await applyAglc4Template(context);
-                });
-                setFormatStatus("Document set up with AGLC4 styles and template.");
-              } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : "Setup failed");
-              }
-            }}
-          >
-            Set Up Document (Styles + Template)
-          </button>
-          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 4px" }}>
-            Applies AGLC4 heading styles, template formatting, document metadata,
-            and add-in notice. Runs automatically on new documents.
-          </p>
-        </div>
+        <legend className="settings-section-title">Template Defaults</legend>
 
         <details style={{ marginTop: 8 }}>
           <summary style={{ fontSize: 12, cursor: "pointer", color: "var(--colour-accent)" }}>
@@ -878,34 +786,6 @@ export default function Settings(): JSX.Element {
           </div>
         </details>
 
-        <p style={{ fontSize: 12, fontWeight: 600, margin: "12px 0 4px", color: "var(--colour-text-secondary)" }}>
-          Heading Levels
-        </p>
-
-        <p style={{ fontSize: 12, margin: "0 0 6px" }}>
-          Apply an AGLC4 heading style to the selected paragraph(s).
-        </p>
-
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {(["I", "II", "III", "IV", "V"] as const).map((level) => (
-            <button
-              key={level}
-              className="library-btn library-btn--insert"
-              style={{ flex: "1 1 auto", minWidth: 48, textAlign: "center" }}
-              onClick={() => void handleApplyHeading(level)}
-            >
-              Level {level}
-            </button>
-          ))}
-        </div>
-
-        <div aria-live="polite" role="status">
-          {formatStatus && (
-            <p style={{ fontSize: 12, color: "var(--colour-success)", margin: "8px 0 0" }}>
-              {formatStatus}
-            </p>
-          )}
-        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

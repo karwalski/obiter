@@ -17,6 +17,7 @@ import AbbreviationLookup from "./views/AbbreviationLookup";
 import Validation from "./views/Validation";
 import Bibliography from "./views/Bibliography";
 import Settings from "./views/Settings";
+import Styling from "./views/Styling";
 import { CitationProvider } from "./context/CitationContext";
 import "./styles/global.css";
 
@@ -113,6 +114,7 @@ function App(): JSX.Element {
             <Route path="guide" element={<AbbreviationLookup />} />
             <Route path="validation" element={<Validation />} />
             <Route path="bibliography" element={<Bibliography />} />
+            <Route path="styling" element={<Styling />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>

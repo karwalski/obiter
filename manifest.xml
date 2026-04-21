@@ -227,6 +227,24 @@
                   <bt:Image size="80" resid="Icon.80x80"/>
                 </Icon>
 
+                <!-- Styling -->
+                <Control xsi:type="Button" id="StylingBtn">
+                  <Label resid="Styling.Label"/>
+                  <Supertip>
+                    <Title resid="Styling.Label"/>
+                    <Description resid="Styling.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.Template.16x16"/>
+                    <bt:Image size="32" resid="Icon.Template.32x32"/>
+                    <bt:Image size="80" resid="Icon.Template.80x80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Styling.Url"/>
+                  </Action>
+                </Control>
+
                 <!-- Settings -->
                 <Control xsi:type="Button" id="SettingsBtn">
                   <Label resid="Settings.Label"/>
@@ -293,6 +311,7 @@
         <bt:Url id="Taskpane.Validate.Url" DefaultValue="https://localhost:3000/taskpane.html#validation"/>
         <bt:Url id="Taskpane.Bibliography.Url" DefaultValue="https://localhost:3000/taskpane.html#bibliography"/>
         <bt:Url id="Taskpane.Guide.Url" DefaultValue="https://localhost:3000/taskpane.html#guide"/>
+        <bt:Url id="Taskpane.Styling.Url" DefaultValue="https://localhost:3000/taskpane.html#styling"/>
         <bt:Url id="Taskpane.Settings.Url" DefaultValue="https://localhost:3000/taskpane.html#settings"/>
       </bt:Urls>
       <bt:ShortStrings>
@@ -307,6 +326,7 @@
         <bt:String id="Validate.Label" DefaultValue="Validate"/>
         <bt:String id="Bibliography.Label" DefaultValue="Bibliography"/>
         <bt:String id="Guide.Label" DefaultValue="Guide"/>
+        <bt:String id="Styling.Label" DefaultValue="Styling"/>
         <bt:String id="Settings.Label" DefaultValue="Settings"/>
         <bt:String id="FormattingGroup.Label" DefaultValue="Formatting"/>
         <bt:String id="RefreshAll.Label" DefaultValue="Refresh All"/>
@@ -326,6 +346,7 @@
         <bt:String id="Validate.Tooltip" DefaultValue="Check the document against AGLC4 formatting rules"/>
         <bt:String id="Bibliography.Tooltip" DefaultValue="Preview and insert an AGLC4 bibliography"/>
         <bt:String id="Guide.Tooltip" DefaultValue="Search AGLC4 rules, abbreviations, and source types"/>
+        <bt:String id="Styling.Tooltip" DefaultValue="Headings, block quotes, and document setup"/>
         <bt:String id="Settings.Tooltip" DefaultValue="Configure Obiter settings and document formatting"/>
         <bt:String id="RefreshAll.Tooltip" DefaultValue="Rebuild all citations, headings, and inline formatting"/>
         <bt:String id="ApplyTemplate.Tooltip" DefaultValue="Apply the AGLC4 document template styles"/>
