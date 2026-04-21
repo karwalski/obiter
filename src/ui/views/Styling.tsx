@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { applyHeadingLevel, findExistingHeadingListId } from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
-import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
 
@@ -102,8 +102,7 @@ export default function Styling(): JSX.Element {
   useEffect(() => {
     void (async () => {
       try {
-        const store = new CitationStore();
-        await store.initStore();
+        const store = await getSharedStore();
         setStandardId(store.getStandardId());
 
         // Restore persisted heading list ID
@@ -152,8 +151,7 @@ export default function Styling(): JSX.Element {
             aglcHeadingListId = list.id;
             // Persist to Custom XML Part so it survives document close/reopen
             try {
-              const store = new CitationStore();
-              await store.initStore();
+              const store = await getSharedStore();
               await store.setHeadingListId(list.id);
             } catch { /* non-critical */ }
           }

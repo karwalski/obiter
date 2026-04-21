@@ -76,6 +76,23 @@ export type AustralianJurisdiction =
   | "Vic"
   | "WA";
 
+// ─── Introductory Signals (Rule 1.2) ─────────────────────────────────────────
+
+/**
+ * AGLC4 Rule 1.2: Introductory signals that may precede a citation in a
+ * footnote. These are italicised in the rendered output.
+ */
+export const INTRODUCTORY_SIGNALS = [
+  "See",
+  "See, eg,",
+  "See also",
+  "But see",
+  "Cf",
+  "See generally",
+] as const;
+
+export type IntroductorySignal = (typeof INTRODUCTORY_SIGNALS)[number];
+
 // ─── Source Type Discriminated Union ──────────────────────────────────────────
 
 export type SourceType =
@@ -190,6 +207,26 @@ export interface Citation {
   modifiedAt: string; // ISO datetime
 
   // ─── Court Mode (LOA) Fields ───────────────────────────────────────────────
+
+  // ─── Signal & Commentary Fields (SIGNAL-001, Rule 1.2) ─────────────────────
+
+  /**
+   * SIGNAL-001: Introductory signal per AGLC4 Rule 1.2.
+   *
+   * When set, the signal is prepended (italicised) before the citation text.
+   */
+  signal?: IntroductorySignal;
+
+  /**
+   * SIGNAL-001: Free-text commentary appearing before the signal and citation.
+   */
+  commentaryBefore?: string;
+
+  /**
+   * SIGNAL-001: Free-text commentary appearing after the citation text
+   * but before closing punctuation.
+   */
+  commentaryAfter?: string;
 
   /**
    * LOA-002: Part A / Part B classification for List of Authorities.

@@ -299,8 +299,13 @@ export function formatCourtIdentifier(
   courtId: string,
   reportSeries?: string
 ): FormattedRun[] {
-  if (reportSeries && isCourtApparentFromSeries(reportSeries)) {
-    return [];
+  if (reportSeries && reportSeries in SERIES_TO_COURT) {
+    // Only omit the court when the actual court matches the court implied
+    // by the report series. E.g. QR implies QSC, so if the actual court
+    // is QCA the identifier must be shown (AUDIT2-018, Rule 2.2.6).
+    if (SERIES_TO_COURT[reportSeries] === courtId) {
+      return [];
+    }
   }
   return [{ text: ` (${courtId})` }];
 }

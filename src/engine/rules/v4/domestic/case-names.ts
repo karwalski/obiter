@@ -179,7 +179,7 @@ export function formatCaseName(
 
   return [
     { text: p1, italic: true },
-    { text: ` ${separator} `, italic: true },
+    { text: ` ${separator} `, italic: false },
     { text: p2, italic: true },
   ];
 }

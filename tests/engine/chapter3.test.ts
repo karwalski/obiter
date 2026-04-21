@@ -450,8 +450,8 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
   });
 
   it("should format definition in Dictionary (AGLC4 Example 25)", () => {
-    // Example 25 uses "Dictionary pt 1" instead of a section number.
-    // The function accepts a section string, so we pass the combined form.
+    // AGLC4 Example 25: Evidence Act 2008 (Vic) pt Dictionary pt 1 (definition of 'civil proceeding')
+    // The pinpoint type is "part", not "section", so the prefix should be "pt".
     const statute = formatStatute({
       title: "Evidence Act",
       year: 2008,
@@ -460,12 +460,26 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
     const runs = formatLegislativeDefinition(
       statute,
       "Dictionary pt 1",
-      "civil proceeding"
+      "civil proceeding",
+      "part"
     );
-    // We check it doesn't crash and produces the expected pattern
-    // Note: The actual AGLC4 format here would use Dictionary instead of s,
-    // but the current function always uses "s". This is a known limitation.
-    expect(toPlainText(runs)).toContain("definition of \u2018civil proceeding\u2019");
+    const text = toPlainText(runs);
+    expect(text).toContain("pt Dictionary pt 1");
+    expect(text).toContain("definition of \u2018civil proceeding\u2019");
+    // Must NOT contain "s Dictionary" — that was the old bug
+    expect(text).not.toContain("s Dictionary");
+  });
+
+  it("AUDIT2-019: defaults to section prefix when no pinpointType given", () => {
+    const statute = formatStatute({
+      title: "Test Act",
+      year: 2020,
+      jurisdiction: "Cth",
+    });
+    const runs = formatLegislativeDefinition(statute, "10", "widget");
+    expect(toPlainText(runs)).toBe(
+      "Test Act 2020 (Cth) s 10 (definition of \u2018widget\u2019)"
+    );
   });
 
   it("should format definition with paragraph ref (AGLC4 Example 26)", () => {

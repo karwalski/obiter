@@ -379,6 +379,42 @@ describe("Rule 1.4.1 — Subsequent references", () => {
     // Legislation short title should be italicised
     expect(isRunItalic(result, 0)).toBe(true);
   });
+
+  test("AUDIT2-020: legislation subsequent ref uses plural pinpoint abbreviations (Rule 3.5)", () => {
+    // Legislation pinpoints should use ss (not s) for section ranges,
+    // regs (not reg) for regulation ranges, etc.
+    const citation: Citation = {
+      id: "c4",
+      aglcVersion: "4",
+      sourceType: "legislation.statute",
+      data: { title: "Migration Act 1958" },
+      shortTitle: "Migration Act",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const pin: Pinpoint = { type: "section", value: "5\u20137" };
+    const result = formatShortReference(citation, 10, pin);
+    const text = runsToText(result);
+    // Should use "ss" (plural) not "s" (singular) for en-dash range
+    expect(text).toBe("Migration Act (n 10) ss 5\u20137");
+  });
+
+  test("AUDIT2-020: legislation subsequent ref uses regulation abbreviation", () => {
+    const citation: Citation = {
+      id: "c5",
+      aglcVersion: "4",
+      sourceType: "legislation.delegated",
+      data: { title: "Migration Regulations 1994" },
+      shortTitle: "Migration Regulations",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const pin: Pinpoint = { type: "regulation", value: "2.01" };
+    const result = formatShortReference(citation, 20, pin);
+    expect(runsToText(result)).toBe("Migration Regulations (n 20) reg 2.01");
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

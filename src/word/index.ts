@@ -5,12 +5,13 @@
 
 export {
   insertCitationFootnote,
+  appendToFootnoteByIndex,
   updateCitationContent,
   getAllCitationFootnotes,
   deleteCitationFootnote,
   getFootnoteIndex,
 } from "./footnoteManager";
-export type { CitationFootnoteEntry } from "./footnoteManager";
+export type { CitationFootnoteEntry, AdjacentFootnoteResult } from "./footnoteManager";
 
 export {
   buildFootnoteMap,

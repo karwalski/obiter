@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Citation } from "../../types/citation";
 import { FormattedRun } from "../../types/formattedRun";
-import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 import {
   generateBibliographyForStandard,
   BibliographySection,
@@ -127,8 +127,7 @@ export default function Bibliography(): JSX.Element {
 
     async function load(): Promise<void> {
       try {
-        const store = new CitationStore();
-        await store.initStore();
+        const store = await getSharedStore();
         const all = store.getAll();
         if (!cancelled) {
           setCitations(all);

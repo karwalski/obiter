@@ -845,6 +845,73 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 ---
 
+## EPIC: AUDIT-2 — AGLC4 Rule-by-Rule Audit Fixes
+
+**Phase:** Post-backlog | **Stories:** 21 | **Completed:** 21
+
+| ID | Title | Rule | Type | Status |
+|----|-------|------|------|--------|
+| AUDIT2-001 | Fix: signals should be roman, not italic | 1.2 | BUG | DONE |
+| AUDIT2-002 | Fix: 'v' separator in case names should be roman | 2.1.11 | BUG | DONE |
+| AUDIT2-003 | Add pinpoint support to statute dispatcher | 3.1.4 | BUG | DONE |
+| AUDIT2-004 | Wire unreported case formatters into engine dispatcher | 2.3.1-2.3.4 | FEATURE | DONE |
+| AUDIT2-005 | Wire judicial officer + case history into reported case assembly | 2.4-2.5 | FEATURE | DONE |
+| AUDIT2-006 | Wire quasi-judicial and arbitration dispatchers | 2.6 | FEATURE | DONE |
+| AUDIT2-007 | Wire transcript dispatcher | 2.7 | FEATURE | DONE |
+| AUDIT2-008 | Wire submission dispatcher | 2.8 | FEATURE | DONE |
+| AUDIT2-009 | Wire bill dispatcher | 3.2 | FEATURE | DONE |
+| AUDIT2-010 | Wire delegated legislation dispatcher | 3.4 | FEATURE | DONE |
+| AUDIT2-011 | Wire constitution dispatcher | 3.6 | FEATURE | DONE |
+| AUDIT2-012 | Wire explanatory memorandum dispatcher | 3.7 | FEATURE | DONE |
+| AUDIT2-013 | Wire quasi-legislative dispatcher | 3.9 | FEATURE | DONE |
+| AUDIT2-014 | Auto-detect above/below cross-reference direction | 1.4.2 | FEATURE | DONE |
+| AUDIT2-015 | Auto-append short title introduction after first citation | 1.4.4 | FEATURE | DONE |
+| AUDIT2-016 | Auto-append abbreviation definition after first citation | 1.4.5 | FEATURE | DONE |
+| AUDIT2-017 | Complete per-source-type bibliography entry formatting | 1.13 | FEATURE | DONE |
+| AUDIT2-018 | Refine court identifier omission when actual court differs | 2.2.6 | FEATURE | DONE |
+| AUDIT2-019 | Support non-section pinpoints in legislative definitions | 3.1.6 | FEATURE | DONE |
+| AUDIT2-020 | Use legislation-specific pinpoint formatting in subsequent refs | 3.5 | FEATURE | DONE |
+| AUDIT2-021 | Normalise pinpoint types — handle string pinpoints from UI forms | All | BUG | DONE |
+
+---
+
+## EPIC: AI-ENH — AI Feature Enhancements
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| AI-ENH-001 | Parse formatted citation text into form fields via LLM | FEATURE | NOT STARTED |
+
+**AI-ENH-001 Details:**
+Currently "Help Me Choose" classifies a description into a source type but does not populate the form. The existing "Parse Citation" feature (AI-001) extracts fields from raw text but requires manual review. This story extends the AI pipeline to accept a fully formatted AGLC4 citation string (potentially including markup like `*case name*` for italics) and:
+
+1. Identify the source type (case.reported, legislation.statute, journal.article, etc.)
+2. Extract all structured fields (party names, year, volume, report series, starting page, pinpoint, court ID, parallel citations for cases; title, year, jurisdiction, pinpoint for legislation; author, title, year, volume, journal, starting page for articles; etc.)
+3. Auto-populate the InsertCitation form fields with the extracted data
+4. Show the parsed result in the preview for user verification before insertion
+5. Handle common formatting variants (curly quotes, em dashes, en dashes, italic markers)
+
+**AC:**
+- Text input area in InsertCitation: "Paste a formatted citation" with multiline support
+- LLM prompt returns structured JSON matching the source type's field schema
+- Source type selector auto-set from the parsed result
+- All form fields populated — user can review and edit before inserting
+- Works with AGLC4, OSCOLA, and NZLSG formatted citations
+- Graceful fallback: if parsing fails, show error and let user fill manually
+
+---
+
+## EPIC: PLUMBING — UI Form Input Type Audit
+
+**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| PLUMB-001 | Audit all UI form inputs — verify types match engine expectations | RESEARCH | NOT STARTED |
+
+---
+
 ## EPIC: AGLC5 — AGLC5 Delta Implementation
 
 **Phase:** Post-AGLC5-publication | **Stories:** 5 | **Completed:** 0

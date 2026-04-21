@@ -7,6 +7,9 @@ import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatPinpoint } from "../general/pinpoints";
 
+/** Type alias for pinpoint type keys used in legislation formatting. */
+type PinpointType = Pinpoint["type"];
+
 // ─── Legislation Pinpoint Abbreviations (Appendix C) ─────────────────────────
 
 /**
@@ -184,29 +187,44 @@ export function formatLegislationPinpoint(pinpoint: Pinpoint): FormattedRun[] {
  * Format a legislative definition reference according to AGLC4 Rule 3.1.6.
  *
  * @remarks AGLC4 Rule 3.1.6: When citing a defined term in legislation,
- * the format is: `[statute] s X (definition of 'term')`. The defined term
- * appears in single quotation marks within the parenthetical.
+ * the format is: `[statute] [pinpoint] (definition of 'term')`. The defined
+ * term appears in single quotation marks within the parenthetical.
  *
- * @example
- * // Competition and Consumer Act 2010 (Cth) s 4 (definition of 'market')
+ * AGLC4 Example 24: `Property Law Act 1958 (Vic) s 3 (definition of 'legal practitioner')`
+ * AGLC4 Example 25: `Evidence Act 2008 (Vic) Dictionary pt 1 (definition of 'civil proceeding')`
+ *
+ * The pinpoint prefix depends on the pinpoint type — not always `s` (section).
+ * When no pinpoint type is provided, defaults to `s` for backward compatibility.
  *
  * @param statute - The pre-formatted statute runs (from formatStatute)
- * @param section - The section number containing the definition
+ * @param section - The pinpoint value (e.g. "3", "Dictionary pt 1")
  * @param term - The defined term
+ * @param pinpointType - The pinpoint type (defaults to "section")
  * @returns An array of FormattedRun representing the formatted definition citation
  */
 export function formatLegislativeDefinition(
   statute: FormattedRun[],
   section: string,
   term: string,
+  pinpointType: PinpointType = "section",
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Statute citation (already formatted)
   runs.push(...statute);
 
-  // Section pinpoint and definition parenthetical
-  runs.push({ text: ` s ${section} (definition of \u2018${term}\u2019)` });
+  // Use the legislation-specific pinpoint prefix for the given type
+  const isPlural = isPluralPinpoint(section);
+  const prefix = isPlural
+    ? LEGISLATION_PINPOINT_PLURAL[pinpointType]
+    : LEGISLATION_PINPOINT_SINGULAR[pinpointType];
+
+  if (prefix) {
+    runs.push({ text: ` ${prefix} ${section} (definition of \u2018${term}\u2019)` });
+  } else {
+    // Fallback for page/paragraph or unknown types — no prefix
+    runs.push({ text: ` ${section} (definition of \u2018${term}\u2019)` });
+  }
 
   return runs;
 }

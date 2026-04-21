@@ -4,13 +4,14 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation } from "../../types/citation";
+import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import type { CitationStandardId } from "../../engine/standards";
 import { getStandardConfig } from "../../engine/standards";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
-import { insertCitationFootnote } from "../../word/footnoteManager";
+import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
+import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getFormattedPreview } from "../../engine/engine";
 import CitationPreview from "../components/CitationPreview";
 import FieldHelp from "../components/FieldHelp";
@@ -20,6 +21,7 @@ import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyC
 import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
+import { parseCitationText, ParsedCitation } from "../../llm/parseCitation";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
 import {
@@ -366,13 +368,24 @@ interface FeedbackState {
  * Builds a temporary Citation object from the form state so the engine's
  * getFormattedPreview can produce the preview runs.
  */
-function buildPreviewCitation(sourceType: SourceType, data: SourceData, shortTitle?: string, aglcVersion?: "4" | "5"): Citation {
+function buildPreviewCitation(
+  sourceType: SourceType,
+  data: SourceData,
+  shortTitle?: string,
+  aglcVersion?: "4" | "5",
+  signalValue?: IntroductorySignal | "",
+  commentaryBeforeValue?: string,
+  commentaryAfterValue?: string,
+): Citation {
   return {
     id: "",
     aglcVersion: aglcVersion ?? "4",
     sourceType,
     data: { ...data },
     shortTitle: shortTitle || undefined,
+    signal: signalValue || undefined,
+    commentaryBefore: commentaryBeforeValue || undefined,
+    commentaryAfter: commentaryAfterValue || undefined,
     tags: [],
     createdAt: "",
     modifiedAt: "",
@@ -478,6 +491,23 @@ export default function InsertCitation(): JSX.Element {
   const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
 
+  // AI-ENH-001: Paste Citation state
+  const [pasteCitationExpanded, setPasteCitationExpanded] = useState(false);
+  const [pasteCitationText, setPasteCitationText] = useState("");
+  const [pasteCitationLoading, setPasteCitationLoading] = useState(false);
+  const [pasteCitationResult, setPasteCitationResult] = useState<ParsedCitation | null>(null);
+  const [pasteCitationError, setPasteCitationError] = useState<string | null>(null);
+
+  // BUGS-013: Append to existing footnote (AGLC4 Rule 1.1.3)
+  const [appendToFootnote, setAppendToFootnote] = useState(false);
+  const [selectedFootnoteIndex, setSelectedFootnoteIndex] = useState<number>(0);
+  const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
+
+  // SIGNAL-001: Introductory signal and commentary
+  const [signal, setSignal] = useState<IntroductorySignal | "">("");
+  const [commentaryBefore, setCommentaryBefore] = useState("");
+  const [commentaryAfter, setCommentaryAfter] = useState("");
+
   // SWITCH-004: Active citation standard
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
@@ -547,6 +577,35 @@ export default function InsertCitation(): JSX.Element {
     NSW_JURISDICTIONS.has(courtJurisdiction);
   const isVicMode = courtJurisdiction !== null &&
     VIC_JURISDICTIONS.has(courtJurisdiction);
+
+  // BUGS-013: Load existing footnotes when the append toggle is enabled
+  useEffect(() => {
+    if (!appendToFootnote) {
+      setExistingFootnotes([]);
+      setSelectedFootnoteIndex(0);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const entries = await getAllCitationFootnotes();
+        if (!cancelled) {
+          setExistingFootnotes(entries);
+          // Default to the last footnote if any exist
+          if (entries.length > 0) {
+            // Find the highest footnote index
+            const maxIndex = Math.max(...entries.map((e) => e.footnoteIndex));
+            setSelectedFootnoteIndex(maxIndex);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setExistingFootnotes([]);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [appendToFootnote, refreshCounter]);
 
   // RIBBON-002: Load recent citations (sorted by modifiedAt desc, top 5)
 
@@ -703,6 +762,9 @@ export default function InsertCitation(): JSX.Element {
     setAuthors([{ givenNames: "", surname: "" }]);
     setShortTitle("");
     setShortTitleTouched(false);
+    setSignal("");
+    setCommentaryBefore("");
+    setCommentaryAfter("");
     setFeedback(null);
   }, []);
 
@@ -715,6 +777,9 @@ export default function InsertCitation(): JSX.Element {
     setAuthors([{ givenNames: "", surname: "" }]);
     setShortTitle("");
     setShortTitleTouched(false);
+    setSignal("");
+    setCommentaryBefore("");
+    setCommentaryAfter("");
     setFeedback(null);
   }, []);
 
@@ -745,6 +810,67 @@ export default function InsertCitation(): JSX.Element {
       setClassifyLoading(false);
     }
   }, [llmConfig, classifyDescription]);
+
+  // ─── AI-ENH-001: Paste Citation Handler ─────────────────────────────────
+
+  const handleParseCitation = useCallback(async () => {
+    if (!llmConfig || !pasteCitationText.trim()) return;
+    setPasteCitationLoading(true);
+    setPasteCitationResult(null);
+    setPasteCitationError(null);
+    try {
+      const result = await parseCitationText(pasteCitationText.trim(), llmConfig);
+      setPasteCitationResult(result);
+
+      // Auto-select category and source type in the dropdowns
+      const match = findCategoryForSourceType(result.sourceType);
+      if (match) {
+        setSelectedCategory(match.category);
+        setSelectedSourceType(result.sourceType);
+      }
+
+      // Populate form data with extracted fields
+      const newFormData: SourceData = { ...result.data };
+
+      // Extract authors array if present and populate the authors state
+      const extractedAuthors = result.data.authors as
+        | Array<{ givenNames?: string; surname?: string }>
+        | undefined;
+      if (Array.isArray(extractedAuthors) && extractedAuthors.length > 0) {
+        const authorEntries: AuthorEntry[] = extractedAuthors.map((a) => ({
+          givenNames: a.givenNames ?? "",
+          surname: a.surname ?? "",
+        }));
+        setAuthors(authorEntries);
+        newFormData.authors = authorEntries;
+      } else {
+        setAuthors([{ givenNames: "", surname: "" }]);
+      }
+
+      setFormData(newFormData);
+
+      // Set short title if suggested
+      if (result.shortTitle) {
+        setShortTitle(result.shortTitle);
+        setShortTitleTouched(true);
+      } else {
+        setShortTitle("");
+        setShortTitleTouched(false);
+      }
+
+      // Reset signals and commentary
+      setSignal("");
+      setCommentaryBefore("");
+      setCommentaryAfter("");
+      setFeedback(null);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Could not parse citation. Please fill in the fields manually.";
+      setPasteCitationError(message);
+    } finally {
+      setPasteCitationLoading(false);
+    }
+  }, [llmConfig, pasteCitationText]);
 
   // ─── COURT-007: Unreported-judgment gate check ──────────────────────────
 
@@ -804,9 +930,13 @@ export default function InsertCitation(): JSX.Element {
       selectedSourceType as SourceType,
       formData,
       shortTitle,
+      undefined,
+      signal,
+      commentaryBefore,
+      commentaryAfter,
     );
     return getFormattedPreview(previewCitation);
-  }, [selectedSourceType, formData, shortTitle]);
+  }, [selectedSourceType, formData, shortTitle, signal, commentaryBefore, commentaryAfter]);
 
   // ─── Insert Handler ─────────────────────────────────────────────────────
 
@@ -829,6 +959,9 @@ export default function InsertCitation(): JSX.Element {
         sourceType: selectedSourceType as SourceType,
         data: { ...formData },
         shortTitle: shortTitle || undefined,
+        signal: signal || undefined,
+        commentaryBefore: commentaryBefore || undefined,
+        commentaryAfter: commentaryAfter || undefined,
         tags: [],
         createdAt: now,
         modifiedAt: now,
@@ -836,18 +969,26 @@ export default function InsertCitation(): JSX.Element {
 
       const store = await getStore();
 
+      // BUGS-013: Determine if we should append to an existing footnote.
+      const appendIndex = appendToFootnote && selectedFootnoteIndex > 0
+        ? selectedFootnoteIndex
+        : undefined;
+
       // Handle override mode — user typed citation text directly
       if (overrideText) {
         const overrideRuns: FormattedRun[] = [{ text: overrideText }];
         await store.add(citation);
         const title = shortTitle || citation.sourceType;
-        await insertCitationFootnote(id, title, overrideRuns);
+        await insertCitationFootnote(id, title, overrideRuns, appendIndex);
         triggerRefresh();
         setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
         setFormData({});
         setAuthors([{ givenNames: "", surname: "" }]);
         setShortTitle("");
         setShortTitleTouched(false);
+        setSignal("");
+        setCommentaryBefore("");
+        setCommentaryAfter("");
         setInserting(false);
         return;
       }
@@ -867,7 +1008,7 @@ export default function InsertCitation(): JSX.Element {
 
         // Don't add duplicate to store; use existing citation ID for the footnote
         const existingTitle = shortTitle || existingMatch.shortTitle || existingMatch.sourceType;
-        await insertCitationFootnote(existingMatch.id, existingTitle, runsToInsert);
+        await insertCitationFootnote(existingMatch.id, existingTitle, runsToInsert, appendIndex);
       } else {
         // First citation of this source — use full format from the engine
         runsToInsert = getFormattedPreview(citation);
@@ -875,26 +1016,34 @@ export default function InsertCitation(): JSX.Element {
         await store.add(citation);
 
         const title = shortTitle || citation.sourceType;
-        await insertCitationFootnote(id, title, runsToInsert);
+        await insertCitationFootnote(id, title, runsToInsert, appendIndex);
       }
 
       // BUG-003: Signal the Citation Library to refresh
       triggerRefresh();
 
-      setFeedback({ type: "success", message: "Citation inserted as footnote." });
+      const successMsg = appendIndex
+        ? `Citation appended to footnote ${appendIndex} (Rule 1.1.3).`
+        : "Citation inserted as footnote.";
+      setFeedback({ type: "success", message: successMsg });
 
       // Reset form
       setFormData({});
       setAuthors([{ givenNames: "", surname: "" }]);
       setShortTitle("");
       setShortTitleTouched(false);
+      setSignal("");
+      setCommentaryBefore("");
+      setCommentaryAfter("");
+      setAppendToFootnote(false);
+      setSelectedFootnoteIndex(0);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       setFeedback({ type: "error", message });
     } finally {
       setInserting(false);
     }
-  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId]);
+  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex]);
 
   // ─── Available sub-types for selected category ──────────────────────────
 
@@ -1002,6 +1151,71 @@ export default function InsertCitation(): JSX.Element {
       ) : (
         <div className="ic-help-me-choose-disabled">
           Enable AI Assistant in Settings to identify source types automatically
+        </div>
+      )}
+
+      {/* AI-ENH-001: Paste Citation section */}
+      {llmConfig?.enabled && (
+        <div className="ic-paste-citation">
+          <div
+            className="ic-paste-citation-header"
+            role="button"
+            tabIndex={0}
+            onClick={() => setPasteCitationExpanded((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setPasteCitationExpanded((prev) => !prev);
+              }
+            }}
+            aria-expanded={pasteCitationExpanded}
+          >
+            <span className="ic-paste-citation-title">Paste Citation</span>
+            <span className="ic-paste-citation-chevron">
+              {pasteCitationExpanded ? "\u25B2" : "\u25BC"}
+            </span>
+          </div>
+          {pasteCitationExpanded && (
+            <div className="ic-paste-citation-body">
+              <textarea
+                className="ic-textarea"
+                value={pasteCitationText}
+                placeholder="Paste a formatted citation (e.g. Mabo v Queensland (No 2) (1992) 175 CLR 1)"
+                rows={3}
+                onChange={(e) => {
+                  setPasteCitationText(e.target.value);
+                  setPasteCitationResult(null);
+                  setPasteCitationError(null);
+                }}
+              />
+              <button
+                type="button"
+                className="ic-paste-citation-btn"
+                disabled={pasteCitationLoading || !pasteCitationText.trim()}
+                onClick={() => void handleParseCitation()}
+              >
+                {pasteCitationLoading ? "Parsing..." : "Parse"}
+              </button>
+              {pasteCitationResult && (
+                <div className="ic-paste-citation-result">
+                  <div className="ic-paste-citation-confidence">
+                    Confidence: {Math.round(pasteCitationResult.confidence * 100)}%
+                    {pasteCitationResult.standard && (
+                      <> (detected as {pasteCitationResult.standard.toUpperCase()})</>
+                    )}
+                  </div>
+                  <div className="ic-paste-citation-note">
+                    Review the populated fields before inserting.
+                  </div>
+                </div>
+              )}
+              {pasteCitationError && (
+                <div className="ic-paste-citation-error">
+                  Could not parse citation. Please fill in the fields manually.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -1155,6 +1369,63 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
+      {/* SIGNAL-001: Introductory signal and commentary */}
+      {selectedSourceType && (
+        <div className="ic-signal-section">
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-signal">
+              Introductory Signal
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "1.2" } : {})}
+                description="An introductory signal precedes the citation to indicate its relationship to the proposition in the text. Italicised in the footnote."
+                example="See, See also, Cf"
+              />
+            </label>
+            <select
+              id="ic-signal"
+              className="ic-select"
+              value={signal}
+              onChange={(e) => setSignal(e.target.value as IntroductorySignal | "")}
+            >
+              <option value="">None</option>
+              {INTRODUCTORY_SIGNALS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-commentary-before">
+              Commentary Before
+            </label>
+            <input
+              id="ic-commentary-before"
+              className="ic-input"
+              type="text"
+              value={commentaryBefore}
+              placeholder="e.g., For a discussion of this principle, see"
+              onChange={(e) => setCommentaryBefore(e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-commentary-after">
+              Commentary After
+            </label>
+            <input
+              id="ic-commentary-after"
+              className="ic-input"
+              type="text"
+              value={commentaryAfter}
+              placeholder="e.g., where the court distinguished the earlier authority"
+              onChange={(e) => setCommentaryAfter(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Short title */}
       {selectedSourceType && (
         <div className="ic-field">
@@ -1240,6 +1511,46 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
+      {/* BUGS-013: Add to existing footnote (AGLC4 Rule 1.1.3) */}
+      {selectedSourceType && (
+        <div className="ic-append-section">
+          <div className="ic-field ic-field--checkbox">
+            <label className="ic-checkbox-label">
+              <input
+                type="checkbox"
+                checked={appendToFootnote}
+                onChange={(e) => setAppendToFootnote(e.target.checked)}
+              />
+              Add to existing footnote (Rule 1.1.3)
+            </label>
+          </div>
+          {appendToFootnote && (
+            <div className="ic-field">
+              <label className="ic-label" htmlFor="ic-append-footnote">
+                Append to footnote
+              </label>
+              {existingFootnotes.length > 0 ? (
+                <select
+                  id="ic-append-footnote"
+                  className="ic-select"
+                  value={selectedFootnoteIndex}
+                  onChange={(e) => setSelectedFootnoteIndex(Number(e.target.value))}
+                >
+                  {/* Deduplicate by footnote index — multiple citations may share a footnote */}
+                  {[...new Map(existingFootnotes.map((fn) => [fn.footnoteIndex, fn])).values()].map((fn) => (
+                    <option key={fn.footnoteIndex} value={fn.footnoteIndex}>
+                      Footnote {fn.footnoteIndex}: {fn.title}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="ic-note">No existing footnotes with citations found in this document.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Feedback */}
       <div aria-live="polite" role="status">
         {feedback && (
@@ -1258,7 +1569,11 @@ export default function InsertCitation(): JSX.Element {
           disabled={inserting || previewRuns.length === 0}
           onClick={handleInsert}
         >
-          {inserting ? "Inserting..." : "Insert as Footnote"}
+          {inserting
+            ? "Inserting..."
+            : appendToFootnote && selectedFootnoteIndex > 0
+              ? `Append to Footnote ${selectedFootnoteIndex}`
+              : "Insert as Footnote"}
         </button>
       )}
     </div>

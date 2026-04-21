@@ -30,7 +30,7 @@ import {
   getPracticeDirectionsForJurisdiction,
   getAllPracticeDirections,
 } from "../../engine/court/practiceDirections";
-import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 import { getStandardConfig } from "../../engine/standards";
 import type { CitationStandardId } from "../../engine/standards/types";
 
@@ -782,8 +782,7 @@ export default function AbbreviationLookup(): JSX.Element {
   useEffect(() => {
     void (async () => {
       try {
-        const store = new CitationStore();
-        await store.initStore();
+        const store = await getSharedStore();
         setWritingMode(store.getWritingMode());
         setCourtJurisdiction(store.getCourtJurisdiction());
         setStandardId(store.getStandardId());

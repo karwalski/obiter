@@ -10,7 +10,7 @@ import {
 } from "../../word/selectionHandler";
 import { registerChangeListener, unregisterChangeListener } from "../../word/changeListener";
 import { refreshAllCitations } from "../../word/citationRefresher";
-import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 
 interface CitationContextValue {
   selectedCitationId: string | null;
@@ -28,7 +28,6 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const refreshingRef = useRef(false);
-  const storeRef = useRef<CitationStore | null>(null);
 
   const setSelectedCitationId = useCallback((id: string | null) => {
     setSelectedCitationIdRaw(id);
@@ -43,11 +42,8 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
 
     void Word.run(async (context) => {
       try {
-        if (!storeRef.current) {
-          storeRef.current = new CitationStore();
-          await storeRef.current.initStore();
-        }
-        await refreshAllCitations(context, storeRef.current);
+        const store = await getSharedStore();
+        await refreshAllCitations(context, store);
       } catch {
         // Refresh failed — non-critical, will catch up on next trigger
       } finally {

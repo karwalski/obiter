@@ -228,27 +228,133 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
     }
   }
 
-  // Year
+  // ── Per-source-type publication details (AUDIT2-017, Rule 1.13) ─────────
+
+  const st = citation.sourceType;
   const year = data["year"] as number | string | undefined;
-  if (year !== undefined) {
-    runs.push({ text: ` (${year})` });
-  }
 
-  // Publication details (volume, report series, starting page) — secondary sources.
-  const volume = data["volume"] as number | string | undefined;
-  const reportSeries =
-    (data["journalName"] as string | undefined) ??
-    (data["reportSeries"] as string | undefined);
-  const startingPage = data["startingPage"] as number | string | undefined;
+  if (st === "book" || st === "book.chapter" || st === "book.translated" || st === "book.audiobook") {
+    // Books: (Publisher, Edition ed, Year) — Rule 6 bibliography format
+    const publisher = data["publisher"] as string | undefined;
+    const edition = data["edition"] as number | string | undefined;
+    const place = data["place"] as string | undefined;
 
-  if (reportSeries) {
-    runs.push({ text: " " });
-    if (volume !== undefined) {
-      runs.push({ text: `${volume} ` });
+    const pubParts: string[] = [];
+    if (place) pubParts.push(place);
+    if (publisher) pubParts.push(publisher);
+    if (edition !== undefined) pubParts.push(`${edition} ed`);
+    if (year !== undefined) pubParts.push(String(year));
+
+    if (pubParts.length > 0) {
+      runs.push({ text: ` (${pubParts.join(", ")})` });
     }
-    runs.push({ text: reportSeries, italic: false });
+  } else if (st === "journal.article" || st === "journal.online" || st === "journal.forthcoming") {
+    // Journal articles: (Year) Volume Journal StartingPage — Rule 5 bibliography format
+    if (year !== undefined) {
+      runs.push({ text: ` (${year})` });
+    }
+    const volume = data["volume"] as number | string | undefined;
+    const issue = data["issue"] as string | undefined;
+    const journal =
+      (data["journal"] as string | undefined) ??
+      (data["journalName"] as string | undefined);
+    const startingPage = data["startingPage"] as number | string | undefined;
+
+    if (journal) {
+      runs.push({ text: " " });
+      if (volume !== undefined) {
+        runs.push({ text: `${volume}` });
+        if (issue) {
+          runs.push({ text: `(${issue})` });
+        }
+        runs.push({ text: " " });
+      }
+      runs.push({ text: journal, italic: true });
+      if (startingPage !== undefined) {
+        runs.push({ text: ` ${startingPage}` });
+      }
+    }
+  } else if (st.startsWith("report") || st === "research_paper" || st === "research_paper.parliamentary") {
+    // Reports: Body Name, Title (Year) — Rule 7 bibliography format
+    // If no authors were formatted, use the body name as the author stand-in
+    const body = data["body"] as string | undefined;
+    if (body && authorRuns.length === 0 && !title) {
+      // Body name is the only identifier
+      if (runs.length === 0) {
+        runs.push({ text: body });
+      }
+    }
+    if (year !== undefined) {
+      runs.push({ text: ` (${year})` });
+    }
+    // Report number if available
+    const reportNumber = data["reportNumber"] as string | number | undefined;
+    if (reportNumber !== undefined) {
+      runs.push({ text: `, Report No ${reportNumber}` });
+    }
+  } else if (st.startsWith("case.")) {
+    // Cases: full case citation — (Year) Volume Series Page (Court)
+    const yearType = (data["yearType"] as "round" | "square") ?? "round";
+    if (year !== undefined) {
+      const bracket = yearType === "square" ? `[${year}]` : `(${year})`;
+      runs.push({ text: ` ${bracket}` });
+    }
+    const volume = data["volume"] as number | string | undefined;
+    if (volume !== undefined) {
+      runs.push({ text: ` ${volume}` });
+    }
+    const reportSeries = data["reportSeries"] as string | undefined;
+    if (reportSeries) {
+      runs.push({ text: ` ${reportSeries}` });
+    }
+    const startingPage = data["startingPage"] as number | string | undefined;
     if (startingPage !== undefined) {
       runs.push({ text: ` ${startingPage}` });
+    }
+    const courtId = data["courtId"] as string | undefined;
+    const court = data["court"] as string | undefined;
+    const courtLabel = courtId ?? court;
+    if (courtLabel && yearType !== "square") {
+      // Court identifier only needed when year is in round brackets (unreported)
+      // or when the report series does not imply the court
+    }
+    // MNC for unreported cases
+    if (!reportSeries) {
+      const caseNumber = data["caseNumber"] as string | number | undefined;
+      if (court && caseNumber !== undefined) {
+        runs.push({ text: ` ${court} ${caseNumber}` });
+      }
+    }
+  } else if (st.startsWith("legislation.")) {
+    // Legislation: Year and jurisdiction
+    if (year !== undefined) {
+      runs.push({ text: ` ${year}` });
+    }
+    const jurisdiction = data["jurisdiction"] as string | undefined;
+    if (jurisdiction) {
+      runs.push({ text: ` (${jurisdiction})` });
+    }
+  } else {
+    // Default: Year and any volume/series/page details
+    if (year !== undefined) {
+      runs.push({ text: ` (${year})` });
+    }
+
+    const volume = data["volume"] as number | string | undefined;
+    const reportSeries =
+      (data["journalName"] as string | undefined) ??
+      (data["reportSeries"] as string | undefined);
+    const startingPage = data["startingPage"] as number | string | undefined;
+
+    if (reportSeries) {
+      runs.push({ text: " " });
+      if (volume !== undefined) {
+        runs.push({ text: `${volume} ` });
+      }
+      runs.push({ text: reportSeries, italic: false });
+      if (startingPage !== undefined) {
+        runs.push({ text: ` ${startingPage}` });
+      }
     }
   }
 

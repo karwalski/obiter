@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { CitationStore } from "../../store";
+import { getSharedStore } from "../../store/singleton";
 import { AVAILABLE_STANDARDS, type CitationStandardId, type WritingMode } from "../../engine/standards";
 import {
   COURT_PRESETS,
@@ -77,7 +77,6 @@ const LLM_PROVIDER_LABELS: Record<string, string> = {
   custom: "Custom Endpoint",
 };
 
-const store = new CitationStore();
 
 /** Persists the AGLC4 heading list ID across button clicks so all headings join the same list. */
 /** Read a setting, using Office.context.document.settings (Word) with localStorage fallback. */
@@ -166,7 +165,7 @@ export default function Settings(): JSX.Element {
     let cancelled = false;
     async function load(): Promise<void> {
       try {
-        await store.initStore();
+        const store = await getSharedStore();
         if (!cancelled) {
           setVersion(store.getAglcVersion());
           setStandardId(store.getStandardId());
@@ -255,6 +254,7 @@ export default function Settings(): JSX.Element {
 
   const handleVersionChange = useCallback(async (newVersion: AglcVersion) => {
     try {
+      const store = await getSharedStore();
       await store.setAglcVersion(newVersion);
       setVersion(newVersion);
     } catch (err: unknown) {
@@ -265,6 +265,7 @@ export default function Settings(): JSX.Element {
 
   const handleStandardChange = useCallback(async (newStandardId: CitationStandardId) => {
     // Warn when changing standard mid-document
+    const store = await getSharedStore();
     if (standardId !== newStandardId && store.getAll().length > 0) {
       const confirmed = window.confirm(
         "This will not reformat existing citations. Continue?"
@@ -298,6 +299,7 @@ export default function Settings(): JSX.Element {
 
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {
+      const store = await getSharedStore();
       await store.setWritingMode(mode);
       setWritingMode(mode);
       setSetting("obiter-writingMode", mode);
@@ -315,6 +317,7 @@ export default function Settings(): JSX.Element {
 
   const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
     try {
+      const store = await getSharedStore();
       if (!jurisdictionId) {
         setCourtJurisdiction("");
         await store.setCourtJurisdiction(undefined);

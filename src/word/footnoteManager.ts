@@ -14,6 +14,14 @@ export interface CitationFootnoteEntry {
   title: string;
 }
 
+/** Result returned by getAdjacentFootnoteIndex when cursor is next to a footnote. */
+export interface AdjacentFootnoteResult {
+  /** 1-based footnote index. */
+  footnoteIndex: number;
+  /** The NoteItem for the adjacent footnote. */
+  noteItem: Word.NoteItem;
+}
+
 /**
  * Applies formatting from a FormattedRun to a Word Range.
  */
@@ -65,21 +73,225 @@ function writeFormattedRunsToControl(cc: Word.ContentControl, runs: FormattedRun
 }
 
 /**
- * Inserts a footnote at the current selection, wraps its body in a Rich Text
- * content control tagged with the citation ID, and writes the formatted text
- * runs into it.
+ * BUGS-013: Detects whether the cursor/selection is immediately after a
+ * footnote reference mark (superscript number). If so, returns the 1-based
+ * index of that footnote.
  *
- * @param citationId - Unique identifier for the citation (stored as the
- *   content control tag).
- * @param title - Human-readable label shown as the content control title.
- * @param formattedRuns - Ordered text runs that make up the citation text.
+ * The detection works by expanding the selection one character to the left
+ * and checking whether that range contains a footnote reference. This
+ * leverages Word's `Range.footnotes` collection.
+ *
+ * @param context - An active Word request context.
+ * @returns The adjacent footnote result, or null if no footnote is adjacent.
  */
-export async function insertCitationFootnote(
+async function getAdjacentFootnoteIndex(
+  context: Word.RequestContext,
+): Promise<AdjacentFootnoteResult | null> {
+  const selection = context.document.getSelection();
+  selection.load("isEmpty");
+  await context.sync();
+
+  // Only work with a collapsed cursor (no text selected).
+  if (!selection.isEmpty) {
+    return null;
+  }
+
+  // Expand one character to the left of the cursor to capture a potential
+  // footnote reference mark.
+  const beforeRange = selection.getRange("Start");
+  beforeRange.load("text");
+  await context.sync();
+
+  // Use expandTo to cover the character immediately before the cursor.
+  // We get the range of the whole paragraph, then narrow to just before
+  // the cursor to check for footnote references.
+  try {
+    const para = selection.paragraphs.getFirst();
+    const paraRange = para.getRange("Whole");
+    // Get the range from the start of the paragraph to the cursor
+    const rangeBefore = paraRange.getRange("Start").expandTo(selection.getRange("Start"));
+    const footnotes = rangeBefore.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    if (footnotes.items.length === 0) {
+      return null;
+    }
+
+    // The last footnote in the range before the cursor is the adjacent one.
+    const lastFootnote = footnotes.items[footnotes.items.length - 1];
+
+    // Get the reference range to verify it's truly adjacent (right before cursor).
+    const refRange = lastFootnote.reference;
+    refRange.load("text");
+    await context.sync();
+
+    // Check that this footnote reference is at the cursor position by
+    // comparing the end of the reference range with the cursor position.
+    const afterRef = refRange.getRange("After");
+    const compareResult = afterRef.compareLocationWith(selection.getRange("Start"));
+    await context.sync();
+
+    if (compareResult.value === "Equal" || compareResult.value === "Contains") {
+      // Determine the 1-based index of this footnote in the document.
+      const allFootnotes = context.document.body.footnotes;
+      allFootnotes.load("items");
+      await context.sync();
+
+      for (let i = 0; i < allFootnotes.items.length; i++) {
+        const fnRef = allFootnotes.items[i].reference;
+        fnRef.load("text");
+      }
+      await context.sync();
+
+      for (let i = 0; i < allFootnotes.items.length; i++) {
+        const fnCompare = allFootnotes.items[i].reference.compareLocationWith(refRange);
+        await context.sync();
+        if (fnCompare.value === "Equal") {
+          return {
+            footnoteIndex: i + 1,
+            noteItem: allFootnotes.items[i],
+          };
+        }
+      }
+    }
+  } catch {
+    // If range operations fail (e.g. cursor at start of document), return null.
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * BUGS-013 / AGLC4 Rule 1.1.3: Appends a citation to an existing footnote
+ * body, separated by '; ' (semicolon + space), and wraps the new citation
+ * content in a content control for tracking.
+ *
+ * @param noteItem - The existing footnote's NoteItem to append to.
+ * @param citationId - Unique identifier for the new citation.
+ * @param title - Human-readable label for the content control.
+ * @param formattedRuns - Ordered text runs for the new citation.
+ * @param context - An active Word request context.
+ */
+async function appendCitationToFootnote(
+  noteItem: Word.NoteItem,
+  citationId: string,
+  title: string,
+  formattedRuns: FormattedRun[],
+  context: Word.RequestContext,
+): Promise<void> {
+  // Get the last paragraph in the footnote body to append to.
+  const paragraphs = noteItem.body.paragraphs;
+  paragraphs.load("items");
+  await context.sync();
+
+  const lastPara = paragraphs.items[paragraphs.items.length - 1];
+
+  // Insert the semicolon separator per AGLC4 Rule 1.1.3.
+  const separator = lastPara.insertText("; ", "End");
+  separator.font.italic = false;
+  separator.font.bold = false;
+
+  // Insert the new citation text after the separator.
+  for (const run of formattedRuns) {
+    const range = lastPara.insertText(run.text, "End");
+    applyRunFormatting(range, run);
+  }
+
+  // Wrap the entire paragraph in a new content control to track
+  // the appended citation. We need to select just the newly inserted
+  // text, so we use the end-of-body approach.
+  // Note: We insert a content control around the last paragraph,
+  // but since we need per-citation tracking we insert a separate one.
+  // The approach: insert text into the body end, then wrap it.
+  // Since Word doesn't let us easily wrap a sub-range after insertion,
+  // we insert the content control at the footnote body level.
+  const bodyEnd = noteItem.body.getRange("End");
+  const cc = bodyEnd.insertContentControl("RichText");
+  cc.tag = citationId;
+  cc.title = title;
+  cc.appearance = "Hidden" as Word.ContentControlAppearance;
+
+  await context.sync();
+}
+
+/**
+ * BUGS-013: Appends a citation to a specific footnote by its 1-based index.
+ * Used by the UI when the user explicitly selects a footnote to append to.
+ *
+ * @param footnoteIndex - 1-based index of the target footnote.
+ * @param citationId - Unique identifier for the citation.
+ * @param title - Human-readable label for the content control.
+ * @param formattedRuns - Ordered text runs for the citation.
+ */
+export async function appendToFootnoteByIndex(
+  footnoteIndex: number,
   citationId: string,
   title: string,
   formattedRuns: FormattedRun[],
 ): Promise<void> {
   await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const noteItem = footnotes.items[footnoteIndex - 1];
+    if (!noteItem) {
+      throw new Error(`Footnote ${footnoteIndex} not found.`);
+    }
+
+    await appendCitationToFootnote(noteItem, citationId, title, formattedRuns, context);
+  });
+}
+
+/**
+ * Inserts a footnote at the current selection, wraps its body in a Rich Text
+ * content control tagged with the citation ID, and writes the formatted text
+ * runs into it.
+ *
+ * BUGS-013 / AGLC4 Rule 1.1.3: If the cursor is immediately after an
+ * existing footnote reference mark, the citation is appended to that
+ * footnote with a '; ' separator instead of creating a new footnote.
+ *
+ * @param citationId - Unique identifier for the citation (stored as the
+ *   content control tag).
+ * @param title - Human-readable label shown as the content control title.
+ * @param formattedRuns - Ordered text runs that make up the citation text.
+ * @param appendToFootnote - Optional 1-based footnote index to force
+ *   appending to a specific footnote (from the UI toggle). When provided,
+ *   skips adjacent-footnote detection.
+ */
+export async function insertCitationFootnote(
+  citationId: string,
+  title: string,
+  formattedRuns: FormattedRun[],
+  appendToFootnote?: number,
+): Promise<void> {
+  await Word.run(async (context) => {
+    // BUGS-013: If caller explicitly specified a footnote to append to,
+    // use that directly.
+    if (appendToFootnote !== undefined && appendToFootnote > 0) {
+      const footnotes = context.document.body.footnotes;
+      footnotes.load("items");
+      await context.sync();
+
+      const noteItem = footnotes.items[appendToFootnote - 1];
+      if (noteItem) {
+        await appendCitationToFootnote(noteItem, citationId, title, formattedRuns, context);
+        return;
+      }
+      // Fall through to create a new footnote if the index is invalid.
+    }
+
+    // BUGS-013: Try to detect an adjacent footnote reference at the cursor.
+    const adjacent = await getAdjacentFootnoteIndex(context);
+    if (adjacent) {
+      await appendCitationToFootnote(adjacent.noteItem, citationId, title, formattedRuns, context);
+      return;
+    }
+
+    // No adjacent footnote — create a new one as before.
     const selection = context.document.getSelection();
     const noteItem = selection.insertFootnote("");
 

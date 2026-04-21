@@ -99,12 +99,12 @@ describe("Rule 2.1.1 — Parties' Names (General)", () => {
     expect(toPlainText(runs)).toBe("Tame v New South Wales");
   });
 
-  test("Rule 2.1.11: 'v' separator is italicised", () => {
+  test("Rule 2.1.11: 'v' separator is roman (not italic)", () => {
     const runs = formatCaseName("Smith", "Jones");
-    // The 'v' run should be italic
+    // The 'v' run should be roman (not italic) per Rule 2.1.11
     const vRun = runs.find((r) => r.text.trim() === "v");
     expect(vRun).toBeDefined();
-    expect(vRun!.italic).toBe(true);
+    expect(vRun!.italic).toBe(false);
   });
 });
 
@@ -436,20 +436,23 @@ describe("Rule 2.2.6 — Identifying the Court", () => {
     expect(toPlainText(runs)).toBe(" (HCA)");
   });
 
-  test("Example 77: court included for unauthorised series", () => {
+  test("Example 77: court included when actual court differs from implied court", () => {
     // Aldrick v EM Investments (Qld) Pty Ltd [2000] 2 Qd R 346 (Court of Appeal)
-    // Qd R => authorised, so court is omitted for QSC. But "Court of Appeal" is
-    // a different court — QCA — so it should be included. The isCourtApparentFromSeries
-    // function only says the court is apparent if the report series maps to a
-    // specific court. Here QR maps to QSC but the court is QCA.
+    // QR maps to QSC in SERIES_TO_COURT, but the actual court is "Court of Appeal"
+    // (QCA). Because the actual court differs from the implied court, the court
+    // identifier must be shown (AUDIT2-018, Rule 2.2.6).
     const runs = formatCourtIdentifier("Court of Appeal", "QR");
-    // QR IS in SERIES_TO_COURT => court omitted. This is correct
-    // because per AGLC4 the court is apparent from Qd R.
-    // The Example 77 explicitly says "(Court of Appeal)" is needed because
-    // Qd R doesn't automatically imply the Court of Appeal.
-    // NOTE: This highlights a subtlety — the series maps to supreme courts
-    // not appeal courts. For now, let's test the current behaviour.
-    expect(runs).toHaveLength(0);
+    expect(runs).toHaveLength(1);
+    expect(runs[0].text).toBe(" (Court of Appeal)");
+  });
+
+  test("AUDIT2-018: court omitted only when actual court matches implied court", () => {
+    // QR implies QSC — if actual court IS QSC, omit
+    expect(formatCourtIdentifier("QSC", "QR")).toHaveLength(0);
+    // QR implies QSC — if actual court is QCA, show
+    const qcaRuns = formatCourtIdentifier("QCA", "QR");
+    expect(qcaRuns).toHaveLength(1);
+    expect(qcaRuns[0].text).toBe(" (QCA)");
   });
 });
 

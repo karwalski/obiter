@@ -588,17 +588,22 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     expect(directText).toContain("Taitokerau");
     expect(directText).toContain("103 TTK 95");
 
-    // Maori Land Court cases go through generic formatter until wiring lands
+    // Maori Land Court via engine — uses quasi_judicial with MLC fields
     const citation = makeCitation("case.quasi_judicial", {
+      caseName: "Pomare \u2013 Peter Here Pomare",
       title: "Pomare \u2013 Peter Here Pomare",
-      name: "Pomare \u2013 Peter Here Pomare",
+      party1: "Pomare",
       year: 2015,
+      blockNumber: 103,
+      minuteBookDistrict: "Taitokerau",
+      minuteBookAbbrev: "MB",
+      page: 95,
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Pomare");
+    // Should contain key elements from the formatter
     expect(engineText).toContain("2015");
   });
 

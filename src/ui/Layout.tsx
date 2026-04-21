@@ -10,7 +10,7 @@ import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { APP_VERSION } from "../constants";
 import { renumberAllHeadings } from "../word/styles";
 import { refreshAllCitations } from "../word/citationRefresher";
-import { CitationStore } from "../store/citationStore";
+import { getSharedStore } from "../store/singleton";
 import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
@@ -26,15 +26,6 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Settings" },
 ] as const;
 
-let layoutStoreInstance: CitationStore | null = null;
-
-async function getLayoutStore(): Promise<CitationStore> {
-  if (!layoutStoreInstance) {
-    layoutStoreInstance = new CitationStore();
-    await layoutStoreInstance.initStore();
-  }
-  return layoutStoreInstance;
-}
 
 export default function Layout(): JSX.Element {
   useTheme();
@@ -48,7 +39,7 @@ export default function Layout(): JSX.Element {
   useEffect(() => {
     void (async () => {
       try {
-        const store = await getLayoutStore();
+        const store = await getSharedStore();
         setStandardId(store.getStandardId());
         setWritingMode(store.getWritingMode());
       } catch {
@@ -61,7 +52,7 @@ export default function Layout(): JSX.Element {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const store = await getLayoutStore();
+      const store = await getSharedStore();
       await Word.run(async (context) => {
         await refreshAllCitations(context, store);
         await renumberAllHeadings(context);

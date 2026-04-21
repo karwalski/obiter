@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from "react";
 import { validateDocument, checkOscolaRules, checkNzlsgRules, ValidationIssue } from "../../engine/validator";
-import { CitationStore } from "../../store";
+import { getSharedStore } from "../../store/singleton";
 import { ValidationResult } from "../../engine/validator";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
@@ -13,7 +13,6 @@ import CheckReference from "../components/CheckReference";
 
 type FilterTab = "all" | "error" | "warning" | "info";
 
-const store = new CitationStore();
 
 /** SVG icon for errors (circle with cross). */
 function ErrorIcon(): JSX.Element {
@@ -137,7 +136,7 @@ export default function Validation(): JSX.Element {
       });
 
       // Load citations from store
-      await store.initStore();
+      const store = await getSharedStore();
       const citations = store.getAll();
 
       // Run validation (including body text for footnote position checks)
@@ -193,7 +192,7 @@ export default function Validation(): JSX.Element {
     setFormatResult(null);
 
     try {
-      await store.initStore();
+      const store = await getSharedStore();
       const citations = store.getAll();
 
       const result = await Word.run(async (context) => {

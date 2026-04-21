@@ -16,11 +16,35 @@ import type {
   Pinpoint,
   SourceType,
   Author,
+  IntroductorySignal,
 } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import { formatCaseName } from "./rules/v4/domestic/case-names";
 import { formatReportedCase } from "./rules/v4/domestic/cases";
-import { formatStatute } from "./rules/v4/domestic/legislation";
+import {
+  formatUnreportedMnc,
+  formatUnreportedNoMnc,
+  formatProceeding,
+  formatCourtOrder,
+} from "./rules/v4/domestic/cases-unreported";
+import {
+  formatJudicialOfficers,
+  formatCaseHistory,
+  formatAdministrativeDecision,
+  formatArbitration,
+  formatTranscript,
+  formatHcaTranscript,
+  formatSubmission,
+} from "./rules/v4/domestic/cases-supplementary";
+import { formatStatute, formatBill, formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
+import {
+  formatDelegatedLegislation,
+  formatCommonwealthConstitution,
+  formatStateConstitution,
+  formatExplanatoryMemorandum,
+  formatGazette,
+  formatQuasiLegislative,
+} from "./rules/v4/domestic/legislation-supplementary";
 import { formatJournalArticle } from "./rules/v4/secondary/journals";
 import { formatBook } from "./rules/v4/secondary/books";
 import { formatTreaty } from "./rules/v4/international/treaties";
@@ -28,6 +52,8 @@ import { formatGenaiOutput } from "./rules/v4/secondary/genai";
 import { ensureClosingPunctuation } from "./rules/v4/general/footnotes";
 import {
   resolveSubsequentReference,
+  formatShortTitleIntroduction,
+  formatAbbreviationDefinition,
   type SubsequentReferenceContext,
 } from "./resolver";
 import {
@@ -147,6 +173,62 @@ export interface CitationContext {
 type SourceFormatter = (citation: Citation, config?: CitationConfig) => FormattedRun[];
 
 /**
+ * Normalises a pinpoint from Citation.data — handles both Pinpoint objects
+ * (from the engine) and plain strings (from the UI text input).
+ */
+function normalisePinpoint(raw: unknown): Pinpoint | undefined {
+  if (!raw) return undefined;
+  if (typeof raw === "string") {
+    // Plain string from UI — wrap as a generic pinpoint
+    return { type: "page", value: raw };
+  }
+  // Already a Pinpoint object
+  return raw as Pinpoint;
+}
+
+// ─── PLUMB-001: Type Coercion Helpers ────────────────────────────────────────
+//
+// The UI stores all form values as strings (text inputs produce strings).
+// The engine formatters expect typed values (number, number | undefined, etc.).
+// These helpers safely coerce unknown values from Citation.data at the
+// dispatcher boundary so formatters receive correctly typed arguments.
+
+/**
+ * Coerces an unknown value to a number, returning the fallback when the
+ * value is missing, empty, or not a valid number.
+ *
+ * Handles: number passthrough, numeric strings ("1992"), empty strings,
+ * undefined, null, and NaN results.
+ */
+function toNumber(raw: unknown, fallback: number): number {
+  if (typeof raw === "number") return Number.isNaN(raw) ? fallback : raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed === "") return fallback;
+    const n = Number(trimmed);
+    return Number.isNaN(n) ? fallback : n;
+  }
+  return fallback;
+}
+
+/**
+ * Coerces an unknown value to a number or undefined. Returns undefined
+ * when the value is missing, empty, or not a valid number — used for
+ * optional numeric fields like volume, edition, seriesVolume.
+ */
+function toOptionalNumber(raw: unknown): number | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw === "number") return Number.isNaN(raw) ? undefined : raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed === "") return undefined;
+    const n = Number(trimmed);
+    return Number.isNaN(n) ? undefined : n;
+  }
+  return undefined;
+}
+
+/**
  * Dispatches a reported case citation (Rule 2.2).
  *
  * Extracts party names, year, volume, report series, starting page,
@@ -181,11 +263,11 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
       const runs = formatReportedCase({
         caseName,
         yearType: (d.yearType as "round" | "square") ?? "round",
-        year: (d.year as number) ?? 0,
-        volume: d.volume as number | undefined,
+        year: toNumber(d.year, 0),
+        volume: toOptionalNumber(d.volume),
         reportSeries: (d.reportSeries as string) ?? "",
-        startingPage: (d.startingPage as number) ?? 0,
-        pinpoint: d.pinpoint as Pinpoint | undefined,
+        startingPage: toNumber(d.startingPage, 0),
+        pinpoint: normalisePinpoint(d.pinpoint),
         courtId: d.courtId as string | undefined,
         pinpointStyle: config?.pinpointStyle,
       });
@@ -194,18 +276,40 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
     }
   }
 
-  return formatReportedCase({
+  const runs = formatReportedCase({
     caseName,
     yearType: (d.yearType as "round" | "square") ?? "round",
-    year: (d.year as number) ?? 0,
-    volume: d.volume as number | undefined,
+    year: toNumber(d.year, 0),
+    volume: toOptionalNumber(d.volume),
     reportSeries: (d.reportSeries as string) ?? "",
-    startingPage: (d.startingPage as number) ?? 0,
-    pinpoint: d.pinpoint as Pinpoint | undefined,
+    startingPage: toNumber(d.startingPage, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
     courtId: d.courtId as string | undefined,
     parallelCitations,
     pinpointStyle: config?.pinpointStyle,
   });
+
+  // AUDIT2-005: Append judicial officers (Rule 2.4) if present
+  const judicialOfficers = d.judicialOfficers as
+    | Array<{ name: string; title: string; role?: "majority" | "concurring" | "dissenting" | "agreeing" | "during_argument" }>
+    | undefined;
+  if (judicialOfficers && judicialOfficers.length > 0) {
+    const joRuns = formatJudicialOfficers(judicialOfficers);
+    if (joRuns.length > 0) {
+      runs.push({ text: " " });
+      runs.push(...joRuns);
+    }
+  }
+
+  // AUDIT2-005: Append case history (Rule 2.5) if present
+  const caseHistory = d.caseHistory as
+    | Array<{ phrase: string; citation: FormattedRun[] }>
+    | undefined;
+  if (caseHistory && caseHistory.length > 0) {
+    runs.push(...formatCaseHistory(caseHistory));
+  }
+
+  return runs;
 }
 
 /**
@@ -213,12 +317,21 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
  */
 function dispatchStatute(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  return formatStatute({
+  const runs = formatStatute({
     title: (d.title as string) ?? "",
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     jurisdiction: (d.jurisdiction as string) ?? "",
     number: d.number as string | undefined,
   });
+
+  // Rule 3.1.4: Append legislation pinpoint after jurisdiction
+  const pinpoint = normalisePinpoint(d.pinpoint);
+  if (pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatLegislationPinpoint(pinpoint));
+  }
+
+  return runs;
 }
 
 /**
@@ -229,12 +342,12 @@ function dispatchJournalArticle(citation: Citation): FormattedRun[] {
   return formatJournalArticle({
     authors: (d.authors as Author[]) ?? [],
     title: (d.title as string) ?? "",
-    year: (d.year as number) ?? 0,
-    volume: d.volume as number | undefined,
+    year: toNumber(d.year, 0),
+    volume: toOptionalNumber(d.volume),
     issue: d.issue as string | undefined,
     journal: (d.journal as string) ?? "",
-    startingPage: (d.startingPage as number) ?? 0,
-    pinpoint: d.pinpoint as Pinpoint | undefined,
+    startingPage: toNumber(d.startingPage, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
 
@@ -247,9 +360,9 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
     authors: (d.authors as Author[]) ?? [],
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? "",
-    edition: d.edition as number | undefined,
-    year: (d.year as number) ?? 0,
-    pinpoint: d.pinpoint as Pinpoint | undefined,
+    edition: toOptionalNumber(d.edition),
+    year: toNumber(d.year, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
   });
 }
@@ -265,16 +378,17 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
     openedDate: d.openedDate as string | undefined,
     signedDate: d.signedDate as string | undefined,
     treatySeries: (d.treatySeries as string) ?? "",
-    seriesVolume: d.seriesVolume as number | undefined,
-    startingPage: d.startingPage as number | undefined,
+    seriesVolume: toOptionalNumber(d.seriesVolume),
+    startingPage: toOptionalNumber(d.startingPage),
     entryIntoForceDate: d.entryIntoForceDate as string | undefined,
     notYetInForce: d.notYetInForce as boolean | undefined,
-    pinpoint: d.pinpoint as Pinpoint | undefined,
+    pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
 
 /**
  * Dispatches an unreported case with MNC (Rule 2.3.1).
+ * Delegates to formatUnreportedMnc from cases-unreported.ts.
  */
 function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
   const d = citation.data;
@@ -283,12 +397,151 @@ function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
     (d.party2 as string) ?? "",
     d.separator as string | undefined,
   );
-  const runs: FormattedRun[] = [...caseName];
-  runs.push({ text: ` [${d.year}] ${d.court ?? ""} ${d.caseNumber ?? ""}` });
-  if (d.pinpoint) {
-    runs.push({ text: `, ${(d.pinpoint as Pinpoint).value}` });
+  return formatUnreportedMnc({
+    caseName,
+    year: toNumber(d.year, 0),
+    courtIdentifier: (d.court as string) ?? (d.courtIdentifier as string) ?? "",
+    caseNumber: toNumber(d.caseNumber, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
+    judicialOfficer: d.judicialOfficer as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an unreported case without MNC (Rule 2.3.2).
+ * Delegates to formatUnreportedNoMnc from cases-unreported.ts.
+ */
+function dispatchUnreportedNoMnc(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.party1 as string) ?? "",
+    (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+  return formatUnreportedNoMnc({
+    caseName,
+    courtIdentifier: (d.courtIdentifier as string) ?? (d.court as string) ?? "",
+    fullDate: (d.fullDate as string) ?? (d.date as string) ?? "",
+    proceedingNumber: d.proceedingNumber as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a proceeding citation (Rule 2.3.3).
+ * Delegates to formatProceeding from cases-unreported.ts.
+ */
+function dispatchProceeding(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.party1 as string) ?? "",
+    (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+  return formatProceeding({
+    caseName,
+    court: (d.court as string) ?? "",
+    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    commencedDate: (d.commencedDate as string) ?? (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a court order citation (Rule 2.3.4).
+ * Delegates to formatCourtOrder from cases-unreported.ts.
+ */
+function dispatchCourtOrder(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.party1 as string) ?? "",
+    (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+  return formatCourtOrder({
+    caseName,
+    court: (d.court as string) ?? "",
+    orderDate: (d.orderDate as string) ?? (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a quasi-judicial / administrative decision citation (Rule 2.6.1).
+ * Delegates to formatAdministrativeDecision from cases-supplementary.ts.
+ */
+function dispatchQuasiJudicial(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatAdministrativeDecision({
+    party: (d.party as string) ?? (d.party1 as string) ?? "",
+    department: (d.department as string) ?? (d.party2 as string) ?? "",
+    year: toNumber(d.year, 0),
+    volume: toOptionalNumber(d.volume),
+    reportSeries: (d.reportSeries as string) ?? "",
+    startingPage: toNumber(d.startingPage, 0),
+  });
+}
+
+/**
+ * Dispatches an arbitration citation (Rule 2.6.2).
+ * Delegates to formatArbitration from cases-supplementary.ts.
+ */
+function dispatchArbitration(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatArbitration({
+    parties: (d.parties as string) ?? "",
+    arbitrationType: (d.arbitrationType as string) ?? "",
+    awardDetails: (d.awardDetails as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a transcript citation (Rules 2.7.1-2.7.2).
+ * Routes to formatHcaTranscript when the transcript is an HCA transcript,
+ * otherwise delegates to formatTranscript from cases-supplementary.ts.
+ */
+function dispatchTranscript(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.party1 as string) ?? "",
+    (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+
+  // Rule 2.7.2: HCA transcripts use a special format with [Year] HCATrans Number
+  if (d.hcaTranscript || (d.court as string) === "HCATrans") {
+    return formatHcaTranscript({
+      caseName,
+      year: toNumber(d.year, 0),
+      number: toNumber(d.number, toNumber(d.caseNumber, 0)),
+    });
   }
-  return runs;
+
+  // Rule 2.7.1: General transcript format
+  return formatTranscript({
+    caseName,
+    court: (d.court as string) ?? "",
+    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a submission citation (Rule 2.8).
+ * Delegates to formatSubmission from cases-supplementary.ts.
+ */
+function dispatchSubmission(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const caseName = formatCaseName(
+    (d.caseParty1 as string) ?? (d.party1 as string) ?? "",
+    (d.caseParty2 as string) ?? (d.party2 as string) ?? "",
+    d.separator as string | undefined,
+  );
+  return formatSubmission({
+    partyName: (d.partyName as string) ?? "",
+    submissionTitle: (d.submissionTitle as string) ?? (d.title as string) ?? "",
+    caseName,
+    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
 }
 
 /**
@@ -314,13 +567,145 @@ function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches a bill citation (AUDIT2-009, Rule 3.2).
+ *
+ * Bills are NOT italicised (unlike statutes). Extracts title, year,
+ * jurisdiction, and optional number from Citation.data, then appends
+ * a legislation pinpoint if present.
+ */
+function dispatchBill(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const runs = formatBill({
+    title: (d.title as string) ?? "",
+    year: toNumber(d.year, 0),
+    jurisdiction: (d.jurisdiction as string) ?? "",
+    number: d.number as string | undefined,
+  });
+
+  const pinpoint = normalisePinpoint(d.pinpoint);
+  if (pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatLegislationPinpoint(pinpoint));
+  }
+
+  return runs;
+}
+
+/**
+ * Dispatches a delegated legislation citation (AUDIT2-010, Rule 3.4).
+ *
+ * Delegated legislation (regulations, rules, orders) is formatted like
+ * statutes: title and year in italics, jurisdiction in parentheses.
+ */
+function dispatchDelegatedLegislation(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const runs = formatDelegatedLegislation({
+    title: (d.title as string) ?? "",
+    year: toNumber(d.year, 0),
+    jurisdiction: (d.jurisdiction as string) ?? "",
+  });
+
+  const pinpoint = normalisePinpoint(d.pinpoint);
+  if (pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatLegislationPinpoint(pinpoint));
+  }
+
+  return runs;
+}
+
+/**
+ * Dispatches a constitution citation (AUDIT2-011, Rule 3.6).
+ *
+ * If jurisdiction is "Cth" (or absent, defaulting to Commonwealth),
+ * delegates to formatCommonwealthConstitution. Otherwise delegates to
+ * formatStateConstitution for state/territory constitutions.
+ */
+function dispatchConstitution(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const jurisdiction = (d.jurisdiction as string) ?? "Cth";
+  const pinpoint = normalisePinpoint(d.pinpoint);
+
+  if (jurisdiction === "Cth") {
+    return formatCommonwealthConstitution(pinpoint);
+  }
+
+  return formatStateConstitution({
+    title: (d.title as string) ?? "Constitution Act",
+    year: toNumber(d.year, 0),
+    jurisdiction,
+    pinpoint,
+  });
+}
+
+/**
+ * Dispatches an explanatory memorandum citation (AUDIT2-012, Rule 3.7).
+ *
+ * Extracts the document type (e.g. "Explanatory Memorandum"), the bill
+ * title and year, jurisdiction, and optional pinpoint.
+ */
+function dispatchExplanatoryMemorandum(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatExplanatoryMemorandum({
+    type: (d.type as string) ?? "Explanatory Memorandum",
+    billTitle: (d.billTitle as string) ?? (d.title as string) ?? "",
+    billYear: toNumber(d.billYear, toNumber(d.year, 0)),
+    jurisdiction: (d.jurisdiction as string) ?? "",
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
+}
+
+/**
+ * Dispatches a quasi-legislative material citation (AUDIT2-013, Rule 3.9).
+ *
+ * Checks data fields to determine whether this is a gazette (Rule 3.9.1)
+ * or another quasi-legislative material (Rules 3.9.2-3.9.4) such as
+ * ASIC class orders, ATO rulings, or practice directions.
+ */
+function dispatchQuasiLegislative(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+
+  // If gazette-specific fields are present, format as gazette (Rule 3.9.1)
+  if (d.gazetteType) {
+    return formatGazette({
+      jurisdiction: (d.jurisdiction as string) ?? "",
+      gazetteType: (d.gazetteType as string) ?? "",
+      number: d.number as string | undefined,
+      date: (d.date as string) ?? "",
+      page: toOptionalNumber(d.page),
+    });
+  }
+
+  // Otherwise format as quasi-legislative material (Rules 3.9.2-3.9.4)
+  return formatQuasiLegislative({
+    issuingBody: (d.issuingBody as string) ?? "",
+    documentType: (d.documentType as string) ?? "",
+    number: (d.number as string) ?? "",
+    date: (d.date as string) ?? "",
+    title: d.title as string | undefined,
+  });
+}
+
+/**
  * Registry mapping each supported SourceType to its dispatch function.
  * Source types not in this map fall through to the generic formatter.
  */
 const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "case.reported": dispatchReportedCase,
   "case.unreported.mnc": dispatchUnreportedMnc,
+  "case.unreported.no_mnc": dispatchUnreportedNoMnc,
+  "case.proceeding": dispatchProceeding,
+  "case.court_order": dispatchCourtOrder,
+  "case.quasi_judicial": dispatchQuasiJudicial,
+  "case.arbitration": dispatchArbitration,
+  "case.transcript": dispatchTranscript,
+  "case.submission": dispatchSubmission,
   "legislation.statute": dispatchStatute,
+  "legislation.bill": dispatchBill,
+  "legislation.delegated": dispatchDelegatedLegislation,
+  "legislation.constitution": dispatchConstitution,
+  "legislation.explanatory": dispatchExplanatoryMemorandum,
+  "legislation.quasi": dispatchQuasiLegislative,
   "journal.article": dispatchJournalArticle,
   book: dispatchBook,
   treaty: dispatchTreaty,
@@ -401,9 +786,9 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
     return nzlsgFormatNeutralCitation({
       caseName,
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       courtIdentifier: (d.courtIdentifier as string) ?? (d.court as string) ?? "",
-      decisionNumber: (d.decisionNumber as number) ?? (d.caseNumber as number) ?? 0,
+      decisionNumber: toNumber(d.decisionNumber, toNumber(d.caseNumber, 0)),
       parallelReport: parallelReport ?? undefined,
       pinpoint: extractNzlsgPinpoint(d),
     });
@@ -414,14 +799,14 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "case.quasi_judicial" && d.minuteBookAbbrev) {
     return nzlsgFormatMaoriLandCourt({
       caseName: (d.caseName as string) ?? "",
-      year: (d.year as number) ?? 0,
-      blockNumber: (d.blockNumber as number) ?? 0,
+      year: toNumber(d.year, 0),
+      blockNumber: toNumber(d.blockNumber, 0),
       minuteBookDistrict: (d.minuteBookDistrict as string) ?? "",
       minuteBookAbbrev: (d.minuteBookAbbrev as string) ?? "",
-      page: (d.page as number) ?? 0,
-      shortBlockNumber: d.shortBlockNumber as number | undefined,
+      page: toNumber(d.page, 0),
+      shortBlockNumber: toOptionalNumber(d.shortBlockNumber),
       shortCourtAbbrev: d.shortCourtAbbrev as string | undefined,
-      shortPage: d.shortPage as number | undefined,
+      shortPage: toOptionalNumber(d.shortPage),
       pinpoint: extractNzlsgPinpoint(d),
       isAppellateCourt: d.isAppellateCourt as boolean | undefined,
     });
@@ -432,8 +817,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "report" && d.waiNumber !== undefined) {
     return nzlsgFormatWaitangiTribunalReport({
       title: (d.title as string) ?? "",
-      waiNumber: (d.waiNumber as number) ?? 0,
-      year: (d.year as number) ?? 0,
+      waiNumber: toNumber(d.waiNumber, 0),
+      year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -443,7 +828,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "treaty" && d.treatyOfWaitangi) {
     return nzlsgFormatTreatyOfWaitangi({
       language: (d.language as "english" | "maori") ?? "english",
-      article: d.article as number | undefined,
+      article: toOptionalNumber(d.article),
       preamble: d.preamble as boolean | undefined,
     });
   }
@@ -453,7 +838,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "legislation.statute") {
     return nzlsgFormatLegislation({
       title: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       jurisdiction: d.jurisdiction as string | undefined,
       pinpoint: extractNzlsgPinpoint(d),
     });
@@ -462,7 +847,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "legislation.delegated") {
     return nzlsgFormatDelegatedLegislation({
       title: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -480,8 +865,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "hansard" && d.nzpd) {
     return nzlsgFormatNZPD({
       date: (d.date as string) ?? "",
-      volume: (d.volume as number) ?? 0,
-      page: (d.page as number) ?? 0,
+      volume: toNumber(d.volume, 0),
+      page: toNumber(d.page, 0),
       speaker: d.speaker as string | undefined,
       pinpoint: extractNzlsgPinpoint(d),
     });
@@ -509,8 +894,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "report.parliamentary" && d.gazette) {
     return nzlsgFormatNZGazette({
       title: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
-      page: (d.page as number) ?? 0,
+      year: toNumber(d.year, 0),
+      page: toNumber(d.page, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -534,7 +919,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       edition: d.edition as string | undefined,
       publisher: (d.publisher as string) ?? "",
       place: (d.place as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -544,10 +929,10 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       author: (d.author as string) ??
         formatNzlsgAuthorString(d.authors as Author[] | undefined),
       title: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
-      volume: d.volume as number | undefined,
+      year: toNumber(d.year, 0),
+      volume: toOptionalNumber(d.volume),
       journal: (d.journal as string) ?? "",
-      startPage: (d.startingPage as number) ?? (d.startPage as number) ?? 0,
+      startPage: toNumber(d.startingPage, toNumber(d.startPage, 0)),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -556,8 +941,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatLawCommission({
       title: (d.title as string) ?? "",
       reportType: (d.reportType as "R" | "SP" | "IP" | "PP") ?? "R",
-      reportNumber: (d.reportNumber as number) ?? 0,
-      year: (d.year as number) ?? 0,
+      reportNumber: toNumber(d.reportNumber, 0),
+      year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -569,7 +954,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       degree: (d.degree as string) ?? "",
       university: (d.university as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -612,8 +997,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatICJCase({
       caseName: (d.caseName as string) ?? "",
       phase: d.phase as string | undefined,
-      year: (d.year as number) ?? 0,
-      icjReportsPage: d.icjReportsPage as number | undefined,
+      year: toNumber(d.year, 0),
+      icjReportsPage: toOptionalNumber(d.icjReportsPage),
       pinpoint: extractNzlsgPinpoint(d),
     });
   }
@@ -739,9 +1124,9 @@ function dispatchOscolaCase(citation: Citation): FormattedRun[] {
   if (neutralCitation) {
     data.neutralCitation = neutralCitation;
   } else {
-    const ncYear = d.neutralCitationYear as number | undefined;
+    const ncYear = toOptionalNumber(d.neutralCitationYear);
     const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = d.neutralCitationNumber as number | undefined;
+    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
     if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
       data.neutralCitation = {
         year: ncYear,
@@ -757,15 +1142,15 @@ function dispatchOscolaCase(citation: Citation): FormattedRun[] {
   if (reportCitation) {
     data.reportCitation = reportCitation;
   } else if (d.reportSeries || d.year) {
-    const year = (d.year as number) ?? 0;
+    const year = toNumber(d.year, 0);
     const series = (d.reportSeries as string) ?? "";
     if (series) {
       data.reportCitation = {
         year,
         yearType: (d.yearType as "round" | "square") ?? "square",
-        volume: d.volume as number | undefined,
+        volume: toOptionalNumber(d.volume),
         series,
-        startPage: (d.startingPage as number | string) ?? 0,
+        startPage: toNumber(d.startingPage, 0),
       };
     }
   }
@@ -780,11 +1165,11 @@ function dispatchOscolaScottishCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const data: OscolaScottishCaseData = {
     caseName: buildOscolaCaseName(d),
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     yearType: (d.yearType as "round" | "square") ?? "round",
-    volume: d.volume as number | undefined,
+    volume: toOptionalNumber(d.volume),
     reportSeries: (d.reportSeries as string) ?? "",
-    startPage: (d.startingPage as number | string) ?? 0,
+    startPage: toNumber(d.startingPage, 0),
     courtId: d.courtId as string | undefined,
     pinpoint: extractOscolaPinpoint(d),
     historicalSeries: d.historicalSeries as boolean | undefined,
@@ -795,9 +1180,9 @@ function dispatchOscolaScottishCase(citation: Citation): FormattedRun[] {
   if (neutralCitation) {
     data.neutralCitation = neutralCitation;
   } else {
-    const ncYear = d.neutralCitationYear as number | undefined;
+    const ncYear = toOptionalNumber(d.neutralCitationYear);
     const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = d.neutralCitationNumber as number | undefined;
+    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
     if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
       data.neutralCitation = { year: ncYear, court: ncCourt, number: ncNumber };
     }
@@ -822,9 +1207,9 @@ function dispatchOscolaNICase(citation: Citation): FormattedRun[] {
   if (neutralCitation) {
     data.neutralCitation = neutralCitation;
   } else {
-    const ncYear = d.neutralCitationYear as number | undefined;
+    const ncYear = toOptionalNumber(d.neutralCitationYear);
     const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = d.neutralCitationNumber as number | undefined;
+    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
     if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
       data.neutralCitation = { year: ncYear, court: ncCourt, number: ncNumber };
     }
@@ -836,11 +1221,11 @@ function dispatchOscolaNICase(citation: Citation): FormattedRun[] {
     data.reportCitation = reportCitation;
   } else if (d.reportSeries) {
     data.reportCitation = {
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       yearType: (d.yearType as "round" | "square") ?? "square",
-      volume: d.volume as number | undefined,
+      volume: toOptionalNumber(d.volume),
       series: (d.reportSeries as string) ?? "",
-      startPage: (d.startingPage as number | string) ?? 0,
+      startPage: toNumber(d.startingPage, 0),
     };
   }
 
@@ -861,9 +1246,9 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
 
   let nc = neutralCitation;
   if (!nc) {
-    const ncYear = d.neutralCitationYear as number | undefined;
+    const ncYear = toOptionalNumber(d.neutralCitationYear);
     const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = d.neutralCitationNumber as number | undefined;
+    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
     if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
       nc = {
         year: ncYear,
@@ -883,10 +1268,10 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
   let rc = reportCitation;
   if (!rc && d.reportSeries) {
     rc = {
-      year: (d.year as number) ?? 0,
-      volume: d.volume as number | undefined,
+      year: toNumber(d.year, 0),
+      volume: toOptionalNumber(d.volume),
       series: (d.reportSeries as string) as IrishReportSeries,
-      page: (d.startingPage as number) ?? 0,
+      page: toNumber(d.startingPage, 0),
     };
   }
 
@@ -945,9 +1330,9 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
   if (legislationType === "secondary" || legislationType === "delegated") {
     return formatOscolaSecondaryLegislation({
       title: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       type: (d.instrumentType as "si" | "ssi" | "wsi" | "sr") ?? "si",
-      number: (d.number as number | string) ?? 0,
+      number: toNumber(d.number, 0),
       pinpoint: extractOscolaPinpoint(d),
     });
   }
@@ -957,21 +1342,21 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
     if (d.siNumber !== undefined) {
       return oscolaFormatIrishStatutoryInstrument({
         shortTitle: (d.title as string) ?? "",
-        year: (d.year as number) ?? 0,
+        year: toNumber(d.year, 0),
         siNumber: d.siNumber as number,
         pinpoint: extractOscolaPinpoint(d),
       });
     }
     return oscolaFormatIrishAct({
       shortTitle: (d.title as string) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractOscolaPinpoint(d),
     });
   }
 
   return formatOscolaPrimaryLegislation({
     title: (d.title as string) ?? "",
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     type: (d.ukLegislationType as "uk" | "asp" | "anaw" | "asc" | "ni") ?? "uk",
     number: d.number as number | undefined,
     pinpoint: extractOscolaPinpoint(d),
@@ -987,9 +1372,9 @@ function dispatchOscolaDelegatedLegislation(citation: Citation): FormattedRun[] 
   const d = citation.data;
   return formatOscolaSecondaryLegislation({
     title: (d.title as string) ?? "",
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     type: (d.instrumentType as "si" | "ssi" | "wsi" | "sr") ?? "si",
-    number: (d.number as number | string) ?? 0,
+    number: toNumber(d.number, 0),
     pinpoint: extractOscolaPinpoint(d),
   });
 }
@@ -1002,8 +1387,8 @@ function dispatchOscolaHansard(citation: Citation): FormattedRun[] {
   return formatOscolaHansard({
     chamber: (d.chamber as "HC" | "HL") ?? "HC",
     date: (d.date as string) ?? "",
-    volume: (d.volume as number) ?? 0,
-    column: (d.column as number | string) ?? 0,
+    volume: toNumber(d.volume, 0),
+    column: toNumber(d.column, 0),
     speaker: d.speaker as string | undefined,
   });
 }
@@ -1021,7 +1406,7 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
       title: (d.title as string) ?? "",
       seriesPrefix: (d.seriesPrefix as "C" | "Cd" | "Cmd" | "Cmnd" | "Cm") ?? "Cm",
       paperNumber: (d.paperNumber as string | number) ?? "",
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractOscolaPinpoint(d),
     });
   }
@@ -1030,7 +1415,7 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
     return formatOscolaLawCommission({
       title: (d.title as string) ?? "",
       reportNumber: (d.reportNumber as number | string) ?? 0,
-      year: (d.year as number) ?? 0,
+      year: toNumber(d.year, 0),
       pinpoint: extractOscolaPinpoint(d),
     });
   }
@@ -1040,7 +1425,7 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
     title: (d.title as string) ?? "",
     session: d.session as string | undefined,
     paperNumber: d.paperNumber as string | undefined,
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     pinpoint: extractOscolaPinpoint(d),
   });
 }
@@ -1054,7 +1439,7 @@ function dispatchOscolaEuOfficialJournal(citation: Citation): FormattedRun[] {
     instrumentType: (d.instrumentType as string) ?? "",
     number: (d.number as string) ?? "",
     title: (d.title as string) ?? "",
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     ojSeries: (d.ojSeries as string) ?? "",
     ojPage: (d.ojPage as string) ?? "",
   });
@@ -1164,7 +1549,7 @@ function dispatchOscolaIcjCase(citation: Citation): FormattedRun[] {
   return oscolaFormatIcjCase({
     caseName: buildOscolaCaseName(d),
     phase: d.phase as string | undefined,
-    year: (d.year as number) ?? 0,
+    year: toNumber(d.year, 0),
     reportSeries: d.reportSeries as string | undefined,
     page: d.page as number | undefined,
     pinpoint: extractOscolaPinpoint(d),
@@ -1309,7 +1694,7 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   }
 
   // Year
-  const year = d.year as number | undefined;
+  const year = toOptionalNumber(d.year);
   if (year !== undefined) {
     runs.push({ text: ` (${year})` });
   }
@@ -1321,7 +1706,7 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   }
 
   // Volume
-  const volume = d.volume as number | undefined;
+  const volume = toOptionalNumber(d.volume);
   if (volume !== undefined) {
     runs.push({ text: ` ${volume}` });
   }
@@ -1340,13 +1725,13 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   }
 
   // Starting page
-  const startingPage = d.startingPage as number | undefined;
+  const startingPage = toOptionalNumber(d.startingPage);
   if (startingPage !== undefined) {
     runs.push({ text: ` ${startingPage}` });
   }
 
   // Pinpoint
-  const pinpoint = d.pinpoint as Pinpoint | undefined;
+  const pinpoint = normalisePinpoint(d.pinpoint);
   if (pinpoint) {
     runs.push({ text: `, ${pinpoint.value}` });
   }
@@ -1358,6 +1743,57 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   }
 
   return runs;
+}
+
+// ─── Signal & Commentary Wrapper (SIGNAL-001) ───────────────────────────────
+
+/**
+ * Wraps citation runs with introductory signal and commentary text per
+ * AGLC4 Rule 1.2.
+ *
+ * Order: [commentaryBefore] [signal] [citation runs] [commentaryAfter]
+ *
+ * - The signal is rendered in italics with a trailing space.
+ * - commentaryBefore is plain text with a trailing space.
+ * - commentaryAfter is plain text with a leading space, inserted before
+ *   closing punctuation.
+ *
+ * @param runs - The base citation runs (before closing punctuation).
+ * @param citation - The citation containing optional signal/commentary fields.
+ * @returns A new array of FormattedRun with signal/commentary prepended/appended.
+ */
+export function applySignalAndCommentary(
+  runs: FormattedRun[],
+  citation: Citation,
+): FormattedRun[] {
+  const { signal, commentaryBefore, commentaryAfter } = citation;
+
+  // If nothing to add, return runs unchanged
+  if (!signal && !commentaryBefore && !commentaryAfter) {
+    return runs;
+  }
+
+  const result: FormattedRun[] = [];
+
+  // Prepend commentaryBefore (plain text)
+  if (commentaryBefore && commentaryBefore.trim()) {
+    result.push({ text: commentaryBefore.trim() + " " });
+  }
+
+  // Prepend signal (roman per Rule 1.2)
+  if (signal) {
+    result.push({ text: signal + " ", italic: false });
+  }
+
+  // Append the citation runs
+  result.push(...runs);
+
+  // Append commentaryAfter (plain text)
+  if (commentaryAfter && commentaryAfter.trim()) {
+    result.push({ text: " " + commentaryAfter.trim() });
+  }
+
+  return result;
 }
 
 // ─── Main Entry Point ────────────────────────────────────────────────────────
@@ -1420,6 +1856,33 @@ export function formatCitation(
     // resolver returned null — render full citation (falls through below)
   }
 
+  // ── Helper: append short title introduction and abbreviation definition
+  //    after first citations (Rules 1.4.4 and 1.4.5). These are appended
+  //    before closing punctuation so the full stop comes last.
+  const isFirstCitation = !context || context.isFirstCitation;
+  const appendFirstCitationSuffixes = (runs: FormattedRun[]): FormattedRun[] => {
+    if (!isFirstCitation) return runs;
+    let result = runs;
+
+    // AUDIT2-015: Short title introduction (Rule 1.4.4)
+    if (citation.shortTitle) {
+      const intro = formatShortTitleIntroduction(
+        citation.shortTitle,
+        citation.sourceType,
+      );
+      result = [...result, { text: " " }, ...intro];
+    }
+
+    // AUDIT2-016: Abbreviation definition (Rule 1.4.5)
+    const abbreviation = citation.data.abbreviation as string | undefined;
+    if (abbreviation && abbreviation !== citation.shortTitle) {
+      const abbrevRuns = formatAbbreviationDefinition(abbreviation);
+      result = [...result, { text: " " }, ...abbrevRuns];
+    }
+
+    return result;
+  };
+
   // ── OSCOLA full citation dispatch (OSC-ENH-001) ─────────────────────────
   // When the standard is OSCOLA, try OSCOLA-specific formatters first.
   // Falls through to the generic AGLC4 dispatch / generic formatter if
@@ -1427,8 +1890,9 @@ export function formatCitation(
   if (isOscolaStandard(standardConfig)) {
     const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
     if (oscolaFormatter) {
-      const runs = oscolaFormatter(citation, standardConfig);
-      return ensureClosingPunctuation(runs);
+      let runs = oscolaFormatter(citation, standardConfig);
+      runs = appendFirstCitationSuffixes(runs);
+      return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
     }
     // No OSCOLA-specific formatter — fall through to SOURCE_DISPATCH
   }
@@ -1440,17 +1904,19 @@ export function formatCitation(
   if (isNzlsgStandard(standardConfig.standardId)) {
     const nzlsgRuns = dispatchNzlsg(citation);
     if (nzlsgRuns !== null) {
-      return ensureClosingPunctuation(nzlsgRuns);
+      const withSuffixes = appendFirstCitationSuffixes(nzlsgRuns);
+      return ensureClosingPunctuation(applySignalAndCommentary(withSuffixes, citation));
     }
   }
 
   // Dispatch to the source-type-specific formatter, or fallback to generic.
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
-  const runs = dispatcher
+  let runs = dispatcher
     ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
+  runs = appendFirstCitationSuffixes(runs);
 
-  return ensureClosingPunctuation(runs);
+  return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
 }
 
 // ─── Preview Helper ──────────────────────────────────────────────────────────
@@ -1473,7 +1939,7 @@ export function getFormattedPreview(
     const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
     if (oscolaFormatter) {
       const runs = oscolaFormatter(citation, standardConfig);
-      return ensureClosingPunctuation(runs);
+      return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
     }
   }
 
@@ -1481,7 +1947,7 @@ export function getFormattedPreview(
   if (isNzlsgStandard(standardConfig.standardId)) {
     const nzlsgRuns = dispatchNzlsg(citation);
     if (nzlsgRuns !== null) {
-      return ensureClosingPunctuation(nzlsgRuns);
+      return ensureClosingPunctuation(applySignalAndCommentary(nzlsgRuns, citation));
     }
   }
 
@@ -1490,5 +1956,5 @@ export function getFormattedPreview(
     ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
 
-  return ensureClosingPunctuation(runs);
+  return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
 }

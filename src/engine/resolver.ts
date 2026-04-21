@@ -14,6 +14,7 @@
 import type { Citation, Pinpoint, SourceType } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import type { CitationConfig } from "./standards/types";
+import { formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
 
@@ -226,7 +227,14 @@ export function formatShortReference(
     if (pinpointPrefix) {
       runs.push({ text: pinpointPrefix });
     }
-    runs.push(...formatPinpoint(pinpoint));
+    // AUDIT2-020: Use legislation-specific pinpoint formatting (singular/plural
+    // abbreviations like s/ss, reg/regs, cl/cll) for legislation citations
+    // instead of the general pinpoint formatter (Rule 3.5).
+    if (isLegislation(citation.sourceType)) {
+      runs.push(...formatLegislationPinpoint(pinpoint));
+    } else {
+      runs.push(...formatPinpoint(pinpoint));
+    }
   }
 
   return runs;
@@ -513,11 +521,13 @@ export interface SubsequentReferenceContext {
   formatPreference: "full" | "short" | "ibid" | "auto";
   /** Whether multiple works by the same author exist, requiring disambiguation. */
   disambiguate?: boolean;
+  /** The current footnote number (needed for cross-reference direction). */
+  footnoteNumber?: number;
   /**
    * Direction for cross-references (Rule 1.4.2).
    *
-   * - `"auto"`: The resolver determines direction based on footnote ordering
-   *   (not yet implemented — defaults to standard short reference behaviour).
+   * - `"auto"`: The resolver determines direction by comparing
+   *   `firstFootnoteNumber` to `footnoteNumber`.
    * - `"above"`: Force an "above n X" cross-reference.
    * - `"below"`: Force a "below n X" cross-reference.
    */
@@ -610,7 +620,28 @@ export function resolveSubsequentReference(
     return resolveIbid(context.currentPinpoint, context.precedingPinpoint);
   }
 
-  // 4. Short reference (Rule 1.4.1)
+  // 4. Cross-reference direction (Rule 1.4.2)
+  //    When crossReferenceDirection is explicitly "above" or "below", or "auto"
+  //    with a known footnoteNumber, render the directional cross-reference
+  //    instead of the standard short reference.
+  const direction = context.crossReferenceDirection;
+  if (direction === "above") {
+    return formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint);
+  }
+  if (direction === "below") {
+    return formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint);
+  }
+  if (direction === "auto" && context.footnoteNumber !== undefined) {
+    if (context.firstFootnoteNumber < context.footnoteNumber) {
+      return formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint);
+    }
+    if (context.firstFootnoteNumber > context.footnoteNumber) {
+      return formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint);
+    }
+    // firstFootnoteNumber === footnoteNumber: same footnote, fall through to short reference
+  }
+
+  // 5. Short reference (Rule 1.4.1)
   return formatShortReference(
     citation,
     context.firstFootnoteNumber,

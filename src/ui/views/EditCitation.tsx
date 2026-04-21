@@ -5,10 +5,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCitationContext } from "../context/CitationContext";
-import { CitationStore } from "../../store/citationStore";
+import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
-import { Citation, SourceType, SourceData } from "../../types/citation";
+import { Citation, SourceType, SourceData, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import {
   updateCitationContent,
   deleteCitationFootnote,
@@ -240,16 +240,7 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
   }
 }
 
-// ─── Singleton Store Instance ────────────────────────────────────────────────
-
-let storeInstance: CitationStore | null = null;
-
-function getStore(): CitationStore {
-  if (!storeInstance) {
-    storeInstance = new CitationStore();
-  }
-  return storeInstance;
-}
+// ─── Shared Store Instance ───────────────────────────────────────────────────
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -267,12 +258,16 @@ export default function EditCitation(): JSX.Element {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
+  // SIGNAL-001: Introductory signal and commentary
+  const [signal, setSignal] = useState<IntroductorySignal | "">("");
+  const [commentaryBefore, setCommentaryBefore] = useState("");
+  const [commentaryAfter, setCommentaryAfter] = useState("");
+
   // Load the active standard on mount
   useEffect(() => {
     void (async () => {
       try {
-        const store = getStore();
-        await store.initStore();
+        const store = await getSharedStore();
         setStandardId(store.getStandardId());
       } catch {
         // Default to aglc4
@@ -288,8 +283,7 @@ export default function EditCitation(): JSX.Element {
 
     async function loadAll(): Promise<void> {
       try {
-        const store = getStore();
-        await store.initStore();
+        const store = await getSharedStore();
         if (!cancelled) {
           setAllCitations(store.getAll());
         }
@@ -311,6 +305,9 @@ export default function EditCitation(): JSX.Element {
       setFormData({});
       setShortTitle("");
       setFormatPreference("auto");
+      setSignal("");
+      setCommentaryBefore("");
+      setCommentaryAfter("");
       setError(null);
       setSuccessMessage(null);
       return;
@@ -325,8 +322,7 @@ export default function EditCitation(): JSX.Element {
       setConfirmingDelete(false);
 
       try {
-        const store = getStore();
-        await store.initStore();
+        const store = await getSharedStore();
         const found = store.getById(selectedCitationId!);
 
         if (cancelled) return;
@@ -340,6 +336,9 @@ export default function EditCitation(): JSX.Element {
         setCitation(found);
         setFormData({ ...found.data });
         setShortTitle(found.shortTitle ?? "");
+        setSignal(found.signal ?? "");
+        setCommentaryBefore(found.commentaryBefore ?? "");
+        setCommentaryAfter(found.commentaryAfter ?? "");
         // Restore format preference from data if previously saved
         const savedPref = found.data._formatPreference;
         if (
@@ -385,11 +384,14 @@ export default function EditCitation(): JSX.Element {
     setSuccessMessage(null);
 
     try {
-      const store = getStore();
+      const store = await getSharedStore();
       const updatedCitation: Citation = {
         ...citation,
         data: { ...formData, _formatPreference: formatPreference },
         shortTitle: shortTitle || undefined,
+        signal: signal || undefined,
+        commentaryBefore: commentaryBefore || undefined,
+        commentaryAfter: commentaryAfter || undefined,
         modifiedAt: new Date().toISOString(),
       };
 
@@ -408,7 +410,7 @@ export default function EditCitation(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [citation, formData, shortTitle, formatPreference]);
+  }, [citation, formData, shortTitle, formatPreference, signal, commentaryBefore, commentaryAfter]);
 
   // ─── Delete Citation ──────────────────────────────────────────────────────
 
@@ -420,7 +422,7 @@ export default function EditCitation(): JSX.Element {
     setSuccessMessage(null);
 
     try {
-      const store = getStore();
+      const store = await getSharedStore();
 
       // Find all footnotes containing this citation so we can clean up
       const footnotes = await getAllCitationFootnotes();
@@ -569,6 +571,59 @@ export default function EditCitation(): JSX.Element {
             placeholder="Optional short title for subsequent references"
             onChange={(e) => {
               setShortTitle(e.target.value);
+              setSuccessMessage(null);
+            }}
+            disabled={loading}
+          />
+        </label>
+      </div>
+
+      {/* SIGNAL-001: Introductory signal and commentary */}
+      <div className="edit-signal-section">
+        <label className="edit-field">
+          <span className="edit-field-label">Introductory Signal</span>
+          <select
+            className="edit-field-input"
+            value={signal}
+            onChange={(e) => {
+              setSignal(e.target.value as IntroductorySignal | "");
+              setSuccessMessage(null);
+            }}
+            disabled={loading}
+          >
+            <option value="">None</option>
+            {INTRODUCTORY_SIGNALS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="edit-field">
+          <span className="edit-field-label">Commentary Before</span>
+          <input
+            type="text"
+            className="edit-field-input"
+            value={commentaryBefore}
+            placeholder="e.g., For a discussion of this principle, see"
+            onChange={(e) => {
+              setCommentaryBefore(e.target.value);
+              setSuccessMessage(null);
+            }}
+            disabled={loading}
+          />
+        </label>
+
+        <label className="edit-field">
+          <span className="edit-field-label">Commentary After</span>
+          <input
+            type="text"
+            className="edit-field-input"
+            value={commentaryAfter}
+            placeholder="e.g., where the court distinguished the earlier authority"
+            onChange={(e) => {
+              setCommentaryAfter(e.target.value);
               setSuccessMessage(null);
             }}
             disabled={loading}
