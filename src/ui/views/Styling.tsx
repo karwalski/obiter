@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { applyHeadingLevel } from "../../word/styles";
+import { applyHeadingLevel, findExistingHeadingListId } from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
 import { CitationStore } from "../../store/citationStore";
@@ -98,13 +98,28 @@ export default function Styling(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
-  // Load the active standard on mount
+  // Load the active standard and heading list ID on mount
   useEffect(() => {
     void (async () => {
       try {
         const store = new CitationStore();
         await store.initStore();
         setStandardId(store.getStandardId());
+
+        // Restore persisted heading list ID
+        const savedListId = store.getHeadingListId();
+        if (savedListId !== undefined) {
+          aglcHeadingListId = savedListId;
+        } else {
+          // Fallback: scan document for existing heading list
+          await Word.run(async (context) => {
+            const foundId = await findExistingHeadingListId(context);
+            if (foundId !== undefined) {
+              aglcHeadingListId = foundId;
+              await store.setHeadingListId(foundId);
+            }
+          });
+        }
       } catch {
         // Default to aglc4
       }
@@ -135,6 +150,12 @@ export default function Styling(): JSX.Element {
           if (list) {
             // New list was created (either first time, or old list was dead)
             aglcHeadingListId = list.id;
+            // Persist to Custom XML Part so it survives document close/reopen
+            try {
+              const store = new CitationStore();
+              await store.initStore();
+              await store.setHeadingListId(list.id);
+            } catch { /* non-critical */ }
           }
         }
       });

@@ -205,6 +205,23 @@ export class CitationStore {
   }
 
   /**
+   * Return the persisted heading list ID, or undefined if not set.
+   */
+  getHeadingListId(): number | undefined {
+    this.ensureInitialised();
+    return this.storeData!.metadata.headingListId;
+  }
+
+  /**
+   * Persist the heading list ID so it survives document close/reopen.
+   */
+  async setHeadingListId(listId: number | undefined): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.headingListId = listId;
+    await this.persist();
+  }
+
+  /**
    * Return a snapshot of the store metadata.
    */
   getMetadata(): StoreMetadata {
@@ -227,6 +244,7 @@ export class CitationStore {
       this.storeData!.metadata.standardId ?? DEFAULT_STANDARD_ID,
       this.storeData!.metadata.writingMode ?? "academic",
       this.storeData!.metadata.courtJurisdiction,
+      this.storeData!.metadata.headingListId,
     );
 
     await Word.run(async (context) => {

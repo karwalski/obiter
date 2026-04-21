@@ -221,6 +221,7 @@ export interface StoreMetadata {
   standardId?: string; // CitationStandardId — defaults to "aglc4" if missing (backward compat)
   writingMode?: "academic" | "court"; // MULTI-014 — defaults to "academic" if missing
   courtJurisdiction?: string; // COURT-002 — CourtJurisdiction ID, present when writingMode is "court"
+  headingListId?: number; // Persisted Word multilevel list ID for heading numbering
 }
 
 // ─── Store Shape (deserialized) ───────────────────────────────────────────────

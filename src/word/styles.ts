@@ -306,6 +306,38 @@ export async function createAglc4HeadingList(
  */
 export const HEADING_TAG_PREFIX = "obiter-heading-";
 
+/**
+ * Scans the document for an existing paragraph with a Heading style that
+ * is already part of a multilevel list. Returns the list ID if found, or
+ * undefined if no heading list exists. This allows reattaching to the same
+ * list after a document close/reopen cycle.
+ */
+export async function findExistingHeadingListId(
+  context: Word.RequestContext,
+): Promise<number | undefined> {
+  try {
+    const body = context.document.body;
+    const paragraphs = body.paragraphs;
+    paragraphs.load("items/style,items/isListItem");
+    await context.sync();
+
+    for (const para of paragraphs.items) {
+      if (para.style && para.style.startsWith("Heading") && para.isListItem) {
+        // Access the list via listItem — load listString which contains the list ID
+        const listItem = para.listItem;
+        listItem.load("level");
+        const list = para.list;
+        list.load("id");
+        await context.sync();
+        return list.id;
+      }
+    }
+  } catch {
+    // List API not available or no headings found
+  }
+  return undefined;
+}
+
 export async function applyHeadingLevel(
   context: Word.RequestContext,
   paragraph: Word.Paragraph,

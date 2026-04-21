@@ -68,12 +68,14 @@ export function serializeStore(
   standardId: string = "aglc4",
   writingMode: string = "academic",
   courtJurisdiction?: string,
+  headingListId?: number,
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   const courtAttr = courtJurisdiction ? ` courtJurisdiction="${escapeXml(courtJurisdiction)}"` : "";
+  const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}>`,
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}>`,
   );
 
   for (const citation of citations) {
@@ -160,6 +162,10 @@ export function deserializeStore(xml: string): CitationStoreData {
   const courtJurisdictionMatch = xml.match(/<obiter:citationStore[^>]*\scourtJurisdiction="([^"]*)"/);
   const courtJurisdiction = courtJurisdictionMatch ? courtJurisdictionMatch[1] : undefined;
 
+  // Extract headingListId attribute (optional — persisted Word list ID)
+  const headingListIdMatch = xml.match(/<obiter:citationStore[^>]*\sheadingListId="(\d+)"/);
+  const headingListId = headingListIdMatch ? parseInt(headingListIdMatch[1], 10) : undefined;
+
   // Extract all <obiter:citation ...>...</obiter:citation> blocks
   const citations: Citation[] = [];
   const citationRegex = /<obiter:citation\s[^>]*>[\s\S]*?<\/obiter:citation>/g;
@@ -175,6 +181,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       standardId,
       writingMode,
       courtJurisdiction,
+      headingListId,
     },
     citations,
   };
