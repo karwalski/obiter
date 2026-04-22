@@ -84,7 +84,7 @@ const rejectSignature = db.prepare(`
 `);
 
 const getApprovedSignatures = db.prepare(`
-  SELECT id, name, title FROM signatures WHERE status = 'approved' ORDER BY approved_at ASC
+  SELECT id, name, title, institution FROM signatures WHERE status = 'approved' ORDER BY approved_at ASC
 `);
 
 const countApprovedSignatures = db.prepare(`

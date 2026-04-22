@@ -109,8 +109,8 @@ app.post("/api/signatures", async function (req, res) {
     var { name, title, institution, email: sigEmail } = req.body;
 
     // Validation
-    if (!name || !title || !sigEmail) {
-      return res.status(400).json({ error: "Name, title, and email are required." });
+    if (!name || !sigEmail) {
+      return res.status(400).json({ error: "Name and email are required." });
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sigEmail)) {
@@ -184,7 +184,48 @@ app.post("/api/signatures", async function (req, res) {
  * If the email domain is .edu.au, auto-approves the signature.
  * Otherwise, marks as "verified" (needs admin approval).
  */
+/**
+ * GET /api/signatures/verify/:token
+ *
+ * Shows an interactive confirmation page instead of auto-verifying.
+ * This prevents email scanners from triggering verification by
+ * following links automatically.
+ */
 app.get("/api/signatures/verify/:token", function (req, res) {
+  try {
+    var signature = db.findSignatureByToken.get(req.params.token);
+
+    if (!signature) {
+      return res.status(404).send(verificationPage(
+        "Invalid or Expired Link",
+        "This verification link is invalid or has already been used.",
+        false
+      ));
+    }
+
+    if (signature.status !== "pending") {
+      return res.status(200).send(verificationPage(
+        "Already Verified",
+        "Your signature has already been verified. Thank you.",
+        true
+      ));
+    }
+
+    // Show confirmation page with a button — human must click to verify
+    res.status(200).send(confirmationPage(signature.name, req.params.token));
+  } catch (err) {
+    console.error("GET /api/signatures/verify error:", err);
+    res.status(500).send(verificationPage("Error", "An error occurred. Please try again later.", false));
+  }
+});
+
+/**
+ * POST /api/signatures/verify/:token
+ *
+ * Actually performs the verification. Only triggered by the
+ * confirmation button click (not by email scanners).
+ */
+app.post("/api/signatures/verify/:token", function (req, res) {
   try {
     var signature = db.findSignatureByToken.get(req.params.token);
 
@@ -239,7 +280,7 @@ app.get("/api/signatures/verify/:token", function (req, res) {
 
     res.status(200).send(verificationPage("Email Verified", message, true));
   } catch (err) {
-    console.error("GET /api/signatures/verify error:", err);
+    console.error("POST /api/signatures/verify error:", err);
     res.status(500).send(verificationPage("Error", "An error occurred. Please try again later.", false));
   }
 });
@@ -258,7 +299,9 @@ app.get("/api/signatures", function (req, res) {
     res.json({
       count: countRow.count,
       signatures: signatures.map(function (s) {
-        return { id: s.id, name: s.name, title: s.title };
+        var entry = { id: s.id, name: s.name, title: s.title };
+        if (s.institution) entry.institution = s.institution;
+        return entry;
       })
     });
   } catch (err) {
@@ -323,6 +366,75 @@ app.post("/api/admin/signatures/:id/reject", requireAdmin, function (req, res) {
 });
 
 /**
+ * POST /api/admin/signatures/:id/edit
+ *
+ * Edit a signature's name, title, and institution.
+ */
+app.post("/api/admin/signatures/:id/edit", requireAdmin, express.json(), function (req, res) {
+  try {
+    var { name, title, institution } = req.body;
+    var updates = [];
+    var params = {};
+
+    if (name !== undefined) { updates.push("name = @name"); params.name = name; }
+    if (title !== undefined) { updates.push("title = @title"); params.title = title || ""; }
+    if (institution !== undefined) { updates.push("institution = @institution"); params.institution = institution || ""; }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update." });
+    }
+
+    params.id = parseInt(req.params.id, 10);
+    var sql = "UPDATE signatures SET " + updates.join(", ") + " WHERE id = @id";
+    var result = db.db.prepare(sql).run(params);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Signature not found." });
+    }
+    res.json({ message: "Signature updated." });
+  } catch (err) {
+    console.error("POST /api/admin/signatures/:id/edit error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * POST /api/admin/signatures/:id/hide
+ *
+ * Hide a signature (for testing/spam). Sets status to "hidden".
+ */
+app.post("/api/admin/signatures/:id/hide", requireAdmin, function (req, res) {
+  try {
+    var result = db.db.prepare("UPDATE signatures SET status = 'hidden' WHERE id = ?").run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Signature not found." });
+    }
+    res.json({ message: "Signature hidden." });
+  } catch (err) {
+    console.error("POST /api/admin/signatures/:id/hide error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * POST /api/admin/signatures/:id/unhide
+ *
+ * Restore a hidden signature to approved status.
+ */
+app.post("/api/admin/signatures/:id/unhide", requireAdmin, function (req, res) {
+  try {
+    var result = db.db.prepare("UPDATE signatures SET status = 'approved' WHERE id = ?").run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Signature not found." });
+    }
+    res.json({ message: "Signature restored." });
+  } catch (err) {
+    console.error("POST /api/admin/signatures/:id/unhide error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
  * GET /api/admin/contacts
  *
  * Returns all contact form submissions.
@@ -358,6 +470,45 @@ app.post("/api/admin/contacts/:id/read", requireAdmin, function (req, res) {
 // -------------------------------------------------------
 // Helper: verification result page
 // -------------------------------------------------------
+
+/**
+ * Renders an interactive confirmation page that requires a button click.
+ * Prevents email scanners from auto-verifying signatures.
+ */
+function confirmationPage(name, token) {
+  return [
+    "<!DOCTYPE html>",
+    "<html lang=\"en\">",
+    "<head>",
+    "  <meta charset=\"UTF-8\">",
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+    "  <title>Confirm Your Signature — Obiter</title>",
+    "  <style>",
+    "    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #F4F5F7; color: #1E2A38; }",
+    "    .card { background: #fff; border: 1px solid #D1D5DB; border-radius: 8px; padding: 48px; max-width: 480px; text-align: center; }",
+    "    h1 { font-size: 1.5rem; margin-bottom: 16px; color: #2AA198; }",
+    "    p { color: #5A6577; line-height: 1.6; }",
+    "    .btn { display: inline-block; padding: 14px 32px; background: #2AA198; color: #fff; border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; margin-top: 16px; }",
+    "    .btn:hover { background: #239088; }",
+    "  </style>",
+    "</head>",
+    "<body>",
+    "  <div class=\"card\">",
+    "    <h1>Confirm Your Signature</h1>",
+    "    <p>Hello " + escapeHtml(name) + ", please click the button below to verify your email and confirm your signature on the open letter.</p>",
+    "    <form method=\"POST\" action=\"/api/signatures/verify/" + encodeURIComponent(token) + "\">",
+    "      <button type=\"submit\" class=\"btn\">Confirm My Signature</button>",
+    "    </form>",
+    "  </div>",
+    "</body>",
+    "</html>"
+  ].join("\n");
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 function verificationPage(title, message, success) {
   var colour = success ? "#2E7D32" : "#C62828";

@@ -157,13 +157,13 @@ async function sendVerificationEmail(to, name, token) {
   var siteUrl = process.env.SITE_URL || "https://obiter.com.au";
   var verifyUrl = siteUrl + "/api/signatures/verify/" + token;
 
-  var subject = "Verify your signature — Obiter Open Letter";
+  var subject = "Verify your signature - Obiter Open Letter";
 
   var html = [
     "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #1E2A38;\">",
     "  <h2 style=\"font-size: 1.25rem; margin-bottom: 16px;\">Verify your signature</h2>",
     "  <p>Dear " + escapeHtml(name) + ",</p>",
-    "  <p>Thank you for signing the open letter supporting the development of AGLC5.</p>",
+    "  <p>Thank you for signing the <a href=\"https://obiter.com.au/aglc5.html\" style=\"color: #2AA198;\">open letter</a> supporting the development of AGLC5.</p>",
     "  <p>Please confirm your email address by clicking the link below:</p>",
     "  <p style=\"margin: 24px 0;\">",
     "    <a href=\"" + verifyUrl + "\" style=\"display: inline-block; padding: 12px 24px; background-color: #2AA198; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 600;\">Verify my signature</a>",

@@ -110,12 +110,10 @@
           </p>
 
           <p>
-            AGLC5 would not be the first citation standard developed with tool
-            implementers in the room. OSCOLA 5 was drafted alongside consultation
-            with the teams behind Zotero and other reference managers, and
-            New&nbsp;Zealand&rsquo;s NZLSG&nbsp;3 was similarly developed with
-            implementability in mind. The result in both cases was faster, more
-            accurate tool support from day one.
+            OSCOLA&rsquo;s fifth edition (March 2026) and New&nbsp;Zealand&rsquo;s
+            NZLSG reflect an increasing awareness among citation standard authors
+            that implementability matters. The opportunity exists for AGLC5 to go
+            further &mdash; and to set the benchmark.
           </p>
 
           <p>
@@ -224,12 +222,11 @@
           </ol>
 
           <p>
-            The AGLC4 experience offers a useful reference point: within nine months
-            of publication, a 17-page erratum was issued acknowledging corrections
-            across the guide. This is not unusual for a work of that complexity, but
-            it does suggest that testing rules against real citation data during
-            drafting &mdash; something tool implementers do as a matter of course
-            &mdash; could catch many such issues earlier and at lower cost.
+            The AGLC4 experience &mdash; which included a 17-page erratum within
+            nine months of publication, not unusual for a work of that complexity
+            &mdash; suggests that testing rules against real citation data during
+            drafting, something tool implementers do as a matter of course, could
+            catch many such issues earlier and at lower cost.
           </p>
 
           <h3>What I Am Asking</h3>
@@ -286,13 +283,12 @@
 
           <p>
             In return, I can offer the Committee a concrete testing service:
-            Obiter&rsquo;s AGLC4 engine covers all 26 chapters, backed by over 500
-            unit tests drawn from the guide&rsquo;s own examples. Any draft AGLC5
+            Obiter&rsquo;s AGLC4 engine covers all 26 chapters, backed by over
+            1,200 unit tests drawn from the guide&rsquo;s own examples. Any draft AGLC5
             rule shared under NDA can be encoded, tested against real citation data,
             and returned with a structured report identifying ambiguities, edge
             cases, and formatting conflicts &mdash; before the rule reaches
-            publication. That feedback loop is what turns a citation guide into a
-            citation guide that tools can implement on day one.
+            publication.
           </p>
 
           <p>
@@ -310,10 +306,12 @@
             The AGLC has been an indispensable resource for Australian legal citation
             for over 25 years. The investment that the open-source community has made
             in building AGLC4 tooling is itself evidence of the standard&rsquo;s
-            importance. AGLC5 can be the strongest edition yet, and a small amount of
-            collaboration during drafting will make a meaningful difference to how
-            quickly and accurately the new rules reach the researchers who depend on
-            them.
+            importance. AGLC5 can be the strongest edition yet, and a small amount
+            of collaboration during drafting will make a meaningful difference to
+            how quickly and accurately the new rules reach the researchers who
+            depend on them. I am available to discuss this at the
+            Committee&rsquo;s convenience &mdash; by email, video call, or in
+            person in Melbourne.
           </p>
 
           <div class="letter__signature">
@@ -321,12 +319,12 @@
             <p><strong>Matthew Watt</strong><br>Author of Obiter</p>
             <p class="letter__bio">
               Matthew Watt is currently enrolled in the Juris Doctor program
-              at the University of Canberra. He holds an Executive Master of Technology Management
-              from the University of Technology Sydney and a Graduate Diploma in
-              Law from the University of Canberra, and has over twenty years of
-              experience in the technology industry. He built Obiter to solve a
-              problem he encountered as a law student: no existing tool could
-              produce reliable AGLC4 citations across all 26 chapters.
+              at the University of Canberra. He holds an Executive Master of
+              Technology Management from the University of Technology Sydney
+              and has over twenty years of experience in the technology
+              industry. He built Obiter to solve a problem he encountered as
+              a law student: no existing tool could produce reliable AGLC4
+              citations across all 26 chapters.
             </p>
           </div>
 
@@ -365,12 +363,12 @@
               <input type="text" id="sig-name" name="name" autocomplete="name" required>
             </div>
             <div class="form-group">
-              <label for="sig-title">Title / Position</label>
-              <input type="text" id="sig-title" name="title" required>
+              <label for="sig-title">Title / Position <span class="form-hint">(optional)</span></label>
+              <input type="text" id="sig-title" name="title">
             </div>
             <div class="form-group">
-              <label for="sig-institution">Institution / Organisation</label>
-              <input type="text" id="sig-institution" name="institution" required>
+              <label for="sig-institution">Institution / Organisation <span class="form-hint">(optional)</span></label>
+              <input type="text" id="sig-institution" name="institution">
             </div>
             <div class="form-group">
               <label for="sig-email">Email <span class="form-hint">(for verification only &mdash; not displayed)</span></label>
@@ -455,7 +453,7 @@
         var institution = form.querySelector('input[name="institution"]');
         var email = form.querySelector('input[name="email"]');
 
-        if (!name.value.trim() || !title.value.trim() || !institution.value.trim() || !email.value.trim()) {
+        if (!name.value.trim() || !title.value.trim() || !email.value.trim()) {
           statusEl.className = "form-status form-status--error";
           statusEl.textContent = "All fields are required.";
           return;
@@ -515,8 +513,12 @@
           data.signatures.forEach(function (sig) {
             var entry = document.createElement("div");
             entry.className = "signatory-entry";
+            var details = escapeHtml(sig.title);
+            if (sig.institution) {
+              details += ", " + escapeHtml(sig.institution);
+            }
             entry.innerHTML =
-              "<strong>" + escapeHtml(sig.name) + "</strong><span>" + escapeHtml(sig.title) + "</span>";
+              "<strong>" + escapeHtml(sig.name) + "</strong><span>" + details + "</span>";
             list.appendChild(entry);
           });
         })

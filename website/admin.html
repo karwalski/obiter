@@ -303,6 +303,7 @@
             <option value="verified">Verified</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
+            <option value="hidden">Hidden</option>
           </select>
           <span class="admin-count" id="sig-count"></span>
         </div>
@@ -529,14 +530,41 @@
     }
 
     function sigActions(sig) {
-      if (sig.status === "approved" || sig.status === "rejected") return "";
       var btns = "";
+      btns += "<button class=\"btn-edit\" data-edit-id=\"" + sig.id + "\" data-name=\"" + esc(sig.name) + "\" data-title=\"" + esc(sig.title || "") + "\" data-institution=\"" + esc(sig.institution || "") + "\">Edit</button> ";
       if (sig.status === "verified" || sig.status === "pending") {
         btns += "<button class=\"btn-approve\" data-action=\"approve\" data-id=\"" + sig.id + "\">Approve</button>";
         btns += "<button class=\"btn-reject\" data-action=\"reject\" data-id=\"" + sig.id + "\">Reject</button>";
       }
+      if (sig.status === "approved") {
+        btns += "<button class=\"btn-reject\" data-action=\"hide\" data-id=\"" + sig.id + "\">Hide</button>";
+      }
+      if (sig.status === "hidden" || sig.status === "rejected") {
+        btns += "<button class=\"btn-approve\" data-action=\"unhide\" data-id=\"" + sig.id + "\">Restore</button>";
+      }
       return btns;
     }
+
+    // Inline edit handler
+    sigTbody.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-edit-id]");
+      if (!btn) return;
+      var id = btn.dataset.editId;
+      var name = prompt("Name:", btn.dataset.name);
+      if (name === null) return;
+      var title = prompt("Title / Position (leave blank to clear):", btn.dataset.title);
+      if (title === null) return;
+      var institution = prompt("Institution (leave blank to clear):", btn.dataset.institution);
+      if (institution === null) return;
+
+      fetch(API_BASE + "/admin/signatures/" + id + "/edit", {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+        body: JSON.stringify({ name: name, title: title, institution: institution })
+      })
+        .then(function (r) { if (r.ok) loadSignatures(); else alert("Failed to update."); })
+        .catch(function (err) { alert("Error: " + err.message); });
+    });
 
     sigFilter.addEventListener("change", renderSignatures);
 
