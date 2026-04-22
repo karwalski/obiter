@@ -194,48 +194,67 @@ async function appendCitationToFootnote(
   }
   const lastPara = paraItems[paraItems.length - 1];
 
-  // Insert "; " separator first, then strip the period that precedes it.
-  // We insert the separator at the end (after the existing "."), then
-  // find and remove the "." that was the old closing punctuation.
+  // Strategy: get the existing text, find where to insert the separator.
+  // The existing footnote ends with "." from ensureClosingPunctuation.
+  // We need: "citationA; citationB." (not "citationA.; citationB.")
   //
-  // The resulting text goes from "citationA." to "citationA; citationB."
-  // (the new citation runs include their own closing punctuation).
-
-  // First, insert "; " at the end — this goes after the existing "."
-  const separator = lastPara.insertText("; ", "End");
-  separator.font.italic = false;
-  separator.font.bold = false;
-  await context.sync();
-
-  // Now the text is "citationA.; citationB" — we need to remove the "."
-  // before the "; ". Reload text and find the ". ; " or ".; " pattern.
+  // Approach: get the end range of the footnote body, insert the
+  // separator and new citation text there. The new runs already include
+  // closing punctuation. We need to remove the old trailing "." first.
   lastPara.load("text");
   await context.sync();
 
-  const currentText = lastPara.text;
-  // Search for the ". ;" or ".;" pattern that the dot+separator created
-  if (currentText.includes(".; ") || currentText.includes(". ; ")) {
-    try {
-      const dotSemiSearch = lastPara.search(".; ", { matchWildcards: false });
-      dotSemiSearch.load("items");
-      await context.sync();
+  const existingText = lastPara.text;
 
-      const dotSemiItems = dotSemiSearch.items ?? [];
-      if (dotSemiItems.length > 0) {
-        // Replace the last occurrence of ".; " with "; "
-        const lastMatch = dotSemiItems[dotSemiItems.length - 1];
-        lastMatch.insertText("; ", "Replace" as Word.InsertLocation.replace);
-        await context.sync();
-      }
+  // Remove the trailing period by replacing the last character
+  if (existingText.trimEnd().endsWith(".")) {
+    // Get the range of the entire paragraph, then narrow to the last char
+    const paraRange = lastPara.getRange("Whole");
+    const endRange = paraRange.getRange("End");
+    // Expand one character back from the end to select the period
+    try {
+      // Insert replacement text: everything except the trailing period + semicolon + new citation
+      // Simpler: just insert "; " and new runs, then the old "." becomes ".; "
+      // which we handle below. Actually, let's use a different approach:
+      // Insert all the text we want at "End", then the result is "text.; newtext."
+      // Then do one search-replace of ".; " -> "; "
     } catch {
-      // If search/replace fails, the .; is cosmetically imperfect but functional
+      // Fall through
     }
   }
 
-  // Insert the new citation text after the separator.
+  // Insert "; " separator and new citation at end of paragraph
+  const separator = lastPara.insertText("; ", "End");
+  separator.font.italic = false;
+  separator.font.bold = false;
+
   for (const run of formattedRuns) {
     const range = lastPara.insertText(run.text, "End");
     applyRunFormatting(range, run);
+  }
+  await context.sync();
+
+  // Now clean up: the text is "citationA.; citationB."
+  // Replace the FIRST ".; " with "; " (there should only be one)
+  try {
+    const bodyText = noteItem.body;
+    bodyText.load("text");
+    await context.sync();
+
+    // Search in the footnote body for ".; "
+    const searchResults = bodyText.search(".; ", { matchWildcards: false });
+    searchResults.load("items");
+    await context.sync();
+
+    const searchItems = searchResults.items ?? [];
+    for (const match of searchItems) {
+      match.insertText("; ", "Replace" as Word.InsertLocation.replace);
+    }
+    if (searchItems.length > 0) {
+      await context.sync();
+    }
+  } catch {
+    // Search failed — .; will remain, imperfect but not broken
   }
 
   // Wrap the entire paragraph in a new content control to track
@@ -353,17 +372,25 @@ export async function insertCitationFootnote(
 
     // Insert citation text at the end of the paragraph (after the
     // footnote reference mark that Word auto-generates).
+    // Track the first inserted range so we can wrap only the citation
+    // text in a content control (not the footnote reference mark).
+    let firstRange: Word.Range | null = null;
     for (const run of formattedRuns) {
       const range = firstPara.insertText(run.text, "End");
       applyRunFormatting(range, run);
+      if (!firstRange) firstRange = range;
     }
 
-    // Wrap the inserted text in a content control for tracking.
-    // Use the paragraph's content control to tag the citation.
-    const cc = firstPara.insertContentControl("RichText");
-    cc.tag = citationId;
-    cc.title = title;
-    cc.appearance = "Hidden" as Word.ContentControlAppearance;
+    // Wrap only the citation text in a content control, not the entire
+    // paragraph (which includes the footnote reference mark). Wrapping
+    // the whole paragraph hides the footnote number.
+    if (firstRange) {
+      const citationRange = firstRange.expandTo(firstPara.getRange("End"));
+      const cc = citationRange.insertContentControl("RichText");
+      cc.tag = citationId;
+      cc.title = title;
+      cc.appearance = "Hidden" as Word.ContentControlAppearance;
+    }
 
     await context.sync();
   });
