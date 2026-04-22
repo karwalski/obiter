@@ -62,13 +62,24 @@ function writeFormattedRunsToBody(body: Word.Body, runs: FormattedRun[]): void {
 
 /**
  * Writes an array of FormattedRun objects into a content control, replacing
- * any existing content.
+ * any existing content. Uses "Replace" insertion for the first run to avoid
+ * cc.clear() which can destroy footnote reference marks if the CC
+ * encompasses them.
  */
 function writeFormattedRunsToControl(cc: Word.ContentControl, runs: FormattedRun[]): void {
-  cc.clear();
-  for (const run of runs) {
-    const range = cc.insertText(run.text, "End");
-    applyRunFormatting(range, run);
+  if (runs.length === 0) {
+    cc.clear();
+    return;
+  }
+
+  // Replace all existing content with the first run
+  const firstRange = cc.insertText(runs[0].text, "Replace" as Word.InsertLocation.replace);
+  applyRunFormatting(firstRange, runs[0]);
+
+  // Append remaining runs
+  for (let i = 1; i < runs.length; i++) {
+    const range = cc.insertText(runs[i].text, "End");
+    applyRunFormatting(range, runs[i]);
   }
 }
 
@@ -77,9 +88,10 @@ function writeFormattedRunsToControl(cc: Word.ContentControl, runs: FormattedRun
  * footnote reference mark (superscript number). If so, returns the 1-based
  * index of that footnote.
  *
- * The detection works by expanding the selection one character to the left
- * and checking whether that range contains a footnote reference. This
- * leverages Word's `Range.footnotes` collection.
+ * Strategy: load all footnotes in the document body, then for each footnote
+ * check whether the end of its reference range coincides with the cursor
+ * position. We check the last footnote first (most likely candidate after
+ * a fresh insertion) and work backwards for efficiency.
  *
  * @param context - An active Word request context.
  * @returns The adjacent footnote result, or null if no footnote is adjacent.
@@ -96,65 +108,35 @@ async function getAdjacentFootnoteIndex(
     return null;
   }
 
-  // Expand one character to the left of the cursor to capture a potential
-  // footnote reference mark.
-  const beforeRange = selection.getRange("Start");
-  beforeRange.load("text");
-  await context.sync();
-
-  // Use expandTo to cover the character immediately before the cursor.
-  // We get the range of the whole paragraph, then narrow to just before
-  // the cursor to check for footnote references.
   try {
-    const para = selection.paragraphs.getFirst();
-    const paraRange = para.getRange("Whole");
-    // Get the range from the start of the paragraph to the cursor
-    const rangeBefore = paraRange.getRange("Start").expandTo(selection.getRange("Start"));
-    const footnotes = rangeBefore.footnotes;
-    footnotes.load("items");
+    const allFootnotes = context.document.body.footnotes;
+    allFootnotes.load("items");
     await context.sync();
 
-    const footnoteItems = footnotes.items ?? [];
-    if (footnoteItems.length === 0) {
+    const allItems = allFootnotes.items ?? [];
+    if (allItems.length === 0) {
       return null;
     }
 
-    // The last footnote in the range before the cursor is the adjacent one.
-    const lastFootnote = footnoteItems[footnoteItems.length - 1];
-
-    // Get the reference range to verify it's truly adjacent (right before cursor).
-    const refRange = lastFootnote.reference;
-    refRange.load("text");
+    // Load all footnote reference ranges in one batch
+    for (const fn of allItems) {
+      fn.reference.load("text");
+    }
     await context.sync();
 
-    // Check that this footnote reference is at the cursor position by
-    // comparing the end of the reference range with the cursor position.
-    const afterRef = refRange.getRange("After");
-    const compareResult = afterRef.compareLocationWith(selection.getRange("Start"));
-    await context.sync();
-
-    if (compareResult.value === "Equal" || compareResult.value === "Contains") {
-      // Determine the 1-based index of this footnote in the document.
-      const allFootnotes = context.document.body.footnotes;
-      allFootnotes.load("items");
+    // Check each footnote (last first — most likely candidate after insertion)
+    const cursorStart = selection.getRange("Start");
+    for (let i = allItems.length - 1; i >= 0; i--) {
+      const refRange = allItems[i].reference;
+      const afterRef = refRange.getRange("After");
+      const compareResult = afterRef.compareLocationWith(cursorStart);
       await context.sync();
 
-      const allItems = allFootnotes.items ?? [];
-      for (let i = 0; i < allItems.length; i++) {
-        const fnRef = allItems[i].reference;
-        fnRef.load("text");
-      }
-      await context.sync();
-
-      for (let i = 0; i < allItems.length; i++) {
-        const fnCompare = allItems[i].reference.compareLocationWith(refRange);
-        await context.sync();
-        if (fnCompare.value === "Equal") {
-          return {
-            footnoteIndex: i + 1,
-            noteItem: allItems[i],
-          };
-        }
+      if (compareResult.value === "Equal" || compareResult.value === "Contains") {
+        return {
+          footnoteIndex: i + 1,
+          noteItem: allItems[i],
+        };
       }
     }
   } catch {
@@ -353,6 +335,12 @@ export async function insertCitationFootnote(
     }
 
     // No adjacent footnote — create a new one as before.
+    // Record footnote count before insertion for verification.
+    const beforeFootnotes = context.document.body.footnotes;
+    beforeFootnotes.load("items");
+    await context.sync();
+    const footnotesBeforeCount = (beforeFootnotes.items ?? []).length;
+
     const selection = context.document.getSelection();
     const noteItem = selection.insertFootnote("");
 
@@ -372,26 +360,59 @@ export async function insertCitationFootnote(
 
     // Insert citation text at the end of the paragraph (after the
     // footnote reference mark that Word auto-generates).
-    // Track the first inserted range so we can wrap only the citation
-    // text in a content control (not the footnote reference mark).
-    let firstRange: Word.Range | null = null;
+    let lastRange: Word.Range | null = null;
     for (const run of formattedRuns) {
       const range = firstPara.insertText(run.text, "End");
       applyRunFormatting(range, run);
-      if (!firstRange) firstRange = range;
+      lastRange = range;
     }
 
     // Wrap only the citation text in a content control, not the entire
-    // paragraph (which includes the footnote reference mark). Wrapping
-    // the whole paragraph hides the footnote number.
-    if (firstRange) {
-      const citationRange = firstRange.expandTo(firstPara.getRange("End"));
-      const cc = citationRange.insertContentControl("RichText");
+    // paragraph (which includes the footnote reference mark). We use
+    // the footnote body's content controls approach: insert the content
+    // control at the body's end range, which will only span the text
+    // we just inserted, not the reference mark at the start.
+    if (lastRange) {
+      // Get the range of the footnote body from after the reference mark
+      // to the end. The body already has text = refMark + our citation.
+      // Using body.getRange("End") and inserting a CC there would create
+      // an empty CC. Instead, search for the content we just inserted.
+      //
+      // Safest approach: use the body's content controls API. Insert the
+      // CC on the body itself and it will wrap everything. Then we need
+      // to ensure it doesn't eat the ref mark.
+      //
+      // Actually, the simplest reliable approach: insert a content control
+      // on the BODY (not paragraph), which Word scopes to the body text
+      // without the reference mark.
+      const cc = noteItem.body.insertContentControl("RichText");
       cc.tag = citationId;
       cc.title = title;
       cc.appearance = "Hidden" as Word.ContentControlAppearance;
     }
 
+    await context.sync();
+
+    // Verify the footnote was actually created.
+    const afterFootnotes = context.document.body.footnotes;
+    afterFootnotes.load("items");
+    await context.sync();
+    const footnotesAfterCount = (afterFootnotes.items ?? []).length;
+
+    if (footnotesAfterCount <= footnotesBeforeCount) {
+      console.warn(
+        "[footnoteManager] Footnote count did not increase after insertion. " +
+        `Before: ${footnotesBeforeCount}, After: ${footnotesAfterCount}`
+      );
+    }
+
+    // Move the cursor to immediately after the footnote reference mark
+    // in the document body. This ensures that the next citation insertion
+    // will detect the adjacent footnote and append rather than creating
+    // a new one.
+    const fnRef = noteItem.reference;
+    const afterRefRange = fnRef.getRange("After");
+    afterRefRange.select("End");
     await context.sync();
   });
   } catch (err: unknown) {
