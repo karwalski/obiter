@@ -324,14 +324,22 @@ export async function refreshAllCitations(
 
     let runs = formatCitation(citation, citationContext, config);
 
-    // If this is NOT the last citation in its footnote, strip the
-    // closing punctuation. Only the last citation in a multi-citation
-    // footnote should end with "." — intermediate ones are followed
-    // by "; " separator text (outside the content control).
+    // Determine position within the footnote for multi-citation handling
+    const isFirstInFootnote = !currentFootnoteCitationIds.some(
+      (id) => id !== entry.citationId
+    ) && currentFootnoteCitationIds.length === 0;
     const isLastInFootnote = !entries.some(
       (e) => e.footnoteNumber === entry.footnoteNumber &&
              entries.indexOf(e) > entries.indexOf(entry)
     );
+
+    // Multi-citation footnote formatting (AGLC4 Rule 1.1.3):
+    // - Non-first citations: prepend "; " separator into the CC's runs
+    //   (putting it inside the CC ensures it survives refreshes)
+    // - Non-last citations: strip closing "."
+    if (!isFirstInFootnote) {
+      runs = [{ text: "; " }, ...runs];
+    }
     if (!isLastInFootnote && runs.length > 0) {
       const lastRun = runs[runs.length - 1];
       if (lastRun.text.endsWith(".")) {

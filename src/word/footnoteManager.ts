@@ -205,27 +205,24 @@ async function appendCitationToFootnote(
     }
   }
 
-  // Insert "; " separator OUTSIDE any content control, then insert
-  // the new citation inside its own content control.
-  //
-  // Strategy: insert a content control first, tag it, then insert
-  // the separator and citation text inside it. This guarantees each
-  // citation has its own CC and the refresher can update them independently.
+  // Insert the new citation inside its own content control.
+  // The "; " separator is included as the first run inside the CC,
+  // which ensures it survives refresher rewrites. The refresher
+  // also prepends "; " to non-first citations, keeping it consistent.
 
-  // Insert "; " separator as plain text at the end of the footnote body
-  const separatorRange = noteItem.body.insertText("; ", "End");
-  separatorRange.font.italic = false;
-  separatorRange.font.bold = false;
-  await context.sync();
-
-  // Now insert a new content control at the end of the body for this citation
+  // Insert a new content control at the end of the footnote body
   const bodyEndRange = noteItem.body.getRange("End");
   const cc = bodyEndRange.insertContentControl("RichText");
   cc.tag = citationId;
   cc.title = title;
   cc.appearance = "Hidden" as Word.ContentControlAppearance;
 
-  // Insert citation text inside the content control
+  // Insert "; " separator as the first run inside the CC
+  const sepRange = cc.insertText("; ", "End");
+  sepRange.font.italic = false;
+  sepRange.font.bold = false;
+
+  // Insert citation text inside the content control (after separator)
   for (const run of formattedRuns) {
     const range = cc.insertText(run.text, "End");
     applyRunFormatting(range, run);
@@ -233,23 +230,29 @@ async function appendCitationToFootnote(
 
   await context.sync();
 
-  // Clean up the ".; " pattern — the existing footnote ended with "."
-  // and we inserted "; " after it, creating ".; ". Search and fix.
+  // Strip the trailing "." from the FIRST citation's CC since it's
+  // no longer the last citation in this footnote. The refresher will
+  // handle this on subsequent refreshes, but we do it now to avoid
+  // the flash of "citationA.; citationB."
   try {
-    noteItem.body.load("text");
+    const existingCCs = noteItem.body.contentControls;
+    existingCCs.load("items/tag,items/text");
     await context.sync();
-    const bodyText = noteItem.body.text;
-    if (bodyText.includes(".; ")) {
-      const searchResults = noteItem.body.search(".; ", { matchWildcards: false });
-      searchResults.load("items");
-      await context.sync();
-      for (const match of (searchResults.items ?? [])) {
-        match.insertText("; ", "Replace" as Word.InsertLocation.replace);
+    const ccItems = existingCCs.items ?? [];
+    // Find all CCs except the one we just created
+    for (const existingCC of ccItems) {
+      if (existingCC.tag && existingCC.tag !== citationId && !existingCC.tag.startsWith("obiter-")) {
+        const ccText = existingCC.text ?? "";
+        if (ccText.endsWith(".")) {
+          // Rewrite without trailing period
+          const trimmed = ccText.slice(0, -1);
+          existingCC.insertText(trimmed, "Replace" as Word.InsertLocation.replace);
+        }
       }
-      await context.sync();
     }
+    await context.sync();
   } catch {
-    // Non-critical — cosmetic issue only
+    // Non-critical — refresher will fix on next cycle
   }
 }
 
