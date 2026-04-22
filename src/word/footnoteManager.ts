@@ -194,36 +194,43 @@ async function appendCitationToFootnote(
   }
   const lastPara = paraItems[paraItems.length - 1];
 
-  // Strip the trailing full stop from the existing footnote content and
-  // insert the semicolon separator (AGLC4 Rule 1.1.3). The existing
-  // footnote ends with '.' from ensureClosingPunctuation — we remove it
-  // so the combined result becomes "citationA; citationB." rather than
-  // "citationA.; citationB." (the new citation's runs already include
-  // closing punctuation).
-  lastPara.load("text");
-  await context.sync();
+  // Insert "; " separator first, then strip the period that precedes it.
+  // We insert the separator at the end (after the existing "."), then
+  // find and remove the "." that was the old closing punctuation.
+  //
+  // The resulting text goes from "citationA." to "citationA; citationB."
+  // (the new citation runs include their own closing punctuation).
 
-  const paraText = lastPara.text;
-  const trimmed = paraText.trimEnd();
-
-  if (trimmed.endsWith(".")) {
-    // Find every '.' in the paragraph, then delete only the last one.
-    const searchResults = lastPara.search(".", { matchWildcards: false });
-    searchResults.load("items");
-    await context.sync();
-
-    const searchItems = searchResults.items ?? [];
-    if (searchItems.length > 0) {
-      const lastDot = searchItems[searchItems.length - 1];
-      lastDot.delete();
-      await context.sync();
-    }
-  }
-
-  // Insert the semicolon separator per AGLC4 Rule 1.1.3.
+  // First, insert "; " at the end — this goes after the existing "."
   const separator = lastPara.insertText("; ", "End");
   separator.font.italic = false;
   separator.font.bold = false;
+  await context.sync();
+
+  // Now the text is "citationA.; citationB" — we need to remove the "."
+  // before the "; ". Reload text and find the ". ; " or ".; " pattern.
+  lastPara.load("text");
+  await context.sync();
+
+  const currentText = lastPara.text;
+  // Search for the ". ;" or ".;" pattern that the dot+separator created
+  if (currentText.includes(".; ") || currentText.includes(". ; ")) {
+    try {
+      const dotSemiSearch = lastPara.search(".; ", { matchWildcards: false });
+      dotSemiSearch.load("items");
+      await context.sync();
+
+      const dotSemiItems = dotSemiSearch.items ?? [];
+      if (dotSemiItems.length > 0) {
+        // Replace the last occurrence of ".; " with "; "
+        const lastMatch = dotSemiItems[dotSemiItems.length - 1];
+        lastMatch.insertText("; ", "Replace" as Word.InsertLocation.replace);
+        await context.sync();
+      }
+    } catch {
+      // If search/replace fails, the .; is cosmetically imperfect but functional
+    }
+  }
 
   // Insert the new citation text after the separator.
   for (const run of formattedRuns) {

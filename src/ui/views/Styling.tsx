@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { applyHeadingLevel, findExistingHeadingListId } from "../../word/styles";
+import { applyHeadingLevel, findExistingHeadingListId, renumberAllHeadings } from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
 import { getSharedStore } from "../../store/singleton";
@@ -139,24 +139,15 @@ export default function Styling(): JSX.Element {
 
         const paraItems = selection.paragraphs.items ?? [];
         for (let i = 0; i < paraItems.length; i++) {
-          const para = paraItems[i];
-          const list = await applyHeadingLevel(
+          await applyHeadingLevel(
             context,
-            para,
+            paraItems[i],
             level,
             i + 1,
-            aglcHeadingListId,
           );
-          if (list) {
-            // New list was created (either first time, or old list was dead)
-            aglcHeadingListId = list.id;
-            // Persist to Custom XML Part so it survives document close/reopen
-            try {
-              const store = await getSharedStore();
-              await store.setHeadingListId(list.id);
-            } catch { /* non-critical */ }
-          }
         }
+        // Renumber all headings in the document with text prefixes
+        await renumberAllHeadings(context);
       });
       setStatus(`Applied Level ${HEADINGS[level - 1].label.split(" ")[1]} heading.`);
     } catch (err: unknown) {

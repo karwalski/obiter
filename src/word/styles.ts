@@ -383,20 +383,18 @@ export async function applyHeadingLevel(
 
   await context.sync();
 
-  // Use Word's multilevel list for real numbering
+  // Numbering: use text-prefix approach instead of Word's multilevel
+  // list API, which is unreliable on Mac (numbering disappears after
+  // document close/reopen, re-renders, or undo). Text prefixes are
+  // visible, persistent, and work identically across all platforms.
+  //
+  // After applying the heading style, we call renumberAllHeadings()
+  // to scan all headings and assign correct numbered prefixes.
+  // The caller (Styling.tsx) handles calling renumberAllHeadings.
+  //
+  // Skip the list API entirely:
   try {
-    let needsNewList = _existingListId === undefined;
-
-    // Try attaching to the existing list first
-    if (_existingListId !== undefined) {
-      try {
-        paragraph.attachToList(_existingListId, level - 1);
-        await context.sync();
-      } catch {
-        // List was deleted — fall through to create a new one
-        needsNewList = true;
-      }
-    }
+    const needsNewList = false;
 
     if (needsNewList) {
       // Create list, configure all 5 levels, then sync
@@ -441,17 +439,22 @@ export async function applyHeadingLevel(
 export async function renumberAllHeadings(
   context: Word.RequestContext,
 ): Promise<number> {
-  const allControls = context.document.contentControls;
-  allControls.load("items/tag,items/text");
+  // Scan all paragraphs for Heading 1-5 styles and apply text-prefix numbering.
+  // This is more reliable than Word's multilevel list API on Mac.
+  const body = context.document.body;
+  const paragraphs = body.paragraphs;
+  paragraphs.load("items/style,items/text");
   await context.sync();
 
-  // Collect heading controls in document order
-  const headings: Array<{ cc: Word.ContentControl; level: 1 | 2 | 3 | 4 | 5 }> = [];
-  for (const cc of (allControls.items ?? [])) {
-    if (cc.tag && cc.tag.startsWith(HEADING_TAG_PREFIX)) {
-      const lvl = parseInt(cc.tag.slice(HEADING_TAG_PREFIX.length), 10);
+  const paraItems = paragraphs.items ?? [];
+
+  // Collect heading paragraphs in document order
+  const headings: Array<{ para: Word.Paragraph; level: 1 | 2 | 3 | 4 | 5 }> = [];
+  for (const para of paraItems) {
+    if (para.style && para.style.startsWith("Heading ")) {
+      const lvl = parseInt(para.style.slice("Heading ".length), 10);
       if (lvl >= 1 && lvl <= 5) {
-        headings.push({ cc, level: lvl as 1 | 2 | 3 | 4 | 5 });
+        headings.push({ para, level: lvl as 1 | 2 | 3 | 4 | 5 });
       }
     }
   }
@@ -461,21 +464,28 @@ export async function renumberAllHeadings(
   const counters = [0, 0, 0, 0, 0, 0]; // index 0 unused
   let renumbered = 0;
 
-  for (const { cc, level } of headings) {
+  for (const { para, level } of headings) {
     counters[level]++;
     for (let child = level + 1; child <= 5; child++) {
       counters[child] = 0;
     }
 
     const prefix = getHeadingPrefix(level, counters[level]);
-    const currentText = cc.text;
+    const currentText = para.text;
 
     // Strip any existing prefix pattern
     const stripped = stripPrefix(currentText, level);
     const expectedText = stripped.length > 0 ? `${prefix} ${stripped}` : prefix;
 
     if (currentText !== expectedText) {
-      cc.insertText(expectedText, "Replace" as Word.InsertLocation.replace);
+      para.insertText(expectedText, "Replace" as Word.InsertLocation.replace);
+      // Re-apply formatting since Replace clears it
+      para.font.italic = level >= 2;
+      para.font.bold = false;
+      para.font.smallCaps = level === 1;
+      para.font.size = 12;
+      para.font.name = "Times New Roman";
+      para.font.color = "black";
       renumbered++;
     }
   }
