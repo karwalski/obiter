@@ -931,6 +931,31 @@ Current NZLSG guide has 15 summary entries. Expand to cover: footnotes and subse
 
 ---
 
+## EPIC: FN-ARCH — Footnote Architecture Rebuild
+
+**Phase:** Post-backlog | **Stories:** 5 | **Completed:** 0
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| FN-001 | Design parent-child footnote content control model | RESEARCH | NOT STARTED |
+| FN-002 | Rebuild footnoteManager — parent CC per footnote, child CCs per citation | FEATURE | NOT STARTED |
+| FN-003 | Rebuild citationRefresher — render separator and closing punctuation between/after child CCs | FEATURE | NOT STARTED |
+| FN-004 | Update InsertCitation, EditCitation, CitationLibrary for new model | FEATURE | NOT STARTED |
+| FN-005 | Migration — detect old-model CCs and convert to parent-child on document open | FEATURE | NOT STARTED |
+
+**Architecture:**
+- One parent CC per footnote: tag `obiter-fn`, contains all citations for that footnote
+- One child CC per citation: tag is the citation UUID, wraps only that citation's text
+- Separators (`; `) are NOT stored — rendered by the refresher between child CCs
+- Closing punctuation (`.`) is NOT part of citation runs — rendered by the refresher after the last child CC
+- `ensureClosingPunctuation` removed from `formatCitation` — the refresher handles it
+- Adding = insert new child CC inside parent
+- Removing = delete child CC, refresher re-renders without gaps
+- Reordering = move child CCs within parent
+- The parent CC protects the footnote reference mark from being wrapped
+
+---
+
 ## EPIC: AI-ENH — AI Feature Enhancements
 
 **Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0

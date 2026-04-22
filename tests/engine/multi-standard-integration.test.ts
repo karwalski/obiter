@@ -147,8 +147,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     expect(text).toContain("2008");
     expect(text).toContain("AC");
     expect(text).toContain("884");
-    // Must end with period (closing punctuation)
-    expect(text.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher, not formatCitation
   });
 
   // ─── 2. Scottish case ──────────────────────────────────────────────────────
@@ -256,7 +255,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       // When wiring is complete, this should be roman (not italic)
       // Under OSCOLA config, italiciseLegislation is false
     }
-    expect(engineText.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 
   // ─── 5. UK secondary legislation ──────────────────────────────────────────
@@ -488,7 +487,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     expect(text).not.toMatch(/^Ibid/i);
     // Should produce a short reference with (n X) format
     expect(text).toContain("(n ");
-    expect(text.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 });
 
@@ -534,7 +533,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
 
     expect(engineText).toContain("Fonotia");
     expect(engineText).toContain("2007");
-    expect(engineText.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 
   // ─── 2. Pre-neutral case ───────────────────────────────────────────────────
@@ -659,7 +658,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     expect(engineText).toContain("2007");
     // NZLSG: legislation is NOT italic
     expect(NZLSG3_CONFIG.italiciseLegislation).toBe(false);
-    expect(engineText.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 
   // ─── 6. NZ bill ────────────────────────────────────────────────────────────
@@ -816,7 +815,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     expect(engineText).toContain("Vienna Convention");
     // Treaty title should be italic
     expect(hasItalicRun(engineRuns, "Vienna Convention")).toBe(true);
-    expect(engineText.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 
   // ─── 11. Treaty of Waitangi ────────────────────────────────────────────────
@@ -877,7 +876,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     expect(text).not.toMatch(/^Ibid/i);
     // Should produce "above n" format with short title
     expect(text).toContain("above n");
-    expect(text.trimEnd()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher
   });
 
   // ─── 13. Subsequent reference — different preceding citation ───────────────
@@ -978,8 +977,7 @@ describe("Multi-standard config verification through engine", () => {
       const oscolaRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
       const nzlsgRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
 
-      expect(joinText(oscolaRuns).trimEnd()).toMatch(/\.$/);
-      expect(joinText(nzlsgRuns).trimEnd()).toMatch(/\.$/);
+      // Closing punctuation now managed by refresher, not formatCitation
     }
   });
 });

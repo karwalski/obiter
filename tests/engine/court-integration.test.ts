@@ -189,8 +189,7 @@ describe("Engine Integration — formatCitation with court mode", () => {
     const text = runs.map((r) => r.text).join("");
     expect(text).toContain("Pape");
     expect(text).toContain("CLR");
-    // Should end with a full stop (ensureClosingPunctuation)
-    expect(text.trim()).toMatch(/\.$/);
+    // Closing punctuation now managed by refresher, not formatCitation
   });
 
   test("formatCitation with writingMode=court resolves subsequent reference without ibid", () => {

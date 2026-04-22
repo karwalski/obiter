@@ -168,7 +168,7 @@ describe("formatCitation with signals (Rule 1.2)", () => {
     const runs = formatCitation(citation);
     const text = toPlainText(runs);
     expect(text).toMatch(/^See /);
-    expect(text).toMatch(/\.$/);
+    // formatCitation no longer adds closing punctuation;
     // The signal run should be italic
     expect(runs[0]).toEqual({ text: "See ", italic: false });
   });
@@ -190,7 +190,7 @@ describe("formatCitation with signals (Rule 1.2)", () => {
     const runs = formatCitation(citation);
     const text = toPlainText(runs);
     // Commentary should appear before the period
-    expect(text).toMatch(/as discussed above\.$/);
+    expect(text).toMatch(/as discussed above$/);
   });
 
   it("renders all three: commentary + signal + citation + after-commentary + period", () => {
@@ -202,7 +202,7 @@ describe("formatCitation with signals (Rule 1.2)", () => {
     const runs = formatCitation(citation);
     const text = toPlainText(runs);
     expect(text).toMatch(/^Compare Cf /);
-    expect(text).toMatch(/on this issue\.$/);
+    expect(text).toMatch(/on this issue$/);
   });
 
   it("produces unchanged output when no signal or commentary is set", () => {

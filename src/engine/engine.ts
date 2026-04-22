@@ -49,7 +49,6 @@ import { formatJournalArticle } from "./rules/v4/secondary/journals";
 import { formatBook } from "./rules/v4/secondary/books";
 import { formatTreaty } from "./rules/v4/international/treaties";
 import { formatGenaiOutput } from "./rules/v4/secondary/genai";
-import { ensureClosingPunctuation } from "./rules/v4/general/footnotes";
 import {
   resolveSubsequentReference,
   formatShortTitleIntroduction,
@@ -1836,7 +1835,7 @@ export function formatCitation(
   if (isNzlsgStandard(standardConfig.standardId) && context && !context.isFirstCitation) {
     const nzlsgSubsequentRuns = resolveNzlsgSubsequent(citation, context);
     if (nzlsgSubsequentRuns !== null) {
-      return ensureClosingPunctuation(nzlsgSubsequentRuns);
+      return nzlsgSubsequentRuns;
     }
     // null means render full citation — falls through below
   }
@@ -1861,7 +1860,7 @@ export function formatCitation(
     );
 
     if (subsequentRuns !== null) {
-      return ensureClosingPunctuation(subsequentRuns);
+      return subsequentRuns;
     }
     // resolver returned null — render full citation (falls through below)
   }
@@ -1902,7 +1901,7 @@ export function formatCitation(
     if (oscolaFormatter) {
       let runs = oscolaFormatter(citation, standardConfig);
       runs = appendFirstCitationSuffixes(runs);
-      return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
+      return applySignalAndCommentary(runs, citation);
     }
     // No OSCOLA-specific formatter — fall through to SOURCE_DISPATCH
   }
@@ -1915,7 +1914,7 @@ export function formatCitation(
     const nzlsgRuns = dispatchNzlsg(citation);
     if (nzlsgRuns !== null) {
       const withSuffixes = appendFirstCitationSuffixes(nzlsgRuns);
-      return ensureClosingPunctuation(applySignalAndCommentary(withSuffixes, citation));
+      return applySignalAndCommentary(withSuffixes, citation);
     }
   }
 
@@ -1926,7 +1925,7 @@ export function formatCitation(
     : formatGenericCitation(citation);
   runs = appendFirstCitationSuffixes(runs);
 
-  return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
+  return applySignalAndCommentary(runs, citation);
 }
 
 // ─── Preview Helper ──────────────────────────────────────────────────────────
@@ -1938,6 +1937,21 @@ export function formatCitation(
  * @param citation - The citation to preview.
  * @returns An array of FormattedRun objects representing the formatted citation.
  */
+/**
+ * Ensures the last run in the array ends with closing punctuation (. ! ?).
+ * Used by getFormattedPreview for UI display — the refresher handles this
+ * for actual footnotes, so formatCitation does NOT include it.
+ */
+function ensurePreviewClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) return runs;
+  const last = runs[runs.length - 1];
+  const trimmed = last.text.trimEnd();
+  if (trimmed.endsWith(".") || trimmed.endsWith("!") || trimmed.endsWith("?")) {
+    return runs;
+  }
+  return [...runs.slice(0, -1), { ...last, text: last.text + "." }];
+}
+
 export function getFormattedPreview(
   citation: Citation,
   config?: CitationConfig,
@@ -1949,7 +1963,7 @@ export function getFormattedPreview(
     const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
     if (oscolaFormatter) {
       const runs = oscolaFormatter(citation, standardConfig);
-      return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
+      return ensurePreviewClosingPunctuation(applySignalAndCommentary(runs, citation));
     }
   }
 
@@ -1957,7 +1971,7 @@ export function getFormattedPreview(
   if (isNzlsgStandard(standardConfig.standardId)) {
     const nzlsgRuns = dispatchNzlsg(citation);
     if (nzlsgRuns !== null) {
-      return ensureClosingPunctuation(applySignalAndCommentary(nzlsgRuns, citation));
+      return ensurePreviewClosingPunctuation(applySignalAndCommentary(nzlsgRuns, citation));
     }
   }
 
@@ -1966,5 +1980,5 @@ export function getFormattedPreview(
     ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
 
-  return ensureClosingPunctuation(applySignalAndCommentary(runs, citation));
+  return ensurePreviewClosingPunctuation(applySignalAndCommentary(runs, citation));
 }

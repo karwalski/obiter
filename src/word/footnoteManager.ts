@@ -7,6 +7,9 @@
 
 import { FormattedRun } from "../types/formattedRun";
 
+/** Tag used for the parent content control wrapping all citations in a footnote. */
+const PARENT_CC_TAG = "obiter-fn";
+
 /** Summary of a citation content control found in a footnote. */
 export interface CitationFootnoteEntry {
   footnoteIndex: number;
@@ -14,7 +17,7 @@ export interface CitationFootnoteEntry {
   title: string;
 }
 
-/** Result returned by getAdjacentFootnoteIndex when cursor is next to a footnote. */
+/** Result returned when cursor is next to a footnote. */
 export interface AdjacentFootnoteResult {
   /** 1-based footnote index. */
   footnoteIndex: number;
@@ -48,19 +51,6 @@ function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
 }
 
 /**
- * Writes an array of FormattedRun objects into a Word Body, replacing any
- * existing content. Each run is inserted at the end of the body and formatted
- * according to its properties.
- */
-function writeFormattedRunsToBody(body: Word.Body, runs: FormattedRun[]): void {
-  body.clear();
-  for (const run of runs) {
-    const range = body.insertText(run.text, "End");
-    applyRunFormatting(range, run);
-  }
-}
-
-/**
  * Writes an array of FormattedRun objects into a content control, replacing
  * any existing content. Uses "Replace" insertion for the first run to avoid
  * cc.clear() which can destroy footnote reference marks if the CC
@@ -84,19 +74,44 @@ function writeFormattedRunsToControl(cc: Word.ContentControl, runs: FormattedRun
 }
 
 /**
- * BUGS-013: Detects whether the cursor/selection is immediately after a
- * footnote reference mark (superscript number). If so, returns the 1-based
- * index of that footnote.
+ * Inserts formatted runs into a child content control within a parent CC.
+ * The child CC is tagged with the citation UUID and uses Hidden appearance.
  *
- * Strategy: load all footnotes in the document body, then for each footnote
- * check whether the end of its reference range coincides with the cursor
- * position. We check the last footnote first (most likely candidate after
- * a fresh insertion) and work backwards for efficiency.
+ * @param parentCC - The parent content control (`obiter-fn` tag).
+ * @param citationId - Unique identifier for the citation (child CC tag).
+ * @param title - Human-readable label for the child CC title.
+ * @param formattedRuns - Citation text runs (WITHOUT closing punctuation).
+ */
+function insertChildCitation(
+  parentCC: Word.ContentControl,
+  citationId: string,
+  title: string,
+  formattedRuns: FormattedRun[],
+): void {
+  const endRange = parentCC.getRange("End");
+  const childCC = endRange.insertContentControl("RichText");
+  childCC.tag = citationId;
+  childCC.title = title;
+  childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+
+  // Insert citation text inside the child content control
+  for (const run of formattedRuns) {
+    const range = childCC.insertText(run.text, "End");
+    applyRunFormatting(range, run);
+  }
+}
+
+/**
+ * Detects whether the cursor/selection is immediately after a footnote
+ * reference mark (superscript number). If so, returns the NoteItem.
+ *
+ * Simplified from the old getAdjacentFootnoteIndex: just checks if there
+ * is a footnote at the cursor position.
  *
  * @param context - An active Word request context.
  * @returns The adjacent footnote result, or null if no footnote is adjacent.
  */
-async function getAdjacentFootnoteIndex(
+async function getAdjacentFootnote(
   context: Word.RequestContext,
 ): Promise<AdjacentFootnoteResult | null> {
   const selection = context.document.getSelection();
@@ -118,13 +133,7 @@ async function getAdjacentFootnoteIndex(
       return null;
     }
 
-    // Load all footnote reference ranges in one batch
-    for (const fn of allItems) {
-      fn.reference.load("text");
-    }
-    await context.sync();
-
-    // Check each footnote (last first — most likely candidate after insertion)
+    // Check the last footnote first (most likely candidate after insertion)
     const cursorStart = selection.getRange("Start");
     for (let i = allItems.length - 1; i >= 0; i--) {
       const refRange = allItems[i].reference;
@@ -148,122 +157,70 @@ async function getAdjacentFootnoteIndex(
 }
 
 /**
- * BUGS-013 / AGLC4 Rule 1.1.3: Appends a citation to an existing footnote
- * body, separated by '; ' (semicolon + space), and wraps the new citation
- * content in a content control for tracking.
+ * Finds the parent content control (`obiter-fn` tag) inside a footnote.
+ * Returns null if the footnote does not contain a parent CC (e.g. a
+ * non-Obiter footnote or a legacy footnote from before this model).
  *
- * @param noteItem - The existing footnote's NoteItem to append to.
+ * @param noteItem - The footnote's NoteItem.
+ * @param context - An active Word request context.
+ * @returns The parent content control, or null.
+ */
+async function findParentCC(
+  noteItem: Word.NoteItem,
+  context: Word.RequestContext,
+): Promise<Word.ContentControl | null> {
+  const contentControls = noteItem.body.contentControls;
+  contentControls.load("items/tag");
+  await context.sync();
+
+  const ccItems = contentControls.items ?? [];
+  for (const cc of ccItems) {
+    if (cc.tag === PARENT_CC_TAG) {
+      return cc;
+    }
+  }
+  return null;
+}
+
+/**
+ * FN-001 / FN-002: Appends a citation to an existing footnote's parent CC
+ * by inserting a new child CC at the end.
+ *
+ * The refresher will add `; ` separators between children and update the
+ * closing `.` after the parent CC.
+ *
+ * @param noteItem - The existing footnote's NoteItem.
  * @param citationId - Unique identifier for the new citation.
  * @param title - Human-readable label for the content control.
- * @param formattedRuns - Ordered text runs for the new citation.
+ * @param formattedRuns - Ordered text runs for the new citation (no closing punctuation).
  * @param context - An active Word request context.
  */
-async function appendCitationToFootnote(
+async function appendCitationToParent(
   noteItem: Word.NoteItem,
   citationId: string,
   title: string,
   formattedRuns: FormattedRun[],
   context: Word.RequestContext,
 ): Promise<void> {
-  // Get the last paragraph in the footnote body to append to.
-  const paragraphs = noteItem.body.paragraphs;
-  paragraphs.load("items");
+  const parentCC = await findParentCC(noteItem, context);
+  if (!parentCC) {
+    throw new Error(
+      "Cannot append citation: footnote does not contain an obiter-fn parent content control.",
+    );
+  }
+
+  insertChildCitation(parentCC, citationId, title, formattedRuns);
   await context.sync();
-
-  const paraItems = paragraphs.items ?? [];
-  if (paraItems.length === 0) {
-    throw new Error("Footnote body contains no paragraphs. This may indicate limited API support in Word for Web.");
-  }
-  const lastPara = paraItems[paraItems.length - 1];
-
-  // Strategy: get the existing text, find where to insert the separator.
-  // The existing footnote ends with "." from ensureClosingPunctuation.
-  // We need: "citationA; citationB." (not "citationA.; citationB.")
-  //
-  // Approach: get the end range of the footnote body, insert the
-  // separator and new citation text there. The new runs already include
-  // closing punctuation. We need to remove the old trailing "." first.
-  lastPara.load("text");
-  await context.sync();
-
-  const existingText = lastPara.text;
-
-  // Remove the trailing period by replacing the last character
-  if (existingText.trimEnd().endsWith(".")) {
-    // Get the range of the entire paragraph, then narrow to the last char
-    const paraRange = lastPara.getRange("Whole");
-    const endRange = paraRange.getRange("End");
-    // Expand one character back from the end to select the period
-    try {
-      // Insert replacement text: everything except the trailing period + semicolon + new citation
-      // Simpler: just insert "; " and new runs, then the old "." becomes ".; "
-      // which we handle below. Actually, let's use a different approach:
-      // Insert all the text we want at "End", then the result is "text.; newtext."
-      // Then do one search-replace of ".; " -> "; "
-    } catch {
-      // Fall through
-    }
-  }
-
-  // Insert the new citation inside its own content control.
-  // The "; " separator is included as the first run inside the CC,
-  // which ensures it survives refresher rewrites. The refresher
-  // also prepends "; " to non-first citations, keeping it consistent.
-
-  // Insert a new content control at the end of the footnote body
-  const bodyEndRange = noteItem.body.getRange("End");
-  const cc = bodyEndRange.insertContentControl("RichText");
-  cc.tag = citationId;
-  cc.title = title;
-  cc.appearance = "Hidden" as Word.ContentControlAppearance;
-
-  // Insert "; " separator as the first run inside the CC
-  const sepRange = cc.insertText("; ", "End");
-  sepRange.font.italic = false;
-  sepRange.font.bold = false;
-
-  // Insert citation text inside the content control (after separator)
-  for (const run of formattedRuns) {
-    const range = cc.insertText(run.text, "End");
-    applyRunFormatting(range, run);
-  }
-
-  await context.sync();
-
-  // Strip the trailing "." from the FIRST citation's CC since it's
-  // no longer the last citation in this footnote. The refresher will
-  // handle this on subsequent refreshes, but we do it now to avoid
-  // the flash of "citationA.; citationB."
-  try {
-    const existingCCs = noteItem.body.contentControls;
-    existingCCs.load("items/tag,items/text");
-    await context.sync();
-    const ccItems = existingCCs.items ?? [];
-    // Find all CCs except the one we just created
-    for (const existingCC of ccItems) {
-      if (existingCC.tag && existingCC.tag !== citationId && !existingCC.tag.startsWith("obiter-")) {
-        const ccText = existingCC.text ?? "";
-        if (ccText.endsWith(".")) {
-          // Rewrite without trailing period
-          const trimmed = ccText.slice(0, -1);
-          existingCC.insertText(trimmed, "Replace" as Word.InsertLocation.replace);
-        }
-      }
-    }
-    await context.sync();
-  } catch {
-    // Non-critical — refresher will fix on next cycle
-  }
 }
 
 /**
- * BUGS-013: Appends a citation to a specific footnote by its 1-based index.
+ * FN-001 / FN-002: Appends a citation to a specific footnote by its 1-based index.
  * Used by the UI when the user explicitly selects a footnote to append to.
  *
  * @param footnoteIndex - 1-based index of the target footnote.
  * @param citationId - Unique identifier for the citation.
  * @param title - Human-readable label for the content control.
- * @param formattedRuns - Ordered text runs for the citation.
+ * @param formattedRuns - Ordered text runs for the citation (no closing punctuation).
  */
 export async function appendToFootnoteByIndex(
   footnoteIndex: number,
@@ -282,23 +239,28 @@ export async function appendToFootnoteByIndex(
       throw new Error(`Footnote ${footnoteIndex} not found.`);
     }
 
-    await appendCitationToFootnote(noteItem, citationId, title, formattedRuns, context);
+    await appendCitationToParent(noteItem, citationId, title, formattedRuns, context);
   });
 }
 
 /**
- * Inserts a footnote at the current selection, wraps its body in a Rich Text
- * content control tagged with the citation ID, and writes the formatted text
- * runs into it.
+ * FN-001 / FN-002: Inserts a footnote at the current selection using the
+ * parent-child content control model.
  *
- * BUGS-013 / AGLC4 Rule 1.1.3: If the cursor is immediately after an
- * existing footnote reference mark, the citation is appended to that
- * footnote with a '; ' separator instead of creating a new footnote.
+ * Structure created in the footnote body:
+ * ```
+ * [ref mark] [parent-CC tag="obiter-fn"]
+ *   [child-CC tag="citation-uuid"] citation text (no trailing period) [/child-CC]
+ * [/parent-CC] [period]
+ * ```
  *
- * @param citationId - Unique identifier for the citation (stored as the
- *   content control tag).
+ * AGLC4 Rule 1.1.3: If the cursor is immediately after an existing footnote
+ * reference mark, the citation is appended as a new child CC inside that
+ * footnote's parent CC instead of creating a new footnote.
+ *
+ * @param citationId - Unique identifier for the citation (child CC tag).
  * @param title - Human-readable label shown as the content control title.
- * @param formattedRuns - Ordered text runs that make up the citation text.
+ * @param formattedRuns - Ordered text runs (WITHOUT closing punctuation).
  * @param appendToFootnote - Optional 1-based footnote index to force
  *   appending to a specific footnote (from the UI toggle). When provided,
  *   skips adjacent-footnote detection.
@@ -311,8 +273,7 @@ export async function insertCitationFootnote(
 ): Promise<void> {
   try {
   await Word.run(async (context) => {
-    // BUGS-013: If caller explicitly specified a footnote to append to,
-    // use that directly.
+    // If caller explicitly specified a footnote to append to, use that directly.
     if (appendToFootnote !== undefined && appendToFootnote > 0) {
       const footnotes = context.document.body.footnotes;
       footnotes.load("items");
@@ -321,20 +282,20 @@ export async function insertCitationFootnote(
       const fnItems = footnotes.items ?? [];
       const noteItem = fnItems[appendToFootnote - 1];
       if (noteItem) {
-        await appendCitationToFootnote(noteItem, citationId, title, formattedRuns, context);
+        await appendCitationToParent(noteItem, citationId, title, formattedRuns, context);
         return;
       }
       // Fall through to create a new footnote if the index is invalid.
     }
 
-    // BUGS-013: Try to detect an adjacent footnote reference at the cursor.
-    const adjacent = await getAdjacentFootnoteIndex(context);
+    // Try to detect an adjacent footnote reference at the cursor.
+    const adjacent = await getAdjacentFootnote(context);
     if (adjacent) {
-      await appendCitationToFootnote(adjacent.noteItem, citationId, title, formattedRuns, context);
+      await appendCitationToParent(adjacent.noteItem, citationId, title, formattedRuns, context);
       return;
     }
 
-    // No adjacent footnote — create a new one as before.
+    // No adjacent footnote — create a new one with parent-child CC model.
     // Record footnote count before insertion for verification.
     const beforeFootnotes = context.document.body.footnotes;
     beforeFootnotes.load("items");
@@ -346,8 +307,7 @@ export async function insertCitationFootnote(
 
     // Get the first (auto-generated) paragraph in the footnote body.
     // Word creates a paragraph with the footnote reference mark — we
-    // insert our citation text into that paragraph rather than wrapping
-    // the entire body, which would interfere with the reference number.
+    // insert our content after the reference mark.
     const paragraphs = noteItem.body.paragraphs;
     paragraphs.load("items");
     await context.sync();
@@ -358,20 +318,23 @@ export async function insertCitationFootnote(
     }
     const firstPara = firstParaItems[0];
 
-    // Insert a content control at the end of the paragraph FIRST, then
-    // insert citation text inside it. This ensures the CC only wraps
-    // the citation text, not the footnote reference mark.
-    const endRange = firstPara.getRange("End");
-    const cc = endRange.insertContentControl("RichText");
-    cc.tag = citationId;
-    cc.title = title;
-    cc.appearance = "Hidden" as Word.ContentControlAppearance;
+    // Insert parent CC at the end of the paragraph (after the ref mark).
+    const paraEndRange = firstPara.getRange("End");
+    const parentCC = paraEndRange.insertContentControl("RichText");
+    parentCC.tag = PARENT_CC_TAG;
+    parentCC.title = "Obiter Footnote";
+    parentCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
-    // Insert citation text inside the content control
-    for (const run of formattedRuns) {
-      const range = cc.insertText(run.text, "End");
-      applyRunFormatting(range, run);
-    }
+    // Insert child CC inside the parent CC with the citation content.
+    insertChildCitation(parentCC, citationId, title, formattedRuns);
+
+    await context.sync();
+
+    // Insert closing period after the parent CC.
+    const afterParentRange = parentCC.getRange("After");
+    const periodRange = afterParentRange.insertText(".", "After");
+    periodRange.font.italic = false;
+    periodRange.font.bold = false;
 
     await context.sync();
 
@@ -407,11 +370,12 @@ export async function insertCitationFootnote(
 }
 
 /**
- * Finds every content control whose tag matches the given citation ID and
- * replaces its content with the supplied formatted runs.
+ * FN-001: Finds every content control whose tag matches the given citation ID
+ * (child CCs inside parent CCs) and replaces its content with the supplied
+ * formatted runs.
  *
  * @param citationId - The citation ID to search for.
- * @param formattedRuns - New formatted text runs to write.
+ * @param formattedRuns - New formatted text runs to write (no closing punctuation).
  */
 export async function updateCitationContent(
   citationId: string,
@@ -431,11 +395,13 @@ export async function updateCitationContent(
 }
 
 /**
- * Scans all footnotes in the document and returns a list of citation content
- * controls found within them.
+ * FN-001: Scans all footnotes and returns child CC info from parent CCs.
  *
- * @returns An array of {@link CitationFootnoteEntry} objects, one per content
- *   control found.
+ * Only returns citation content controls that are children of an `obiter-fn`
+ * parent CC. Skips any CCs with tags starting with `obiter-` (internal tags).
+ *
+ * @returns An array of {@link CitationFootnoteEntry} objects, one per child
+ *   content control found.
  */
 export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]> {
   const results: CitationFootnoteEntry[] = [];
@@ -453,7 +419,9 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
       await context.sync();
 
       for (const cc of (contentControls.items ?? [])) {
-        if (cc.tag) {
+        // Skip parent CCs and other internal obiter tags; only collect
+        // child CCs which have citation UUIDs as tags.
+        if (cc.tag && !cc.tag.startsWith("obiter-")) {
           results.push({
             footnoteIndex: i + 1, // 1-based footnote numbering
             citationId: cc.tag,
@@ -468,21 +436,8 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
 }
 
 /**
- * Removes a specific citation content control from a footnote.
- *
- * The content control is deleted together with its content. If the footnote
- * body becomes empty after removal, the entire footnote is deleted.
- *
- * @param citationId - The citation ID (content control tag) to remove.
- * @param footnoteIndex - 1-based index of the target footnote.
- */
-/**
  * Returns the 1-based index of the footnote that was most recently inserted
- * at the current selection position. This works by comparing the selection
- * range against each footnote's reference mark in the document body.
- *
- * Should be called within the same `Word.run` context as the insertion, or
- * immediately after, while the selection is still near the inserted footnote.
+ * at the current selection position.
  *
  * @param context - An active Word request context.
  * @returns The 1-based index of the footnote at the selection, or -1 if no
@@ -495,12 +450,21 @@ export async function getFootnoteIndex(
   footnotes.load("items");
   await context.sync();
 
-  // The most recently inserted footnote is typically the last one, but we
-  // return the total count as its 1-based index since it was just appended
-  // at the selection point and Word renumbers sequentially.
   return (footnotes.items ?? []).length;
 }
 
+/**
+ * FN-002: Removes a specific citation (child CC) from a footnote.
+ *
+ * Finds the child CC with the matching tag inside the footnote's parent CC
+ * and deletes it. If the parent CC has no more children after removal, the
+ * entire footnote is deleted.
+ *
+ * The refresher will clean up separators on the next cycle.
+ *
+ * @param citationId - The citation ID (child CC tag) to remove.
+ * @param footnoteIndex - 1-based index of the target footnote.
+ */
 export async function deleteCitationFootnote(
   citationId: string,
   footnoteIndex: number,
@@ -517,14 +481,45 @@ export async function deleteCitationFootnote(
       return;
     }
 
-    const contentControls = noteItem.body.contentControls;
-    contentControls.load("items/tag");
+    // Find the parent CC
+    const parentCC = await findParentCC(noteItem, context);
+    if (!parentCC) {
+      // Legacy footnote without parent CC — fall back to deleting any CC
+      // with the matching tag directly from the footnote body.
+      const contentControls = noteItem.body.contentControls;
+      contentControls.load("items/tag");
+      await context.sync();
+
+      let deleted = false;
+      for (const cc of (contentControls.items ?? [])) {
+        if (cc.tag === citationId) {
+          cc.delete(false);
+          deleted = true;
+        }
+      }
+
+      if (!deleted) return;
+      await context.sync();
+
+      noteItem.body.load("text");
+      await context.sync();
+      const remaining = noteItem.body.text.trim();
+      if (remaining.length === 0) {
+        noteItem.delete();
+        await context.sync();
+      }
+      return;
+    }
+
+    // Find and delete the child CC with the matching tag inside the parent CC.
+    const childControls = parentCC.contentControls;
+    childControls.load("items/tag");
     await context.sync();
 
     let deleted = false;
-    for (const cc of (contentControls.items ?? [])) {
-      if (cc.tag === citationId) {
-        cc.delete(false); // delete control and its content
+    for (const childCC of (childControls.items ?? [])) {
+      if (childCC.tag === citationId) {
+        childCC.delete(false); // delete control and its content
         deleted = true;
       }
     }
@@ -535,12 +530,14 @@ export async function deleteCitationFootnote(
 
     await context.sync();
 
-    // Check whether the footnote body is now empty so we can clean it up.
-    noteItem.body.load("text");
+    // Check if the parent CC still has any child CCs. If not, delete
+    // the entire footnote.
+    const remainingChildren = parentCC.contentControls;
+    remainingChildren.load("items");
     await context.sync();
 
-    const remaining = noteItem.body.text.trim();
-    if (remaining.length === 0) {
+    const remainingItems = remainingChildren.items ?? [];
+    if (remainingItems.length === 0) {
       noteItem.delete();
       await context.sync();
     }
