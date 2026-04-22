@@ -124,12 +124,13 @@ export default function Validation(): JSX.Element {
         await context.sync();
 
         const texts: string[] = [];
-        for (const fn of footnotes.items) {
+        const fnItems = footnotes.items ?? [];
+        for (const fn of fnItems) {
           fn.body.load("text");
         }
         await context.sync();
 
-        for (const fn of footnotes.items) {
+        for (const fn of fnItems) {
           texts.push(fn.body.text);
         }
         return { footnoteTexts: texts, bodyText: body.text };

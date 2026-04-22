@@ -51,8 +51,9 @@ export async function applyAglc4Template(
   sections.load("items");
   await context.sync();
 
-  for (let i = 0; i < sections.items.length; i++) {
-    const section = sections.items[i];
+  const sectionItems = sections.items ?? [];
+  for (let i = 0; i < sectionItems.length; i++) {
+    const section = sectionItems[i];
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sectionAny = section as any;
@@ -68,8 +69,9 @@ export async function applyAglc4Template(
   body.paragraphs.load("items");
   await context.sync();
 
-  for (let i = 0; i < body.paragraphs.items.length; i++) {
-    const para = body.paragraphs.items[i];
+  const bodyParaItems = body.paragraphs.items ?? [];
+  for (let i = 0; i < bodyParaItems.length; i++) {
+    const para = bodyParaItems[i];
     para.lineSpacing = prefs.lineSpacing;
     try { para.lineUnitAfter = 0; } catch { /* not supported */ }
     try { para.lineUnitBefore = 0; } catch { /* not supported */ }

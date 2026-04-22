@@ -54,7 +54,7 @@ export async function getDocumentMetadata(
     let style = "";
     let author = "";
 
-    for (const prop of custom.items) {
+    for (const prop of (custom.items ?? [])) {
       if (prop.key === "Obiter.Version") version = String(prop.value);
       if (prop.key === "Obiter.CitationStyle") style = String(prop.value);
       if (prop.key === "Obiter.Author") author = String(prop.value);
@@ -90,7 +90,7 @@ export async function insertAddinNotice(
   existing.load("items");
   await context.sync();
 
-  if (existing.items.length > 0) return; // Already present
+  if ((existing.items ?? []).length > 0) return; // Already present
 
   const body = context.document.body;
   const para = body.insertParagraph(NOTICE_TEXT, "Start" as Word.InsertLocation.start);
@@ -120,13 +120,14 @@ export async function hideAddinNotice(
   controls.load("items");
   await context.sync();
 
-  for (const cc of controls.items) {
+  const controlItems = controls.items ?? [];
+  for (const cc of controlItems) {
     cc.cannotEdit = false;
     cc.cannotDelete = false;
     cc.delete(false); // delete control AND content
   }
 
-  if (controls.items.length > 0) {
+  if (controlItems.length > 0) {
     await context.sync();
   }
 }

@@ -47,7 +47,7 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
       const selection = context.document.getSelection();
       selection.paragraphs.load("items");
       await context.sync();
-      for (const para of selection.paragraphs.items) {
+      for (const para of (selection.paragraphs.items ?? [])) {
         para.font.size = 10;
         para.leftIndent = 36;
         para.lineSpacing = 12;
@@ -67,7 +67,7 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       selection.paragraphs.load("items");
       await context.sync();
 
-      for (const para of selection.paragraphs.items) {
+      for (const para of (selection.paragraphs.items ?? [])) {
         // Apply built-in Heading style
         para.style = "Heading " + level;
         // Override with AGLC4 formatting

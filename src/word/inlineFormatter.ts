@@ -119,7 +119,7 @@ export async function scanAndFormatInlineReferences(
     results.load("items/font");
     await context.sync();
 
-    for (const range of results.items) {
+    for (const range of (results.items ?? [])) {
       // Check whether this range is already italic.
       if (range.font.italic) {
         skipped++;
@@ -187,7 +187,7 @@ export async function clearInlineFormatting(
     results.load("items/font");
     await context.sync();
 
-    for (const range of results.items) {
+    for (const range of (results.items ?? [])) {
       if (range.font.italic) {
         range.font.italic = false;
         cleared++;

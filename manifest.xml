@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>933c30ed-e129-4844-9880-c4009e3969a5</Id>
-  <Version>1.6.0.0</Version>
-  <ProviderName>Matthew Watt</ProviderName>
+  <Version>1.7.0.0</Version>
+  <ProviderName>PLAN A DYNAMICS CO</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Obiter — AGLC4 Citation Engine"/>
+  <DisplayName DefaultValue="Obiter"/>
   <Description DefaultValue="Full AGLC4 citation formatting, document validation, and bibliography generation for Microsoft Word."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
@@ -315,7 +315,7 @@
         <bt:Url id="Taskpane.Settings.Url" DefaultValue="https://localhost:3000/taskpane.html#settings"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Obiter — AGLC4 Citation Engine"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Obiter"/>
         <bt:String id="ObiterTab.Label" DefaultValue="Obiter"/>
         <bt:String id="CitationGroup.Label" DefaultValue="Citation"/>
         <bt:String id="DocumentGroup.Label" DefaultValue="Document"/>

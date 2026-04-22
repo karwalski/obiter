@@ -91,7 +91,7 @@ export async function renumberHeadings(
   // text-prefix approach.
   void canUseListApi;
 
-  for (const paragraph of paragraphs.items) {
+  for (const paragraph of (paragraphs.items ?? [])) {
     const level = getHeadingLevel(paragraph.style);
     if (level === 0) continue;
 

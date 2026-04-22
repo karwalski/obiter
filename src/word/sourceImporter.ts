@@ -117,11 +117,12 @@ export async function getWordSources(
   parts.load("items");
   await context.sync();
 
-  if (parts.items.length === 0) {
+  const partItems = parts.items ?? [];
+  if (partItems.length === 0) {
     return [];
   }
 
-  const xmlResult = parts.items[0].getXml();
+  const xmlResult = partItems[0].getXml();
   await context.sync();
 
   const xmlString = xmlResult.value;

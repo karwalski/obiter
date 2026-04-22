@@ -60,8 +60,9 @@ async function navigateToFootnote(footnoteIndex: number): Promise<void> {
     await context.sync();
 
     const zeroBasedIndex = footnoteIndex - 1;
-    if (zeroBasedIndex >= 0 && zeroBasedIndex < footnotes.items.length) {
-      const noteItem = footnotes.items[zeroBasedIndex];
+    const fnItems = footnotes.items ?? [];
+    if (zeroBasedIndex >= 0 && zeroBasedIndex < fnItems.length) {
+      const noteItem = fnItems[zeroBasedIndex];
       const range = noteItem.body.getRange("Whole");
       range.select();
       await context.sync();

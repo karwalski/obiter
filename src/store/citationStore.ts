@@ -37,9 +37,10 @@ export class CitationStore {
       scopedParts.load("items");
       await context.sync();
 
-      if (scopedParts.items.length > 0) {
+      const partItems = scopedParts.items ?? [];
+      if (partItems.length > 0) {
         // Load existing store (use the first matching part)
-        const part = scopedParts.items[0];
+        const part = partItems[0];
         part.load("id");
         await context.sync();
 

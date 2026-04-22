@@ -127,15 +127,16 @@ export async function refreshAllCitations(
 
   const entries: ControlEntry[] = [];
 
-  for (let i = 0; i < footnotes.items.length; i++) {
-    const noteItem = footnotes.items[i];
+  const fnItems = footnotes.items ?? [];
+  for (let i = 0; i < fnItems.length; i++) {
+    const noteItem = fnItems[i];
     const contentControls = noteItem.body.contentControls;
     contentControls.load("items/tag,items/title");
     await context.sync();
 
     const footnoteNumber = i + 1;
 
-    for (const cc of contentControls.items) {
+    for (const cc of (contentControls.items ?? [])) {
       if (cc.tag && !cc.tag.startsWith("obiter-")) {
         // Only process citation content controls (UUIDs), not internal
         // Obiter tags (obiter-heading-*, obiter-attribution)

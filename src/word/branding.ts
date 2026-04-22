@@ -51,9 +51,10 @@ export async function insertAttribution(context: Word.RequestContext): Promise<v
   sections.load("items");
   await context.sync();
 
-  if (sections.items.length === 0) return;
+  const sectionItems = sections.items ?? [];
+  if (sectionItems.length === 0) return;
 
-  const footer = sections.items[0].getFooter(Word.HeaderFooterType.primary);
+  const footer = sectionItems[0].getFooter(Word.HeaderFooterType.primary);
   footer.load("paragraphs");
   await context.sync();
 
@@ -79,7 +80,7 @@ export async function removeAttribution(context: Word.RequestContext): Promise<v
   controls.load("items/tag");
   await context.sync();
 
-  for (const cc of controls.items) {
+  for (const cc of (controls.items ?? [])) {
     if (cc.tag === ATTRIBUTION_TAG) {
       cc.delete(false);
     }
@@ -93,5 +94,5 @@ async function hasAttributionControl(context: Word.RequestContext): Promise<bool
   controls.load("items/tag");
   await context.sync();
 
-  return controls.items.some((cc) => cc.tag === ATTRIBUTION_TAG);
+  return (controls.items ?? []).some((cc) => cc.tag === ATTRIBUTION_TAG);
 }

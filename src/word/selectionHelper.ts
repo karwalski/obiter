@@ -62,8 +62,9 @@ export async function getSelectedTextWithContext(): Promise<SelectionWithContext
         footnotes.load("items");
         await context.sync();
 
-        for (let i = 0; i < footnotes.items.length; i++) {
-          const fnBody = footnotes.items[i].body;
+        const fnItems = footnotes.items ?? [];
+        for (let i = 0; i < fnItems.length; i++) {
+          const fnBody = fnItems[i].body;
           fnBody.load("text");
         }
         await context.sync();
@@ -72,8 +73,8 @@ export async function getSelectedTextWithContext(): Promise<SelectionWithContext
         // text. This is a best-effort heuristic; duplicate footnote text
         // will resolve to the first match.
         const parentText = parentBody.text ?? "";
-        for (let i = 0; i < footnotes.items.length; i++) {
-          if ((footnotes.items[i].body.text ?? "") === parentText) {
+        for (let i = 0; i < fnItems.length; i++) {
+          if ((fnItems[i].body.text ?? "") === parentText) {
             result.footnoteIndex = i + 1; // 1-based
             break;
           }

@@ -114,12 +114,13 @@ async function getAdjacentFootnoteIndex(
     footnotes.load("items");
     await context.sync();
 
-    if (footnotes.items.length === 0) {
+    const footnoteItems = footnotes.items ?? [];
+    if (footnoteItems.length === 0) {
       return null;
     }
 
     // The last footnote in the range before the cursor is the adjacent one.
-    const lastFootnote = footnotes.items[footnotes.items.length - 1];
+    const lastFootnote = footnoteItems[footnoteItems.length - 1];
 
     // Get the reference range to verify it's truly adjacent (right before cursor).
     const refRange = lastFootnote.reference;
@@ -138,19 +139,20 @@ async function getAdjacentFootnoteIndex(
       allFootnotes.load("items");
       await context.sync();
 
-      for (let i = 0; i < allFootnotes.items.length; i++) {
-        const fnRef = allFootnotes.items[i].reference;
+      const allItems = allFootnotes.items ?? [];
+      for (let i = 0; i < allItems.length; i++) {
+        const fnRef = allItems[i].reference;
         fnRef.load("text");
       }
       await context.sync();
 
-      for (let i = 0; i < allFootnotes.items.length; i++) {
-        const fnCompare = allFootnotes.items[i].reference.compareLocationWith(refRange);
+      for (let i = 0; i < allItems.length; i++) {
+        const fnCompare = allItems[i].reference.compareLocationWith(refRange);
         await context.sync();
         if (fnCompare.value === "Equal") {
           return {
             footnoteIndex: i + 1,
-            noteItem: allFootnotes.items[i],
+            noteItem: allItems[i],
           };
         }
       }
@@ -186,7 +188,11 @@ async function appendCitationToFootnote(
   paragraphs.load("items");
   await context.sync();
 
-  const lastPara = paragraphs.items[paragraphs.items.length - 1];
+  const paraItems = paragraphs.items ?? [];
+  if (paraItems.length === 0) {
+    throw new Error("Footnote body contains no paragraphs. This may indicate limited API support in Word for Web.");
+  }
+  const lastPara = paraItems[paraItems.length - 1];
 
   // Strip the trailing full stop from the existing footnote content and
   // insert the semicolon separator (AGLC4 Rule 1.1.3). The existing
@@ -206,8 +212,9 @@ async function appendCitationToFootnote(
     searchResults.load("items");
     await context.sync();
 
-    if (searchResults.items.length > 0) {
-      const lastDot = searchResults.items[searchResults.items.length - 1];
+    const searchItems = searchResults.items ?? [];
+    if (searchItems.length > 0) {
+      const lastDot = searchItems[searchItems.length - 1];
       lastDot.delete();
       await context.sync();
     }
@@ -261,7 +268,8 @@ export async function appendToFootnoteByIndex(
     footnotes.load("items");
     await context.sync();
 
-    const noteItem = footnotes.items[footnoteIndex - 1];
+    const fnItems = footnotes.items ?? [];
+    const noteItem = fnItems[footnoteIndex - 1];
     if (!noteItem) {
       throw new Error(`Footnote ${footnoteIndex} not found.`);
     }
@@ -293,6 +301,7 @@ export async function insertCitationFootnote(
   formattedRuns: FormattedRun[],
   appendToFootnote?: number,
 ): Promise<void> {
+  try {
   await Word.run(async (context) => {
     // BUGS-013: If caller explicitly specified a footnote to append to,
     // use that directly.
@@ -301,7 +310,8 @@ export async function insertCitationFootnote(
       footnotes.load("items");
       await context.sync();
 
-      const noteItem = footnotes.items[appendToFootnote - 1];
+      const fnItems = footnotes.items ?? [];
+      const noteItem = fnItems[appendToFootnote - 1];
       if (noteItem) {
         await appendCitationToFootnote(noteItem, citationId, title, formattedRuns, context);
         return;
@@ -328,7 +338,11 @@ export async function insertCitationFootnote(
     paragraphs.load("items");
     await context.sync();
 
-    const firstPara = paragraphs.items[0];
+    const firstParaItems = paragraphs.items ?? [];
+    if (firstParaItems.length === 0) {
+      throw new Error("Could not access footnote content. Word for Web may have limited footnote support.");
+    }
+    const firstPara = firstParaItems[0];
 
     // Insert citation text at the end of the paragraph (after the
     // footnote reference mark that Word auto-generates).
@@ -346,6 +360,13 @@ export async function insertCitationFootnote(
 
     await context.sync();
   });
+  } catch (err: unknown) {
+    const original = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Failed to insert citation footnote. This may be caused by limited API support in Word for Web. ` +
+      `Details: ${original}`
+    );
+  }
 }
 
 /**
@@ -364,7 +385,7 @@ export async function updateCitationContent(
     contentControls.load("items");
     await context.sync();
 
-    for (const cc of contentControls.items) {
+    for (const cc of (contentControls.items ?? [])) {
       writeFormattedRunsToControl(cc, formattedRuns);
     }
 
@@ -387,13 +408,14 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
     footnotes.load("items");
     await context.sync();
 
-    for (let i = 0; i < footnotes.items.length; i++) {
-      const noteItem = footnotes.items[i];
+    const fnItems = footnotes.items ?? [];
+    for (let i = 0; i < fnItems.length; i++) {
+      const noteItem = fnItems[i];
       const contentControls = noteItem.body.contentControls;
       contentControls.load("items/tag,items/title");
       await context.sync();
 
-      for (const cc of contentControls.items) {
+      for (const cc of (contentControls.items ?? [])) {
         if (cc.tag) {
           results.push({
             footnoteIndex: i + 1, // 1-based footnote numbering
@@ -439,7 +461,7 @@ export async function getFootnoteIndex(
   // The most recently inserted footnote is typically the last one, but we
   // return the total count as its 1-based index since it was just appended
   // at the selection point and Word renumbers sequentially.
-  return footnotes.items.length;
+  return (footnotes.items ?? []).length;
 }
 
 export async function deleteCitationFootnote(
@@ -452,7 +474,8 @@ export async function deleteCitationFootnote(
     await context.sync();
 
     // footnoteIndex is 1-based; array is 0-based.
-    const noteItem = footnotes.items[footnoteIndex - 1];
+    const fnItems = footnotes.items ?? [];
+    const noteItem = fnItems[footnoteIndex - 1];
     if (!noteItem) {
       return;
     }
@@ -462,7 +485,7 @@ export async function deleteCitationFootnote(
     await context.sync();
 
     let deleted = false;
-    for (const cc of contentControls.items) {
+    for (const cc of (contentControls.items ?? [])) {
       if (cc.tag === citationId) {
         cc.delete(false); // delete control and its content
         deleted = true;

@@ -321,7 +321,7 @@ export async function findExistingHeadingListId(
     paragraphs.load("items/style,items/isListItem");
     await context.sync();
 
-    for (const para of paragraphs.items) {
+    for (const para of (paragraphs.items ?? [])) {
       if (para.style && para.style.startsWith("Heading") && para.isListItem) {
         // Access the list via listItem — load listString which contains the list ID
         const listItem = para.listItem;
@@ -359,12 +359,13 @@ export async function applyHeadingLevel(
   const oldControls = paragraph.contentControls;
   oldControls.load("items/tag");
   await context.sync();
-  for (const cc of oldControls.items) {
+  const oldControlItems = oldControls.items ?? [];
+  for (const cc of oldControlItems) {
     if (cc.tag && cc.tag.startsWith(HEADING_TAG_PREFIX)) {
       cc.delete(true); // keep content
     }
   }
-  if (oldControls.items.some((cc) => cc.tag?.startsWith(HEADING_TAG_PREFIX))) {
+  if (oldControlItems.some((cc) => cc.tag?.startsWith(HEADING_TAG_PREFIX))) {
     await context.sync();
   }
 
@@ -446,7 +447,7 @@ export async function renumberAllHeadings(
 
   // Collect heading controls in document order
   const headings: Array<{ cc: Word.ContentControl; level: 1 | 2 | 3 | 4 | 5 }> = [];
-  for (const cc of allControls.items) {
+  for (const cc of (allControls.items ?? [])) {
     if (cc.tag && cc.tag.startsWith(HEADING_TAG_PREFIX)) {
       const lvl = parseInt(cc.tag.slice(HEADING_TAG_PREFIX.length), 10);
       if (lvl >= 1 && lvl <= 5) {

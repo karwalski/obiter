@@ -58,7 +58,7 @@ export async function registerSelectionHandler(
 
         // Walk through all content controls at the selection and fire the
         // callback for the first one that has a citation tag (not heading/branding tags).
-        for (const cc of contentControls.items) {
+        for (const cc of (contentControls.items ?? [])) {
           if (cc.tag && isCitationTag(cc.tag)) {
             onCitationSelected(cc.tag);
             return;

@@ -36,7 +36,7 @@ export async function prepareAsTemplate(
   existing.load("items");
   await context.sync();
 
-  if (existing.items.length === 0) {
+  if ((existing.items ?? []).length === 0) {
     const body = context.document.body;
     const para = body.insertParagraph(
       TEMPLATE_NOTICE_TEXT,
@@ -69,13 +69,14 @@ export async function removeTemplateNotice(
   controls.load("items");
   await context.sync();
 
-  for (const cc of controls.items) {
+  const controlItems = controls.items ?? [];
+  for (const cc of controlItems) {
     cc.cannotEdit = false;
     cc.cannotDelete = false;
     cc.delete(false); // delete control and content
   }
 
-  if (controls.items.length > 0) {
+  if (controlItems.length > 0) {
     await context.sync();
   }
 }
@@ -90,5 +91,5 @@ export async function isFromObiterTemplate(
   const controls = context.document.contentControls.getByTag(TEMPLATE_NOTICE_TAG);
   controls.load("items");
   await context.sync();
-  return controls.items.length > 0;
+  return (controls.items ?? []).length > 0;
 }

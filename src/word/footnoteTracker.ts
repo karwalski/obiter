@@ -24,15 +24,16 @@ export async function buildFootnoteMap(
   footnotes.load("items");
   await context.sync();
 
-  for (let i = 0; i < footnotes.items.length; i++) {
-    const noteItem = footnotes.items[i];
+  const fnItems = footnotes.items ?? [];
+  for (let i = 0; i < fnItems.length; i++) {
+    const noteItem = fnItems[i];
     const contentControls = noteItem.body.contentControls;
     contentControls.load("items/tag");
     await context.sync();
 
     const footnoteNumber = i + 1; // 1-based footnote numbering
 
-    for (const cc of contentControls.items) {
+    for (const cc of (contentControls.items ?? [])) {
       if (cc.tag && !cc.tag.startsWith("obiter-")) {
         const existing = map.get(cc.tag);
         if (existing === undefined || footnoteNumber < existing) {
@@ -58,7 +59,7 @@ export async function getFootnoteCount(
   footnotes.load("items");
   await context.sync();
 
-  return footnotes.items.length;
+  return (footnotes.items ?? []).length;
 }
 
 /**
@@ -83,17 +84,18 @@ export async function getPrecedingFootnoteCitations(
   await context.sync();
 
   const precedingIndex = currentFootnoteIndex - 2; // Convert 1-based to 0-based, then go back one
-  if (precedingIndex < 0 || precedingIndex >= footnotes.items.length) {
+  const fnItems = footnotes.items ?? [];
+  if (precedingIndex < 0 || precedingIndex >= fnItems.length) {
     return [];
   }
 
-  const noteItem = footnotes.items[precedingIndex];
+  const noteItem = fnItems[precedingIndex];
   const contentControls = noteItem.body.contentControls;
   contentControls.load("items/tag");
   await context.sync();
 
   const citationIds: string[] = [];
-  for (const cc of contentControls.items) {
+  for (const cc of (contentControls.items ?? [])) {
     if (cc.tag) {
       citationIds.push(cc.tag);
     }

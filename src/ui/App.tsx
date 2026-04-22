@@ -61,8 +61,9 @@ async function executeRibbonAction(action: string): Promise<void> {
           const selection = context.document.getSelection();
           selection.load("paragraphs");
           await context.sync();
-          for (let i = 0; i < selection.paragraphs.items.length; i++) {
-            await applyHeadingLevel(context, selection.paragraphs.items[i], level, i + 1);
+          const paraItems = selection.paragraphs.items ?? [];
+          for (let i = 0; i < paraItems.length; i++) {
+            await applyHeadingLevel(context, paraItems[i], level, i + 1);
           }
         });
       }
@@ -71,7 +72,7 @@ async function executeRibbonAction(action: string): Promise<void> {
         const selection = context.document.getSelection();
         selection.paragraphs.load("items");
         await context.sync();
-        for (const para of selection.paragraphs.items) {
+        for (const para of (selection.paragraphs.items ?? [])) {
           para.font.size = 10;
           para.leftIndent = 36;
           para.lineSpacing = 12;

@@ -137,8 +137,9 @@ export default function Styling(): JSX.Element {
         selection.load("paragraphs");
         await context.sync();
 
-        for (let i = 0; i < selection.paragraphs.items.length; i++) {
-          const para = selection.paragraphs.items[i];
+        const paraItems = selection.paragraphs.items ?? [];
+        for (let i = 0; i < paraItems.length; i++) {
+          const para = paraItems[i];
           const list = await applyHeadingLevel(
             context,
             para,
@@ -172,7 +173,7 @@ export default function Styling(): JSX.Element {
         selection.load("paragraphs");
         await context.sync();
 
-        for (const para of selection.paragraphs.items) {
+        for (const para of (selection.paragraphs.items ?? [])) {
           try {
             para.style = "AGLC4 Block Quote";
           } catch {
