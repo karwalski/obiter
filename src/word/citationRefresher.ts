@@ -322,7 +322,23 @@ export async function refreshAllCitations(
       formatPreference: "auto",
     };
 
-    const runs = formatCitation(citation, citationContext, config);
+    let runs = formatCitation(citation, citationContext, config);
+
+    // If this is NOT the last citation in its footnote, strip the
+    // closing punctuation. Only the last citation in a multi-citation
+    // footnote should end with "." — intermediate ones are followed
+    // by "; " separator text (outside the content control).
+    const isLastInFootnote = !entries.some(
+      (e) => e.footnoteNumber === entry.footnoteNumber &&
+             entries.indexOf(e) > entries.indexOf(entry)
+    );
+    if (!isLastInFootnote && runs.length > 0) {
+      const lastRun = runs[runs.length - 1];
+      if (lastRun.text.endsWith(".")) {
+        runs = [...runs.slice(0, -1), { ...lastRun, text: lastRun.text.slice(0, -1) }];
+      }
+    }
+
     const newText = runsToPlainText(runs);
     const existingText = entry.cc.text ?? "";
 
