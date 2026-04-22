@@ -205,55 +205,52 @@ async function appendCitationToFootnote(
     }
   }
 
-  // Insert "; " separator and new citation at end of paragraph
-  const separator = lastPara.insertText("; ", "End");
-  separator.font.italic = false;
-  separator.font.bold = false;
+  // Insert "; " separator OUTSIDE any content control, then insert
+  // the new citation inside its own content control.
+  //
+  // Strategy: insert a content control first, tag it, then insert
+  // the separator and citation text inside it. This guarantees each
+  // citation has its own CC and the refresher can update them independently.
 
-  for (const run of formattedRuns) {
-    const range = lastPara.insertText(run.text, "End");
-    applyRunFormatting(range, run);
-  }
+  // Insert "; " separator as plain text at the end of the footnote body
+  const separatorRange = noteItem.body.insertText("; ", "End");
+  separatorRange.font.italic = false;
+  separatorRange.font.bold = false;
   await context.sync();
 
-  // Now clean up: the text is "citationA.; citationB."
-  // Replace the FIRST ".; " with "; " (there should only be one)
-  try {
-    const bodyText = noteItem.body;
-    bodyText.load("text");
-    await context.sync();
-
-    // Search in the footnote body for ".; "
-    const searchResults = bodyText.search(".; ", { matchWildcards: false });
-    searchResults.load("items");
-    await context.sync();
-
-    const searchItems = searchResults.items ?? [];
-    for (const match of searchItems) {
-      match.insertText("; ", "Replace" as Word.InsertLocation.replace);
-    }
-    if (searchItems.length > 0) {
-      await context.sync();
-    }
-  } catch {
-    // Search failed — .; will remain, imperfect but not broken
-  }
-
-  // Wrap the entire paragraph in a new content control to track
-  // the appended citation. We need to select just the newly inserted
-  // text, so we use the end-of-body approach.
-  // Note: We insert a content control around the last paragraph,
-  // but since we need per-citation tracking we insert a separate one.
-  // The approach: insert text into the body end, then wrap it.
-  // Since Word doesn't let us easily wrap a sub-range after insertion,
-  // we insert the content control at the footnote body level.
-  const bodyEnd = noteItem.body.getRange("End");
-  const cc = bodyEnd.insertContentControl("RichText");
+  // Now insert a new content control at the end of the body for this citation
+  const bodyEndRange = noteItem.body.getRange("End");
+  const cc = bodyEndRange.insertContentControl("RichText");
   cc.tag = citationId;
   cc.title = title;
   cc.appearance = "Hidden" as Word.ContentControlAppearance;
 
+  // Insert citation text inside the content control
+  for (const run of formattedRuns) {
+    const range = cc.insertText(run.text, "End");
+    applyRunFormatting(range, run);
+  }
+
   await context.sync();
+
+  // Clean up the ".; " pattern — the existing footnote ended with "."
+  // and we inserted "; " after it, creating ".; ". Search and fix.
+  try {
+    noteItem.body.load("text");
+    await context.sync();
+    const bodyText = noteItem.body.text;
+    if (bodyText.includes(".; ")) {
+      const searchResults = noteItem.body.search(".; ", { matchWildcards: false });
+      searchResults.load("items");
+      await context.sync();
+      for (const match of (searchResults.items ?? [])) {
+        match.insertText("; ", "Replace" as Word.InsertLocation.replace);
+      }
+      await context.sync();
+    }
+  } catch {
+    // Non-critical — cosmetic issue only
+  }
 }
 
 /**
@@ -358,37 +355,19 @@ export async function insertCitationFootnote(
     }
     const firstPara = firstParaItems[0];
 
-    // Insert citation text at the end of the paragraph (after the
-    // footnote reference mark that Word auto-generates).
-    let lastRange: Word.Range | null = null;
-    for (const run of formattedRuns) {
-      const range = firstPara.insertText(run.text, "End");
-      applyRunFormatting(range, run);
-      lastRange = range;
-    }
+    // Insert a content control at the end of the paragraph FIRST, then
+    // insert citation text inside it. This ensures the CC only wraps
+    // the citation text, not the footnote reference mark.
+    const endRange = firstPara.getRange("End");
+    const cc = endRange.insertContentControl("RichText");
+    cc.tag = citationId;
+    cc.title = title;
+    cc.appearance = "Hidden" as Word.ContentControlAppearance;
 
-    // Wrap only the citation text in a content control, not the entire
-    // paragraph (which includes the footnote reference mark). We use
-    // the footnote body's content controls approach: insert the content
-    // control at the body's end range, which will only span the text
-    // we just inserted, not the reference mark at the start.
-    if (lastRange) {
-      // Get the range of the footnote body from after the reference mark
-      // to the end. The body already has text = refMark + our citation.
-      // Using body.getRange("End") and inserting a CC there would create
-      // an empty CC. Instead, search for the content we just inserted.
-      //
-      // Safest approach: use the body's content controls API. Insert the
-      // CC on the body itself and it will wrap everything. Then we need
-      // to ensure it doesn't eat the ref mark.
-      //
-      // Actually, the simplest reliable approach: insert a content control
-      // on the BODY (not paragraph), which Word scopes to the body text
-      // without the reference mark.
-      const cc = noteItem.body.insertContentControl("RichText");
-      cc.tag = citationId;
-      cc.title = title;
-      cc.appearance = "Hidden" as Word.ContentControlAppearance;
+    // Insert citation text inside the content control
+    for (const run of formattedRuns) {
+      const range = cc.insertText(run.text, "End");
+      applyRunFormatting(range, run);
     }
 
     await context.sync();
