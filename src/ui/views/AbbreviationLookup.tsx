@@ -21,6 +21,10 @@ import {
   PINPOINT_ABBREVIATIONS,
   PinpointAbbreviation,
 } from "../../engine/data/pinpoint-abbrevs";
+import { UK_REPORT_SERIES } from "../../engine/data/uk-report-series";
+import { UK_COURT_IDENTIFIERS } from "../../engine/data/uk-court-identifiers";
+import { NZ_REPORT_SERIES } from "../../engine/data/nz-report-series";
+import { NZ_COURT_IDENTIFIERS } from "../../engine/data/nz-court-identifiers";
 import {
   COURT_GUIDE_GROUPS,
   searchCourtGuide,
@@ -129,23 +133,54 @@ interface AbbrevSearchResults {
   pinpoints: PinpointAbbreviation[];
 }
 
-function searchAbbreviations(query: string): AbbrevSearchResults {
-  if (query.trim() === "") {
+/**
+ * Returns the report series and court identifiers for the active standard.
+ * UK and NZ court identifiers are normalised to the CourtIdentifier shape.
+ */
+function getDataForStandard(standardId: CitationStandardId): {
+  reportSeries: ReportSeriesEntry[];
+  courts: CourtIdentifier[];
+} {
+  if (standardId.startsWith("oscola")) {
     return {
-      reportSeries: REPORT_SERIES,
-      courts: COURT_IDENTIFIERS,
-      pinpoints: PINPOINT_ABBREVIATIONS,
+      reportSeries: UK_REPORT_SERIES as ReportSeriesEntry[],
+      courts: UK_COURT_IDENTIFIERS.map((c) => ({
+        code: c.code,
+        fullName: c.fullName,
+        jurisdiction: c.jurisdiction,
+        level: c.level,
+      })) as CourtIdentifier[],
     };
+  }
+  if (standardId.startsWith("nzlsg")) {
+    return {
+      reportSeries: NZ_REPORT_SERIES as ReportSeriesEntry[],
+      courts: NZ_COURT_IDENTIFIERS.map((c) => ({
+        code: c.code,
+        fullName: c.fullName,
+        jurisdiction: "NZ",
+        level: c.level,
+      })) as CourtIdentifier[],
+    };
+  }
+  return { reportSeries: REPORT_SERIES, courts: COURT_IDENTIFIERS };
+}
+
+function searchAbbreviations(query: string, standardId: CitationStandardId): AbbrevSearchResults {
+  const { reportSeries, courts } = getDataForStandard(standardId);
+
+  if (query.trim() === "") {
+    return { reportSeries, courts, pinpoints: PINPOINT_ABBREVIATIONS };
   }
   const q = query.toLowerCase();
   return {
-    reportSeries: REPORT_SERIES.filter(
+    reportSeries: reportSeries.filter(
       (e) =>
         e.abbreviation.toLowerCase().includes(q) ||
         e.fullName.toLowerCase().includes(q) ||
         e.jurisdiction.toLowerCase().includes(q),
     ),
-    courts: COURT_IDENTIFIERS.filter(
+    courts: courts.filter(
       (e) =>
         e.code.toLowerCase().includes(q) ||
         e.fullName.toLowerCase().includes(q) ||
@@ -376,10 +411,10 @@ function RulesTab({
 
 // ─── Abbreviations Tab ────────────────────────────────────────────────────────
 
-function AbbreviationsTab(): JSX.Element {
+function AbbreviationsTab({ standardId }: { standardId: CitationStandardId }): JSX.Element {
   const [query, setQuery] = useState("");
 
-  const results = useMemo(() => searchAbbreviations(query), [query]);
+  const results = useMemo(() => searchAbbreviations(query, standardId), [query, standardId]);
   const hasResults =
     results.reportSeries.length > 0 ||
     results.courts.length > 0 ||
@@ -849,7 +884,7 @@ export default function AbbreviationLookup(): JSX.Element {
 
           <div role="tabpanel">
             {activeTab === "rules" && <RulesTab entries={filteredGuideEntries} />}
-            {activeTab === "abbreviations" && <AbbreviationsTab />}
+            {activeTab === "abbreviations" && <AbbreviationsTab standardId={standardId} />}
             {activeTab === "sourceTypes" && <SourceTypesTab />}
           </div>
         </>

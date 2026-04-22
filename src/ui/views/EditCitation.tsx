@@ -334,7 +334,7 @@ export default function EditCitation(): JSX.Element {
 
   // Load citation when selectedCitationId changes
   useEffect(() => {
-    if (!selectedCitationId) {
+    if (!selectedCitationId || selectedCitationId.startsWith("obiter-")) {
       setCitation(null);
       setFormData({});
       setShortTitle("");

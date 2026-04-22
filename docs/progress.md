@@ -882,7 +882,7 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 | ID | Title | Type | Status |
 |----|-------|------|--------|
 | INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | DONE |
-| INFRA-009 | Separate device-level preferences (localStorage) from document-level settings | FEATURE | NOT STARTED |
+| INFRA-009 | Separate device-level preferences (localStorage) from document-level settings | FEATURE | DONE |
 
 ---
 
@@ -892,11 +892,11 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| FORMS-001 | Add missing fields to case forms (MNC, pinpoint, judicial officer, date, proceeding number) | FEATURE | NOT STARTED |
-| FORMS-002 | Add dedicated forms for quasi-judicial, arbitration, transcript, submission | FEATURE | NOT STARTED |
-| FORMS-003 | Add missing fields to legislation forms (number, constitution title/year, EM fields, quasi-legislative) | FEATURE | NOT STARTED |
-| FORMS-004 | Add missing fields to treaty form (parties, signedDate, pinpoint, fix volume mismatch) | FEATURE | NOT STARTED |
-| FORMS-005 | Add MNC field to reported case form for court mode parallel citations | FEATURE | NOT STARTED |
+| FORMS-001 | Add missing fields to case forms (MNC, pinpoint, judicial officer, date, proceeding number) | FEATURE | DONE |
+| FORMS-002 | Add dedicated forms for quasi-judicial, arbitration, transcript, submission | FEATURE | DONE |
+| FORMS-003 | Add missing fields to legislation forms (number, constitution title/year, EM fields, quasi-legislative) | FEATURE | DONE |
+| FORMS-004 | Add missing fields to treaty form (parties, signedDate, pinpoint, fix volume mismatch) | FEATURE | DONE |
+| FORMS-005 | Add MNC field to reported case form for court mode parallel citations | FEATURE | DONE |
 
 ---
 
@@ -906,8 +906,8 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| GUIDE-FULL-001 | Full OSCOLA 5 reference guide — expand from 15 to 40+ entries covering all OSCOLA sections | FEATURE | NOT STARTED |
-| GUIDE-FULL-002 | Full NZLSG 3 reference guide — expand from 15 to 40+ entries covering all NZLSG rules | FEATURE | NOT STARTED |
+| GUIDE-FULL-001 | Full OSCOLA 5 reference guide — expand from 15 to 61 entries | FEATURE | DONE |
+| GUIDE-FULL-002 | Full NZLSG 3 reference guide — expand from 15 to 52 entries | FEATURE | DONE |
 
 **GUIDE-FULL-001 Details:**
 Current OSCOLA guide has 15 summary entries. Expand to cover: footnotes (Rule 1.1-1.3), subsequent references (Rule 1.3), bibliography/tables (Rule 1.4), UK cases — modern and pre-2001 (Rule 2.1), Scottish cases (Rule 2.1.5), NI cases (Rule 2.1.6), UK primary legislation (Rule 2.2), UK secondary legislation (Rule 2.3), parliamentary materials — Hansard, command papers, law commission (Rule 2.3), EU legislation and CJEU cases (Rule 3.1-3.2), ECHR (Rule 3.3), international materials — treaties, UN, ICJ (Rule 4), secondary sources — books, journals, chapters, theses, online (Rule 3.4-3.7), GenAI (Rule 3.7.13), Ireland overlay. Each entry with rule number, description, format template, and example.
@@ -923,11 +923,11 @@ Current NZLSG guide has 15 summary entries. Expand to cover: footnotes and subse
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| UX-001 | Fix: multi-citation footnote uses full stop instead of semicolon separator | BUG | NOT STARTED |
-| UX-002 | Fix: undo breaks edit citation list — add defensive reload on error | BUG | NOT STARTED |
-| UX-003 | Add discard/cancel button to Edit Citation view | FEATURE | NOT STARTED |
-| UX-004 | Edit occurrences — view/remove/move individual citation instances from Edit view | FEATURE | NOT STARTED |
-| UX-005 | Fix: footnote numbers disappear — investigate Word footnote rendering stability | BUG | NOT STARTED |
+| UX-001 | Fix: multi-citation footnote uses full stop instead of semicolon separator | BUG | DONE |
+| UX-002 | Fix: undo breaks edit citation list — add defensive reload on error | BUG | DONE |
+| UX-003 | Add discard/cancel button to Edit Citation view | FEATURE | DONE |
+| UX-004 | Edit occurrences — view/remove/move individual citation instances from Edit view | FEATURE | DONE |
+| UX-005 | Fix: footnote numbers disappear — investigate Word footnote rendering stability | BUG | DONE |
 
 ---
 
@@ -937,7 +937,7 @@ Current NZLSG guide has 15 summary entries. Expand to cover: footnotes and subse
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| AI-ENH-001 | Parse formatted citation text into form fields via LLM | FEATURE | NOT STARTED |
+| AI-ENH-001 | Parse formatted citation text into form fields via LLM | FEATURE | DONE |
 
 **AI-ENH-001 Details:**
 Currently "Help Me Choose" classifies a description into a source type but does not populate the form. The existing "Parse Citation" feature (AI-001) extracts fields from raw text but requires manual review. This story extends the AI pipeline to accept a fully formatted AGLC4 citation string (potentially including markup like `*case name*` for italics) and:
@@ -964,7 +964,7 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| PLUMB-001 | Audit all UI form inputs — verify types match engine expectations | RESEARCH | NOT STARTED |
+| PLUMB-001 | Audit all UI form inputs — verify types match engine expectations | RESEARCH | DONE |
 
 ---
 
