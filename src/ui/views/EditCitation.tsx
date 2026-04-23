@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCitationContext } from "../context/CitationContext";
 import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
@@ -17,6 +17,9 @@ import {
 } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getCitationLabel } from "./CitationLibrary";
+import { getFormattedPreview } from "../../engine/engine";
+import type { FormattedRun } from "../../types/formattedRun";
+import CitationPreview from "../components/CitationPreview";
 
 // ─── Format Preference ───────────────────────────────────────────────────────
 
@@ -289,6 +292,20 @@ export default function EditCitation(): JSX.Element {
   }, []);
 
   const standardConfig = getStandardConfig(standardId);
+
+  // Preview runs — rebuilds whenever form data or citation changes
+  const previewRuns = useMemo((): FormattedRun[] => {
+    if (!citation) return [];
+    const previewCitation: Citation = {
+      ...citation,
+      data: { ...formData },
+      shortTitle: shortTitle || undefined,
+      signal: signal || undefined,
+      commentaryBefore: commentaryBefore || undefined,
+      commentaryAfter: commentaryAfter || undefined,
+    };
+    return getFormattedPreview(previewCitation, standardConfig);
+  }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, standardConfig]);
 
   // UX-002: Re-initialise the store and reload all citations from the document.
   const refreshCitations = useCallback(async () => {
@@ -944,6 +961,12 @@ export default function EditCitation(): JSX.Element {
             )}
           </div>
         )}
+      </fieldset>
+
+      {/* Citation Preview */}
+      <fieldset className="settings-section" style={{ marginTop: 8 }}>
+        <legend className="settings-section-title">Preview</legend>
+        <CitationPreview runs={previewRuns} sourceType={citation?.sourceType} />
       </fieldset>
 
       {/* Action Buttons */}
