@@ -330,11 +330,9 @@ export async function insertCitationFootnote(
 
     await context.sync();
 
-    // Insert closing period after the parent CC.
-    const afterParentRange = parentCC.getRange("After");
-    const periodRange = afterParentRange.insertText(".", "After");
-    periodRange.font.italic = false;
-    periodRange.font.bold = false;
+    // Closing punctuation is NOT inserted here — the refresher adds "."
+    // inside the parent CC after the last child on its first cycle.
+    // This avoids duplicate periods (one inside, one outside the parent CC).
 
     await context.sync();
 
