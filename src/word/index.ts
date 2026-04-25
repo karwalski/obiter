@@ -4,12 +4,20 @@
  */
 
 export {
+  PARENT_CC_TAG,
   insertCitationFootnote,
   appendToFootnoteByIndex,
   updateCitationContent,
   getAllCitationFootnotes,
   deleteCitationFootnote,
   getFootnoteIndex,
+  findParentCC,
+  findChildCC,
+  getFootnoteCitations,
+  getAdjacentFootnote,
+  applyRunFormatting,
+  writeFormattedRunsToControl,
+  insertChildCitation,
 } from "./footnoteManager";
 export type { CitationFootnoteEntry, AdjacentFootnoteResult } from "./footnoteManager";
 

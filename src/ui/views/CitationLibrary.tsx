@@ -10,7 +10,7 @@ import { getSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
-import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
+import { insertCitationFootnote, getAllCitationFootnotes, deleteCitationFootnote } from "../../word/footnoteManager";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
 import type { RefreshResult } from "../../word/citationRefresher";
@@ -463,6 +463,15 @@ export default function CitationLibrary(): JSX.Element {
   const handleDelete = useCallback(
     async (id: string) => {
       try {
+        // FN-004: Remove all child CCs from footnotes before removing from store.
+        // Without this, deleting from the library would leave orphaned child CCs
+        // in the document that the refresher cannot clean up.
+        const allEntries = await getAllCitationFootnotes();
+        const matching = allEntries.filter((e) => e.citationId === id);
+        for (const entry of matching) {
+          await deleteCitationFootnote(id, entry.footnoteIndex);
+        }
+
         await store.remove(id);
         setCitations((prev) => prev.filter((c) => c.id !== id));
         setDeletingId(null);
