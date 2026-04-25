@@ -1261,6 +1261,43 @@ section:nth-child(even) {
   margin-top: auto;
 }
 
+/* Installation walkthrough */
+
+.install-walkthrough {
+  padding: 80px 0;
+}
+
+.install-steps {
+  list-style: none;
+  padding: 0;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.install-step {
+  margin-bottom: var(--space-xxl);
+}
+
+.install-step__text h3 {
+  font-size: 1.125rem;
+  margin-bottom: var(--space-sm);
+}
+
+.install-step__text p {
+  color: var(--colour-text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  margin-bottom: var(--space-md);
+}
+
+.install-step__img {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  display: block;
+}
+
 /* Sideload instructions */
 
 .sideload-instructions {
