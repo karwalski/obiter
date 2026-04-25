@@ -61,11 +61,12 @@ const DIRECT_ENDPOINTS: Record<string, string> = {
  * Providers known to block browser CORS. These are routed through
  * the Obiter proxy server to avoid cross-origin restrictions.
  *
- * Anthropic supports direct browser access via the
- * `anthropic-dangerous-direct-browser-access` header, so it is
- * excluded from this list and called directly.
+ * As of April 2026, all supported providers allow direct browser access:
+ * - OpenAI: native CORS support
+ * - Anthropic: via `anthropic-dangerous-direct-browser-access` header
+ * - Gemini, Grok, DeepSeek: native CORS support (Access-Control-Allow-Origin: *)
  */
-const CORS_BLOCKED_PROVIDERS = new Set(["gemini", "grok", "deepseek"]);
+const CORS_BLOCKED_PROVIDERS = new Set<string>();
 
 function resolveEndpoint(config: LLMConfig): { url: string; useProxy: boolean } {
   if (config.endpoint) {
