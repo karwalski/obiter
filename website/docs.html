@@ -161,7 +161,7 @@
         <p>
           Click <strong>Insert Citation</strong> in the ribbon to open the task
           pane. Start by selecting the type of source you are citing. Obiter
-          supports over 80 source types across all 26 AGLC4 chapters, including
+          supports 87 source types across all 26 AGLC4 chapters, including
           cases, legislation, journal articles, books, treaties, and
           international materials.
         </p>
@@ -222,6 +222,16 @@
           title is used in subsequent references and in the bibliography. If you
           leave it blank, Obiter will generate one automatically based on the
           source type&rsquo;s conventions.
+        </p>
+
+        <h3>Custom / Manual Citation</h3>
+        <p>
+          For sources that do not fit any predefined category, select
+          <strong>Secondary &gt; Other &gt; Custom / Manual Citation</strong>.
+          Enter the full citation text exactly as it should appear in the
+          footnote, and an optional short title for subsequent references.
+          The citation is stored and tracked like any other &mdash; ibid,
+          short titles, and cross-references work normally.
         </p>
 
         <figure class="docs-figure">
@@ -483,10 +493,16 @@
         <h3>Running a document scan</h3>
         <p>
           Click <strong>Validate</strong> in the ribbon to scan your entire
-          document against AGLC4 formatting rules. Obiter checks punctuation,
-          dashes, abbreviations, dates, numbers, footnote structure, and
-          citation completeness.
+          document against AGLC4 formatting rules. Obiter checks for a wide
+          range of issues:
         </p>
+        <ul class="docs-list">
+          <li><strong>Footnote structure</strong> &mdash; missing closing punctuation, incorrect superscript positioning.</li>
+          <li><strong>Citation completeness</strong> &mdash; missing required fields for each source type.</li>
+          <li><strong>Typography</strong> &mdash; incorrect dashes, quotation marks, and ellipses.</li>
+          <li><strong>Date and number formatting</strong> &mdash; ordinals, spans, and currency.</li>
+          <li><strong>Abbreviation validation</strong> &mdash; report series and court identifiers checked against AGLC4 appendices.</li>
+        </ul>
 
         <h3>Understanding results</h3>
         <p>
@@ -541,10 +557,13 @@
 
         <h3>Searching rules</h3>
         <p>
-          The Reference Guide provides a searchable index of AGLC4 rules,
-          accessible from the ribbon. Type a keyword or rule number into the
-          search field to find relevant rules. Results display the rule
-          number, a summary, and formatting guidance.
+          The Reference Guide provides a searchable index of rules for the
+          active citation standard, accessible from the ribbon. The content
+          adapts to whichever standard is selected in Settings: AGLC4 (all
+          26 chapters), OSCOLA 5 (61 rules), or NZLSG 3 (52 rules). Type a
+          keyword or rule number into the search field to find relevant
+          rules. Results display the rule number, a summary, and formatting
+          guidance.
         </p>
 
         <h3>Abbreviations tab</h3>
@@ -595,23 +614,30 @@
           Go to <strong>Settings</strong> and find the <strong>AI
           Assistant</strong> section. Select a provider from the dropdown,
           enter your API key, and click <strong>Test Connection</strong> to
-          verify it works. The key is stored locally in the document&rsquo;s
-          settings and is never sent to Obiter&rsquo;s servers.
+          verify it works. The key is stored locally in your browser
+          and is never written to the document or sent to Obiter&rsquo;s
+          servers.
         </p>
 
         <h3>Supported providers</h3>
         <p>
-          Obiter supports multiple AI providers. The specific providers
-          available are listed in the Settings dropdown. Each provider may
-          have different capabilities and pricing.
+          Obiter supports six AI providers: OpenAI, Anthropic, Google Gemini,
+          xAI Grok, DeepSeek, and a custom endpoint option for self-hosted or
+          alternative models. Select your provider from the Settings dropdown
+          and enter your API key. Each provider may have different capabilities
+          and pricing.
+        </p>
+        <p>
+          All requests go directly from your browser to the provider. No data
+          passes through the Obiter server.
         </p>
 
         <h3>AI features</h3>
         <ul class="docs-list">
-          <li><strong>Parse with AI</strong> &mdash; Paste a raw citation string and have the AI extract individual fields to populate the form.</li>
-          <li><strong>Help Me Choose</strong> &mdash; Describe your source and the AI suggests the correct source type.</li>
-          <li><strong>AI Suggest Short Title</strong> &mdash; Automatically generates an appropriate short title based on the citation data.</li>
-          <li><strong>Check Reference</strong> &mdash; Verifies citation details against known legal databases.</li>
+          <li><strong>Parse Citation</strong> &mdash; Paste formatted citation text and the AI extracts individual fields to populate the form automatically.</li>
+          <li><strong>Help Me Choose</strong> &mdash; Describe a source in plain language and the AI classifies the correct source type.</li>
+          <li><strong>Check Reference</strong> &mdash; Select text in the document and the AI verifies the citation format against AGLC4 rules and known legal databases.</li>
+          <li><strong>Suggest Short Title</strong> &mdash; Automatically generates an appropriate short title based on the citation data.</li>
         </ul>
 
         <figure class="docs-figure">
@@ -664,6 +690,44 @@
           document template that Obiter applies. You can adjust heading
           styles, paragraph formatting, and other document-level settings.
           Changes here affect only the current document.
+        </p>
+
+        <h3>Source Lookup (Optional)</h3>
+        <p>
+          Obiter can search external legal databases as you type in citation
+          fields. This feature is disabled by default. To enable it, go to
+          <strong>Settings &gt; Source Lookup</strong> and toggle
+          <strong>Enable source lookup</strong>. You can select which providers
+          to search individually: AustLII (cases and legislation), Jade.io
+          (Australian cases), and the Federal Register of Legislation. Search
+          queries are sent only when you type &mdash; no background searches
+          are performed.
+        </p>
+
+        <h3>Acknowledgment</h3>
+        <p>
+          Under <strong>Settings &gt; Advanced &gt; Acknowledgment</strong>,
+          you can insert or copy an Obiter attribution line. This is optional
+          and can be removed at any time.
+        </p>
+
+        <h3>Template Export</h3>
+        <p>
+          Under <strong>Settings &gt; Advanced &gt; Template Defaults</strong>,
+          you can customise the default font, font size, and line spacing for
+          new documents. The <strong>Prepare as Template (.dotx)</strong> button
+          exports the current document as a Word template with AGLC4 styles
+          pre-configured.
+        </p>
+
+        <h3>Word Citation Style (XSL)</h3>
+        <p>
+          Under <strong>Settings &gt; Advanced &gt; Word Citation Style</strong>,
+          you can download an AGLC4.xsl file for Word&rsquo;s built-in
+          References &gt; Style dropdown. This is optional &mdash; Obiter&rsquo;s
+          native citation tools are more comprehensive, but the XSL provides
+          basic AGLC4 formatting for users who prefer Word&rsquo;s built-in
+          citation manager.
         </p>
 
         <figure class="docs-figure">
@@ -755,7 +819,22 @@
           Court mode provides presets for different Australian jurisdictions.
           Selecting a jurisdiction configures citation preferences, court
           hierarchy, and report series preferences to match local practice.
+          Supported jurisdictions:
         </p>
+        <ul class="docs-list">
+          <li>High Court of Australia</li>
+          <li>Federal Court of Australia</li>
+          <li>NSW Supreme Court</li>
+          <li>Victoria Supreme Court</li>
+          <li>Queensland Supreme Court</li>
+          <li>South Australia Supreme Court</li>
+          <li>Western Australia Supreme Court</li>
+          <li>Tasmania Supreme Court</li>
+          <li>ACT Supreme Court</li>
+          <li>NT Supreme Court</li>
+          <li>Family Court of Australia</li>
+          <li>Federal Circuit and Family Court</li>
+        </ul>
 
         <h3>Parallel citations</h3>
         <p>
@@ -779,6 +858,19 @@
           replace them with short references throughout, ensuring every
           footnote identifies its source explicitly.
         </p>
+
+        <h3>Configurable toggles</h3>
+        <p>
+          Court mode exposes five configurable toggles to fine-tune citation
+          behaviour for your jurisdiction:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Parallel citation mode</strong> &mdash; include both authorised and unofficial report series references.</li>
+          <li><strong>Pinpoint style</strong> &mdash; select paragraph or page-based pinpoint conventions.</li>
+          <li><strong>Unreported judgment gate</strong> &mdash; control when medium-neutral citations are required.</li>
+          <li><strong>Ibid suppression</strong> &mdash; replace all ibid references with explicit short references.</li>
+          <li><strong>List of Authorities type</strong> &mdash; choose the format and grouping style for the List of Authorities.</li>
+        </ul>
       </div>
     </div>
   </section>
