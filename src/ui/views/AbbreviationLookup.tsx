@@ -7,8 +7,16 @@ import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   referenceGuideEntries,
+  oscolaReferenceGuideEntries,
+  nzlsgReferenceGuideEntries,
   ReferenceGuideEntry,
 } from "../data/referenceGuide";
+
+const allGuideEntries: ReferenceGuideEntry[] = [
+  ...referenceGuideEntries,
+  ...oscolaReferenceGuideEntries,
+  ...nzlsgReferenceGuideEntries,
+];
 import {
   REPORT_SERIES,
   ReportSeriesEntry,
@@ -833,7 +841,7 @@ export default function AbbreviationLookup(): JSX.Element {
   );
 
   const filteredGuideEntries = useMemo(
-    () => filterEntriesByStandard(referenceGuideEntries, standardId),
+    () => filterEntriesByStandard(allGuideEntries, standardId),
     [standardId],
   );
 
