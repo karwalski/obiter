@@ -181,7 +181,10 @@ export type SourceType =
   | "foreign.south_africa" // Rule 23
   | "foreign.uk" // Rule 24
   | "foreign.usa" // Rule 25
-  | "foreign.other"; // Rule 26
+  | "foreign.other" // Rule 26
+
+  // Custom / Manual
+  | "custom"; // User-entered free text citation
 
 // ─── Source Data (type-specific fields) ───────────────────────────────────────
 //

@@ -576,6 +576,17 @@ function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches a custom/manual citation. The user provides free-text
+ * citation content which is inserted as-is (roman, no formatting).
+ * The short title is stored on the citation for ibid/subsequent ref use.
+ */
+function dispatchCustom(citation: Citation): FormattedRun[] {
+  const text = ((citation.data.customText as string) ?? "").trim();
+  if (!text) return [{ text: "[Custom citation]" }];
+  return [{ text }];
+}
+
+/**
  * Dispatches a bill citation (AUDIT2-009, Rule 3.2).
  *
  * Bills are NOT italicised (unlike statutes). Extracts title, year,
@@ -719,6 +730,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   book: dispatchBook,
   treaty: dispatchTreaty,
   genai_output: dispatchGenaiOutput,
+  custom: dispatchCustom,
 };
 
 // ─── NZLSG Dispatch (NZLSG-ENH-001) ─────────────────────────────────────────

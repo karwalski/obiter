@@ -153,6 +153,12 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
           { value: "genai_output", label: "AI-Generated Content" },
         ],
       },
+      {
+        label: "Other",
+        types: [
+          { value: "custom", label: "Custom / Manual Citation" },
+        ],
+      },
     ],
   },
   {
@@ -380,6 +386,7 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "echr.decision",
   "supranational.decision",
   "supranational.document",
+  "custom",
 ];
 
 // ─── Help Me Choose: Category Lookup ─────────────────────────────────────────
@@ -1422,6 +1429,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "echr.decision" && renderEchrDecisionForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "supranational.decision" && renderSupranationalDecisionForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "supranational.document" && renderSupranationalDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "custom" && renderCustomForm(formData, updateField)}
       {selectedSourceType?.startsWith("foreign.") && renderForeignForm(formData, updateField, selectedSourceType === "foreign.other" ? "Other Foreign" : selectedSourceType.split(".")[1].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), selectedSourceType === "foreign.canada" ? "15" : selectedSourceType === "foreign.china" ? "16" : selectedSourceType === "foreign.france" ? "17" : selectedSourceType === "foreign.germany" ? "18" : selectedSourceType === "foreign.hong_kong" ? "19" : selectedSourceType === "foreign.malaysia" ? "20" : selectedSourceType === "foreign.new_zealand" ? "21" : selectedSourceType === "foreign.singapore" ? "22" : selectedSourceType === "foreign.south_africa" ? "23" : selectedSourceType === "foreign.uk" ? "24" : selectedSourceType === "foreign.usa" ? "25" : "26", isAglcStandard)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
 
@@ -9034,6 +9042,46 @@ function renderForeignForm(
           value={(data.pinpoint as string) || ""}
           placeholder="e.g. [42]"
           onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderCustomForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-custom-text">
+          Citation Text
+        </label>
+        <textarea
+          id="ic-custom-text"
+          className="ic-input"
+          rows={4}
+          value={(data.customText as string) || ""}
+          placeholder="Enter the full citation text exactly as it should appear in the footnote"
+          onChange={(e) => updateField("customText", e.target.value)}
+          style={{ resize: "vertical", fontFamily: "'Times New Roman', Georgia, serif" }}
+        />
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          This text will be inserted as-is into the footnote. Formatting (italics, etc.) can be applied manually in the document after insertion.
+        </p>
+      </div>
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-custom-short">
+          Short Title
+        </label>
+        <input
+          id="ic-custom-short"
+          className="ic-input"
+          type="text"
+          value={(data.shortTitle as string) || ""}
+          placeholder="e.g. Report (optional — used for subsequent references)"
+          onChange={(e) => updateField("shortTitle", e.target.value)}
         />
       </div>
     </div>
