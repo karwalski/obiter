@@ -19,6 +19,7 @@ import Bibliography from "./views/Bibliography";
 import Settings from "./views/Settings";
 import Styling from "./views/Styling";
 import { CitationProvider } from "./context/CitationContext";
+import { InsertCitationProvider } from "./context/InsertCitationContext";
 import "./styles/global.css";
 
 /** Registers the React Router navigate function for screenshot prep. */
@@ -105,21 +106,23 @@ function App(): JSX.Element {
 
   return (
     <CitationProvider>
-      <MemoryRouter initialEntries={[initialRoute]}>
-        <NavigateRegistrar />
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<InsertCitation />} />
-            <Route path="edit" element={<EditCitation />} />
-            <Route path="library" element={<CitationLibrary />} />
-            <Route path="guide" element={<AbbreviationLookup />} />
-            <Route path="validation" element={<Validation />} />
-            <Route path="bibliography" element={<Bibliography />} />
-            <Route path="styling" element={<Styling />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
+      <InsertCitationProvider>
+        <MemoryRouter initialEntries={[initialRoute]}>
+          <NavigateRegistrar />
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<InsertCitation />} />
+              <Route path="edit" element={<EditCitation />} />
+              <Route path="library" element={<CitationLibrary />} />
+              <Route path="guide" element={<AbbreviationLookup />} />
+              <Route path="validation" element={<Validation />} />
+              <Route path="bibliography" element={<Bibliography />} />
+              <Route path="styling" element={<Styling />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </InsertCitationProvider>
     </CitationProvider>
   );
 }

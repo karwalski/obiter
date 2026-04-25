@@ -729,37 +729,16 @@ function parseAustliiDocumentPage(html, id) {
 /**
  * GET /api/proxy/austlii?q=SEARCH_TERM
  *
- * Forwards the search to AustLII's sinosrch endpoint, parses the HTML
- * results, and returns a JSON array of LookupResult objects.
+ * AustLII search proxy. Currently returns an unavailable message because
+ * AustLII is behind Cloudflare challenge protection that blocks server-side
+ * requests. This endpoint is preserved for future use if AustLII provides
+ * a public API or relaxes their bot protection.
  */
 app.get("/api/proxy/austlii", proxyCors, async function (req, res) {
-  try {
-    var q = req.query.q;
-    if (!q || !String(q).trim()) {
-      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
-    }
-
-    var searchUrl = "https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query=" +
-      encodeURIComponent(String(q)) + "&meta=%2Fau";
-
-    var response = await proxyFetch("austlii", searchUrl, {
-      "User-Agent": PROXY_USER_AGENT,
-    });
-
-    if (!response || !response.ok) {
-      var austliiStatus = response ? response.status : "no response";
-      console.error("GET /api/proxy/austlii upstream failed:", austliiStatus);
-      return res.json({ results: [], error: "AustLII upstream returned " + austliiStatus });
-    }
-
-    var html = await response.text();
-    var results = parseAustliiSearchResults(html);
-
-    res.json({ results: results });
-  } catch (err) {
-    console.error("GET /api/proxy/austlii error:", err);
-    res.json({ results: [], error: "Internal proxy error." });
-  }
+  res.json({
+    results: [],
+    error: "AustLII search is temporarily unavailable. AustLII uses Cloudflare bot protection that blocks automated searches. Search directly at austlii.edu.au.",
+  });
 });
 
 /**
@@ -798,128 +777,32 @@ app.get("/api/proxy/austlii/fetch", proxyCors, async function (req, res) {
 /**
  * GET /api/proxy/jade?q=SEARCH_TERM
  *
- * Forwards the search to Jade.io's API and returns JSON results
- * matching the LookupResult interface.
+ * Jade.io search proxy. Currently returns an unavailable message because
+ * Jade is a GWT single-page application behind Cloudflare protection
+ * that cannot be scraped server-side. This endpoint is preserved for
+ * future use if Jade provides a public API.
  */
 app.get("/api/proxy/jade", proxyCors, async function (req, res) {
-  try {
-    var q = req.query.q;
-    if (!q || !String(q).trim()) {
-      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
-    }
-
-    // Jade.io public search page — returns HTML, not JSON.
-    // We scrape the search results page for case titles and links.
-    var searchUrl = "https://jade.io/srch/?search=" + encodeURIComponent(String(q));
-
-    var response = await proxyFetch("jade", searchUrl, {
-      "User-Agent": PROXY_USER_AGENT,
-      Accept: "text/html",
-    });
-
-    if (!response || !response.ok) {
-      var status = response ? response.status : "no response";
-      console.error("GET /api/proxy/jade upstream failed:", status);
-      return res.json({ results: [], error: "Jade upstream returned " + status });
-    }
-
-    var html = await response.text();
-
-    // Parse Jade search results from HTML.
-    // Jade renders results as article/div elements with links to case pages.
-    var results = [];
-    var jadeAnchorPattern = /<a\s+[^>]*href="(\/article\/\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
-    var jadeMatch;
-    while ((jadeMatch = jadeAnchorPattern.exec(html)) !== null) {
-      var jadeHref = jadeMatch[1];
-      var jadeTitle = jadeMatch[2].replace(/<[^>]+>/g, "").trim();
-      if (jadeTitle && jadeHref && jadeTitle.length > 5) {
-        results.push({
-          title: jadeTitle,
-          snippet: "",
-          sourceId: jadeHref,
-          confidence: 0.5,
-        });
-      }
-    }
-
-    // Deduplicate by sourceId
-    var seen = {};
-    results = results.filter(function (r) {
-      if (seen[r.sourceId]) return false;
-      seen[r.sourceId] = true;
-      return true;
-    });
-
-    res.json({ results: results });
-  } catch (err) {
-    console.error("GET /api/proxy/jade error:", err);
-    res.json({ results: [], error: "Internal proxy error." });
-  }
+  res.json({
+    results: [],
+    error: "Jade.io search is temporarily unavailable. Jade uses Cloudflare bot protection that blocks automated searches. Search directly at jade.io.",
+  });
 });
 
 /**
  * GET /api/proxy/legislation?q=SEARCH_TERM
  *
- * Forwards the search to the Federal Register of Legislation API
- * and returns JSON results matching the LookupResult interface.
+ * Federal Register of Legislation search proxy. Currently returns an
+ * unavailable message because legislation.gov.au is an Angular SPA
+ * behind Cloudflare protection that cannot be scraped server-side.
+ * This endpoint is preserved for future use if the FRL provides a
+ * public API.
  */
 app.get("/api/proxy/legislation", proxyCors, async function (req, res) {
-  try {
-    var q = req.query.q;
-    if (!q || !String(q).trim()) {
-      return res.status(400).json({ results: [], error: "Missing required parameter: q" });
-    }
-
-    // Federal Register of Legislation — scrape the public search page.
-    // The site does not expose a public JSON API.
-    var searchUrl = "https://www.legislation.gov.au/Search/" +
-      encodeURIComponent(String(q));
-
-    var response = await proxyFetch("legislation", searchUrl, {
-      "User-Agent": PROXY_USER_AGENT,
-      Accept: "text/html",
-    });
-
-    if (!response || !response.ok) {
-      var legStatus = response ? response.status : "no response";
-      console.error("GET /api/proxy/legislation upstream failed:", legStatus);
-      return res.json({ results: [], error: "Legislation upstream returned " + legStatus });
-    }
-
-    var legHtml = await response.text();
-
-    // Parse legislation search results from HTML.
-    // The Federal Register renders results as list items with links.
-    var results = [];
-    var legPattern = /<a\s+[^>]*href="(\/Details\/[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-    var legMatch;
-    while ((legMatch = legPattern.exec(legHtml)) !== null) {
-      var legHref = legMatch[1];
-      var legTitle = legMatch[2].replace(/<[^>]+>/g, "").trim();
-      if (legTitle && legHref && legTitle.length > 3) {
-        results.push({
-          title: legTitle,
-          snippet: "",
-          sourceId: legHref,
-          confidence: 0.5,
-        });
-      }
-    }
-
-    // Deduplicate by sourceId
-    var legSeen = {};
-    results = results.filter(function (r) {
-      if (legSeen[r.sourceId]) return false;
-      legSeen[r.sourceId] = true;
-      return true;
-    });
-
-    res.json({ results: results });
-  } catch (err) {
-    console.error("GET /api/proxy/legislation error:", err);
-    res.json({ results: [], error: "Internal proxy error." });
-  }
+  res.json({
+    results: [],
+    error: "Federal Register of Legislation search is temporarily unavailable. The site uses Cloudflare bot protection that blocks automated searches. Search directly at legislation.gov.au.",
+  });
 });
 
 // -------------------------------------------------------

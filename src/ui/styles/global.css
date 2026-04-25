@@ -1680,8 +1680,13 @@ body {
   font-size: var(--text-sm);
 }
 
+.ic-action-bar {
+  display: flex;
+  gap: var(--space-sm);
+}
+
 .ic-insert-btn {
-  width: 100%;
+  flex: 1;
   padding: var(--space-sm) var(--space-md);
   font-size: var(--text-base);
   font-weight: 600;
@@ -1700,6 +1705,23 @@ body {
 .ic-insert-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.ic-clear-btn {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--colour-accent);
+  background-color: transparent;
+  border: 1px solid var(--colour-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.ic-clear-btn:hover {
+  background-color: var(--colour-accent);
+  color: #ffffff;
 }
 
 .ic-feedback {

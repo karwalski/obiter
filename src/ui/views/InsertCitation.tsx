@@ -18,6 +18,7 @@ import CitationPreview from "../components/CitationPreview";
 import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
+import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCitationContext";
 import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyClient";
 import { loadSearchConfig, isSearchActive } from "../../api/searchConfig";
 import { LookupResult } from "../../api/types";
@@ -427,13 +428,6 @@ function findSourceTypeLabel(sourceType: SourceType): string | null {
   return null;
 }
 
-// ─── Author Entry ────────────────────────────────────────────────────────────
-
-interface AuthorEntry {
-  givenNames: string;
-  surname: string;
-}
-
 // ─── Feedback State ──────────────────────────────────────────────────────────
 
 interface FeedbackState {
@@ -555,53 +549,56 @@ async function getStore(): Promise<CitationStore> {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function InsertCitation(): JSX.Element {
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedSourceType, setSelectedSourceType] = useState<SourceType | "">("");
-  const [formData, setFormData] = useState<SourceData>({});
-  const [shortTitle, setShortTitle] = useState("");
-  const [shortTitleTouched, setShortTitleTouched] = useState(false);
-  const [authors, setAuthors] = useState<AuthorEntry[]>([{ givenNames: "", surname: "" }]);
+  // API-007: User-entered form data is stored in context so it survives
+  // navigation away from this view and back again.
+  const {
+    selectedCategory, setSelectedCategory,
+    selectedSourceType, setSelectedSourceType,
+    formData, setFormData,
+    shortTitle, setShortTitle,
+    shortTitleTouched, setShortTitleTouched,
+    authors, setAuthors,
+    signal, setSignal,
+    commentaryBefore, setCommentaryBefore,
+    commentaryAfter, setCommentaryAfter,
+    appendToFootnote, setAppendToFootnote,
+    selectedFootnoteIndex, setSelectedFootnoteIndex,
+    classifyDescription, setClassifyDescription,
+    classifyResult, setClassifyResult,
+    pasteCitationExpanded, setPasteCitationExpanded,
+    pasteCitationText, setPasteCitationText,
+    pasteCitationResult, setPasteCitationResult,
+    standardId, setStandardId,
+    courtJurisdiction, setCourtJurisdiction,
+    recentExpanded, setRecentExpanded,
+    resetForm,
+  } = useInsertCitationContext();
+
+  // Transient states — remain local, reset on unmount is fine
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [inserting, setInserting] = useState(false);
   const [llmConfig, setLlmConfig] = useState<LLMConfig | null>(null);
   const [aiSuggestLoading, setAiSuggestLoading] = useState(false);
-  const [classifyDescription, setClassifyDescription] = useState("");
   const [classifyLoading, setClassifyLoading] = useState(false);
-  const [classifyResult, setClassifyResult] = useState<ClassificationResult | null>(null);
   const [classifyError, setClassifyError] = useState<string | null>(null);
 
-  // AI-ENH-001: Paste Citation state
-  const [pasteCitationExpanded, setPasteCitationExpanded] = useState(false);
-  const [pasteCitationText, setPasteCitationText] = useState("");
+  // AI-ENH-001: Paste Citation transient state
   const [pasteCitationLoading, setPasteCitationLoading] = useState(false);
-  const [pasteCitationResult, setPasteCitationResult] = useState<ParsedCitation | null>(null);
   const [pasteCitationError, setPasteCitationError] = useState<string | null>(null);
 
-  // BUGS-013: Append to existing footnote (AGLC4 Rule 1.1.3)
-  const [appendToFootnote, setAppendToFootnote] = useState(false);
-  const [selectedFootnoteIndex, setSelectedFootnoteIndex] = useState<number>(0);
+  // BUGS-013: Existing footnotes loaded from Word on mount
   const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
-
-  // SIGNAL-001: Introductory signal and commentary
-  const [signal, setSignal] = useState<IntroductorySignal | "">("");
-  const [commentaryBefore, setCommentaryBefore] = useState("");
-  const [commentaryAfter, setCommentaryAfter] = useState("");
 
   // Source lookup enabled
   const [searchEnabled] = useState(() => isSearchActive(loadSearchConfig()));
 
-  // SWITCH-004: Active citation standard
-  const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
-
-  // COURT-007 / COURT-010: Court mode state
-  const [courtJurisdiction, setCourtJurisdiction] = useState<CourtJurisdiction | null>(null);
+  // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
   const [unreportedGateVisible, setUnreportedGateVisible] = useState(false);
   const [courtGuideReminderDismissed, setCourtGuideReminderDismissed] = useState(false);
 
-  // RIBBON-002: Recent citations state
+  // RIBBON-002: Recent citations state (loaded from store on mount)
   const [recentCitations, setRecentCitations] = useState<Citation[]>([]);
-  const [recentExpanded, setRecentExpanded] = useState(true);
 
   // Load LLM config on mount to determine if AI suggest is available
   useEffect(() => {
@@ -1027,6 +1024,13 @@ export default function InsertCitation(): JSX.Element {
     );
     return getFormattedPreview(previewCitation, courtConfig);
   }, [selectedSourceType, formData, shortTitle, signal, commentaryBefore, commentaryAfter, courtConfig]);
+
+  // ─── Clear Handler ──────────────────────────────────────────────────────
+
+  const handleClear = useCallback(() => {
+    resetForm();
+    setFeedback(null);
+  }, [resetForm]);
 
   // ─── Insert Handler ─────────────────────────────────────────────────────
 
@@ -1726,20 +1730,29 @@ export default function InsertCitation(): JSX.Element {
         )}
       </div>
 
-      {/* Insert button */}
+      {/* Action buttons */}
       {selectedSourceType && (
-        <button
-          className="ic-insert-btn"
-          type="button"
-          disabled={inserting || previewRuns.length === 0}
-          onClick={handleInsert}
-        >
-          {inserting
-            ? "Inserting..."
-            : appendToFootnote && selectedFootnoteIndex > 0
-              ? `Append to Footnote ${selectedFootnoteIndex}`
-              : "Insert as Footnote"}
-        </button>
+        <div className="ic-action-bar">
+          <button
+            className="ic-insert-btn"
+            type="button"
+            disabled={inserting || previewRuns.length === 0}
+            onClick={handleInsert}
+          >
+            {inserting
+              ? "Inserting..."
+              : appendToFootnote && selectedFootnoteIndex > 0
+                ? `Append to Footnote ${selectedFootnoteIndex}`
+                : "Insert as Footnote"}
+          </button>
+          <button
+            className="ic-clear-btn"
+            type="button"
+            onClick={handleClear}
+          >
+            Clear
+          </button>
+        </div>
       )}
     </div>
   );
