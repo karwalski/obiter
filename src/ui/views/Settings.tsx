@@ -310,7 +310,7 @@ export default function Settings(): JSX.Element {
       const message = err instanceof Error ? err.message : "Failed to save standard";
       setError(message);
     }
-  }, [standardId, triggerRefresh]);
+  }, [standardId, writingMode, triggerRefresh]);
 
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {

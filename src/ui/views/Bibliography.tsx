@@ -141,13 +141,7 @@ export default function Bibliography(): JSX.Element {
 
           // COURT-FIX-005: Load court toggles and build config to get loaType
           if (mode === "court") {
-            const courtToggles = {
-              parallelCitations: getDevicePref("court.parallelCitations") as string | undefined,
-              pinpointStyle: getDevicePref("court.pinpointStyle") as string | undefined,
-              unreportedGate: getDevicePref("court.unreportedGate") as string | undefined,
-              ibidSuppression: getDevicePref("court.ibidSuppression") as string | undefined,
-              loaType: getDevicePref("court.loaType") as string | undefined,
-            };
+            const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
             const courtConfig = buildCourtConfig(
               { ...baseConfig, writingMode: mode },
               courtToggles,

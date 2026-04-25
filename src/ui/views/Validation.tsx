@@ -8,7 +8,8 @@ import { validateDocument, checkOscolaRules, checkNzlsgRules, ValidationIssue } 
 import { getSharedStore } from "../../store/singleton";
 import { ValidationResult } from "../../engine/validator";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getDevicePref } from "../../store/devicePreferences";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
 import CheckReference from "../components/CheckReference";
 
@@ -144,10 +145,12 @@ export default function Validation(): JSX.Element {
       // Run validation (including body text for footnote position checks)
       const currentWritingMode = store.getWritingMode();
       const currentStandardId: CitationStandardId = store.getStandardId();
-      const currentConfig = getStandardConfig(currentStandardId);
+      const baseConfig = getStandardConfig(currentStandardId);
+      const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+      const currentConfig = buildCourtConfig({ ...baseConfig, writingMode: currentWritingMode }, courtToggles);
       const validationResult = validateDocument(
         footnoteTexts, citations, bodyText, currentWritingMode,
-        undefined, currentConfig.parallelCitationMode,
+        store.getCourtJurisdiction(), currentConfig.parallelCitationMode,
         currentConfig.ibidSuppressionMode,
       );
 
