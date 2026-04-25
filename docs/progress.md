@@ -937,11 +937,11 @@ Current NZLSG guide has 15 summary entries. Expand to cover: footnotes and subse
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| FN-001 | Design parent-child footnote content control model | RESEARCH | NOT STARTED |
-| FN-002 | Rebuild footnoteManager — parent CC per footnote, child CCs per citation | FEATURE | NOT STARTED |
-| FN-003 | Rebuild citationRefresher — render separator and closing punctuation between/after child CCs | FEATURE | NOT STARTED |
-| FN-004 | Update InsertCitation, EditCitation, CitationLibrary for new model | FEATURE | NOT STARTED |
-| FN-005 | Migration — detect old-model CCs and convert to parent-child on document open | FEATURE | NOT STARTED |
+| FN-001 | Design parent-child footnote content control model | RESEARCH | DONE |
+| FN-002 | Rebuild footnoteManager — parent CC per footnote, child CCs per citation | FEATURE | DONE |
+| FN-003 | Rebuild citationRefresher — render separator and closing punctuation between/after child CCs | FEATURE | DONE |
+| FN-004 | Update InsertCitation, EditCitation, CitationLibrary for new model | FEATURE | DONE |
+| FN-005 | Migration — detect old-model CCs and convert to parent-child on document open | FEATURE | DONE |
 
 **Architecture:**
 - One parent CC per footnote: tag `obiter-fn`, contains all citations for that footnote
@@ -1071,7 +1071,7 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
 | GEN-036a | Heading indentation per Rule 1.12.2 | BUG | DONE |
-| API-005 | Investigate typeahead search not returning results | BUG | IN PROGRESS |
-| INFRA-008 | Update README to reflect current features | FEATURE | IN PROGRESS |
+| API-005 | Investigate typeahead search not returning results | BUG | DONE |
+| INFRA-008 | Update README to reflect current features | FEATURE | DONE |
 | FORMS-UI-001 to 059 | Dedicated forms for 59 source types (replacing generic form) | FEATURE | DONE |
 | CUSTOM-001 | Custom/manual citation type with free-text input | FEATURE | DONE |
