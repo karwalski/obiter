@@ -7,7 +7,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCitationContext } from "../context/CitationContext";
 import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getDevicePref } from "../../store/devicePreferences";
 import { Citation, SourceType, SourceData, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import {
   updateCitationContent,
@@ -304,7 +305,9 @@ export default function EditCitation(): JSX.Element {
       commentaryBefore: commentaryBefore || undefined,
       commentaryAfter: commentaryAfter || undefined,
     };
-    return getFormattedPreview(previewCitation, standardConfig);
+    const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+    const courtConfig = buildCourtConfig(standardConfig, courtToggles);
+    return getFormattedPreview(previewCitation, courtConfig);
   }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, standardConfig]);
 
   // UX-002: Re-initialise the store and reload all citations from the document.
@@ -555,11 +558,12 @@ export default function EditCitation(): JSX.Element {
       await store.update(updatedCitation);
       setCitation(updatedCitation);
 
-      // Refresh the citation content in the document. Build a simple
-      // formatted run from the citation title for now; the full formatter
-      // pipeline will produce richer output once the rule engine is wired up.
-      const displayTitle = shortTitle || (formData.title as string) || (formData.caseName as string) || "Citation";
-      await updateCitationContent(citation.id, [{ text: displayTitle }]);
+      // Refresh the citation content in the document using the engine formatter.
+      // Build court config from device preferences for court-mode support.
+      const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+      const courtConfig = buildCourtConfig(standardConfig, courtToggles);
+      const runs = getFormattedPreview(updatedCitation, courtConfig);
+      await updateCitationContent(citation.id, runs);
 
       setSuccessMessage("Citation updated successfully.");
     } catch (err) {
