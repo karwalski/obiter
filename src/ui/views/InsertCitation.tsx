@@ -321,6 +321,65 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "book",
   "treaty",
   "genai_output",
+  "report",
+  "report.parliamentary",
+  "report.royal_commission",
+  "report.law_reform",
+  "report.abs",
+  "research_paper",
+  "research_paper.parliamentary",
+  "conference_paper",
+  "thesis",
+  "speech",
+  "press_release",
+  "hansard",
+  "submission.government",
+  "evidence.parliamentary",
+  "constitutional_convention",
+  "dictionary",
+  "legal_encyclopedia",
+  "looseleaf",
+  "ip_material",
+  "constitutive_document",
+  "newspaper",
+  "correspondence",
+  "interview",
+  "film_tv_media",
+  "internet_material",
+  "social_media",
+  "journal.online",
+  "journal.forthcoming",
+  "book.chapter",
+  "book.translated",
+  "book.audiobook",
+  "foreign.canada",
+  "foreign.china",
+  "foreign.france",
+  "foreign.germany",
+  "foreign.hong_kong",
+  "foreign.malaysia",
+  "foreign.new_zealand",
+  "foreign.singapore",
+  "foreign.south_africa",
+  "foreign.uk",
+  "foreign.usa",
+  "foreign.other",
+  "un.document",
+  "un.communication",
+  "un.yearbook",
+  "icj.decision",
+  "icj.pleading",
+  "arbitral.state_state",
+  "arbitral.individual_state",
+  "icc_tribunal.case",
+  "wto.document",
+  "wto.decision",
+  "gatt.document",
+  "eu.official_journal",
+  "eu.court",
+  "echr.decision",
+  "supranational.decision",
+  "supranational.document",
 ];
 
 // ─── Help Me Choose: Category Lookup ─────────────────────────────────────────
@@ -1296,7 +1355,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "case.arbitration" && renderCaseArbitrationForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.transcript" && renderCaseTranscriptForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.submission" && renderCaseSubmissionForm(formData, updateField, isAglcStandard)}
-      {selectedSourceType === "legislation.statute" && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard, searchEnabled)}
+      {(selectedSourceType === "legislation.statute" || selectedSourceType === "legislation.delegated") && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard, searchEnabled)}
       {selectedSourceType === "legislation.bill" && renderBillForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.constitution" && renderConstitutionForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.explanatory" && renderExplanatoryForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
@@ -1307,6 +1366,63 @@ export default function InsertCitation(): JSX.Element {
         renderBookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "report" && renderReportForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "report.parliamentary" && renderReportParliamentaryForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "report.royal_commission" && renderReportRoyalCommissionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "report.law_reform" && renderReportLawReformForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "report.abs" && renderReportAbsForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "research_paper" &&
+        renderResearchPaperForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "research_paper.parliamentary" &&
+        renderResearchPaperParliamentaryForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "conference_paper" &&
+        renderConferencePaperForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "thesis" && renderThesisForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "speech" && renderSpeechForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "press_release" && renderPressReleaseForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "hansard" && renderHansardForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
+      {selectedSourceType === "submission.government" && renderSubmissionGovernmentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "evidence.parliamentary" && renderEvidenceParliamentaryForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "constitutional_convention" && renderConstitutionalConventionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "dictionary" && renderDictionaryForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "legal_encyclopedia" && renderLegalEncyclopediaForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "looseleaf" &&
+        renderLooseleafForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "ip_material" && renderIpMaterialForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "constitutive_document" && renderConstitutiveDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "newspaper" && renderNewspaperForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "correspondence" && renderCorrespondenceForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "interview" && renderInterviewForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "film_tv_media" && renderFilmTvMediaForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "internet_material" && renderInternetMaterialForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "social_media" && renderSocialMediaForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "journal.online" &&
+        renderJournalOnlineForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "journal.forthcoming" &&
+        renderJournalForthcomingForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "book.chapter" &&
+        renderBookChapterForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "book.translated" &&
+        renderBookTranslatedForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "book.audiobook" &&
+        renderBookAudiobookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "un.document" && renderUnDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "un.communication" && renderUnCommunicationForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "un.yearbook" && renderUnYearbookForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "icj.decision" && renderIcjDecisionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "icj.pleading" && renderIcjPleadingForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "arbitral.state_state" && renderArbitralStateStateForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "arbitral.individual_state" && renderArbitralIndividualStateForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "icc_tribunal.case" && renderIccTribunalCaseForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "wto.document" && renderWtoDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "wto.decision" && renderWtoDecisionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "gatt.document" && renderGattDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "eu.official_journal" && renderEuOfficialJournalForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "eu.court" && renderEuCourtForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "echr.decision" && renderEchrDecisionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "supranational.decision" && renderSupranationalDecisionForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "supranational.document" && renderSupranationalDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType?.startsWith("foreign.") && renderForeignForm(formData, updateField, selectedSourceType === "foreign.other" ? "Other Foreign" : selectedSourceType.split(".")[1].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), selectedSourceType === "foreign.canada" ? "15" : selectedSourceType === "foreign.china" ? "16" : selectedSourceType === "foreign.france" ? "17" : selectedSourceType === "foreign.germany" ? "18" : selectedSourceType === "foreign.hong_kong" ? "19" : selectedSourceType === "foreign.malaysia" ? "20" : selectedSourceType === "foreign.new_zealand" ? "21" : selectedSourceType === "foreign.singapore" ? "22" : selectedSourceType === "foreign.south_africa" ? "23" : selectedSourceType === "foreign.uk" ? "24" : selectedSourceType === "foreign.usa" ? "25" : "26", isAglcStandard)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
 
       {/* COURT-007: Unreported-judgment gate notification (AGLC only) */}
@@ -4173,6 +4289,4750 @@ function renderCaseSubmissionForm(
           type="text"
           value={(data.pinpoint as string) || ""}
           placeholder="e.g. [5]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── FORMS: Reports Group (Rule 7.1) ─────────────────────────────────────────
+
+function renderReportForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rpt-author">
+          Author/Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1" } : {})}
+            description="The author or body that produced the report."
+            example="Australian Law Reform Commission"
+          />
+        </label>
+        <input
+          id="ic-rpt-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Australian Law Reform Commission"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rpt-title">
+          Title
+        </label>
+        <input
+          id="ic-rpt-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Serious Invasions of Privacy in the Digital Era"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rpt-number">
+            Report Number
+          </label>
+          <input
+            id="ic-rpt-number"
+            className="ic-input"
+            type="text"
+            value={(data.reportNumber as string) || ""}
+            placeholder="e.g. Report No 123"
+            onChange={(e) => updateField("reportNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rpt-year">
+            Year
+          </label>
+          <input
+            id="ic-rpt-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2014"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rpt-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rpt-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderReportParliamentaryForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptparl-body">
+          Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1.2" } : {})}
+            description="The parliamentary body or committee that produced the report."
+            example="Senate Standing Committee on Legal and Constitutional Affairs"
+          />
+        </label>
+        <input
+          id="ic-rptparl-body"
+          className="ic-input"
+          type="text"
+          value={(data.body as string) || ""}
+          placeholder="e.g. Senate Standing Committee on Legal and Constitutional Affairs"
+          onChange={(e) => updateField("body", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptparl-title">
+          Title
+        </label>
+        <input
+          id="ic-rptparl-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Road to a Republic"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptparl-number">
+            Parl Paper Number
+          </label>
+          <input
+            id="ic-rptparl-number"
+            className="ic-input"
+            type="text"
+            value={(data.parlPaperNumber as string) || ""}
+            placeholder="e.g. Parl Paper No 100"
+            onChange={(e) => updateField("parlPaperNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptparl-year">
+            Year
+          </label>
+          <input
+            id="ic-rptparl-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2004"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptparl-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rptparl-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderReportRoyalCommissionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptrc-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1.3" } : {})}
+            description="The title of the royal commission report."
+            example="Royal Commission into Misconduct in the Banking, Superannuation and Financial Services Industry, Final Report"
+          />
+        </label>
+        <input
+          id="ic-rptrc-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Royal Commission into Misconduct in the Banking..."
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptrc-commissioner">
+          Commissioner(s)
+        </label>
+        <input
+          id="ic-rptrc-commissioner"
+          className="ic-input"
+          type="text"
+          value={(data.commissioner as string) || ""}
+          placeholder="e.g. Kenneth Hayne"
+          onChange={(e) => updateField("commissioner", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptrc-year">
+            Year
+          </label>
+          <input
+            id="ic-rptrc-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2019"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptrc-volume">
+            Volume
+          </label>
+          <input
+            id="ic-rptrc-volume"
+            className="ic-input"
+            type="text"
+            value={(data.volume as string) || ""}
+            placeholder="e.g. vol 1"
+            onChange={(e) => updateField("volume", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptrc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rptrc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderReportLawReformForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptlr-body">
+          Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1.4" } : {})}
+            description="The law reform body that produced the report."
+            example="Australian Law Reform Commission"
+          />
+        </label>
+        <input
+          id="ic-rptlr-body"
+          className="ic-input"
+          type="text"
+          value={(data.body as string) || ""}
+          placeholder="e.g. Australian Law Reform Commission"
+          onChange={(e) => updateField("body", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptlr-title">
+          Title
+        </label>
+        <input
+          id="ic-rptlr-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Traditional Rights and Freedoms"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptlr-number">
+            Report Number
+          </label>
+          <input
+            id="ic-rptlr-number"
+            className="ic-input"
+            type="text"
+            value={(data.reportNumber as string) || ""}
+            placeholder="e.g. Report No 129"
+            onChange={(e) => updateField("reportNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptlr-year">
+            Year
+          </label>
+          <input
+            id="ic-rptlr-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2015"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptlr-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rptlr-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderReportAbsForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptabs-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1.5" } : {})}
+            description="The title of the ABS publication."
+            example="Census of Population and Housing"
+          />
+        </label>
+        <input
+          id="ic-rptabs-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Census of Population and Housing"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptabs-catalogue">
+            Catalogue Number
+          </label>
+          <input
+            id="ic-rptabs-catalogue"
+            className="ic-input"
+            type="text"
+            value={(data.catalogueNumber as string) || ""}
+            placeholder="e.g. 2071.0"
+            onChange={(e) => updateField("catalogueNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rptabs-date">
+            Date
+          </label>
+          <input
+            id="ic-rptabs-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 9 August 2016"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rptabs-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rptabs-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── FORMS: Other Secondary Sources (Rules 7.2–7.16) ────────────────────────
+
+function renderResearchPaperForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "7.2" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rp-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.2" } : {})}
+            description="The title of the research paper."
+            example="The Future of Legal Education"
+          />
+        </label>
+        <input
+          id="ic-rp-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Future of Legal Education"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rp-series">
+            Series/Number
+          </label>
+          <input
+            id="ic-rp-series"
+            className="ic-input"
+            type="text"
+            value={(data.seriesNumber as string) || ""}
+            placeholder="e.g. Working Paper No 12"
+            onChange={(e) => updateField("seriesNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rp-year">
+            Year
+          </label>
+          <input
+            id="ic-rp-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2020"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rp-institution">
+          Institution
+        </label>
+        <input
+          id="ic-rp-institution"
+          className="ic-input"
+          type="text"
+          value={(data.institution as string) || ""}
+          placeholder="e.g. University of Melbourne"
+          onChange={(e) => updateField("institution", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rp-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rp-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 15"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderResearchPaperParliamentaryForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "7.2.3" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rpp-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.2.3" } : {})}
+            description="The title of the parliamentary research paper."
+            example="Social Security Payments for People Caring for Children"
+          />
+        </label>
+        <input
+          id="ic-rpp-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Social Security Payments for People Caring for Children"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rpp-number">
+            Research Paper Number
+          </label>
+          <input
+            id="ic-rpp-number"
+            className="ic-input"
+            type="text"
+            value={(data.researchPaperNumber as string) || ""}
+            placeholder="e.g. Research Paper No 1"
+            onChange={(e) => updateField("researchPaperNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-rpp-date">
+            Date
+          </label>
+          <input
+            id="ic-rpp-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 20 June 2019"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-rpp-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-rpp-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 15"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderConferencePaperForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "7.2.4" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cp-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.2.4" } : {})}
+            description="The title of the conference paper."
+            example="The Future of Indigenous Rights"
+          />
+        </label>
+        <input
+          id="ic-cp-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Future of Indigenous Rights"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cp-conference">
+          Conference Name
+        </label>
+        <input
+          id="ic-cp-conference"
+          className="ic-input"
+          type="text"
+          value={(data.conferenceName as string) || ""}
+          placeholder="e.g. Australian Law Reform Conference"
+          onChange={(e) => updateField("conferenceName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cp-location">
+            Location
+          </label>
+          <input
+            id="ic-cp-location"
+            className="ic-input"
+            type="text"
+            value={(data.location as string) || ""}
+            placeholder="e.g. Melbourne"
+            onChange={(e) => updateField("location", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cp-date">
+            Date
+          </label>
+          <input
+            id="ic-cp-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 March 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cp-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-cp-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 15"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderThesisForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-thesis-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.2.5" } : {})}
+            description="The author of the thesis."
+            example="Jane Smith"
+          />
+        </label>
+        <input
+          id="ic-thesis-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Jane Smith"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-thesis-title">
+          Title
+        </label>
+        <input
+          id="ic-thesis-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Constitutional Implications of Climate Change Litigation"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-thesis-type">
+          Thesis Type
+        </label>
+        <select
+          id="ic-thesis-type"
+          className="ic-select"
+          value={(data.thesisType as string) || ""}
+          onChange={(e) => updateField("thesisType", e.target.value)}
+        >
+          <option value="">Select type...</option>
+          <option value="PhD">PhD Thesis</option>
+          <option value="Masters">Masters Thesis</option>
+          <option value="Honours">Honours Thesis</option>
+        </select>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-thesis-institution">
+            Institution
+          </label>
+          <input
+            id="ic-thesis-institution"
+            className="ic-input"
+            type="text"
+            value={(data.institution as string) || ""}
+            placeholder="e.g. University of Melbourne"
+            onChange={(e) => updateField("institution", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-thesis-year">
+            Year
+          </label>
+          <input
+            id="ic-thesis-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2020"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-thesis-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-thesis-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderSpeechForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-speech-speaker">
+          Speaker
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.3" } : {})}
+            description="The person who delivered the speech."
+            example="Robert French"
+          />
+        </label>
+        <input
+          id="ic-speech-speaker"
+          className="ic-input"
+          type="text"
+          value={(data.speaker as string) || ""}
+          placeholder="e.g. Robert French"
+          onChange={(e) => updateField("speaker", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-speech-title">
+          Title
+        </label>
+        <input
+          id="ic-speech-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Role of the High Court"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-speech-event">
+          Event
+        </label>
+        <input
+          id="ic-speech-event"
+          className="ic-input"
+          type="text"
+          value={(data.event as string) || ""}
+          placeholder="e.g. Law Council of Australia Dinner"
+          onChange={(e) => updateField("event", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-speech-location">
+            Location
+          </label>
+          <input
+            id="ic-speech-location"
+            className="ic-input"
+            type="text"
+            value={(data.location as string) || ""}
+            placeholder="e.g. Canberra"
+            onChange={(e) => updateField("location", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-speech-date">
+            Date
+          </label>
+          <input
+            id="ic-speech-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 25 March 2019"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-speech-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-speech-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 5"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderPressReleaseForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-pr-body">
+          Issuing Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.4" } : {})}
+            description="The body that issued the press release."
+            example="Attorney-General's Department"
+          />
+        </label>
+        <input
+          id="ic-pr-body"
+          className="ic-input"
+          type="text"
+          value={(data.issuingBody as string) || ""}
+          placeholder="e.g. Attorney-General's Department"
+          onChange={(e) => updateField("issuingBody", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-pr-title">
+          Title
+        </label>
+        <input
+          id="ic-pr-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. New Measures to Combat Terrorism"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-pr-number">
+            Number
+          </label>
+          <input
+            id="ic-pr-number"
+            className="ic-input"
+            type="text"
+            value={(data.number as string) || ""}
+            placeholder="e.g. No 123/2020"
+            onChange={(e) => updateField("number", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-pr-date">
+            Date
+          </label>
+          <input
+            id="ic-pr-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 1 July 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-pr-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-pr-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 3"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderHansardForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  jurisdictionOptions: { value: string; label: string }[],
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-hansard-jurisdiction">
+            Jurisdiction
+            <FieldHelp
+              {...(isAglcStandard ? { ruleNumber: "7.5.1" } : {})}
+              description="The jurisdiction of the parliamentary debate."
+              example="Commonwealth"
+            />
+          </label>
+          <select
+            id="ic-hansard-jurisdiction"
+            className="ic-select"
+            value={(data.jurisdiction as string) || ""}
+            onChange={(e) => updateField("jurisdiction", e.target.value)}
+          >
+            <option value="">Select jurisdiction...</option>
+            {jurisdictionOptions.map((j) => (
+              <option key={j.value} value={j.value}>
+                {j.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-hansard-chamber">
+            Chamber
+          </label>
+          <select
+            id="ic-hansard-chamber"
+            className="ic-select"
+            value={(data.chamber as string) || ""}
+            onChange={(e) => updateField("chamber", e.target.value)}
+          >
+            <option value="">Select chamber...</option>
+            <option value="House of Representatives">House of Representatives</option>
+            <option value="Senate">Senate</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-hansard-date">
+            Date
+          </label>
+          <input
+            id="ic-hansard-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 12 February 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-hansard-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-hansard-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 1234"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-hansard-speaker">
+          Speaker
+        </label>
+        <input
+          id="ic-hansard-speaker"
+          className="ic-input"
+          type="text"
+          value={(data.speaker as string) || ""}
+          placeholder="e.g. Mark Dreyfus"
+          onChange={(e) => updateField("speaker", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderSubmissionGovernmentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-subgov-author">
+          Author/Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.5.2" } : {})}
+            description="The author or body that made the submission."
+            example="Law Council of Australia"
+          />
+        </label>
+        <input
+          id="ic-subgov-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Law Council of Australia"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-subgov-title">
+          Title
+        </label>
+        <input
+          id="ic-subgov-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Submission to the Senate Legal and Constitutional Affairs Committee"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-subgov-inquiry">
+          Inquiry Name
+        </label>
+        <input
+          id="ic-subgov-inquiry"
+          className="ic-input"
+          type="text"
+          value={(data.inquiryName as string) || ""}
+          placeholder="e.g. Inquiry into the Human Rights (Parliamentary Scrutiny) Bill 2010"
+          onChange={(e) => updateField("inquiryName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-subgov-number">
+            Submission Number
+          </label>
+          <input
+            id="ic-subgov-number"
+            className="ic-input"
+            type="text"
+            value={(data.submissionNumber as string) || ""}
+            placeholder="e.g. Submission No 12"
+            onChange={(e) => updateField("submissionNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-subgov-date">
+            Date
+          </label>
+          <input
+            id="ic-subgov-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 1 March 2011"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-subgov-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-subgov-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 5"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderEvidenceParliamentaryForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-evparl-witness">
+          Witness
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.5.3" } : {})}
+            description="The name of the witness giving evidence."
+            example="Dr Sarah Jones"
+          />
+        </label>
+        <input
+          id="ic-evparl-witness"
+          className="ic-input"
+          type="text"
+          value={(data.witness as string) || ""}
+          placeholder="e.g. Dr Sarah Jones"
+          onChange={(e) => updateField("witness", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-evparl-committee">
+          Committee
+        </label>
+        <input
+          id="ic-evparl-committee"
+          className="ic-input"
+          type="text"
+          value={(data.committee as string) || ""}
+          placeholder="e.g. Senate Legal and Constitutional Affairs Legislation Committee"
+          onChange={(e) => updateField("committee", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-evparl-inquiry">
+          Inquiry Title
+        </label>
+        <input
+          id="ic-evparl-inquiry"
+          className="ic-input"
+          type="text"
+          value={(data.inquiryTitle as string) || ""}
+          placeholder="e.g. Inquiry into the Migration Amendment Bill 2020"
+          onChange={(e) => updateField("inquiryTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-evparl-date">
+            Date
+          </label>
+          <input
+            id="ic-evparl-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 October 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-evparl-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-evparl-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 23"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderConstitutionalConventionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cc-name">
+          Convention Name
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.5.4" } : {})}
+            description="The name of the constitutional convention."
+            example="Official Record of the Debates of the Australasian Federal Convention"
+          />
+        </label>
+        <input
+          id="ic-cc-name"
+          className="ic-input"
+          type="text"
+          value={(data.conventionName as string) || ""}
+          placeholder="e.g. Official Record of the Debates of the Australasian Federal Convention"
+          onChange={(e) => updateField("conventionName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cc-date">
+            Date
+          </label>
+          <input
+            id="ic-cc-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 8 February 1898"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cc-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-cc-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 654"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cc-speaker">
+          Speaker
+        </label>
+        <input
+          id="ic-cc-speaker"
+          className="ic-input"
+          type="text"
+          value={(data.speaker as string) || ""}
+          placeholder="e.g. Edmund Barton"
+          onChange={(e) => updateField("speaker", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderDictionaryForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dict-title">
+          Dictionary Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.6" } : {})}
+            description="The title of the dictionary."
+            example="Black's Law Dictionary"
+          />
+        </label>
+        <input
+          id="ic-dict-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Black's Law Dictionary"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-dict-edition">
+            Edition
+          </label>
+          <input
+            id="ic-dict-edition"
+            className="ic-input"
+            type="text"
+            value={(data.edition as string) || ""}
+            placeholder="e.g. 11th"
+            onChange={(e) => updateField("edition", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-dict-year">
+            Year
+          </label>
+          <input
+            id="ic-dict-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2019"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dict-entry">
+          Entry Term
+        </label>
+        <input
+          id="ic-dict-entry"
+          className="ic-input"
+          type="text"
+          value={(data.entryTerm as string) || ""}
+          placeholder="e.g. estoppel"
+          onChange={(e) => updateField("entryTerm", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dict-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-dict-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 642"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderLegalEncyclopediaForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-le-title">
+          Encyclopedia Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.7" } : {})}
+            description="The title of the legal encyclopedia."
+            example="Halsbury's Laws of Australia"
+          />
+        </label>
+        <input
+          id="ic-le-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Halsbury's Laws of Australia"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-le-volume">
+            Volume
+          </label>
+          <input
+            id="ic-le-volume"
+            className="ic-input"
+            type="text"
+            value={(data.volume as string) || ""}
+            placeholder="e.g. vol 1"
+            onChange={(e) => updateField("volume", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-le-titleNumber">
+            Title Number
+          </label>
+          <input
+            id="ic-le-titleNumber"
+            className="ic-input"
+            type="text"
+            value={(data.titleNumber as string) || ""}
+            placeholder="e.g. 10"
+            onChange={(e) => updateField("titleNumber", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-le-topic">
+          Paragraph/Topic
+        </label>
+        <input
+          id="ic-le-topic"
+          className="ic-input"
+          type="text"
+          value={(data.topic as string) || ""}
+          placeholder="e.g. Equity [10-1234]"
+          onChange={(e) => updateField("topic", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-le-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-le-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [10-1234]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderLooseleafForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "7.8" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ll-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.8" } : {})}
+            description="The title of the looseleaf service."
+            example="Australian Corporations Law: Principles and Practice"
+          />
+        </label>
+        <input
+          id="ic-ll-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Australian Corporations Law: Principles and Practice"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ll-publisher">
+          Publisher
+        </label>
+        <input
+          id="ic-ll-publisher"
+          className="ic-input"
+          type="text"
+          value={(data.publisher as string) || ""}
+          placeholder="e.g. LexisNexis"
+          onChange={(e) => updateField("publisher", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ll-serviceNumber">
+            Service Number
+          </label>
+          <input
+            id="ic-ll-serviceNumber"
+            className="ic-input"
+            type="text"
+            value={(data.serviceNumber as string) || ""}
+            placeholder="e.g. Service 45"
+            onChange={(e) => updateField("serviceNumber", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ll-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-ll-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. [1.234]"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderIpMaterialForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ip-applicant">
+          Applicant/Owner
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.9" } : {})}
+            description="The applicant or owner of the intellectual property."
+            example="Dyson Technology Ltd"
+          />
+        </label>
+        <input
+          id="ic-ip-applicant"
+          className="ic-input"
+          type="text"
+          value={(data.applicant as string) || ""}
+          placeholder="e.g. Dyson Technology Ltd"
+          onChange={(e) => updateField("applicant", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ip-titleNumber">
+          Title/Number
+        </label>
+        <input
+          id="ic-ip-titleNumber"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Patent Application No 2020123456"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ip-type">
+          IP Type
+        </label>
+        <select
+          id="ic-ip-type"
+          className="ic-select"
+          value={(data.ipType as string) || ""}
+          onChange={(e) => updateField("ipType", e.target.value)}
+        >
+          <option value="">Select type...</option>
+          <option value="Patent">Patent</option>
+          <option value="Trade Mark">Trade Mark</option>
+          <option value="Design">Design</option>
+          <option value="Plant Breeder's Right">Plant Breeder's Right</option>
+        </select>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ip-country">
+            Country
+          </label>
+          <input
+            id="ic-ip-country"
+            className="ic-input"
+            type="text"
+            value={(data.country as string) || ""}
+            placeholder="e.g. Australia"
+            onChange={(e) => updateField("country", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ip-date">
+            Date
+          </label>
+          <input
+            id="ic-ip-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 January 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ip-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-ip-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. claim 1"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderConstitutiveDocumentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cd-entity">
+          Entity Name
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.10" } : {})}
+            description="The name of the entity whose constitutive document is being cited."
+            example="BHP Group Limited"
+          />
+        </label>
+        <input
+          id="ic-cd-entity"
+          className="ic-input"
+          type="text"
+          value={(data.entityName as string) || ""}
+          placeholder="e.g. BHP Group Limited"
+          onChange={(e) => updateField("entityName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-cd-docType">
+          Document Type
+        </label>
+        <select
+          id="ic-cd-docType"
+          className="ic-select"
+          value={(data.documentType as string) || ""}
+          onChange={(e) => updateField("documentType", e.target.value)}
+        >
+          <option value="">Select type...</option>
+          <option value="Constitution">Constitution</option>
+          <option value="Articles of Association">Articles of Association</option>
+          <option value="Memorandum of Association">Memorandum of Association</option>
+          <option value="Rules">Rules</option>
+          <option value="Charter">Charter</option>
+        </select>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cd-date">
+            Date
+          </label>
+          <input
+            id="ic-cd-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 1 January 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-cd-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-cd-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. cl 12"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderNewspaperForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-news-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.11" } : {})}
+            description="The author of the newspaper article (if attributed)."
+            example="Michael Pelly"
+          />
+        </label>
+        <input
+          id="ic-news-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Michael Pelly"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-news-articleTitle">
+          Article Title
+        </label>
+        <input
+          id="ic-news-articleTitle"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Courts Face Backlog Crisis"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-news-newspaper">
+            Newspaper Name
+          </label>
+          <input
+            id="ic-news-newspaper"
+            className="ic-input"
+            type="text"
+            value={(data.newspaperName as string) || ""}
+            placeholder="e.g. The Australian"
+            onChange={(e) => updateField("newspaperName", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-news-place">
+            Place
+          </label>
+          <input
+            id="ic-news-place"
+            className="ic-input"
+            type="text"
+            value={(data.place as string) || ""}
+            placeholder="e.g. Sydney"
+            onChange={(e) => updateField("place", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-news-date">
+            Date
+          </label>
+          <input
+            id="ic-news-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 March 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-news-page">
+            Page
+          </label>
+          <input
+            id="ic-news-page"
+            className="ic-input"
+            type="text"
+            value={(data.page as string) || ""}
+            placeholder="e.g. 1"
+            onChange={(e) => updateField("page", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-news-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-news-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 3"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderCorrespondenceForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-corr-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.12" } : {})}
+            description="The person who sent the correspondence."
+            example="Professor John Smith"
+          />
+        </label>
+        <input
+          id="ic-corr-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Professor John Smith"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-corr-recipient">
+          Recipient
+        </label>
+        <input
+          id="ic-corr-recipient"
+          className="ic-input"
+          type="text"
+          value={(data.recipient as string) || ""}
+          placeholder="e.g. Dr Jane Doe"
+          onChange={(e) => updateField("recipient", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-corr-date">
+            Date
+          </label>
+          <input
+            id="ic-corr-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 1 January 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-corr-medium">
+            Medium
+          </label>
+          <select
+            id="ic-corr-medium"
+            className="ic-select"
+            value={(data.medium as string) || ""}
+            onChange={(e) => updateField("medium", e.target.value)}
+          >
+            <option value="">Select medium...</option>
+            <option value="Letter">Letter</option>
+            <option value="Email">Email</option>
+            <option value="Fax">Fax</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-corr-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-corr-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 2"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderInterviewForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-int-interviewee">
+          Interviewee
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.13" } : {})}
+            description="The person being interviewed."
+            example="Justice Virginia Bell"
+          />
+        </label>
+        <input
+          id="ic-int-interviewee"
+          className="ic-input"
+          type="text"
+          value={(data.interviewee as string) || ""}
+          placeholder="e.g. Justice Virginia Bell"
+          onChange={(e) => updateField("interviewee", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-int-interviewer">
+          Interviewer
+        </label>
+        <input
+          id="ic-int-interviewer"
+          className="ic-input"
+          type="text"
+          value={(data.interviewer as string) || ""}
+          placeholder="e.g. Leigh Sales"
+          onChange={(e) => updateField("interviewer", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-int-program">
+          Program/Publication
+        </label>
+        <input
+          id="ic-int-program"
+          className="ic-input"
+          type="text"
+          value={(data.program as string) || ""}
+          placeholder="e.g. 7.30"
+          onChange={(e) => updateField("program", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-int-date">
+            Date
+          </label>
+          <input
+            id="ic-int-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 March 2020"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-int-medium">
+            Medium
+          </label>
+          <select
+            id="ic-int-medium"
+            className="ic-select"
+            value={(data.medium as string) || ""}
+            onChange={(e) => updateField("medium", e.target.value)}
+          >
+            <option value="">Select medium...</option>
+            <option value="Television">Television</option>
+            <option value="Radio">Radio</option>
+            <option value="Podcast">Podcast</option>
+            <option value="In Person">In Person</option>
+            <option value="Telephone">Telephone</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function renderFilmTvMediaForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ftm-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.14" } : {})}
+            description="The title of the film, TV show, podcast, or radio program."
+            example="The Castle"
+          />
+        </label>
+        <input
+          id="ic-ftm-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Castle"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ftm-director">
+          Director
+        </label>
+        <input
+          id="ic-ftm-director"
+          className="ic-input"
+          type="text"
+          value={(data.director as string) || ""}
+          placeholder="e.g. Rob Sitch"
+          onChange={(e) => updateField("director", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ftm-production">
+          Production Company
+        </label>
+        <input
+          id="ic-ftm-production"
+          className="ic-input"
+          type="text"
+          value={(data.productionCompany as string) || ""}
+          placeholder="e.g. Working Dog Productions"
+          onChange={(e) => updateField("productionCompany", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ftm-year">
+            Year
+          </label>
+          <input
+            id="ic-ftm-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 1997"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ftm-medium">
+            Medium
+          </label>
+          <select
+            id="ic-ftm-medium"
+            className="ic-select"
+            value={(data.medium as string) || ""}
+            onChange={(e) => updateField("medium", e.target.value)}
+          >
+            <option value="">Select medium...</option>
+            <option value="Film">Film</option>
+            <option value="Television">Television</option>
+            <option value="Podcast">Podcast</option>
+            <option value="Radio">Radio</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ftm-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-ftm-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 1:23:45"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderInternetMaterialForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.15" } : {})}
+            description="The author of the internet material (if attributed)."
+            example="Department of Health"
+          />
+        </label>
+        <input
+          id="ic-web-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Department of Health"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-title">
+          Title
+        </label>
+        <input
+          id="ic-web-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. COVID-19 Vaccination Program"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-website">
+          Website Name
+        </label>
+        <input
+          id="ic-web-website"
+          className="ic-input"
+          type="text"
+          value={(data.websiteName as string) || ""}
+          placeholder="e.g. Australian Government Department of Health"
+          onChange={(e) => updateField("websiteName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-date">
+          Date
+        </label>
+        <input
+          id="ic-web-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 15 March 2021"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-url">
+          URL
+        </label>
+        <input
+          id="ic-web-url"
+          className="ic-input"
+          type="url"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://www.health.gov.au/..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-web-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 3"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderSocialMediaForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-sm-author">
+          Author/Handle
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.16" } : {})}
+            description="The author or handle of the social media post."
+            example="@HighCourtAus"
+          />
+        </label>
+        <input
+          id="ic-sm-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. @HighCourtAus"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-sm-platform">
+          Platform
+        </label>
+        <select
+          id="ic-sm-platform"
+          className="ic-select"
+          value={(data.platform as string) || ""}
+          onChange={(e) => updateField("platform", e.target.value)}
+        >
+          <option value="">Select platform...</option>
+          <option value="Twitter">Twitter/X</option>
+          <option value="Facebook">Facebook</option>
+          <option value="Instagram">Instagram</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="YouTube">YouTube</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-sm-content">
+          Content (first words)
+        </label>
+        <input
+          id="ic-sm-content"
+          className="ic-input"
+          type="text"
+          value={(data.content as string) || ""}
+          placeholder="e.g. Today the High Court handed down..."
+          onChange={(e) => updateField("content", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-sm-date">
+          Date
+        </label>
+        <input
+          id="ic-sm-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 15 March 2021"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-sm-url">
+          URL
+        </label>
+        <input
+          id="ic-sm-url"
+          className="ic-input"
+          type="url"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://twitter.com/HighCourtAus/status/..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderUnDocumentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-body">
+          Body/Organ
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.2" } : {})}
+            description="The UN body or organ that issued the document."
+            example="GA, SC, ECOSOC"
+          />
+        </label>
+        <input
+          id="ic-undoc-body"
+          className="ic-input"
+          type="text"
+          value={(data.body as string) || ""}
+          placeholder="e.g. GA, SC, ECOSOC"
+          onChange={(e) => updateField("body", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.2" } : {})}
+            description="The title of the UN document."
+            example="Universal Declaration of Human Rights"
+          />
+        </label>
+        <input
+          id="ic-undoc-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Universal Declaration of Human Rights"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-docnumber">
+          UN Doc Number
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.2" } : {})}
+            description="The official UN document number."
+            example="A/RES/217A(III)"
+          />
+        </label>
+        <input
+          id="ic-undoc-docnumber"
+          className="ic-input"
+          type="text"
+          value={(data.docNumber as string) || ""}
+          placeholder="e.g. A/RES/217A(III)"
+          onChange={(e) => updateField("docNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-date">
+          Date
+        </label>
+        <input
+          id="ic-undoc-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 10 December 1948"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-session">
+          Session (optional)
+        </label>
+        <input
+          id="ic-undoc-session"
+          className="ic-input"
+          type="text"
+          value={(data.session as string) || ""}
+          placeholder="e.g. 3rd sess"
+          onChange={(e) => updateField("session", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-undoc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. art 1"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: UN Communication (Rule 9.3) ─────────────────────────────────
+
+function renderUnCommunicationForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.3" } : {})}
+            description="The author of the communication."
+            example="Toonen"
+          />
+        </label>
+        <input
+          id="ic-uncomm-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Toonen"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-commno">
+          Communication Number
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.3" } : {})}
+            description="The communication number assigned by the committee."
+            example="488/1992"
+          />
+        </label>
+        <input
+          id="ic-uncomm-commno"
+          className="ic-input"
+          type="text"
+          value={(data.communicationNumber as string) || ""}
+          placeholder="e.g. 488/1992"
+          onChange={(e) => updateField("communicationNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-committee">
+          Committee
+        </label>
+        <input
+          id="ic-uncomm-committee"
+          className="ic-input"
+          type="text"
+          value={(data.committee as string) || ""}
+          placeholder="e.g. Human Rights Committee"
+          onChange={(e) => updateField("committee", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-date">
+          Date
+        </label>
+        <input
+          id="ic-uncomm-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 4 April 1994"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-docnumber">
+          UN Doc Number
+        </label>
+        <input
+          id="ic-uncomm-docnumber"
+          className="ic-input"
+          type="text"
+          value={(data.docNumber as string) || ""}
+          placeholder="e.g. CCPR/C/50/D/488/1992"
+          onChange={(e) => updateField("docNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncomm-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-uncomm-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [8.7]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: UN Yearbook (Rule 9.4) ──────────────────────────────────────
+
+function renderUnYearbookForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-unyb-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.4" } : {})}
+            description="The title of the yearbook article or entry."
+            example="Reservations to the Convention on Genocide"
+          />
+        </label>
+        <input
+          id="ic-unyb-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Reservations to the Convention on Genocide"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-unyb-year">
+            Year
+          </label>
+          <input
+            id="ic-unyb-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 1951"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-unyb-volume">
+            Volume
+          </label>
+          <input
+            id="ic-unyb-volume"
+            className="ic-input"
+            type="text"
+            value={(data.volume as string) || ""}
+            placeholder="e.g. II"
+            onChange={(e) => updateField("volume", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-unyb-startpage">
+          Starting Page
+        </label>
+        <input
+          id="ic-unyb-startpage"
+          className="ic-input"
+          type="text"
+          value={(data.startingPage as string) || ""}
+          placeholder="e.g. 820"
+          onChange={(e) => updateField("startingPage", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-unyb-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-unyb-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 823"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: ICJ Decision (Rule 10.2) ────────────────────────────────────
+
+function renderIcjDecisionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.2" } : {})}
+            description="The title of the ICJ case. Italicised in the citation."
+            example="North Sea Continental Shelf Cases"
+          />
+        </label>
+        <input
+          id="ic-icjd-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. North Sea Continental Shelf Cases"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-parties">
+          Parties
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.2" } : {})}
+            description="The parties to the case."
+            example="Germany/Denmark; Germany/Netherlands"
+          />
+        </label>
+        <input
+          id="ic-icjd-parties"
+          className="ic-input"
+          type="text"
+          value={(data.parties as string) || ""}
+          placeholder="e.g. Germany/Denmark; Germany/Netherlands"
+          onChange={(e) => updateField("parties", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-decisiontype">
+          Decision Type
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.2" } : {})}
+            description="The type of ICJ decision."
+          />
+        </label>
+        <select
+          id="ic-icjd-decisiontype"
+          className="ic-select"
+          value={(data.decisionType as string) || ""}
+          onChange={(e) => updateField("decisionType", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="Judgment">Judgment</option>
+          <option value="Advisory Opinion">Advisory Opinion</option>
+          <option value="Order">Order</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-year">
+          Year
+        </label>
+        <input
+          id="ic-icjd-year"
+          className="ic-input"
+          type="text"
+          value={(data.year as string) || ""}
+          placeholder="e.g. 1969"
+          onChange={(e) => updateField("year", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-icjpage">
+          ICJ Reports Page
+        </label>
+        <input
+          id="ic-icjd-icjpage"
+          className="ic-input"
+          type="text"
+          value={(data.icjReportsPage as string) || ""}
+          placeholder="e.g. 3"
+          onChange={(e) => updateField("icjReportsPage", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjd-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-icjd-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 46"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: ICJ Pleading (Rule 10.3) ────────────────────────────────────
+
+function renderIcjPleadingForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.3" } : {})}
+            description="The title of the ICJ case."
+            example="Nuclear Tests"
+          />
+        </label>
+        <input
+          id="ic-icjp-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Nuclear Tests"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-doctype">
+          Document Type
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.3" } : {})}
+            description="The type of pleading document."
+            example="Memorial, Counter-Memorial, Reply"
+          />
+        </label>
+        <input
+          id="ic-icjp-doctype"
+          className="ic-input"
+          type="text"
+          value={(data.documentType as string) || ""}
+          placeholder="e.g. Memorial, Counter-Memorial"
+          onChange={(e) => updateField("documentType", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-party">
+          Party
+        </label>
+        <input
+          id="ic-icjp-party"
+          className="ic-input"
+          type="text"
+          value={(data.party as string) || ""}
+          placeholder="e.g. Australia"
+          onChange={(e) => updateField("party", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-date">
+          Date
+        </label>
+        <input
+          id="ic-icjp-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 20 December 1973"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-volume">
+          ICJ Pleadings Volume
+        </label>
+        <input
+          id="ic-icjp-volume"
+          className="ic-input"
+          type="text"
+          value={(data.icjPleadingsVolume as string) || ""}
+          placeholder="e.g. I"
+          onChange={(e) => updateField("icjPleadingsVolume", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-icjp-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 15"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: Arbitral Award — State v State (Rule 11.1) ──────────────────
+
+function renderArbitralStateStateForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "11.1" } : {})}
+            description="The title of the arbitral case. Italicised in the citation."
+            example="Island of Palmas Case"
+          />
+        </label>
+        <input
+          id="ic-arbss-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Island of Palmas Case"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-parties">
+          Parties
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "11.1" } : {})}
+            description="The state parties to the arbitration."
+            example="Netherlands/United States"
+          />
+        </label>
+        <input
+          id="ic-arbss-parties"
+          className="ic-input"
+          type="text"
+          value={(data.parties as string) || ""}
+          placeholder="e.g. Netherlands/United States"
+          onChange={(e) => updateField("parties", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-tribunal">
+          Tribunal
+        </label>
+        <input
+          id="ic-arbss-tribunal"
+          className="ic-input"
+          type="text"
+          value={(data.tribunal as string) || ""}
+          placeholder="e.g. Permanent Court of Arbitration"
+          onChange={(e) => updateField("tribunal", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-date">
+          Award Date
+        </label>
+        <input
+          id="ic-arbss-date"
+          className="ic-input"
+          type="text"
+          value={(data.awardDate as string) || ""}
+          placeholder="e.g. 4 April 1928"
+          onChange={(e) => updateField("awardDate", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-report">
+          Report Series
+        </label>
+        <input
+          id="ic-arbss-report"
+          className="ic-input"
+          type="text"
+          value={(data.reportSeries as string) || ""}
+          placeholder="e.g. (1928) 2 RIAA 829"
+          onChange={(e) => updateField("reportSeries", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbss-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-arbss-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 838"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: Arbitral Award — Individual v State (Rule 11.2) ─────────────
+
+function renderArbitralIndividualStateForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbis-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "11.2" } : {})}
+            description="The title of the investment arbitration case. Italicised in the citation."
+            example="Philip Morris Asia Ltd v Australia"
+          />
+        </label>
+        <input
+          id="ic-arbis-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Philip Morris Asia Ltd v Australia"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbis-caseno">
+          Case Number
+        </label>
+        <input
+          id="ic-arbis-caseno"
+          className="ic-input"
+          type="text"
+          value={(data.caseNumber as string) || ""}
+          placeholder="e.g. ICSID Case No ARB/12/2"
+          onChange={(e) => updateField("caseNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbis-tribunal">
+          Tribunal
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "11.2" } : {})}
+            description="The arbitral tribunal or institution."
+          />
+        </label>
+        <select
+          id="ic-arbis-tribunal"
+          className="ic-select"
+          value={(data.tribunal as string) || ""}
+          onChange={(e) => updateField("tribunal", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="ICSID">ICSID</option>
+          <option value="PCA">PCA</option>
+          <option value="UNCITRAL">UNCITRAL</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      {(data.tribunal as string) === "Other" && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-arbis-tribunal-other">
+            Tribunal Name
+          </label>
+          <input
+            id="ic-arbis-tribunal-other"
+            className="ic-input"
+            type="text"
+            value={(data.tribunalOther as string) || ""}
+            placeholder="Enter tribunal name"
+            onChange={(e) => updateField("tribunalOther", e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbis-date">
+          Award Date
+        </label>
+        <input
+          id="ic-arbis-date"
+          className="ic-input"
+          type="text"
+          value={(data.awardDate as string) || ""}
+          placeholder="e.g. 17 December 2015"
+          onChange={(e) => updateField("awardDate", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-arbis-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-arbis-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [125]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: ICC Tribunal Case (Rule 12.2) ──────────────────────────────
+
+function renderIccTribunalCaseForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-accused">
+          Accused
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "12.2" } : {})}
+            description="The name of the accused person."
+            example="Prosecutor v Lubanga"
+          />
+        </label>
+        <input
+          id="ic-icc-accused"
+          className="ic-input"
+          type="text"
+          value={(data.accused as string) || ""}
+          placeholder="e.g. Prosecutor v Lubanga"
+          onChange={(e) => updateField("accused", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-caseno">
+          Case Number
+        </label>
+        <input
+          id="ic-icc-caseno"
+          className="ic-input"
+          type="text"
+          value={(data.caseNumber as string) || ""}
+          placeholder="e.g. ICC-01/04-01/06"
+          onChange={(e) => updateField("caseNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-tribunal">
+          Tribunal
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "12.2" } : {})}
+            description="The international criminal tribunal."
+          />
+        </label>
+        <select
+          id="ic-icc-tribunal"
+          className="ic-select"
+          value={(data.tribunal as string) || ""}
+          onChange={(e) => updateField("tribunal", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="ICC">ICC</option>
+          <option value="ICTY">ICTY</option>
+          <option value="ICTR">ICTR</option>
+          <option value="SCSL">SCSL</option>
+          <option value="STL">STL</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      {(data.tribunal as string) === "Other" && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-icc-tribunal-other">
+            Tribunal Name
+          </label>
+          <input
+            id="ic-icc-tribunal-other"
+            className="ic-input"
+            type="text"
+            value={(data.tribunalOther as string) || ""}
+            placeholder="Enter tribunal name"
+            onChange={(e) => updateField("tribunalOther", e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-chamber">
+          Chamber
+        </label>
+        <input
+          id="ic-icc-chamber"
+          className="ic-input"
+          type="text"
+          value={(data.chamber as string) || ""}
+          placeholder="e.g. Trial Chamber I"
+          onChange={(e) => updateField("chamber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-decisiontype">
+          Decision Type
+        </label>
+        <input
+          id="ic-icc-decisiontype"
+          className="ic-input"
+          type="text"
+          value={(data.decisionType as string) || ""}
+          placeholder="e.g. Judgment, Decision on Confirmation of Charges"
+          onChange={(e) => updateField("decisionType", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-date">
+          Date
+        </label>
+        <input
+          id="ic-icc-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 14 March 2012"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-icc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [125]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: WTO Document (Rule 13.1.2) ─────────────────────────────────
+
+function renderWtoDocumentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodoc-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "13.1.2" } : {})}
+            description="The title of the WTO document."
+            example="Marrakesh Agreement Establishing the World Trade Organization"
+          />
+        </label>
+        <input
+          id="ic-wtodoc-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Marrakesh Agreement..."
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodoc-docno">
+          WTO Doc Number
+        </label>
+        <input
+          id="ic-wtodoc-docno"
+          className="ic-input"
+          type="text"
+          value={(data.docNumber as string) || ""}
+          placeholder="e.g. WT/MIN(01)/DEC/1"
+          onChange={(e) => updateField("docNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodoc-date">
+          Date
+        </label>
+        <input
+          id="ic-wtodoc-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 20 November 2001"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodoc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-wtodoc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. art IV"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: WTO Decision (Rule 13.1.3) ─────────────────────────────────
+
+function renderWtoDecisionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodec-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "13.1.3" } : {})}
+            description="The short title or subject of the dispute."
+            example="Australia -- Measures Affecting Importation of Salmon"
+          />
+        </label>
+        <input
+          id="ic-wtodec-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Australia -- Measures Affecting..."
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-wtodec-complainant">
+            Complainant
+          </label>
+          <input
+            id="ic-wtodec-complainant"
+            className="ic-input"
+            type="text"
+            value={(data.complainant as string) || ""}
+            placeholder="e.g. Canada"
+            onChange={(e) => updateField("complainant", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-wtodec-respondent">
+            Respondent
+          </label>
+          <input
+            id="ic-wtodec-respondent"
+            className="ic-input"
+            type="text"
+            value={(data.respondent as string) || ""}
+            placeholder="e.g. Australia"
+            onChange={(e) => updateField("respondent", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodec-paneltype">
+          Panel/Appellate Body
+        </label>
+        <select
+          id="ic-wtodec-paneltype"
+          className="ic-select"
+          value={(data.panelType as string) || ""}
+          onChange={(e) => updateField("panelType", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="Panel">Panel</option>
+          <option value="Appellate Body">Appellate Body</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodec-docno">
+          WTO Doc Number
+        </label>
+        <input
+          id="ic-wtodec-docno"
+          className="ic-input"
+          type="text"
+          value={(data.docNumber as string) || ""}
+          placeholder="e.g. WT/DS18/AB/R"
+          onChange={(e) => updateField("docNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodec-date">
+          Date
+        </label>
+        <input
+          id="ic-wtodec-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 20 October 1998"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-wtodec-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-wtodec-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [125]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: GATT Document (Rule 13.2) ──────────────────────────────────
+
+function renderGattDocumentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-gatt-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "13.2" } : {})}
+            description="The title of the GATT document."
+            example="Japan -- Customs Duties, Taxes and Labelling Practices on Imported Wines and Alcoholic Beverages"
+          />
+        </label>
+        <input
+          id="ic-gatt-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Japan -- Customs Duties..."
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-gatt-docno">
+          GATT Doc Number
+        </label>
+        <input
+          id="ic-gatt-docno"
+          className="ic-input"
+          type="text"
+          value={(data.docNumber as string) || ""}
+          placeholder="e.g. BISD 34S/83"
+          onChange={(e) => updateField("docNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-gatt-date">
+          Date
+        </label>
+        <input
+          id="ic-gatt-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 10 November 1987"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-gatt-bisd">
+          BISD Volume (optional)
+        </label>
+        <input
+          id="ic-gatt-bisd"
+          className="ic-input"
+          type="text"
+          value={(data.bisdVolume as string) || ""}
+          placeholder="e.g. 34S"
+          onChange={(e) => updateField("bisdVolume", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-gatt-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-gatt-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 83"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: EU Official Journal (Rule 14.2.1) ──────────────────────────
+
+function renderEuOfficialJournalForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "14.2.1" } : {})}
+            description="The title of the EU legislative instrument."
+            example="Regulation (EC) No 561/2006 on the harmonisation of certain social legislation relating to road transport"
+          />
+        </label>
+        <input
+          id="ic-euoj-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Regulation (EC) No 561/2006..."
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-doctype">
+          Document Type
+        </label>
+        <select
+          id="ic-euoj-doctype"
+          className="ic-select"
+          value={(data.documentType as string) || ""}
+          onChange={(e) => updateField("documentType", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="Regulation">Regulation</option>
+          <option value="Directive">Directive</option>
+          <option value="Decision">Decision</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-number">
+          Number
+        </label>
+        <input
+          id="ic-euoj-number"
+          className="ic-input"
+          type="text"
+          value={(data.number as string) || ""}
+          placeholder="e.g. 561/2006"
+          onChange={(e) => updateField("number", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-ojseries">
+          OJ Series
+        </label>
+        <input
+          id="ic-euoj-ojseries"
+          className="ic-input"
+          type="text"
+          value={(data.ojSeries as string) || ""}
+          placeholder="e.g. OJ L 102"
+          onChange={(e) => updateField("ojSeries", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-date">
+          Date
+        </label>
+        <input
+          id="ic-euoj-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 11 April 2006"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-page">
+          Page
+        </label>
+        <input
+          id="ic-euoj-page"
+          className="ic-input"
+          type="text"
+          value={(data.page as string) || ""}
+          placeholder="e.g. 1"
+          onChange={(e) => updateField("page", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euoj-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-euoj-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. art 5"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: EU Court Decision (Rule 14.2.3) ────────────────────────────
+
+function renderEuCourtForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "14.2.3" } : {})}
+            description="The title of the EU court case. Italicised in the citation."
+            example="Van Gend en Loos v Nederlandse Administratie der Belastingen"
+          />
+        </label>
+        <input
+          id="ic-euc-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Van Gend en Loos..."
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-caseno">
+          Case Number
+        </label>
+        <input
+          id="ic-euc-caseno"
+          className="ic-input"
+          type="text"
+          value={(data.caseNumber as string) || ""}
+          placeholder="e.g. C-26/62"
+          onChange={(e) => updateField("caseNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-court">
+          Court
+        </label>
+        <select
+          id="ic-euc-court"
+          className="ic-select"
+          value={(data.court as string) || ""}
+          onChange={(e) => updateField("court", e.target.value)}
+        >
+          <option value="">Select...</option>
+          <option value="CJEU">CJEU</option>
+          <option value="General Court">General Court</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-date">
+          Date
+        </label>
+        <input
+          id="ic-euc-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 5 February 1963"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-ecr">
+          ECR Citation
+        </label>
+        <input
+          id="ic-euc-ecr"
+          className="ic-input"
+          type="text"
+          value={(data.ecrCitation as string) || ""}
+          placeholder="e.g. [1963] ECR 1"
+          onChange={(e) => updateField("ecrCitation", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-euc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-euc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 12"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: ECHR Decision (Rule 14.3.2) ────────────────────────────────
+
+function renderEchrDecisionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "14.3.2" } : {})}
+            description="The title of the ECHR case. Italicised in the citation."
+            example="Soering v United Kingdom"
+          />
+        </label>
+        <input
+          id="ic-echr-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Soering v United Kingdom"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-appno">
+          Application Number
+        </label>
+        <input
+          id="ic-echr-appno"
+          className="ic-input"
+          type="text"
+          value={(data.applicationNumber as string) || ""}
+          placeholder="e.g. 14038/88"
+          onChange={(e) => updateField("applicationNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-court">
+          Court/Chamber
+        </label>
+        <input
+          id="ic-echr-court"
+          className="ic-input"
+          type="text"
+          value={(data.court as string) || ""}
+          placeholder="e.g. Grand Chamber"
+          onChange={(e) => updateField("court", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-date">
+          Date
+        </label>
+        <input
+          id="ic-echr-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 7 July 1989"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-reports">
+          ECHR Reports
+        </label>
+        <input
+          id="ic-echr-reports"
+          className="ic-input"
+          type="text"
+          value={(data.echrReports as string) || ""}
+          placeholder="e.g. (1989) 161 Eur Court HR (ser A)"
+          onChange={(e) => updateField("echrReports", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-echr-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-echr-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [88]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: Supranational Decision (Rule 14.4) ─────────────────────────
+
+function renderSupranationalDecisionForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-casetitle">
+          Case Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "14.4" } : {})}
+            description="The title of the supranational court case. Italicised in the citation."
+            example="Velasquez Rodriguez v Honduras"
+          />
+        </label>
+        <input
+          id="ic-supd-casetitle"
+          className="ic-input"
+          type="text"
+          value={(data.caseTitle as string) || ""}
+          placeholder="e.g. Velasquez Rodriguez v Honduras"
+          onChange={(e) => updateField("caseTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-parties">
+          Parties
+        </label>
+        <input
+          id="ic-supd-parties"
+          className="ic-input"
+          type="text"
+          value={(data.parties as string) || ""}
+          placeholder="e.g. Velasquez Rodriguez, Honduras"
+          onChange={(e) => updateField("parties", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-court">
+          Court/Tribunal
+        </label>
+        <input
+          id="ic-supd-court"
+          className="ic-input"
+          type="text"
+          value={(data.court as string) || ""}
+          placeholder="e.g. Inter-American Court of Human Rights"
+          onChange={(e) => updateField("court", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-date">
+          Date
+        </label>
+        <input
+          id="ic-supd-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 29 July 1988"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-report">
+          Report Series
+        </label>
+        <input
+          id="ic-supd-report"
+          className="ic-input"
+          type="text"
+          value={(data.reportSeries as string) || ""}
+          placeholder="e.g. (Ser C) No 4"
+          onChange={(e) => updateField("reportSeries", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supd-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-supd-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [166]"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── INTL-FORMS: Supranational Document (Rule 14.5) ─────────────────────────
+
+function renderSupranationalDocumentForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supdoc-body">
+          Body
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "14.5" } : {})}
+            description="The supranational body that issued the document."
+            example="Inter-American Commission on Human Rights"
+          />
+        </label>
+        <input
+          id="ic-supdoc-body"
+          className="ic-input"
+          type="text"
+          value={(data.body as string) || ""}
+          placeholder="e.g. Inter-American Commission on Human Rights"
+          onChange={(e) => updateField("body", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supdoc-title">
+          Title
+        </label>
+        <input
+          id="ic-supdoc-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Report on the Situation of Human Rights in Brazil"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supdoc-docno">
+          Document Number
+        </label>
+        <input
+          id="ic-supdoc-docno"
+          className="ic-input"
+          type="text"
+          value={(data.documentNumber as string) || ""}
+          placeholder="e.g. OEA/Ser.L/V/II.97"
+          onChange={(e) => updateField("documentNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supdoc-date">
+          Date
+        </label>
+        <input
+          id="ic-supdoc-date"
+          className="ic-input"
+          type="text"
+          value={(data.date as string) || ""}
+          placeholder="e.g. 29 September 1997"
+          onChange={(e) => updateField("date", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-supdoc-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-supdoc-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. ch V"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+
+function renderJournalOnlineForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "5.10" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jo-title">
+          Article Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.10" } : {})}
+            description="The title of the online journal article, enclosed in single quotation marks."
+            example="'Digital Rights in the Modern Era'"
+          />
+        </label>
+        <input
+          id="ic-jo-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Digital Rights in the Modern Era"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jo-journal">
+          Journal Name
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.10" } : {})}
+            description="The name of the online journal. Italicised in the citation."
+            example="Journal of Law and Technology"
+          />
+        </label>
+        <input
+          id="ic-jo-journal"
+          className="ic-input"
+          type="text"
+          value={(data.journal as string) || ""}
+          placeholder="e.g. Journal of Law and Technology"
+          onChange={(e) => updateField("journal", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jo-url">
+          URL
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.10" } : {})}
+            description="The URL where the article can be accessed."
+            example="https://example.com/article"
+          />
+        </label>
+        <input
+          id="ic-jo-url"
+          className="ic-input"
+          type="text"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://example.com/article"
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-jo-date-accessed">
+            Date Accessed
+          </label>
+          <input
+            id="ic-jo-date-accessed"
+            className="ic-input"
+            type="text"
+            value={(data.dateAccessed as string) || ""}
+            placeholder="e.g. 15 March 2024"
+            onChange={(e) => updateField("dateAccessed", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-jo-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-jo-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 5"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Journal Forthcoming Form (Rule 5.11) ─────────────────────────────────────
+
+function renderJournalForthcomingForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "5.11" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jf-title">
+          Article Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.11" } : {})}
+            description="The title of the forthcoming article, enclosed in single quotation marks."
+            example="'The Future of Administrative Law'"
+          />
+        </label>
+        <input
+          id="ic-jf-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Future of Administrative Law"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jf-journal">
+          Journal Name
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.11" } : {})}
+            description="The name of the journal. Italicised in the citation."
+            example="Sydney Law Review"
+          />
+        </label>
+        <input
+          id="ic-jf-journal"
+          className="ic-input"
+          type="text"
+          value={(data.journal as string) || ""}
+          placeholder="e.g. Sydney Law Review"
+          onChange={(e) => updateField("journal", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-jf-year">
+            Year
+          </label>
+          <input
+            id="ic-jf-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2025"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-jf-volume">
+            Volume
+          </label>
+          <input
+            id="ic-jf-volume"
+            className="ic-input"
+            type="text"
+            value={(data.volume as string) || ""}
+            placeholder="e.g. 47"
+            onChange={(e) => updateField("volume", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jf-forthcoming-note">
+          Forthcoming Note
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "5.11" } : {})}
+            description="Label indicating the article is forthcoming, e.g. 'forthcoming'."
+            example="forthcoming"
+          />
+        </label>
+        <input
+          id="ic-jf-forthcoming-note"
+          className="ic-input"
+          type="text"
+          value={(data.forthcomingNote as string) || "forthcoming"}
+          placeholder="e.g. forthcoming"
+          onChange={(e) => updateField("forthcomingNote", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-jf-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-jf-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 15"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Book Chapter Form (Rule 6.6.1) ───────────────────────────────────────────
+
+function renderBookChapterForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "6.6.1" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bc-chapter-title">
+          Chapter Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.6.1" } : {})}
+            description="The title of the chapter, enclosed in single quotation marks."
+            example="'The Separation of Powers'"
+          />
+        </label>
+        <input
+          id="ic-bc-chapter-title"
+          className="ic-input"
+          type="text"
+          value={(data.chapterTitle as string) || ""}
+          placeholder="e.g. The Separation of Powers"
+          onChange={(e) => updateField("chapterTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bc-editors">
+          Editors
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.6.1" } : {})}
+            description="The editor(s) of the book containing the chapter."
+            example="Michael Coper and George Williams"
+          />
+        </label>
+        <input
+          id="ic-bc-editors"
+          className="ic-input"
+          type="text"
+          value={(data.editors as string) || ""}
+          placeholder="e.g. Michael Coper and George Williams"
+          onChange={(e) => updateField("editors", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bc-book-title">
+          Book Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.6.1" } : {})}
+            description="The title of the book. Italicised in the citation."
+            example="The Oxford Handbook of Australian Politics"
+          />
+        </label>
+        <input
+          id="ic-bc-book-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Oxford Handbook of Australian Politics"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bc-publisher">
+          Publisher
+        </label>
+        <input
+          id="ic-bc-publisher"
+          className="ic-input"
+          type="text"
+          value={(data.publisher as string) || ""}
+          placeholder="e.g. Oxford University Press"
+          onChange={(e) => updateField("publisher", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bc-edition">
+            Edition
+          </label>
+          <input
+            id="ic-bc-edition"
+            className="ic-input"
+            type="text"
+            value={(data.edition as string) || ""}
+            placeholder="e.g. 2nd"
+            onChange={(e) => updateField("edition", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bc-year">
+            Year
+          </label>
+          <input
+            id="ic-bc-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2018"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bc-start-page">
+            Starting Page
+          </label>
+          <input
+            id="ic-bc-start-page"
+            className="ic-input"
+            type="text"
+            value={(data.startingPage as string) || ""}
+            placeholder="e.g. 101"
+            onChange={(e) => updateField("startingPage", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bc-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-bc-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 115"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Book Translated Form (Rule 6.7) ──────────────────────────────────────────
+
+function renderBookTranslatedForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "6.7" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bt-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.7" } : {})}
+            description="The title of the translated book. Italicised in the citation."
+            example="The Social Contract"
+          />
+        </label>
+        <input
+          id="ic-bt-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Social Contract"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bt-translator">
+          Translator(s)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.7" } : {})}
+            description="The translator(s) of the work, preceded by 'tr'."
+            example="Maurice Cranston"
+          />
+        </label>
+        <input
+          id="ic-bt-translator"
+          className="ic-input"
+          type="text"
+          value={(data.translator as string) || ""}
+          placeholder="e.g. Maurice Cranston"
+          onChange={(e) => updateField("translator", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bt-publisher">
+          Publisher
+        </label>
+        <input
+          id="ic-bt-publisher"
+          className="ic-input"
+          type="text"
+          value={(data.publisher as string) || ""}
+          placeholder="e.g. Penguin Books"
+          onChange={(e) => updateField("publisher", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bt-edition">
+            Edition
+          </label>
+          <input
+            id="ic-bt-edition"
+            className="ic-input"
+            type="text"
+            value={(data.edition as string) || ""}
+            placeholder="e.g. 2nd"
+            onChange={(e) => updateField("edition", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-bt-year">
+            Year
+          </label>
+          <input
+            id="ic-bt-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 1968"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-bt-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-bt-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Book Audiobook Form (Rule 6.9) ───────────────────────────────────────────
+
+function renderBookAudiobookForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "6.9" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ba-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.9" } : {})}
+            description="The title of the audiobook. Italicised in the citation."
+            example="To Kill a Mockingbird"
+          />
+        </label>
+        <input
+          id="ic-ba-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. To Kill a Mockingbird"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ba-narrator">
+          Narrator
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.9" } : {})}
+            description="The narrator of the audiobook."
+            example="Sissy Spacek"
+          />
+        </label>
+        <input
+          id="ic-ba-narrator"
+          className="ic-input"
+          type="text"
+          value={(data.narrator as string) || ""}
+          placeholder="e.g. Sissy Spacek"
+          onChange={(e) => updateField("narrator", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ba-publisher">
+          Publisher
+        </label>
+        <input
+          id="ic-ba-publisher"
+          className="ic-input"
+          type="text"
+          value={(data.publisher as string) || ""}
+          placeholder="e.g. HarperAudio"
+          onChange={(e) => updateField("publisher", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ba-year">
+            Year
+          </label>
+          <input
+            id="ic-ba-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2006"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ba-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-ba-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. ch 5"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Foreign Jurisdiction Form (Rules 15–26) ──────────────────────────────────
+
+function renderForeignForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  countryLabel: string,
+  ruleNumber: string,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-fgn-subtype">
+          Source Sub-Type
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber } : {})}
+            description={`The type of ${countryLabel} source being cited.`}
+            example="Case, Legislation, or Secondary Source"
+          />
+        </label>
+        <select
+          id="ic-fgn-subtype"
+          className="ic-input"
+          value={(data.foreignSubType as string) || ""}
+          onChange={(e) => updateField("foreignSubType", e.target.value)}
+        >
+          <option value="">-- Select sub-type --</option>
+          <option value="case">Case</option>
+          <option value="legislation">Legislation</option>
+          <option value="secondary">Secondary Source</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-fgn-title">
+          Party / Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber } : {})}
+            description="The case name, legislation title, or source title."
+            example="Smith v Jones"
+          />
+        </label>
+        <input
+          id="ic-fgn-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Smith v Jones"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-fgn-citation-details">
+          Citation Details
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber } : {})}
+            description="The full citation details including report series, volume, page numbers, or other identifying information as required by the jurisdiction's citation conventions."
+            example="[2020] UKSC 5"
+          />
+        </label>
+        <input
+          id="ic-fgn-citation-details"
+          className="ic-input"
+          type="text"
+          value={(data.citationDetails as string) || ""}
+          placeholder="e.g. [2020] UKSC 5"
+          onChange={(e) => updateField("citationDetails", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-fgn-court">
+            Court / Body
+          </label>
+          <input
+            id="ic-fgn-court"
+            className="ic-input"
+            type="text"
+            value={(data.court as string) || ""}
+            placeholder="e.g. Supreme Court"
+            onChange={(e) => updateField("court", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-fgn-year">
+            Year
+          </label>
+          <input
+            id="ic-fgn-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2020"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-fgn-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-fgn-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. [42]"
           onChange={(e) => updateField("pinpoint", e.target.value)}
         />
       </div>
