@@ -262,6 +262,7 @@ export interface StoreMetadata {
   writingMode?: "academic" | "court"; // MULTI-014 — defaults to "academic" if missing
   courtJurisdiction?: string; // COURT-002 — CourtJurisdiction ID, present when writingMode is "court"
   headingListId?: number; // Persisted Word multilevel list ID for heading numbering
+  ccModel?: "flat" | "parent-child"; // FN-005: content control model version (defaults to "flat" for backward compat)
 }
 
 // ─── Store Shape (deserialized) ───────────────────────────────────────────────

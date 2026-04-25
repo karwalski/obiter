@@ -83,13 +83,15 @@ export function serializeStore(
   courtJurisdiction?: string,
   headingListId?: number,
   generatorVersion?: string,
+  ccModel?: "flat" | "parent-child",
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   const courtAttr = courtJurisdiction ? ` courtJurisdiction="${escapeXml(courtJurisdiction)}"` : "";
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
+  const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}>`,
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}${ccModelAttr}>`,
   );
 
   // INFRA-008 Layer 2: generator element
@@ -187,6 +189,10 @@ export function deserializeStore(xml: string): CitationStoreData {
   const headingListIdMatch = xml.match(/<obiter:citationStore[^>]*\sheadingListId="(\d+)"/);
   const headingListId = headingListIdMatch ? parseInt(headingListIdMatch[1], 10) : undefined;
 
+  // FN-005: Extract ccModel attribute (optional — defaults to undefined / "flat")
+  const ccModelMatch = xml.match(/<obiter:citationStore[^>]*\sccModel="([^"]*)"/);
+  const ccModel = ccModelMatch ? ccModelMatch[1] as "flat" | "parent-child" : undefined;
+
   // INFRA-008 Layer 2: read generator element for migration detection
   let generator: GeneratorInfo | undefined;
   const generatorMatch = xml.match(/<obiter:generator\s([^/]*)\s*\/>/);
@@ -215,6 +221,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       writingMode,
       courtJurisdiction,
       headingListId,
+      ccModel,
     },
     generator,
     citations,

@@ -224,6 +224,24 @@ export class CitationStore {
   }
 
   /**
+   * Return the current content control model version (FN-005).
+   * Returns undefined for legacy documents (treated as "flat").
+   */
+  getCcModel(): "flat" | "parent-child" | undefined {
+    this.ensureInitialised();
+    return this.storeData!.metadata.ccModel;
+  }
+
+  /**
+   * Update the content control model version and persist (FN-005).
+   */
+  async setCcModel(model: "flat" | "parent-child"): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.ccModel = model;
+    await this.persist();
+  }
+
+  /**
    * Return a snapshot of the store metadata.
    */
   getMetadata(): StoreMetadata {
@@ -248,6 +266,7 @@ export class CitationStore {
       this.storeData!.metadata.courtJurisdiction,
       this.storeData!.metadata.headingListId,
       APP_VERSION,
+      this.storeData!.metadata.ccModel,
     );
 
     await Word.run(async (context) => {
