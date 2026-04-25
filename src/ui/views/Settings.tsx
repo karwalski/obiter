@@ -137,7 +137,7 @@ export default function Settings(): JSX.Element {
     ibidSuppression: "on",
     loaType: "part-ab",
   });
-  const { autoRefreshEnabled: _are, setAutoRefreshEnabled } = useCitationContext();
+  const { autoRefreshEnabled: _are, setAutoRefreshEnabled, triggerRefresh } = useCitationContext();
   const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
   const [debugLogs, setDebugLogs] = useState<ReturnType<typeof getLogHistory>>([]);
@@ -305,11 +305,12 @@ export default function Settings(): JSX.Element {
           setDevicePref("courtToggles", undefined);
         }
       }
+      triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save standard";
       setError(message);
     }
-  }, [standardId]);
+  }, [standardId, triggerRefresh]);
 
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {
@@ -323,11 +324,12 @@ export default function Settings(): JSX.Element {
         await store.setCourtJurisdiction(undefined);
         setDevicePref("courtToggles", undefined);
       }
+      triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save writing mode";
       setError(message);
     }
-  }, []);
+  }, [triggerRefresh]);
 
   const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
     try {
