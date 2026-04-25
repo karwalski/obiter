@@ -11,7 +11,9 @@ import {
   generateBibliographyForStandard,
   BibliographySection,
 } from "../../engine/rules/v4/general/bibliography";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import type { LoaType } from "../../engine/standards";
+import { getDevicePref } from "../../store/devicePreferences";
 
 // ─── FormattedRun Renderer ──────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ export default function Bibliography(): JSX.Element {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [bibStructure, setBibStructure] = useState<"aglc" | "oscola" | "nzlsg">("aglc");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
+  const [loaType, setLoaType] = useState<LoaType>("simple");
 
   // Load citations from the store on mount
   useEffect(() => {
@@ -131,9 +134,26 @@ export default function Bibliography(): JSX.Element {
         const all = store.getAll();
         if (!cancelled) {
           setCitations(all);
-          const stdConfig = getStandardConfig(store.getStandardId());
-          setBibStructure(stdConfig.bibliographyStructure);
-          setWritingMode(store.getWritingMode());
+          const baseConfig = getStandardConfig(store.getStandardId());
+          const mode = store.getWritingMode();
+          setBibStructure(baseConfig.bibliographyStructure);
+          setWritingMode(mode);
+
+          // COURT-FIX-005: Load court toggles and build config to get loaType
+          if (mode === "court") {
+            const courtToggles = {
+              parallelCitations: getDevicePref("court.parallelCitations") as string | undefined,
+              pinpointStyle: getDevicePref("court.pinpointStyle") as string | undefined,
+              unreportedGate: getDevicePref("court.unreportedGate") as string | undefined,
+              ibidSuppression: getDevicePref("court.ibidSuppression") as string | undefined,
+              loaType: getDevicePref("court.loaType") as string | undefined,
+            };
+            const courtConfig = buildCourtConfig(
+              { ...baseConfig, writingMode: mode },
+              courtToggles,
+            );
+            setLoaType(courtConfig.loaType);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -163,9 +183,10 @@ export default function Bibliography(): JSX.Element {
   }, [citations, citedOnly]);
 
   // Generate bibliography or List of Authorities from filtered citations
+  // COURT-FIX-005: Pass loaType to control LoA format in court mode
   const sections = useMemo(
-    () => generateBibliographyForStandard(filteredCitations, bibStructure, writingMode),
-    [filteredCitations, bibStructure, writingMode]
+    () => generateBibliographyForStandard(filteredCitations, bibStructure, writingMode, loaType),
+    [filteredCitations, bibStructure, writingMode, loaType]
   );
 
   const handleInsert = useCallback(async () => {
@@ -205,6 +226,16 @@ export default function Bibliography(): JSX.Element {
       <div>
         <h2>{getBibliographyHeading(writingMode, bibStructure)}</h2>
         <p>No citations to generate a {getBibliographyHeading(writingMode, bibStructure).toLowerCase()} from.</p>
+      </div>
+    );
+  }
+
+  // COURT-FIX-005: When LoA is disabled, show a message instead of the generator.
+  if (writingMode === "court" && loaType === "off") {
+    return (
+      <div className="bib-view">
+        <h2>{getBibliographyHeading(writingMode, bibStructure)}</h2>
+        <p>List of Authorities generation is disabled. Change the LoA format in court settings to enable it.</p>
       </div>
     );
   }

@@ -569,8 +569,8 @@ export function resolveSubsequentReference(
   }
 
   const config = context.config;
-  // MULTI-014: Court mode always disables ibid
-  const ibidEnabled = config?.writingMode === "court" ? false : (config?.ibidEnabled ?? true);
+  // COURT-FIX-004: ibidSuppressionMode toggle controls ibid instead of hardcoded court check
+  const ibidEnabled = config?.ibidSuppressionMode === "on" ? false : (config?.ibidEnabled ?? true);
 
   // Explicit format preferences override auto logic
   if (context.formatPreference !== "auto") {

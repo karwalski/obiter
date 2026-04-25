@@ -8,6 +8,7 @@ import { validateDocument, checkOscolaRules, checkNzlsgRules, ValidationIssue } 
 import { getSharedStore } from "../../store/singleton";
 import { ValidationResult } from "../../engine/validator";
 import type { CitationStandardId } from "../../engine/standards/types";
+import { getStandardConfig } from "../../engine/standards";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
 import CheckReference from "../components/CheckReference";
 
@@ -143,7 +144,12 @@ export default function Validation(): JSX.Element {
       // Run validation (including body text for footnote position checks)
       const currentWritingMode = store.getWritingMode();
       const currentStandardId: CitationStandardId = store.getStandardId();
-      const validationResult = validateDocument(footnoteTexts, citations, bodyText, currentWritingMode);
+      const currentConfig = getStandardConfig(currentStandardId);
+      const validationResult = validateDocument(
+        footnoteTexts, citations, bodyText, currentWritingMode,
+        undefined, currentConfig.parallelCitationMode,
+        currentConfig.ibidSuppressionMode,
+      );
 
       // Run standard-specific validation rules
       if (currentStandardId.startsWith("oscola")) {

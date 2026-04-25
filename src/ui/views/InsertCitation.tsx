@@ -6,7 +6,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import type { CitationStandardId } from "../../engine/standards";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getDevicePref } from "../../store/devicePreferences";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
@@ -30,7 +31,6 @@ import {
   type SubsequentTreatment,
   SUBSEQUENT_TREATMENT_OPTIONS,
   NEGATIVE_TREATMENTS,
-  UNREPORTED_GATE_JURISDICTIONS,
   QLD_JURISDICTIONS,
   NSW_JURISDICTIONS,
   VIC_JURISDICTIONS,
@@ -651,8 +651,16 @@ export default function InsertCitation(): JSX.Element {
   );
 
   // ─── Derived court mode flags ──────────────────────────────────────────
+  // COURT-FIX-006: Build court config from device preferences so that the
+  // unreported gate reads the toggle value (which may be user-overridden)
+  // instead of the hardcoded jurisdiction set.
+  const courtConfig = useMemo(() => {
+    const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+    return buildCourtConfig(getStandardConfig(standardId), courtToggles);
+  }, [standardId]);
+
   const isUnreportedGateActive = courtJurisdiction !== null &&
-    UNREPORTED_GATE_JURISDICTIONS.has(courtJurisdiction);
+    courtConfig.unreportedGateMode === "warn";
   const isQldMode = courtJurisdiction !== null &&
     QLD_JURISDICTIONS.has(courtJurisdiction);
   const isNswMode = courtJurisdiction !== null &&
@@ -715,7 +723,7 @@ export default function InsertCitation(): JSX.Element {
       // rescan footnotes in document order and assign the correct format
       // (full for earliest, short/ibid for subsequent) regardless of where
       // the cursor is positioned relative to existing occurrences.
-      const runs = getFormattedPreview(citation);
+      const runs = getFormattedPreview(citation, courtConfig);
 
       const title = citation.shortTitle || getCitationLabel(citation);
       await insertCitationFootnote(citation.id, title, runs);
@@ -726,7 +734,7 @@ export default function InsertCitation(): JSX.Element {
       const message = err instanceof Error ? err.message : "Failed to re-insert citation";
       setFeedback({ type: "error", message });
     }
-  }, [triggerRefresh]);
+  }, [triggerRefresh, courtConfig]);
 
   // ─── Field Updater ──────────────────────────────────────────────────────
 
@@ -1017,8 +1025,8 @@ export default function InsertCitation(): JSX.Element {
       commentaryBefore,
       commentaryAfter,
     );
-    return getFormattedPreview(previewCitation);
-  }, [selectedSourceType, formData, shortTitle, signal, commentaryBefore, commentaryAfter]);
+    return getFormattedPreview(previewCitation, courtConfig);
+  }, [selectedSourceType, formData, shortTitle, signal, commentaryBefore, commentaryAfter, courtConfig]);
 
   // ─── Insert Handler ─────────────────────────────────────────────────────
 
@@ -1091,14 +1099,14 @@ export default function InsertCitation(): JSX.Element {
         // rescan footnotes in document order and assign the correct format
         // (full for earliest, short/ibid for subsequent) regardless of where
         // the cursor is positioned relative to existing occurrences.
-        runsToInsert = getFormattedPreview(existingMatch);
+        runsToInsert = getFormattedPreview(existingMatch, courtConfig);
 
         // Don't add duplicate to store; use existing citation ID for the footnote
         const existingTitle = shortTitle || existingMatch.shortTitle || existingMatch.sourceType;
         await insertCitationFootnote(existingMatch.id, existingTitle, runsToInsert, appendIndex);
       } else {
         // First citation of this source — use full format from the engine
-        runsToInsert = getFormattedPreview(citation);
+        runsToInsert = getFormattedPreview(citation, courtConfig);
 
         await store.add(citation);
 
@@ -1130,7 +1138,7 @@ export default function InsertCitation(): JSX.Element {
     } finally {
       setInserting(false);
     }
-  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex]);
+  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex, courtConfig]);
 
   // ─── Available sub-types for selected category ──────────────────────────
 

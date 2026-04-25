@@ -10,7 +10,10 @@
  * standards for use in the UI and engine.
  */
 
-export type { CitationStandardId, CitationConfig, WritingMode } from "./types";
+export type {
+  CitationStandardId, CitationConfig, WritingMode,
+  ParallelCitationMode, IbidSuppressionMode, UnreportedGateMode, LoaType,
+} from "./types";
 export { STANDARD_PROFILES, type StandardProfile } from "./profiles";
 
 import type { CitationConfig, CitationStandardId } from "./types";
@@ -49,4 +52,34 @@ export function getStandardConfig(id: CitationStandardId): CitationConfig {
     return STANDARD_PROFILES.aglc4.config;
   }
   return profile.config;
+}
+
+/**
+ * COURT-FIX-001: Build a CitationConfig with court toggle overrides applied.
+ *
+ * Reads the court toggles (typically from devicePreferences) and merges them
+ * into the base standard config. If no court toggles are provided, or if
+ * writingMode is "academic", returns the base config unchanged.
+ */
+export function buildCourtConfig(
+  baseConfig: CitationConfig,
+  courtToggles?: {
+    parallelCitations?: string;
+    pinpointStyle?: string;
+    unreportedGate?: string;
+    ibidSuppression?: string;
+    loaType?: string;
+  },
+): CitationConfig {
+  if (!courtToggles || baseConfig.writingMode !== "court") {
+    return baseConfig;
+  }
+  return {
+    ...baseConfig,
+    pinpointStyle: (courtToggles.pinpointStyle as CitationConfig["pinpointStyle"]) ?? baseConfig.pinpointStyle,
+    parallelCitationMode: (courtToggles.parallelCitations as CitationConfig["parallelCitationMode"]) ?? baseConfig.parallelCitationMode,
+    ibidSuppressionMode: (courtToggles.ibidSuppression as CitationConfig["ibidSuppressionMode"]) ?? baseConfig.ibidSuppressionMode,
+    unreportedGateMode: (courtToggles.unreportedGate as CitationConfig["unreportedGateMode"]) ?? baseConfig.unreportedGateMode,
+    loaType: (courtToggles.loaType as CitationConfig["loaType"]) ?? baseConfig.loaType,
+  };
 }

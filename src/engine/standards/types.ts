@@ -31,6 +31,18 @@ export type WritingMode = "academic" | "court";
  */
 export type PinpointStyle = "page-only" | "para-only" | "para-and-page";
 
+/** COURT-FIX: Parallel citation enforcement mode. */
+export type ParallelCitationMode = "off" | "preferred" | "mandatory";
+
+/** COURT-FIX: Ibid suppression mode. */
+export type IbidSuppressionMode = "off" | "on";
+
+/** COURT-FIX: Unreported judgment gate mode. */
+export type UnreportedGateMode = "off" | "warn";
+
+/** COURT-FIX: List of Authorities format. */
+export type LoaType = "off" | "simple" | "part-ab";
+
 export interface CitationConfig {
   standardId: CitationStandardId;
   standardLabel: string;          // "AGLC4", "OSCOLA 5", "NZLSG 3"
@@ -45,11 +57,6 @@ export interface CitationConfig {
   /**
    * MULTI-014: Writing mode — "academic" (default) for standard footnote
    * citations, "court" for practitioner court submissions.
-   *
-   * Court mode disables ibid, uses short case name without (n X)
-   * cross-references, emits parallel citations by default, generates
-   * a List of Authorities instead of a bibliography, and suppresses
-   * AGLC4 heading styles.
    */
   writingMode: WritingMode;
   /**
@@ -57,4 +64,22 @@ export interface CitationConfig {
    * case citations. Defaults to "page-only" for academic mode.
    */
   pinpointStyle: PinpointStyle;
+  /**
+   * COURT-FIX: Parallel citation enforcement. Only applies in court mode.
+   * "mandatory" = validation error if missing, "preferred" = validation warning.
+   */
+  parallelCitationMode: ParallelCitationMode;
+  /**
+   * COURT-FIX: Whether ibid is suppressed in court mode. "on" = suppress ibid,
+   * "off" = allow ibid even in court mode.
+   */
+  ibidSuppressionMode: IbidSuppressionMode;
+  /**
+   * COURT-FIX: Whether to warn when citing unreported judgments in court mode.
+   */
+  unreportedGateMode: UnreportedGateMode;
+  /**
+   * COURT-FIX: List of Authorities format in court mode bibliography.
+   */
+  loaType: LoaType;
 }

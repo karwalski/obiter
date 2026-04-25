@@ -18,7 +18,8 @@ import type { Citation, SourceType } from "../../types/citation";
 import { useCitationContext } from "../context/CitationContext";
 import CitationFinder from "../components/CitationFinder";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getDevicePref } from "../../store/devicePreferences";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -418,9 +419,11 @@ export default function CitationLibrary(): JSX.Element {
           precedingCitations.length === 1 &&
           precedingCitations[0].citationId === citation.id;
 
+        const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+        const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
         let runs;
         if (mode === "full" || isFirst) {
-          runs = getFormattedPreview(citation);
+          runs = getFormattedPreview(citation, courtConfig);
         } else {
           const ctx: CitationContext = {
             footnoteNumber: totalFootnotes + 1,
@@ -434,8 +437,8 @@ export default function CitationLibrary(): JSX.Element {
             isWithinSameFootnote: false,
             formatPreference: mode,
           };
-          const result = formatCitation(citation, ctx);
-          runs = result ?? getFormattedPreview(citation);
+          const result = formatCitation(citation, ctx, courtConfig);
+          runs = result ?? getFormattedPreview(citation, courtConfig);
         }
 
         const title = citation.shortTitle || getCitationLabel(citation);
@@ -457,7 +460,7 @@ export default function CitationLibrary(): JSX.Element {
         setInsertMenuId(null);
       }
     },
-    [pinpointInput, triggerRefresh],
+    [pinpointInput, triggerRefresh, standardId],
   );
 
   const handleDelete = useCallback(

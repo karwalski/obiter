@@ -35,6 +35,7 @@ const AGLC4_ACADEMIC: CitationConfig = {
 const AGLC4_COURT: CitationConfig = {
   ...STANDARD_PROFILES.aglc4.config,
   writingMode: "court",
+  ibidSuppressionMode: "on",
 };
 
 const mockCase: Citation = {
@@ -284,9 +285,10 @@ describe("MULTI-014: Court Mode — Config", () => {
   });
 
   test("court config overrides ibid even when standard enables it", () => {
-    // AGLC4 has ibidEnabled: true, but court mode should override
+    // AGLC4 has ibidEnabled: true, but ibidSuppressionMode: "on" overrides
     expect(AGLC4_COURT.ibidEnabled).toBe(true); // profile still says true
-    // The resolver reads writingMode to override — tested above
+    expect(AGLC4_COURT.ibidSuppressionMode).toBe("on"); // toggle controls suppression
+    // The resolver reads ibidSuppressionMode to override — tested above
   });
 
   test("all standard profiles default to page-only pinpoint style", () => {
@@ -434,6 +436,7 @@ describe("COURT-005: Pinpoint Style — engine dispatch integration", () => {
   const makeCourtConfig = (pinpointStyle: PinpointStyle): CitationConfig => ({
     ...STANDARD_PROFILES.aglc4.config,
     writingMode: "court",
+    ibidSuppressionMode: "on",
     pinpointStyle,
   });
 

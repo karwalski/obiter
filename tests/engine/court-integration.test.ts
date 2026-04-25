@@ -56,6 +56,7 @@ import type { Citation, Pinpoint } from "../../src/types/citation";
 const AGLC4_COURT: CitationConfig = {
   ...STANDARD_PROFILES.aglc4.config,
   writingMode: "court",
+  ibidSuppressionMode: "on",
 };
 
 const AGLC4_ACADEMIC: CitationConfig = {
@@ -66,6 +67,7 @@ const AGLC4_ACADEMIC: CitationConfig = {
 const makeCourtConfig = (pinpointStyle: PinpointStyle): CitationConfig => ({
   ...STANDARD_PROFILES.aglc4.config,
   writingMode: "court",
+  ibidSuppressionMode: "on",
   pinpointStyle,
 });
 

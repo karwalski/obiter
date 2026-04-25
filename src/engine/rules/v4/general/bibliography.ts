@@ -5,7 +5,7 @@
 
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
-import type { CitationConfig, WritingMode } from "../../../standards/types";
+import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import {
   generateTableOfCases,
   generateTableOfLegislation,
@@ -1249,15 +1249,49 @@ export function generateLoaWithOptions(
  * @param citations - All citations referenced in the document.
  * @param structure - The bibliography structure to use: "aglc", "oscola", or "nzlsg".
  * @param writingMode - Optional writing mode; "court" generates a List of Authorities.
+ * @param loaType - Optional LoA format for court mode: "off" (no LoA), "simple"
+ *   (flat list), or "part-ab" (Part A / Part B split). Defaults to "simple".
  * @returns An array of BibliographySection objects appropriate to the standard/mode.
  */
 export function generateBibliographyForStandard(
   citations: Citation[],
   structure: CitationConfig["bibliographyStructure"],
   writingMode?: WritingMode,
+  loaType?: LoaType,
 ): BibliographySection[] {
-  // MULTI-014: Court mode generates List of Authorities
+  // MULTI-014 + COURT-FIX-005: Court mode generates List of Authorities
+  // controlled by the loaType toggle.
   if (writingMode === "court") {
+    const effectiveLoaType = loaType ?? "simple";
+
+    if (effectiveLoaType === "off") {
+      return [];
+    }
+
+    if (effectiveLoaType === "part-ab") {
+      const abResult = generatePartABListOfAuthorities(citations);
+      const combined: BibliographySection[] = [];
+
+      if (abResult.partA.length > 0) {
+        combined.push({
+          heading: "Part A \u2014 Authorities from which passages are to be read",
+          entries: [],
+        });
+        combined.push(...abResult.partA);
+      }
+
+      if (abResult.partB.length > 0) {
+        combined.push({
+          heading: "Part B \u2014 Authorities to which reference may be made",
+          entries: [],
+        });
+        combined.push(...abResult.partB);
+      }
+
+      return combined;
+    }
+
+    // Default: "simple" — flat list of authorities
     return generateListOfAuthorities(citations);
   }
 

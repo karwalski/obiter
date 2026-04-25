@@ -33,6 +33,10 @@ const AGLC4_CONFIG: CitationConfig = {
   bibliographyStructure: "aglc",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── AGLC5 (placeholder) ────────────────────────────────────────────────────
@@ -50,6 +54,10 @@ const AGLC5_CONFIG: CitationConfig = {
   bibliographyStructure: "aglc",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── OSCOLA 5 ────────────────────────────────────────────────────────────────
@@ -67,6 +75,10 @@ const OSCOLA5_CONFIG: CitationConfig = {
   bibliographyStructure: "oscola",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── OSCOLA 4 (OSC-ENH-007: delta audit from OSCOLA 5) ─────────────────────
@@ -123,6 +135,10 @@ const OSCOLA4_CONFIG: CitationConfig = {
   bibliographyStructure: "oscola",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── NZLSG 3 ─────────────────────────────────────────────────────────────────
@@ -140,6 +156,10 @@ const NZLSG3_CONFIG: CitationConfig = {
   bibliographyStructure: "nzlsg",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── NZLSG 4 (placeholder) ──────────────────────────────────────────────────
@@ -166,6 +186,10 @@ const NZLSG4_CONFIG: CitationConfig = {
   bibliographyStructure: "nzlsg",
   writingMode: "academic",
   pinpointStyle: "page-only",
+  parallelCitationMode: "off",
+  ibidSuppressionMode: "off",
+  unreportedGateMode: "off",
+  loaType: "off",
 };
 
 // ─── Registry ────────────────────────────────────────────────────────────────

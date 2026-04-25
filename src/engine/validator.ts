@@ -10,7 +10,7 @@ import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punc
 import { checkDateFormatting } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
 import { COURT_IDENTIFIERS } from "./data/court-identifiers";
-import type { WritingMode } from "./standards/types";
+import type { WritingMode, ParallelCitationMode as ConfigParallelCitationMode, IbidSuppressionMode } from "./standards/types";
 import {
   type CourtJurisdiction as PresetCourtJurisdiction,
   QLD_JURISDICTIONS,
@@ -100,9 +100,14 @@ export function validateDocument(
   bodyText?: string,
   writingMode?: WritingMode,
   courtJurisdiction?: string,
+  parallelCitationMode?: ConfigParallelCitationMode,
+  ibidSuppressionMode?: IbidSuppressionMode,
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
   const isCourtMode = writingMode === "court";
+  // COURT-FIX-004: Use ibidSuppressionMode toggle instead of hardcoded court check.
+  // Falls back to court mode check for backward compatibility when toggle not provided.
+  const ibidSuppressed = ibidSuppressionMode ? ibidSuppressionMode === "on" : isCourtMode;
 
   // Footnote-level checks
   for (let i = 0; i < footnoteTexts.length; i++) {
@@ -112,8 +117,8 @@ export function validateDocument(
   }
 
   // Cross-footnote checks
-  // MULTI-014: Court mode skips ibid correctness (ibid is never used)
-  if (!isCourtMode) {
+  // COURT-FIX-004: Skip ibid correctness when ibid is suppressed (toggle-driven)
+  if (!ibidSuppressed) {
     allIssues.push(...checkIbidCorrectness(footnoteTexts));
   }
   allIssues.push(...checkCrossReferences(footnoteTexts));
@@ -133,6 +138,13 @@ export function validateDocument(
   // emitted by default and are expected in court submissions)
   if (!isCourtMode) {
     allIssues.push(...checkParallelCitations(citations));
+  }
+
+  // COURT-FIX-003: Parallel citation enforcement based on config
+  if (parallelCitationMode && parallelCitationMode !== "off") {
+    allIssues.push(
+      ...checkParallelCitationEnforcement(citations, parallelCitationMode),
+    );
   }
 
   // COURT-010: Queensland subsequent-treatment validation
@@ -902,13 +914,63 @@ export function checkParallelCitations(
   return issues;
 }
 
+// ─── COURT-FIX-003: Parallel citation enforcement ─────────────────────────
+
+/**
+ * Checks that `case.reported` citations include parallel citations when the
+ * configured parallel citation mode requires or prefers them.
+ *
+ * - `"mandatory"`: emits an **error** for each reported case missing parallel
+ *   citation data.
+ * - `"preferred"`: emits a **warning** for the same condition.
+ * - `"off"`: caller should not invoke this function (no-op guard included).
+ *
+ * @remarks AGLC4 Rule 2.2.7 — Parallel citations; court practice directions.
+ */
+export function checkParallelCitationEnforcement(
+  citations: Citation[],
+  mode: ConfigParallelCitationMode,
+): ValidationIssue[] {
+  if (mode === "off") {
+    return [];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const severity = mode === "mandatory" ? "error" : "warning";
+
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.reported") {
+      continue;
+    }
+
+    const label = citation.shortTitle || citation.id;
+    const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
+    const hasParallels = Array.isArray(parallels) && parallels.length > 0;
+
+    if (!hasParallels) {
+      issues.push({
+        ruleNumber: "2.2.7",
+        message:
+          `Case '${label}': Parallel citations ${mode === "mandatory" ? "required" : "recommended"} ` +
+          `for reported cases but none are recorded`,
+        severity,
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
 // ─── COURT-VALID-001 / COURT-VALID-003: Court mode validation ──────────────
 
 /**
- * Jurisdictions where the unreported judgment gate applies.
- * Source: NSW SC Gen 20 cl 5, Qld SC PD 1/2024 cl 4(d), Tas SC PD 3/2014.
+ * @deprecated COURT-FIX-006: Unreported gate is now driven by
+ * CourtModeConfig.unreportedGate (from court toggles / user override).
+ * Retained for reference only — not used in validation logic.
  */
-const UNREPORTED_GATE_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set([
+const _UNREPORTED_GATE_JURISDICTIONS_DEPRECATED: ReadonlySet<CourtJurisdiction> = new Set([
   "NSWCA", "NSWSC", "NSW_DISTRICT",
   "QCA", "QSC", "QLD_DISTRICT",
   "TASCSC",
@@ -1070,11 +1132,10 @@ export function validateCourtMode(
     }
   }
 
-  // ── Warning: unreported judgment without confirmation (NSW/Qld/Tas) ─
-  if (
-    config.unreportedGate === "warn" &&
-    UNREPORTED_GATE_JURISDICTIONS.has(config.jurisdiction)
-  ) {
+  // ── Warning: unreported judgment without confirmation ─────────────
+  // COURT-FIX-006: Gate is now driven solely by config.unreportedGate
+  // (which reflects the court toggle, including any user override).
+  if (config.unreportedGate === "warn") {
     for (const citation of citations) {
       if (citation.sourceType !== "case.unreported.mnc") {
         continue;

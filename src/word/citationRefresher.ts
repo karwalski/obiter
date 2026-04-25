@@ -45,8 +45,9 @@ import {
 } from "./footnoteTracker";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint, IntroductorySignal } from "../types/citation";
-import { getStandardConfig } from "../engine/standards";
+import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
+import { getDevicePref } from "../store/devicePreferences";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -196,11 +197,12 @@ export async function refreshAllCitations(
   context: Word.RequestContext,
   store: CitationStore,
 ): Promise<RefreshResult> {
-  // Build config from the store's standard and writing mode
+  // Build config from the store's standard and writing mode, with court toggles
   const standardId = store.getStandardId();
   const baseConfig = getStandardConfig(standardId);
   const writingMode = store.getWritingMode();
-  const config: CitationConfig = { ...baseConfig, writingMode };
+  const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+  const config: CitationConfig = buildCourtConfig({ ...baseConfig, writingMode }, courtToggles);
 
   // Step 1: Rebuild footnote map and update store
   const footnoteMap = await buildFootnoteMap(context);
