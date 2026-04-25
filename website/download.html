@@ -46,17 +46,6 @@
   </section>
 
   <!-- ============================================================
-       OS Detection Banner
-       ============================================================ -->
-  <section class="download-detect" id="download-detect">
-    <div class="container">
-      <p class="download-detect__message" id="os-message">
-        Detecting your operating system...
-      </p>
-    </div>
-  </section>
-
-  <!-- ============================================================
        Download Options
        ============================================================ -->
   <section class="download-options" id="download-options">
@@ -157,77 +146,10 @@
       </ol>
 
       <p>
-        Obiter is now installed. You will find it in the <strong>Home</strong> tab
-        of the Word ribbon.
+        Obiter is now installed. Close the read-only document that Word opened
+        during setup, then create or open a document. You will find Obiter in
+        the <strong>Home</strong> tab of the Word ribbon.
       </p>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       Sideloading Instructions
-       ============================================================ -->
-  <section class="sideload-instructions" id="sideload">
-    <div class="container">
-      <div class="section-header">
-        <h2>Sideloading Instructions</h2>
-        <p>
-          After downloading the manifest file from GitHub, follow the steps
-          for your operating system to sideload Obiter into Word.
-        </p>
-      </div>
-
-      <div class="sideload__tabs">
-        <button class="sideload__tab sideload__tab--active" data-tab="mac" aria-pressed="true">Mac</button>
-        <button class="sideload__tab" data-tab="windows" aria-pressed="false">Windows</button>
-        <button class="sideload__tab" data-tab="web" aria-pressed="false">Word for Web</button>
-      </div>
-
-      <!-- Mac instructions -->
-      <div class="sideload__panel sideload__panel--active" id="tab-mac">
-        <div class="sideload__content">
-          <h3>Mac (Word 2024 / Microsoft 365)</h3>
-          <ol class="sideload__steps">
-            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
-            <li>Open Finder and press <strong>Cmd + Shift + G</strong> to open the Go to Folder dialog.</li>
-            <li>Paste this path: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code></li>
-            <li>If the <code>wef</code> folder does not exist, create it.</li>
-            <li>Copy <code>manifest.xml</code> into the <code>wef</code> folder.</li>
-            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
-            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Windows instructions -->
-      <div class="sideload__panel" id="tab-windows">
-        <div class="sideload__content">
-          <h3>Windows (Word 2024 / Microsoft 365)</h3>
-          <ol class="sideload__steps">
-            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
-            <li>Open File Explorer and navigate to: <code>\\%LOCALAPPDATA%\Microsoft\Office\16.0\Wef\</code></li>
-            <li>If the <code>Wef</code> folder does not exist, create it.</li>
-            <li>Copy <code>manifest.xml</code> into the <code>Wef</code> folder.</li>
-            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
-            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
-          </ol>
-        </div>
-      </div>
-
-      <!-- Web instructions -->
-      <div class="sideload__panel" id="tab-web">
-        <div class="sideload__content">
-          <h3>Word for Web</h3>
-          <ol class="sideload__steps">
-            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
-            <li>Open a document in Word for Web at <a href="https://www.office.com" target="_blank" rel="noopener noreferrer">office.com</a>.</li>
-            <li>Go to <strong>Insert &gt; Office Add-ins</strong>.</li>
-            <li>Select <strong>Upload My Add-in</strong> in the upper-right corner.</li>
-            <li>Click <strong>Browse</strong> and select the <code>manifest.xml</code> file.</li>
-            <li>Click <strong>Upload</strong>. Obiter will appear in the Home tab.</li>
-          </ol>
-        </div>
-      </div>
-
     </div>
   </section>
 
@@ -317,6 +239,74 @@
     </div>
   </section>
 
+  <!-- ============================================================
+       Sideloading Instructions (Advanced)
+       ============================================================ -->
+  <section class="sideload-instructions" id="sideload">
+    <div class="container">
+      <div class="section-header">
+        <h2>Manual Sideloading (Advanced)</h2>
+        <p>
+          For development, testing, or restricted environments where AppSource
+          is not available, you can sideload Obiter manually from GitHub.
+        </p>
+      </div>
+
+      <div class="sideload__tabs">
+        <button class="sideload__tab sideload__tab--active" data-tab="mac" aria-pressed="true">Mac</button>
+        <button class="sideload__tab" data-tab="windows" aria-pressed="false">Windows</button>
+        <button class="sideload__tab" data-tab="web" aria-pressed="false">Word for Web</button>
+      </div>
+
+      <!-- Mac instructions -->
+      <div class="sideload__panel sideload__panel--active" id="tab-mac">
+        <div class="sideload__content">
+          <h3>Mac (Word 2024 / Microsoft 365)</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open Finder and press <strong>Cmd + Shift + G</strong> to open the Go to Folder dialog.</li>
+            <li>Paste this path: <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code></li>
+            <li>If the <code>wef</code> folder does not exist, create it.</li>
+            <li>Copy <code>manifest.xml</code> into the <code>wef</code> folder.</li>
+            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
+            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Windows instructions -->
+      <div class="sideload__panel" id="tab-windows">
+        <div class="sideload__content">
+          <h3>Windows (Word 2024 / Microsoft 365)</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open File Explorer and navigate to: <code>\\%LOCALAPPDATA%\Microsoft\Office\16.0\Wef\</code></li>
+            <li>If the <code>Wef</code> folder does not exist, create it.</li>
+            <li>Copy <code>manifest.xml</code> into the <code>Wef</code> folder.</li>
+            <li>Open Word and go to <strong>Insert &gt; My Add-ins &gt; My Organization</strong>.</li>
+            <li>Select <strong>Obiter</strong> and click <strong>Add</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Web instructions -->
+      <div class="sideload__panel" id="tab-web">
+        <div class="sideload__content">
+          <h3>Word for Web</h3>
+          <ol class="sideload__steps">
+            <li>Download the <code>manifest.xml</code> file from the <a href="https://github.com/karwalski/obiter/releases/latest" target="_blank" rel="noopener noreferrer">latest GitHub release</a>.</li>
+            <li>Open a document in Word for Web at <a href="https://www.office.com" target="_blank" rel="noopener noreferrer">office.com</a>.</li>
+            <li>Go to <strong>Insert &gt; Office Add-ins</strong>.</li>
+            <li>Select <strong>Upload My Add-in</strong> in the upper-right corner.</li>
+            <li>Click <strong>Browse</strong> and select the <code>manifest.xml</code> file.</li>
+            <li>Click <strong>Upload</strong>. Obiter will appear in the Home tab.</li>
+          </ol>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
   </main>
 
   <!-- ============================================================
@@ -342,22 +332,6 @@
 
   <script src="js/main.js"></script>
   <script>
-    // OS detection
-    (function() {
-      var msg = document.getElementById('os-message');
-      if (!msg) return;
-      var ua = navigator.userAgent || '';
-      if (/Mac/i.test(ua)) {
-        msg.textContent = 'It looks like you are on a Mac. See the Mac sideloading instructions below, or install from AppSource.';
-      } else if (/Win/i.test(ua)) {
-        msg.textContent = 'It looks like you are on Windows. See the Windows sideloading instructions below, or install from AppSource.';
-      } else if (/iPad|iPhone/i.test(ua)) {
-        msg.textContent = 'It looks like you are on an iPad or iPhone. Install Obiter from AppSource in Microsoft Word for the easiest setup.';
-      } else {
-        msg.textContent = 'Install Obiter from AppSource for the easiest setup, or sideload manually from GitHub.';
-      }
-    })();
-
     // Tab switching for sideload instructions
     (function() {
       var tabs = document.querySelectorAll('.sideload__tab');

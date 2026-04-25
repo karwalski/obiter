@@ -18,6 +18,7 @@ import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
 import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyClient";
+import { loadSearchConfig, isSearchActive } from "../../api/searchConfig";
 import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
@@ -519,6 +520,9 @@ export default function InsertCitation(): JSX.Element {
   const [signal, setSignal] = useState<IntroductorySignal | "">("");
   const [commentaryBefore, setCommentaryBefore] = useState("");
   const [commentaryAfter, setCommentaryAfter] = useState("");
+
+  // Source lookup enabled
+  const [searchEnabled] = useState(() => isSearchActive(loadSearchConfig()));
 
   // SWITCH-004: Active citation standard
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
@@ -1283,7 +1287,7 @@ export default function InsertCitation(): JSX.Element {
       )}
 
       {/* Dynamic Form */}
-      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard)}
+      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard, searchEnabled)}
       {selectedSourceType === "case.unreported.mnc" && renderCaseUnreportedMncForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.unreported.no_mnc" && renderCaseUnreportedNoMncForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.proceeding" && renderCaseProceedingForm(formData, updateField, isAglcStandard)}
@@ -1292,7 +1296,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "case.arbitration" && renderCaseArbitrationForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.transcript" && renderCaseTranscriptForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.submission" && renderCaseSubmissionForm(formData, updateField, isAglcStandard)}
-      {selectedSourceType === "legislation.statute" && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard)}
+      {selectedSourceType === "legislation.statute" && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard, searchEnabled)}
       {selectedSourceType === "legislation.bill" && renderBillForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.constitution" && renderConstitutionForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.explanatory" && renderExplanatoryForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
@@ -1616,6 +1620,7 @@ function renderCaseReportedForm(
   updateField: (key: string, value: unknown) => void,
   onCaseSelect: (result: LookupResult) => void,
   isAglcStandard: boolean,
+  searchEnabled: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -1628,15 +1633,26 @@ function renderCaseReportedForm(
             example="Mabo"
           />
         </label>
-        <TypeaheadInput
-          id="ic-party1"
-          className="ic-input"
-          value={(data.party1 as string) || ""}
-          placeholder="e.g. Mabo"
-          searchFn={searchCases}
-          onSelect={onCaseSelect}
-          onChange={(v) => updateField("party1", v)}
-        />
+        {searchEnabled ? (
+          <TypeaheadInput
+            id="ic-party1"
+            className="ic-input"
+            value={(data.party1 as string) || ""}
+            placeholder="e.g. Mabo"
+            searchFn={searchCases}
+            onSelect={onCaseSelect}
+            onChange={(v) => updateField("party1", v)}
+          />
+        ) : (
+          <input
+            id="ic-party1"
+            className="ic-input"
+            type="text"
+            value={(data.party1 as string) || ""}
+            placeholder="e.g. Mabo"
+            onChange={(e) => updateField("party1", e.target.value)}
+          />
+        )}
       </div>
 
       <div className="ic-field-row">
@@ -2392,6 +2408,7 @@ function renderLegislationForm(
   onLegislationSelect: (result: LookupResult) => void,
   jurisdictionOptions: { value: string; label: string }[],
   isAglcStandard: boolean,
+  searchEnabled: boolean,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -2404,15 +2421,26 @@ function renderLegislationForm(
             example="Competition and Consumer Act 2010"
           />
         </label>
-        <TypeaheadInput
-          id="ic-leg-title"
-          className="ic-input"
-          value={(data.title as string) || ""}
-          placeholder="e.g. Competition and Consumer Act"
-          searchFn={searchLegislation}
-          onSelect={onLegislationSelect}
-          onChange={(v) => updateField("title", v)}
-        />
+        {searchEnabled ? (
+          <TypeaheadInput
+            id="ic-leg-title"
+            className="ic-input"
+            value={(data.title as string) || ""}
+            placeholder="e.g. Competition and Consumer Act"
+            searchFn={searchLegislation}
+            onSelect={onLegislationSelect}
+            onChange={(v) => updateField("title", v)}
+          />
+        ) : (
+          <input
+            id="ic-leg-title"
+            className="ic-input"
+            type="text"
+            value={(data.title as string) || ""}
+            placeholder="e.g. Competition and Consumer Act"
+            onChange={(e) => updateField("title", e.target.value)}
+          />
+        )}
       </div>
 
       <div className="ic-field-row">

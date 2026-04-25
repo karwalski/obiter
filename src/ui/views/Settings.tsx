@@ -28,6 +28,7 @@ import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
+import { loadSearchConfig, saveSearchConfig, type SearchConfig } from "../../api/searchConfig";
 import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
@@ -38,12 +39,14 @@ type AglcVersion = "4" | "5";
 interface ModelOption { value: string; label: string }
 const LLM_MODELS: Record<string, ModelOption[]> = {
   openai: [
+    { value: "gpt-5.5", label: "GPT-5.5" },
+    { value: "gpt-5.4", label: "GPT-5.4" },
+    { value: "gpt-5.4-mini", label: "GPT-5.4 Mini" },
     { value: "gpt-4o", label: "GPT-4o" },
     { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
   ],
   anthropic: [
-    { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
+    { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
     { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
     { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
   ],
@@ -149,6 +152,9 @@ export default function Settings(): JSX.Element {
   const [llmEnabled, setLlmEnabled] = useState(false);
   const [llmTestStatus, setLlmTestStatus] = useState<string | null>(null);
   const [llmSaveStatus, setLlmSaveStatus] = useState<string | null>(null);
+
+  // Search configuration state
+  const [searchConfig, setSearchConfig] = useState<SearchConfig>(loadSearchConfig);
 
   const {
     currentVersion,
@@ -984,6 +990,76 @@ export default function Settings(): JSX.Element {
             <li>The updated add-in will load in the task pane.</li>
           </ol>
         </details>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Source Lookup (Optional)</legend>
+
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          Enable typeahead search in citation fields. Queries are routed through
+          the Obiter proxy to external legal databases. No data is sent unless
+          you type in a citation field with lookup enabled.
+        </p>
+
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={searchConfig.enabled}
+            onChange={(e) => {
+              const updated = { ...searchConfig, enabled: e.target.checked };
+              setSearchConfig(updated);
+              saveSearchConfig(updated);
+            }}
+          />
+          <span className="settings-toggle-label">
+            Enable source lookup
+          </span>
+        </label>
+
+        <div style={{ marginTop: 8, paddingLeft: 4, opacity: searchConfig.enabled ? 1 : 0.5 }}>
+          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 6px" }}>
+            Select which providers to search:
+          </p>
+          <label className="settings-toggle" style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={searchConfig.providers.austlii}
+              disabled={!searchConfig.enabled}
+              onChange={(e) => {
+                const updated = { ...searchConfig, providers: { ...searchConfig.providers, austlii: e.target.checked } };
+                setSearchConfig(updated);
+                saveSearchConfig(updated);
+              }}
+            />
+            <span className="settings-toggle-label">AustLII (cases and legislation)</span>
+          </label>
+          <label className="settings-toggle" style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={searchConfig.providers.jade}
+              disabled={!searchConfig.enabled}
+              onChange={(e) => {
+                const updated = { ...searchConfig, providers: { ...searchConfig.providers, jade: e.target.checked } };
+                setSearchConfig(updated);
+                saveSearchConfig(updated);
+              }}
+            />
+            <span className="settings-toggle-label">Jade.io (Australian cases)</span>
+          </label>
+          <label className="settings-toggle" style={{ fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={searchConfig.providers.legislation}
+              disabled={!searchConfig.enabled}
+              onChange={(e) => {
+                const updated = { ...searchConfig, providers: { ...searchConfig.providers, legislation: e.target.checked } };
+                setSearchConfig(updated);
+                saveSearchConfig(updated);
+              }}
+            />
+            <span className="settings-toggle-label">Federal Register of Legislation</span>
+          </label>
+        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

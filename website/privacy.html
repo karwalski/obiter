@@ -52,7 +52,7 @@
       <div class="explainer">
 
         <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
-          Last updated: 18 April 2026
+          Last updated: 25 April 2026
         </p>
 
         <h2>Who We Are</h2>
@@ -140,9 +140,9 @@
         </ul>
         <p>
           API keys are stored locally in your browser. For providers that support
-          browser connections (such as OpenAI), requests go directly from your
-          browser to the provider. For providers that do not support browser
-          connections (such as Anthropic, Google Gemini, Grok, DeepSeek),
+          browser connections (such as OpenAI and Anthropic), requests go
+          directly from your browser to the provider. For providers that do not
+          support browser connections (such as Google Gemini, Grok, DeepSeek),
           requests are relayed through the Obiter gateway server (obiter.com.au)
           to bypass browser security restrictions. In this case, your API key
           and prompt text are transmitted to the gateway, forwarded immediately
@@ -156,18 +156,21 @@
           You can disable LLM integration at any time in Settings.
         </p>
 
-        <h2>External API Search (Optional)</h2>
+        <h2>External API Search (Optional, Disabled by Default)</h2>
         <p>
           Obiter includes an optional typeahead search feature for cases and
-          legislation. Search queries are routed through the Obiter proxy server
-          (obiter.com.au) to bypass browser security restrictions, and are
-          forwarded to AustLII, Jade.io, and the Federal Register of
-          Legislation.
+          legislation. This feature is disabled by default and must be
+          explicitly enabled in Settings. You can choose which search
+          providers to use individually: AustLII, Jade.io, and the Federal
+          Register of Legislation.
         </p>
         <p>
-          The proxy does not log, store, or retain search queries. Search is
-          triggered only by your typing in the search field &mdash; no automatic
-          or background searches are performed.
+          When enabled, search queries are routed through the Obiter proxy
+          server (obiter.com.au) to bypass browser security restrictions, and
+          are forwarded only to the providers you have selected. The proxy
+          does not log, store, or retain search queries. Search is triggered
+          only by your typing in a citation field &mdash; no automatic or
+          background searches are performed.
         </p>
 
         <h2>Website Contact Forms and Signatures</h2>
@@ -197,9 +200,8 @@
 
         <h2>Contact</h2>
         <p>
-          If you have questions about this privacy policy, you can reach the
-          developer at
-          <a href="mailto:mr.matthew.watt@gmail.com">mr.matthew.watt@gmail.com</a>.
+          If you have questions about this privacy policy, please use the
+          <a href="contact.html">contact form</a>.
         </p>
 
       </div>

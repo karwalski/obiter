@@ -77,11 +77,24 @@
       submitBtn.disabled = true;
       submitBtn.textContent = "Sending\u2026";
 
+      // hCaptcha token
+      var captchaResponse = "";
+      var captchaEl = form.querySelector('[name="h-captcha-response"]');
+      if (captchaEl) captchaResponse = captchaEl.value;
+      if (!captchaResponse) {
+        statusEl.className = "form-status form-status--error";
+        statusEl.textContent = "Please complete the captcha.";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Send Message";
+        return;
+      }
+
       var payload = {
         type: formType,
         name: name.value.trim(),
         email: email.value.trim(),
-        message: message.value.trim()
+        message: message.value.trim(),
+        captcha: captchaResponse
       };
 
       fetch("/api/contact", {
@@ -107,7 +120,8 @@
         })
         .finally(function () {
           submitBtn.disabled = false;
-          submitBtn.textContent = "Submit";
+          submitBtn.textContent = "Send Message";
+          if (typeof hcaptcha !== "undefined") hcaptcha.reset();
         });
     });
   });
@@ -173,6 +187,16 @@
         return;
       }
 
+      // hCaptcha token
+      var captchaResponse = "";
+      var captchaEl = sigForm.querySelector('[name="h-captcha-response"]');
+      if (captchaEl) captchaResponse = captchaEl.value;
+      if (!captchaResponse) {
+        statusEl.className = "form-status form-status--error";
+        statusEl.textContent = "Please complete the captcha.";
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = "Submitting\u2026";
 
@@ -180,7 +204,8 @@
         name: name.value.trim(),
         title: title.value.trim(),
         institution: institution ? institution.value.trim() : "",
-        email: email.value.trim()
+        email: email.value.trim(),
+        captcha: captchaResponse
       };
 
       fetch("/api/signatures", {
@@ -208,6 +233,7 @@
         .finally(function () {
           submitBtn.disabled = false;
           submitBtn.textContent = "Sign the Letter";
+          if (typeof hcaptcha !== "undefined") hcaptcha.reset();
         });
     });
   }

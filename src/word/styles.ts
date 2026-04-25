@@ -186,12 +186,13 @@ export async function applyAglc4Styles(
     smallCaps: boolean;
     bold: boolean;
     centered: boolean;
+    leftIndent: number;
   }> = [
-    { name: "Heading 1", italic: false, smallCaps: true,  bold: false, centered: true  },
-    { name: "Heading 2", italic: true,  smallCaps: false, bold: false, centered: true  },
-    { name: "Heading 3", italic: true,  smallCaps: false, bold: false, centered: false },
-    { name: "Heading 4", italic: true,  smallCaps: false, bold: false, centered: false },
-    { name: "Heading 5", italic: true,  smallCaps: false, bold: false, centered: false },
+    { name: "Heading 1", italic: false, smallCaps: true,  bold: false, centered: true,  leftIndent: 0  },
+    { name: "Heading 2", italic: true,  smallCaps: false, bold: false, centered: true,  leftIndent: 0  },
+    { name: "Heading 3", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 0  },
+    { name: "Heading 4", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 36 },
+    { name: "Heading 5", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 72 },
   ];
 
   for (const cfg of headingConfigs) {
@@ -204,6 +205,8 @@ export async function applyAglc4Styles(
       style.font.bold = cfg.bold;
       style.font.color = "black";
       style.paragraphFormat.alignment = (cfg.centered ? "Centered" : "Left") as Word.Alignment;
+      style.paragraphFormat.leftIndent = cfg.leftIndent;
+      style.paragraphFormat.firstLineIndent = 0;
       style.paragraphFormat.spaceAfter = 12;
       style.paragraphFormat.spaceBefore = 12;
       await context.sync();
@@ -381,6 +384,18 @@ export async function applyHeadingLevel(
   paragraph.font.color = "black";
   paragraph.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
 
+  // Reset indentation per AGLC4 Rule 1.12.2 — Word's built-in Heading
+  // styles carry default leftIndent values that must be overridden.
+  // Levels I–III at the left margin, IV indented once, V indented twice.
+  paragraph.paragraphFormat.firstLineIndent = 0;
+  if (level <= 3) {
+    paragraph.paragraphFormat.leftIndent = 0;
+  } else if (level === 4) {
+    paragraph.paragraphFormat.leftIndent = 36; // 0.5in
+  } else {
+    paragraph.paragraphFormat.leftIndent = 72; // 1.0in
+  }
+
   await context.sync();
 
   // Numbering: use text-prefix approach instead of Word's multilevel
@@ -487,6 +502,16 @@ export async function renumberAllHeadings(
       para.font.name = "Times New Roman";
       para.font.color = "black";
       renumbered++;
+    }
+
+    // Always enforce correct indentation (Rule 1.12.2)
+    para.paragraphFormat.firstLineIndent = 0;
+    if (level <= 3) {
+      para.paragraphFormat.leftIndent = 0;
+    } else if (level === 4) {
+      para.paragraphFormat.leftIndent = 36;
+    } else {
+      para.paragraphFormat.leftIndent = 72;
     }
   }
 

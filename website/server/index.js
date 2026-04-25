@@ -46,6 +46,27 @@ app.use(cors());
 app.use(express.json());
 
 // -------------------------------------------------------
+// hCaptcha verification
+// -------------------------------------------------------
+
+const HCAPTCHA_SECRET = process.env.HCAPTCHA_SECRET || "";
+
+async function verifyCaptcha(token) {
+  if (!HCAPTCHA_SECRET) return true; // Skip if not configured
+  try {
+    const res = await fetch("https://api.hcaptcha.com/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `response=${encodeURIComponent(token)}&secret=${encodeURIComponent(HCAPTCHA_SECRET)}`,
+    });
+    const data = await res.json();
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
+// -------------------------------------------------------
 // Public routes
 // -------------------------------------------------------
 
@@ -57,7 +78,12 @@ app.use(express.json());
  */
 app.post("/api/contact", async function (req, res) {
   try {
-    var { name, email: contactEmail, type, message } = req.body;
+    var { name, email: contactEmail, type, message, captcha } = req.body;
+
+    // hCaptcha verification
+    if (HCAPTCHA_SECRET && !(await verifyCaptcha(captcha || ""))) {
+      return res.status(403).json({ error: "Captcha verification failed." });
+    }
 
     // Validation
     if (!name || !contactEmail || !type || !message) {
@@ -106,7 +132,12 @@ app.post("/api/contact", async function (req, res) {
  */
 app.post("/api/signatures", async function (req, res) {
   try {
-    var { name, title, institution, email: sigEmail } = req.body;
+    var { name, title, institution, email: sigEmail, captcha } = req.body;
+
+    // hCaptcha verification
+    if (HCAPTCHA_SECRET && !(await verifyCaptcha(captcha || ""))) {
+      return res.status(403).json({ error: "Captcha verification failed." });
+    }
 
     // Validation
     if (!name || !sigEmail) {

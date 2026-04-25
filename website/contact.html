@@ -8,6 +8,7 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
 
   <!-- Backend needs: Gmail API with OAuth2
        Scopes: https://www.googleapis.com/auth/gmail.send
@@ -80,6 +81,7 @@
             <label for="contact-message" id="contact-message-label">Message</label>
             <textarea id="contact-message" name="message" rows="6" required></textarea>
           </div>
+          <div class="h-captcha" data-sitekey="cdacac10-5f38-4022-85e0-6198a8e6d19a" style="margin-bottom: 16px;"></div>
           <div class="form-status" role="alert" aria-live="polite"></div>
           <button type="submit" class="btn btn--primary">Send Message</button>
         </form>
