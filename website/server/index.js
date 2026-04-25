@@ -747,7 +747,9 @@ app.get("/api/proxy/austlii", proxyCors, async function (req, res) {
     });
 
     if (!response || !response.ok) {
-      return res.json({ results: [], error: "Upstream request failed." });
+      var austliiStatus = response ? response.status : "no response";
+      console.error("GET /api/proxy/austlii upstream failed:", austliiStatus);
+      return res.json({ results: [], error: "AustLII upstream returned " + austliiStatus });
     }
 
     var html = await response.text();
@@ -869,35 +871,49 @@ app.get("/api/proxy/legislation", proxyCors, async function (req, res) {
       return res.status(400).json({ results: [], error: "Missing required parameter: q" });
     }
 
-    var searchUrl = "https://www.legislation.gov.au/api/search?q=" +
-      encodeURIComponent(String(q)) + "&type=legislation";
+    // Federal Register of Legislation — scrape the public search page.
+    // The site does not expose a public JSON API.
+    var searchUrl = "https://www.legislation.gov.au/Search/" +
+      encodeURIComponent(String(q));
 
     var response = await proxyFetch("legislation", searchUrl, {
       "User-Agent": PROXY_USER_AGENT,
-      Accept: "application/json",
+      Accept: "text/html",
     });
 
     if (!response || !response.ok) {
-      return res.json({ results: [], error: "Upstream request failed." });
+      var legStatus = response ? response.status : "no response";
+      console.error("GET /api/proxy/legislation upstream failed:", legStatus);
+      return res.json({ results: [], error: "Legislation upstream returned " + legStatus });
     }
 
-    var data = await response.json();
+    var legHtml = await response.text();
 
-    // Parse results matching the FederalRegisterClient's expected structure.
+    // Parse legislation search results from HTML.
+    // The Federal Register renders results as list items with links.
     var results = [];
-    var items = (data && (data.results || data.items)) || [];
-    if (Array.isArray(items)) {
-      results = items
-        .filter(function (item) { return item !== null && typeof item === "object"; })
-        .map(function (item) {
-          return {
-            title: String(item.title || item.name || ""),
-            snippet: String(item.snippet || item.description || ""),
-            sourceId: String(item.id || item.registerId || ""),
-            confidence: typeof item.score === "number" ? item.score : 0.5,
-          };
+    var legPattern = /<a\s+[^>]*href="(\/Details\/[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
+    var legMatch;
+    while ((legMatch = legPattern.exec(legHtml)) !== null) {
+      var legHref = legMatch[1];
+      var legTitle = legMatch[2].replace(/<[^>]+>/g, "").trim();
+      if (legTitle && legHref && legTitle.length > 3) {
+        results.push({
+          title: legTitle,
+          snippet: "",
+          sourceId: legHref,
+          confidence: 0.5,
         });
+      }
     }
+
+    // Deduplicate by sourceId
+    var legSeen = {};
+    results = results.filter(function (r) {
+      if (legSeen[r.sourceId]) return false;
+      legSeen[r.sourceId] = true;
+      return true;
+    });
 
     res.json({ results: results });
   } catch (err) {
