@@ -78,6 +78,15 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
         para.font.name = "Times New Roman";
         para.font.color = "black";
         para.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
+        // AGLC4 Rule 1.12.2 indentation
+        para.firstLineIndent = 0;
+        if (level <= 3) {
+          para.leftIndent = 0;
+        } else if (level === 4) {
+          para.leftIndent = 36;
+        } else {
+          para.leftIndent = 72;
+        }
       }
       await context.sync();
     });

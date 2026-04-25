@@ -16,6 +16,16 @@
       "displayName": "Apply Heading Level III"
     },
     {
+      "id": "applyHeadingIV",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Heading Level IV"
+    },
+    {
+      "id": "applyHeadingV",
+      "type": "ExecuteFunction",
+      "displayName": "Apply Heading Level V"
+    },
+    {
       "id": "applyBlockQuote",
       "type": "ExecuteFunction",
       "displayName": "Apply Block Quote"
@@ -51,6 +61,20 @@
       "key": {
         "default": "Ctrl+Shift+3",
         "mac": "Cmd+Shift+3"
+      }
+    },
+    {
+      "action": "applyHeadingIV",
+      "key": {
+        "default": "Ctrl+Shift+4",
+        "mac": "Cmd+Shift+4"
+      }
+    },
+    {
+      "action": "applyHeadingV",
+      "key": {
+        "default": "Ctrl+Shift+5",
+        "mac": "Cmd+Shift+5"
       }
     },
     {
