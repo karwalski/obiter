@@ -1,4 +1,4 @@
-# Obiter
+# Obiter v1.9.2
 
 **AGLC4, applied automatically.**
 
@@ -127,7 +127,7 @@ The document is the database. All citation metadata persists in a Custom XML Par
 
 ### Testing
 
-464 tests across 7 test suites, each testing against AGLC4's own examples:
+Comprehensive test suites covering all AGLC4 chapters, each testing against the guide's own examples:
 
 ```
 PASS tests/engine/chapter1.test.ts      (95 tests -- General Rules)
