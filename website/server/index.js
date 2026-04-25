@@ -576,10 +576,12 @@ function verificationPage(title, message, success) {
 
 /**
  * CORS middleware for proxy routes.
- * Allows requests from the dev server and production domain.
+ * Office Add-in webviews may send requests with unpredictable origins
+ * (null, ms-appx-web://, etc.), so allow all origins. These endpoints
+ * serve only public legal database results and are rate-limited.
  */
 var proxyCors = cors({
-  origin: ["https://localhost:3000", "https://obiter.com.au"],
+  origin: true,
   methods: ["GET"],
 });
 
@@ -804,34 +806,48 @@ app.get("/api/proxy/jade", proxyCors, async function (req, res) {
       return res.status(400).json({ results: [], error: "Missing required parameter: q" });
     }
 
-    var searchUrl = "https://jade.io/api/search?q=" + encodeURIComponent(String(q));
+    // Jade.io public search page — returns HTML, not JSON.
+    // We scrape the search results page for case titles and links.
+    var searchUrl = "https://jade.io/srch/?search=" + encodeURIComponent(String(q));
 
     var response = await proxyFetch("jade", searchUrl, {
       "User-Agent": PROXY_USER_AGENT,
-      Accept: "application/json",
+      Accept: "text/html",
     });
 
     if (!response || !response.ok) {
-      return res.json({ results: [], error: "Upstream request failed." });
+      var status = response ? response.status : "no response";
+      console.error("GET /api/proxy/jade upstream failed:", status);
+      return res.json({ results: [], error: "Jade upstream returned " + status });
     }
 
-    var data = await response.json();
+    var html = await response.text();
 
-    // Parse results matching the Jade client's expected structure.
+    // Parse Jade search results from HTML.
+    // Jade renders results as article/div elements with links to case pages.
     var results = [];
-    var items = (data && data.results) || [];
-    if (Array.isArray(items)) {
-      results = items
-        .filter(function (item) { return item !== null && typeof item === "object"; })
-        .map(function (item) {
-          return {
-            title: String(item.title || ""),
-            snippet: String(item.snippet || item.summary || ""),
-            sourceId: String(item.id || item.jadeId || ""),
-            confidence: typeof item.score === "number" ? item.score : 0.5,
-          };
+    var jadeAnchorPattern = /<a\s+[^>]*href="(\/article\/\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    var jadeMatch;
+    while ((jadeMatch = jadeAnchorPattern.exec(html)) !== null) {
+      var jadeHref = jadeMatch[1];
+      var jadeTitle = jadeMatch[2].replace(/<[^>]+>/g, "").trim();
+      if (jadeTitle && jadeHref && jadeTitle.length > 5) {
+        results.push({
+          title: jadeTitle,
+          snippet: "",
+          sourceId: jadeHref,
+          confidence: 0.5,
         });
+      }
     }
+
+    // Deduplicate by sourceId
+    var seen = {};
+    results = results.filter(function (r) {
+      if (seen[r.sourceId]) return false;
+      seen[r.sourceId] = true;
+      return true;
+    });
 
     res.json({ results: results });
   } catch (err) {

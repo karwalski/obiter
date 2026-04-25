@@ -1,6 +1,6 @@
 # Obiter — Progress Tracker
 
-**Last updated:** 2026-04-19
+**Last updated:** 2026-04-25
 
 ## Development Phases
 
@@ -1061,4 +1061,17 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | NZLSG-ENH | 6 | 6 | 0 | 6 | 0 |
 | RIBBON-ENH | 1 | 1 | 0 | 1 | 0 |
 | STANDARD-SWITCH | 8 | 8 | 0 | 8 | 0 |
-| **TOTAL** | **360** | **342** | **17** | **355** | **0** |
+| FORMS-UI | 59 | 59 | 0 | 0 | 0 |
+| **TOTAL** | **419** | **401** | **17** | **355** | **59** |
+
+---
+
+## New Stories (2026-04-25)
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| GEN-036a | Heading indentation per Rule 1.12.2 | BUG | DONE |
+| API-005 | Investigate typeahead search not returning results | BUG | IN PROGRESS |
+| INFRA-008 | Update README to reflect current features | FEATURE | IN PROGRESS |
+| FORMS-UI-001 to 059 | Dedicated forms for 59 source types (replacing generic form) | FEATURE | DONE |
+| CUSTOM-001 | Custom/manual citation type with free-text input | FEATURE | DONE |

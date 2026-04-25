@@ -387,13 +387,13 @@ export async function applyHeadingLevel(
   // Reset indentation per AGLC4 Rule 1.12.2 — Word's built-in Heading
   // styles carry default leftIndent values that must be overridden.
   // Levels I–III at the left margin, IV indented once, V indented twice.
-  paragraph.paragraphFormat.firstLineIndent = 0;
+  paragraph.firstLineIndent = 0;
   if (level <= 3) {
-    paragraph.paragraphFormat.leftIndent = 0;
+    paragraph.leftIndent = 0;
   } else if (level === 4) {
-    paragraph.paragraphFormat.leftIndent = 36; // 0.5in
+    paragraph.leftIndent = 36; // 0.5in
   } else {
-    paragraph.paragraphFormat.leftIndent = 72; // 1.0in
+    paragraph.leftIndent = 72; // 1.0in
   }
 
   await context.sync();
@@ -505,13 +505,13 @@ export async function renumberAllHeadings(
     }
 
     // Always enforce correct indentation (Rule 1.12.2)
-    para.paragraphFormat.firstLineIndent = 0;
+    para.firstLineIndent = 0;
     if (level <= 3) {
-      para.paragraphFormat.leftIndent = 0;
+      para.leftIndent = 0;
     } else if (level === 4) {
-      para.paragraphFormat.leftIndent = 36;
+      para.leftIndent = 36;
     } else {
-      para.paragraphFormat.leftIndent = 72;
+      para.leftIndent = 72;
     }
   }
 

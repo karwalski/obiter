@@ -33,7 +33,15 @@ const DEFAULTS: SearchConfig = {
 export function loadSearchConfig(): SearchConfig {
   const saved = getDevicePref(SETTINGS_KEY);
   if (saved && typeof saved === "object") {
-    return { ...DEFAULTS, ...(saved as Partial<SearchConfig>) };
+    const partial = saved as Partial<SearchConfig>;
+    return {
+      ...DEFAULTS,
+      ...partial,
+      providers: {
+        ...DEFAULTS.providers,
+        ...(partial.providers ?? {}),
+      },
+    };
   }
   return { ...DEFAULTS };
 }
