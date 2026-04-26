@@ -10,3 +10,4 @@ website/server/node_modules/
 website/server/obiter.db
 website/server/google-token.json
 client_secret*.json
+.claude/worktrees/

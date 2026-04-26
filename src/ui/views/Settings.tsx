@@ -29,6 +29,15 @@ import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferen
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
 import { loadSearchConfig, saveSearchConfig, type SearchConfig } from "../../api/searchConfig";
+import {
+  getAllAdapters,
+  getAdaptersByTier,
+  isAdapterEnabled,
+  setAdapterEnabled,
+  TIER_LABELS,
+  type AdapterTier,
+} from "../../api/sourceRegistry";
+import { saveKey, getKey, removeKey, hasKey } from "../../api/keyVault";
 import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
@@ -155,6 +164,23 @@ export default function Settings(): JSX.Element {
 
   // Search configuration state
   const [searchConfig, setSearchConfig] = useState<SearchConfig>(loadSearchConfig);
+
+  // Source registry state (17.2 / 17.3)
+  const [adapterToggles, setAdapterToggles] = useState<Record<string, boolean>>(() => {
+    const map: Record<string, boolean> = {};
+    for (const a of getAllAdapters()) {
+      map[a.id] = isAdapterEnabled(a.id);
+    }
+    return map;
+  });
+  const [adapterKeys, setAdapterKeys] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const a of getAllAdapters()) {
+      if (a.requiresKey) map[a.id] = getKey(a.id);
+    }
+    return map;
+  });
+  const [keyVisibility, setKeyVisibility] = useState<Record<string, boolean>>({});
 
   const {
     currentVersion,
@@ -1062,6 +1088,132 @@ export default function Settings(): JSX.Element {
             <span className="settings-toggle-label">Federal Register of Legislation</span>
           </label>
         </div>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Source Registry</legend>
+
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          Manage individual source adapters. Open-access sources are enabled by
+          default; live services and link-only sources must be enabled manually.
+        </p>
+
+        {(["open", "live", "link-only"] as AdapterTier[]).map((tier) => {
+          const group = getAdaptersByTier()[tier];
+          if (group.length === 0) return null;
+          return (
+            <div key={tier} style={{ marginBottom: 10 }}>
+              <p style={{
+                fontSize: 11,
+                fontWeight: 600,
+                margin: "0 0 4px",
+                color: "var(--colour-text-secondary)",
+              }}>
+                {TIER_LABELS[tier]}
+              </p>
+              {group.map((adapter) => (
+                <div
+                  key={adapter.id}
+                  style={{
+                    padding: "6px 8px",
+                    marginBottom: 4,
+                    background: "var(--colour-surface)",
+                    borderRadius: 4,
+                    border: "1px solid var(--colour-border)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span
+                      title={adapter.health === "green" ? "Healthy" : adapter.health === "amber" ? "Degraded" : "Unavailable"}
+                      style={{
+                        display: "inline-block",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        background:
+                          adapter.health === "green" ? "var(--colour-success)"
+                          : adapter.health === "amber" ? "var(--colour-warning)"
+                          : "var(--colour-error)",
+                      }}
+                    />
+                    <label className="settings-toggle" style={{ flex: 1, margin: 0, padding: 0, borderRadius: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={adapterToggles[adapter.id] ?? false}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          setAdapterEnabled(adapter.id, enabled);
+                          setAdapterToggles((prev) => ({ ...prev, [adapter.id]: enabled }));
+                        }}
+                      />
+                      <span className="settings-toggle-label" style={{ fontSize: 12 }}>
+                        {adapter.name}
+                      </span>
+                    </label>
+                    {adapter.requiresKey && (
+                      <span className="settings-badge" style={{ flexShrink: 0 }}>Requires key</span>
+                    )}
+                    {adapter.fragile && (
+                      <span className="settings-badge" title="Scraper — may break if the source site changes" style={{ flexShrink: 0 }}>
+                        {"\u26A0\uFE0F"} Fragile
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0 0 14px" }}>
+                    {adapter.jurisdictions.join(", ")} — {adapter.licence}
+                  </p>
+
+                  {adapter.requiresKey && (
+                    <div style={{ marginTop: 6, marginLeft: 14 }}>
+                      <label style={{ fontSize: 11, display: "block" }}>
+                        API Key
+                        <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+                          <input
+                            type={keyVisibility[adapter.id] ? "text" : "password"}
+                            className="ic-input"
+                            style={{ flex: 1 }}
+                            value={adapterKeys[adapter.id] ?? ""}
+                            placeholder="Enter API key"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAdapterKeys((prev) => ({ ...prev, [adapter.id]: val }));
+                              saveKey(adapter.id, val);
+                            }}
+                          />
+                          <button
+                            className="library-btn"
+                            style={{ fontSize: 10, padding: "2px 6px" }}
+                            onClick={() =>
+                              setKeyVisibility((prev) => ({
+                                ...prev,
+                                [adapter.id]: !prev[adapter.id],
+                              }))
+                            }
+                          >
+                            {keyVisibility[adapter.id] ? "Hide" : "Show"}
+                          </button>
+                          {hasKey(adapter.id) && (
+                            <button
+                              className="library-btn"
+                              style={{ fontSize: 10, padding: "2px 6px" }}
+                              onClick={() => {
+                                removeKey(adapter.id);
+                                setAdapterKeys((prev) => ({ ...prev, [adapter.id]: "" }));
+                              }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
