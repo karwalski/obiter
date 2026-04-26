@@ -17,6 +17,8 @@ import {
   getAllCitationFootnotes,
   type CitationFootnoteEntry,
 } from "../../word/footnoteManager";
+import { getSharedStore, resetSharedStore } from "../../store/singleton";
+import { useCitationContext } from "../context/CitationContext";
 
 // ─── Format Type Detection ──────────────────────────────────────────────────
 
@@ -85,6 +87,9 @@ export default function CitationFinder({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [orphanCount, setOrphanCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const { triggerRefresh } = useCitationContext();
 
   // Scan footnotes when expanded or refreshSignal changes
   useEffect(() => {
@@ -95,10 +100,26 @@ export default function CitationFinder({
     async function scan(): Promise<void> {
       setLoading(true);
       setError(null);
+      setOrphanCount(0);
       try {
         const results = await getAllCitationFootnotes();
         if (!cancelled) {
           setEntries(results);
+
+          // Check for orphaned CCs — in document but not in store
+          try {
+            resetSharedStore();
+            const store = await getSharedStore();
+            const storeIds = new Set(store.getAll().map((c) => c.id));
+            const uniqueDocIds = new Set(results.map((e) => e.citationId));
+            let orphans = 0;
+            for (const id of uniqueDocIds) {
+              if (!storeIds.has(id)) orphans++;
+            }
+            setOrphanCount(orphans);
+          } catch {
+            // Non-critical
+          }
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -177,6 +198,44 @@ export default function CitationFinder({
                 {entries.length} citation{entries.length !== 1 ? "s" : ""} across{" "}
                 {footnoteCount} footnote{footnoteCount !== 1 ? "s" : ""}
               </p>
+
+              {orphanCount > 0 && (
+                <div style={{
+                  padding: "6px 8px",
+                  marginBottom: 6,
+                  background: "var(--colour-warning-bg, #fff8e1)",
+                  border: "1px solid var(--colour-warning, #f9a825)",
+                  borderRadius: 4,
+                  fontSize: 11,
+                }}>
+                  <p style={{ margin: "0 0 4px" }}>
+                    {orphanCount} citation{orphanCount !== 1 ? "s" : ""} found
+                    in the document but missing from the library. This can happen
+                    after an undo.
+                  </p>
+                  <button
+                    className="library-btn"
+                    style={{ fontSize: 11 }}
+                    disabled={syncing}
+                    onClick={async () => {
+                      setSyncing(true);
+                      try {
+                        // Force a full refresh to rebuild the store from document
+                        triggerRefresh();
+                        // Re-scan after a brief delay for the refresh to complete
+                        setTimeout(() => {
+                          setOrphanCount(0);
+                          setSyncing(false);
+                        }, 1000);
+                      } catch {
+                        setSyncing(false);
+                      }
+                    }}
+                  >
+                    {syncing ? "Syncing..." : "Refresh All to sync"}
+                  </button>
+                </div>
+              )}
 
               {entries.length > 0 && (
                 <input
