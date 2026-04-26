@@ -382,6 +382,8 @@ export default function EditCitation(): JSX.Element {
       setConfirmingDelete(false);
 
       try {
+        // Force fresh read from XML Part to avoid stale singleton
+        resetSharedStore();
         const store = await getSharedStore();
         const found = store.getById(selectedCitationId!);
 
