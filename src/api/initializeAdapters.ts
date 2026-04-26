@@ -5,9 +5,10 @@
  * Startup Adapter Initialization (Story 17.8 / 17.10)
  *
  * Runs once on app startup to:
- * 1. Check corpus availability and load the index if present
- * 2. Register the corpus adapter with the source registry
- * 3. Register all built-in non-scraper adapters with the registry
+ * 1. Try loading corpus from IndexedDB into InMemoryCorpusIndex
+ * 2. If not found and not skipped, set the banner flag
+ * 3. Register the corpus adapter with the source registry
+ * 4. Register all built-in non-scraper adapters with the registry
  */
 
 import {
@@ -15,6 +16,7 @@ import {
   getCorpusIndex,
   isCorpusSkipped,
   getCorpusStatus,
+  loadCorpusFromStorage,
 } from "./corpus/corpusDownload";
 import { shouldUseLocal } from "./cloud/cloudMode";
 import { registerAdapter } from "./sourceRegistry";
@@ -28,6 +30,8 @@ let showCorpusBanner = false;
 /**
  * Initialize the source lookup layer.
  *
+ * - Attempts to load the corpus index from IndexedDB (persisted from a
+ *   previous session).
  * - If the corpus is available, registers its adapter descriptor.
  * - If the corpus is not downloaded and local mode is allowed,
  *   sets the corpus banner flag so the UI can prompt the user.
@@ -37,6 +41,9 @@ let showCorpusBanner = false;
  */
 export async function initializeSourceLookup(): Promise<void> {
   if (initialized) return;
+
+  // Try loading corpus from IndexedDB before checking status
+  await loadCorpusFromStorage();
 
   // Determine whether the corpus banner should appear
   const corpusAvailable = checkCorpusAvailable();

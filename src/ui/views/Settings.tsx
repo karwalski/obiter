@@ -42,6 +42,19 @@ import {
 import { getAdapterInstance, initialiseAdapters } from "../../api/adapterSearch";
 import { saveKey, getKey, removeKey, hasKey } from "../../api/keyVault";
 import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
+import {
+  checkCorpusAvailable,
+  getCorpusStatus,
+  getCorpusIndex,
+  getCorpusMeta,
+  downloadCorpusIndex,
+  deleteCorpus,
+  clearCorpusSkip,
+  isCorpusSkipped,
+  skipCorpus,
+  type CorpusStatus,
+} from "../../api/corpus/corpusDownload";
+import { registerCorpusAfterDownload } from "../../api/initializeAdapters";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
 import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
@@ -196,6 +209,72 @@ export default function Settings(): JSX.Element {
     return map;
   });
   const [keyVisibility, setKeyVisibility] = useState<Record<string, boolean>>({});
+
+  // Corpus state (IndexedDB persistence)
+  const [corpusAvailable, setCorpusAvailable] = useState(() => checkCorpusAvailable());
+  const [corpusStatusState, setCorpusStatusState] = useState<CorpusStatus>(() => getCorpusStatus());
+  const [corpusEntryCount, setCorpusEntryCount] = useState<number | null>(() => {
+    const idx = getCorpusIndex();
+    return idx ? idx.entryCount : null;
+  });
+  const [corpusVersion, setCorpusVersion] = useState<string | null>(() => {
+    const idx = getCorpusIndex();
+    return idx ? idx.version : null;
+  });
+  const [corpusSavedAt, setCorpusSavedAt] = useState<string | null>(null);
+  const [corpusProgress, setCorpusProgress] = useState(0);
+  const [corpusTotal, setCorpusTotal] = useState(0);
+  const [corpusActionStatus, setCorpusActionStatus] = useState<string | null>(null);
+  const [corpusSkipped, setCorpusSkippedState] = useState(() => isCorpusSkipped());
+
+  // Load corpus metadata from IndexedDB on mount
+  useEffect(() => {
+    void getCorpusMeta().then((meta) => {
+      if (meta.version) setCorpusVersion(meta.version);
+      if (meta.entryCount) setCorpusEntryCount(meta.entryCount);
+      if (meta.savedAt) setCorpusSavedAt(meta.savedAt);
+    });
+  }, []);
+
+  const handleCorpusDownload = useCallback(async () => {
+    setCorpusStatusState("downloading");
+    setCorpusActionStatus(null);
+    try {
+      await downloadCorpusIndex((loaded, total) => {
+        setCorpusProgress(loaded);
+        setCorpusTotal(total);
+      });
+      registerCorpusAfterDownload();
+      const idx = getCorpusIndex();
+      setCorpusAvailable(true);
+      setCorpusStatusState("ready");
+      setCorpusEntryCount(idx?.entryCount ?? null);
+      setCorpusVersion(idx?.version ?? null);
+      setCorpusSavedAt(new Date().toISOString());
+      setCorpusSkippedState(false);
+      clearCorpusSkip();
+      setCorpusActionStatus("Download complete");
+      setTimeout(() => setCorpusActionStatus(null), 3000);
+    } catch {
+      setCorpusStatusState("error");
+      setCorpusActionStatus("Download failed");
+    }
+  }, []);
+
+  const handleCorpusDelete = useCallback(async () => {
+    try {
+      await deleteCorpus();
+      setCorpusAvailable(false);
+      setCorpusStatusState("not-downloaded");
+      setCorpusEntryCount(null);
+      setCorpusVersion(null);
+      setCorpusSavedAt(null);
+      setCorpusActionStatus("Corpus deleted");
+      setTimeout(() => setCorpusActionStatus(null), 3000);
+    } catch {
+      setCorpusActionStatus("Failed to delete corpus");
+    }
+  }, []);
 
   const {
     currentVersion,
@@ -1033,6 +1112,132 @@ export default function Settings(): JSX.Element {
             <li>The updated add-in will load in the task pane.</li>
           </ol>
         </details>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Corpus</legend>
+
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          The Open Australian Legal Corpus provides offline citation lookup
+          for ~232,000 cases and legislation. Data is stored locally in your
+          browser via IndexedDB.
+        </p>
+
+        {corpusAvailable && corpusStatusState === "ready" ? (
+          <div style={{
+            padding: "8px 10px",
+            background: "var(--colour-surface)",
+            borderRadius: 4,
+            border: "1px solid var(--colour-border)",
+            marginBottom: 8,
+          }}>
+            <p style={{ fontSize: 12, margin: "0 0 4px", fontWeight: 600 }}>
+              Downloaded
+              {corpusEntryCount != null && ` (${corpusEntryCount.toLocaleString()} entries)`}
+            </p>
+            {corpusVersion && (
+              <p style={{ fontSize: 11, margin: "0 0 2px", color: "var(--colour-text-secondary)" }}>
+                Version: {corpusVersion}
+              </p>
+            )}
+            {corpusSavedAt && (
+              <p style={{ fontSize: 11, margin: "0 0 0", color: "var(--colour-text-secondary)" }}>
+                Saved: {new Date(corpusSavedAt).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div style={{
+            padding: "8px 10px",
+            background: "var(--colour-surface)",
+            borderRadius: 4,
+            border: "1px solid var(--colour-border)",
+            marginBottom: 8,
+          }}>
+            <p style={{ fontSize: 12, margin: 0 }}>
+              Not downloaded
+            </p>
+          </div>
+        )}
+
+        {corpusStatusState === "downloading" && (
+          <div style={{ marginBottom: 8 }}>
+            <div className="obiter-corpus-banner__progress-track" style={{ height: 6, borderRadius: 3, background: "var(--colour-border)" }}>
+              <div
+                style={{
+                  width: `${corpusTotal > 0 ? Math.round((corpusProgress / corpusTotal) * 100) : 0}%`,
+                  height: "100%",
+                  borderRadius: 3,
+                  background: "var(--colour-accent)",
+                  transition: "width 0.2s",
+                }}
+              />
+            </div>
+            <p style={{ fontSize: 11, margin: "4px 0 0", color: "var(--colour-text-secondary)" }}>
+              Downloading... {corpusTotal > 0 ? `${Math.round((corpusProgress / corpusTotal) * 100)}%` : ""}
+            </p>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {corpusAvailable ? (
+            <>
+              <button
+                className="library-btn library-btn--insert"
+                disabled={corpusStatusState === "downloading"}
+                onClick={() => void handleCorpusDownload()}
+              >
+                Re-download
+              </button>
+              <button
+                className="library-btn"
+                onClick={() => void handleCorpusDelete()}
+              >
+                Delete
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="library-btn library-btn--insert"
+                disabled={corpusStatusState === "downloading"}
+                onClick={() => void handleCorpusDownload()}
+              >
+                Download now
+              </button>
+              <label className="settings-toggle" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={corpusSkipped}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setCorpusSkippedState(checked);
+                    if (checked) {
+                      skipCorpus();
+                    } else {
+                      clearCorpusSkip();
+                    }
+                  }}
+                />
+                <span className="settings-toggle-label" style={{ fontSize: 12 }}>
+                  Use online only
+                </span>
+              </label>
+            </>
+          )}
+        </div>
+
+        {corpusActionStatus && (
+          <p style={{
+            fontSize: 11,
+            margin: "6px 0 0",
+            color: corpusActionStatus.includes("failed") || corpusActionStatus.includes("Failed")
+              ? "var(--colour-error)"
+              : "var(--colour-success)",
+          }}>
+            {corpusActionStatus}
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

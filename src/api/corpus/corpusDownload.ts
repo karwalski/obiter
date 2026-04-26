@@ -2,14 +2,20 @@
  * First-Launch Corpus Download UX (Story 17.8)
  *
  * Manages the lifecycle of the local corpus index: checking availability,
- * downloading from Obiter Cloud CDN, and providing progress feedback.
+ * downloading from Obiter Cloud CDN, persisting to IndexedDB, and providing
+ * progress feedback.
  *
  * Downloads the corpus index JSON from the Obiter CDN. Falls back to mock
  * data when the CDN is not reachable (development / offline).
+ *
+ * Persistence: After downloading, entries are stored in IndexedDB so they
+ * survive page refreshes. On startup, the index is loaded from IDB into
+ * the in-memory InMemoryCorpusIndex for fast queries.
  */
 
 import type { CorpusEntry } from "./corpusIndex";
 import { InMemoryCorpusIndex } from "./inMemoryCorpusIndex";
+import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
 
 export type CorpusStatus = "not-downloaded" | "downloading" | "ready" | "error";
 
@@ -19,9 +25,211 @@ export type CorpusProgressCallback = (loaded: number, total: number) => void;
 /** CDN endpoint for the corpus index JSON (Cloudflare R2). */
 const CORPUS_CDN_URL = "https://corpus.obiter.com.au/corpus/index.json";
 
+/** IndexedDB database name and store names. */
+const IDB_NAME = "obiter-corpus";
+const IDB_STORE_ENTRIES = "entries";
+const IDB_STORE_META = "meta";
+const IDB_VERSION = 1;
+
 let corpusStatus: CorpusStatus = "not-downloaded";
 let corpusIndex: InMemoryCorpusIndex | null = null;
-let skipPreference = false;
+
+// ---------------------------------------------------------------------------
+// IndexedDB helpers
+// ---------------------------------------------------------------------------
+
+/** Open (or create) the IndexedDB database. */
+function openCorpusDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(IDB_STORE_ENTRIES)) {
+        db.createObjectStore(IDB_STORE_ENTRIES, { keyPath: "corpusDocId" });
+      }
+      if (!db.objectStoreNames.contains(IDB_STORE_META)) {
+        db.createObjectStore(IDB_STORE_META, { keyPath: "key" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/** Save corpus entries to IndexedDB, replacing any previous data. */
+export async function saveCorpusToIDB(entries: CorpusEntry[]): Promise<void> {
+  const db = await openCorpusDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE_ENTRIES, "readwrite");
+    const store = tx.objectStore(IDB_STORE_ENTRIES);
+    store.clear();
+    for (const entry of entries) {
+      store.put(entry);
+    }
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
+
+/** Load all corpus entries from IndexedDB. Returns null if the store is empty. */
+export async function loadCorpusFromIDB(): Promise<CorpusEntry[] | null> {
+  try {
+    const db = await openCorpusDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE_ENTRIES, "readonly");
+      const store = tx.objectStore(IDB_STORE_ENTRIES);
+      const request = store.getAll();
+      request.onsuccess = () => {
+        db.close();
+        const entries = request.result as CorpusEntry[];
+        resolve(entries.length > 0 ? entries : null);
+      };
+      request.onerror = () => {
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Clear all corpus entries and metadata from IndexedDB. */
+export async function clearCorpusFromIDB(): Promise<void> {
+  try {
+    const db = await openCorpusDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([IDB_STORE_ENTRIES, IDB_STORE_META], "readwrite");
+      tx.objectStore(IDB_STORE_ENTRIES).clear();
+      tx.objectStore(IDB_STORE_META).clear();
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error);
+      };
+    });
+  } catch {
+    // Silently fail — may not have IndexedDB access
+  }
+}
+
+/** Get the stored corpus version from IndexedDB metadata. */
+export async function getCorpusIDBVersion(): Promise<string | null> {
+  try {
+    const db = await openCorpusDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE_META, "readonly");
+      const store = tx.objectStore(IDB_STORE_META);
+      const request = store.get("corpus-version");
+      request.onsuccess = () => {
+        db.close();
+        const record = request.result as { key: string; value: string } | undefined;
+        resolve(record?.value ?? null);
+      };
+      request.onerror = () => {
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Save corpus metadata (version, entry count, build date) to IndexedDB. */
+async function saveCorpusMeta(version: string, entryCount: number): Promise<void> {
+  try {
+    const db = await openCorpusDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE_META, "readwrite");
+      const store = tx.objectStore(IDB_STORE_META);
+      store.put({ key: "corpus-version", value: version });
+      store.put({ key: "corpus-entryCount", value: entryCount });
+      store.put({ key: "corpus-savedAt", value: new Date().toISOString() });
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error);
+      };
+    });
+  } catch {
+    // Silently fail
+  }
+}
+
+/** Get all corpus metadata from IndexedDB. */
+export async function getCorpusMeta(): Promise<{
+  version: string | null;
+  entryCount: number | null;
+  savedAt: string | null;
+}> {
+  try {
+    const db = await openCorpusDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE_META, "readonly");
+      const store = tx.objectStore(IDB_STORE_META);
+
+      const results: Record<string, unknown> = {};
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = () => {
+        const cursor = cursorReq.result;
+        if (cursor) {
+          const record = cursor.value as { key: string; value: unknown };
+          results[record.key] = record.value;
+          cursor.continue();
+        } else {
+          db.close();
+          resolve({
+            version: (results["corpus-version"] as string) ?? null,
+            entryCount: (results["corpus-entryCount"] as number) ?? null,
+            savedAt: (results["corpus-savedAt"] as string) ?? null,
+          });
+        }
+      };
+      cursorReq.onerror = () => {
+        db.close();
+        reject(cursorReq.error);
+      };
+    });
+  } catch {
+    return { version: null, entryCount: null, savedAt: null };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Skip preference (persisted in devicePreferences / localStorage)
+// ---------------------------------------------------------------------------
+
+/** Set preference to skip corpus and use online sources only. */
+export function skipCorpus(): void {
+  setDevicePref("corpusSkipped", true);
+}
+
+/** Check whether the user has opted to skip the corpus. */
+export function isCorpusSkipped(): boolean {
+  return getDevicePref("corpusSkipped") === true;
+}
+
+/** Clear the skip preference so the banner can show again. */
+export function clearCorpusSkip(): void {
+  setDevicePref("corpusSkipped", undefined);
+}
+
+// ---------------------------------------------------------------------------
+// In-memory corpus state
+// ---------------------------------------------------------------------------
 
 /** Check whether the corpus index is loaded in memory and ready to query. */
 export function checkCorpusAvailable(): boolean {
@@ -37,6 +245,38 @@ export function getCorpusStatus(): CorpusStatus {
 export function getCorpusIndex(): InMemoryCorpusIndex | null {
   return corpusIndex;
 }
+
+// ---------------------------------------------------------------------------
+// Startup: load from IndexedDB into memory
+// ---------------------------------------------------------------------------
+
+/**
+ * Attempt to load the corpus from IndexedDB into the InMemoryCorpusIndex.
+ * Returns true if the corpus was successfully loaded from IDB.
+ */
+export async function loadCorpusFromStorage(): Promise<boolean> {
+  if (corpusStatus === "ready" && corpusIndex !== null) {
+    return true;
+  }
+
+  try {
+    const entries = await loadCorpusFromIDB();
+    if (!entries) return false;
+
+    const version = await getCorpusIDBVersion();
+    const index = new InMemoryCorpusIndex();
+    index.loadFromJson(entries, version ?? "0.0.0");
+    corpusIndex = index;
+    corpusStatus = "ready";
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CDN download
+// ---------------------------------------------------------------------------
 
 /**
  * Generate a small mock dataset for testing and initial integration.
@@ -135,6 +375,7 @@ export async function checkCorpusUpdate(): Promise<string | null> {
  * Download the corpus index from the Obiter CDN.
  * Falls back to mock data when the CDN is unreachable (development / offline).
  * Calls onProgress to allow UI progress bars.
+ * After downloading, persists entries to IndexedDB for future sessions.
  */
 export async function downloadCorpusIndex(
   onProgress?: CorpusProgressCallback,
@@ -176,20 +417,28 @@ export async function downloadCorpusIndex(
     index.loadFromJson(entries, version);
     corpusIndex = index;
     corpusStatus = "ready";
+
+    // Persist to IndexedDB for future sessions
+    try {
+      await saveCorpusToIDB(entries);
+      await saveCorpusMeta(version, entries.length);
+    } catch {
+      // IDB save failed — corpus is still loaded in memory for this session
+    }
   } catch {
     corpusStatus = "error";
     throw new Error("Corpus download failed");
   }
 }
 
-/** Set preference to skip corpus and use online sources only. */
-export function skipCorpus(): void {
-  skipPreference = true;
-}
-
-/** Check whether the user has opted to skip the corpus. */
-export function isCorpusSkipped(): boolean {
-  return skipPreference;
+/**
+ * Delete the corpus from IndexedDB, clear skip preference, and reset
+ * in-memory state. Used by the Settings > Corpus > Delete button.
+ */
+export async function deleteCorpus(): Promise<void> {
+  await clearCorpusFromIDB();
+  corpusIndex = null;
+  corpusStatus = "not-downloaded";
 }
 
 /**
@@ -199,5 +448,5 @@ export function isCorpusSkipped(): boolean {
 export function _resetCorpusState(): void {
   corpusStatus = "not-downloaded";
   corpusIndex = null;
-  skipPreference = false;
+  setDevicePref("corpusSkipped", undefined);
 }

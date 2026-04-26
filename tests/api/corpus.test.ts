@@ -25,6 +25,17 @@ import {
   getAllCoverage,
 } from "../../src/api/corpus/corpusCoverage";
 
+// Mock devicePreferences for skip preference persistence
+jest.mock("../../src/store/devicePreferences", () => {
+  const store: Record<string, unknown> = {};
+  return {
+    getDevicePref: (key: string) => store[key] ?? undefined,
+    setDevicePref: (key: string, value: unknown) => {
+      if (value === undefined) delete store[key]; else store[key] = value;
+    },
+  };
+});
+
 // ---------------------------------------------------------------------------
 // Test fixtures
 // ---------------------------------------------------------------------------
