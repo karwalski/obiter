@@ -132,10 +132,11 @@ export function deserializeCitation(xml: string): Citation {
       if (!decoded.includes("&lt;")) break;
       decoded = unescapeXml(decoded);
     }
+    // Strip all <obiter:data> wrapper tags so the field regex only sees fields
+    const inner = decoded.replace(/<\/?obiter:data>/g, "");
     const fieldRegex = /<obiter:(\w+)>([\s\S]*?)<\/obiter:\1>/g;
     let match: RegExpExecArray | null;
-    while ((match = fieldRegex.exec(decoded)) !== null) {
-      if (match[1] === "data") continue; // skip nested data wrapper tags
+    while ((match = fieldRegex.exec(inner)) !== null) {
       data[match[1]] = deserializeValue(unescapeXml(match[2]));
     }
   }
