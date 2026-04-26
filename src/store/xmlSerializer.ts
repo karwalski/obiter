@@ -119,13 +119,23 @@ export function deserializeCitation(xml: string): Citation {
   const sourceType = getAttr(xml, "sourceType") as SourceType;
 
   // Extract <obiter:data>...</obiter:data>
+  // The data block may have accumulated nested HTML encoding from multiple
+  // save cycles (each save HTML-encodes the previous content). Unescape
+  // until we reach raw XML field tags.
   const dataBlock = extractBlock(xml, "data");
   const data: SourceData = {};
   if (dataBlock) {
-    // Match all child elements inside <obiter:data>
+    let decoded = dataBlock;
+    for (let i = 0; i < 10; i++) {
+      // Stop when we find raw (unencoded) obiter field tags with content
+      if (/<obiter:(?!data)\w+>[^&]*<\/obiter:\w+>/.test(decoded)) break;
+      if (!decoded.includes("&lt;")) break;
+      decoded = unescapeXml(decoded);
+    }
     const fieldRegex = /<obiter:(\w+)>([\s\S]*?)<\/obiter:\1>/g;
     let match: RegExpExecArray | null;
-    while ((match = fieldRegex.exec(dataBlock)) !== null) {
+    while ((match = fieldRegex.exec(decoded)) !== null) {
+      if (match[1] === "data") continue; // skip nested data wrapper tags
       data[match[1]] = deserializeValue(unescapeXml(match[2]));
     }
   }
