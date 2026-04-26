@@ -593,9 +593,12 @@ export default function InsertCitation(): JSX.Element {
   // BUGS-013: Existing footnotes loaded from Word on mount
   const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
 
-  // Source lookup enabled — always true when corpus is downloaded (local, no
-  // network call), or when the master toggle is on for network adapters.
-  const [searchEnabled] = useState(() => isMasterEnabled() || checkCorpusAvailable());
+  // Source lookup enabled — true when corpus is downloaded and enabled, or
+  // when the master toggle is on for network adapters.
+  const [searchEnabled] = useState(() => {
+    const corpusReady = checkCorpusAvailable() && getDevicePref("corpusEnabled") !== false;
+    return isMasterEnabled() || corpusReady;
+  });
 
   // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());

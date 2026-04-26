@@ -14,6 +14,7 @@
  */
 
 import type { SourceAdapter, ContentType, LookupResult, AccessTier } from "./sourceAdapter";
+import { getDevicePref } from "../store/devicePreferences";
 import {
   isAdapterEnabled,
   isMasterEnabled,
@@ -178,14 +179,16 @@ export async function searchViaAdapters(
   initialiseAdapters();
 
   // Get all adapter instances that support this content type.
-  // The corpus adapter (local/offline) always runs regardless of the master
-  // toggle — it's the user's own downloaded data, not a network call.
+  // The corpus adapter (local/offline) runs independently of the master
+  // toggle but has its own enable/disable preference ("corpusEnabled").
   // All other adapters require the master toggle to be enabled.
   const masterOn = isMasterEnabled();
+  const corpusOn = getDevicePref("corpusEnabled") !== false; // default: on
   const candidates: SourceAdapter[] = [];
   for (const adapter of adapterInstances.values()) {
     if (!adapter.descriptor.contentTypes.includes(contentType)) continue;
     const isCorpus = adapter.descriptor.id === "corpus";
+    if (isCorpus && !corpusOn) continue;
     if (!isCorpus && !masterOn) continue;
     if (!isCorpus && !isAdapterEnabled(adapter.descriptor.id)) continue;
     candidates.push(adapter);

@@ -211,6 +211,7 @@ export default function Settings(): JSX.Element {
   const [keyVisibility, setKeyVisibility] = useState<Record<string, boolean>>({});
 
   // Corpus state (IndexedDB persistence)
+  const [corpusEnabled, setCorpusEnabledState] = useState(() => getDevicePref("corpusEnabled") !== false);
   const [corpusAvailable, setCorpusAvailable] = useState(() => checkCorpusAvailable());
   const [corpusStatusState, setCorpusStatusState] = useState<CorpusStatus>(() => getCorpusStatus());
   const [corpusEntryCount, setCorpusEntryCount] = useState<number | null>(() => {
@@ -1118,10 +1119,27 @@ export default function Settings(): JSX.Element {
         <legend className="settings-section-title">Corpus</legend>
 
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
-          The Open Australian Legal Corpus provides offline citation lookup
-          for ~232,000 cases and legislation. Data is stored locally in your
-          browser via IndexedDB.
+          The Open Australian Legal Corpus (CC BY 4.0, Isaacus) provides
+          offline citation lookup for ~232,000 cases and legislation. Data is
+          stored locally in your browser via IndexedDB.
         </p>
+
+        {corpusAvailable && (
+          <label className="settings-toggle" style={{ marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={corpusEnabled}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setCorpusEnabledState(checked);
+                setDevicePref("corpusEnabled", checked);
+              }}
+            />
+            <span className="settings-toggle-label">
+              Use local corpus for citation lookup
+            </span>
+          </label>
+        )}
 
         {corpusAvailable && corpusStatusState === "ready" ? (
           <div style={{
