@@ -229,3 +229,62 @@ registerAdapter({
   fragile: false,
   health: "green",
 });
+
+/* ------------------------------------------------------------------ */
+/*  Commercial adapter registrations (Stories 17.46–17.50)             */
+/* ------------------------------------------------------------------ */
+
+registerAdapter({
+  id: "lexis-au",
+  name: "Lexis+ AU",
+  tier: "link-only",
+  jurisdictions: ["AU"],
+  licence: "Commercial — requires Lexis+ subscription",
+  requiresKey: true,
+  fragile: false,
+  health: "amber",
+});
+
+registerAdapter({
+  id: "westlaw-au",
+  name: "Westlaw AU",
+  tier: "link-only",
+  jurisdictions: ["AU"],
+  licence: "Commercial — requires Westlaw subscription",
+  requiresKey: true,
+  fragile: false,
+  health: "amber",
+});
+
+registerAdapter({
+  id: "vlex",
+  name: "vLex",
+  tier: "link-only",
+  jurisdictions: [],
+  licence: "Commercial — requires vLex subscription",
+  requiresKey: true,
+  fragile: false,
+  health: "amber",
+});
+
+registerAdapter({
+  id: "jade-pro",
+  name: "Jade Professional",
+  tier: "link-only",
+  jurisdictions: ["AU"],
+  licence: "Link-only — requires Jade Professional subscription",
+  requiresKey: false,
+  fragile: false,
+  health: "green",
+});
+
+registerAdapter({
+  id: "habeas",
+  name: "Habeas",
+  tier: "link-only",
+  jurisdictions: ["AU"],
+  licence: "Commercial — requires Habeas subscription",
+  requiresKey: true,
+  fragile: false,
+  health: "red",
+});
