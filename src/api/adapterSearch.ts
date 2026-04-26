@@ -177,14 +177,17 @@ export async function searchViaAdapters(
 ): Promise<LookupResult[]> {
   initialiseAdapters();
 
-  // Master toggle check
-  if (!isMasterEnabled()) return [];
-
-  // Get all adapter instances that support this content type
+  // Get all adapter instances that support this content type.
+  // The corpus adapter (local/offline) always runs regardless of the master
+  // toggle — it's the user's own downloaded data, not a network call.
+  // All other adapters require the master toggle to be enabled.
+  const masterOn = isMasterEnabled();
   const candidates: SourceAdapter[] = [];
   for (const adapter of adapterInstances.values()) {
     if (!adapter.descriptor.contentTypes.includes(contentType)) continue;
-    if (!isAdapterEnabled(adapter.descriptor.id)) continue;
+    const isCorpus = adapter.descriptor.id === "corpus";
+    if (!isCorpus && !masterOn) continue;
+    if (!isCorpus && !isAdapterEnabled(adapter.descriptor.id)) continue;
     candidates.push(adapter);
   }
 

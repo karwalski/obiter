@@ -21,6 +21,7 @@ import { useCitationContext } from "../context/CitationContext";
 import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCitationContext";
 import { searchViaAdapters } from "../../api/adapterSearch";
 import { isMasterEnabled } from "../../api/sourceRegistry";
+import { checkCorpusAvailable } from "../../api/corpus/corpusDownload";
 import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
@@ -592,8 +593,9 @@ export default function InsertCitation(): JSX.Element {
   // BUGS-013: Existing footnotes loaded from Word on mount
   const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
 
-  // Source lookup enabled — now driven by the adapter registry master toggle
-  const [searchEnabled] = useState(() => isMasterEnabled());
+  // Source lookup enabled — always true when corpus is downloaded (local, no
+  // network call), or when the master toggle is on for network adapters.
+  const [searchEnabled] = useState(() => isMasterEnabled() || checkCorpusAvailable());
 
   // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
