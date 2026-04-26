@@ -816,45 +816,56 @@ export default function InsertCitation(): JSX.Element {
       const text = result.title;
       const snippet = result.snippet || "";
 
+      // Build all field updates in one batch to avoid race conditions
+      const updates: Record<string, unknown> = {};
+
       // Parse "Party1 v Party2" into party fields
       const vIndex = text.search(/\s+v\s+/i);
       if (vIndex !== -1) {
-        const p1 = text.substring(0, vIndex).trim();
-        const p2 = text.substring(vIndex).replace(/^\s+v\s+/i, "").trim();
-        updateField("party1", p1);
-        updateField("party2", p2);
+        updates.party1 = text.substring(0, vIndex).trim();
+        updates.party2 = text.substring(vIndex).replace(/^\s+v\s+/i, "").trim();
       } else {
-        updateField("party1", text);
+        updates.party1 = text;
       }
 
       // Extract MNC from snippet: [YYYY] CourtCode Number
       const mncMatch = /\[(\d{4})\]\s+([A-Z]{2,10})\s+(\d+)/.exec(snippet || text);
       if (mncMatch) {
-        updateField("year", mncMatch[1]);
-        updateField("yearType", "square");
-        updateField("courtId", mncMatch[2]);
-        updateField("mnc", `[${mncMatch[1]}] ${mncMatch[2]} ${mncMatch[3]}`);
+        updates.year = mncMatch[1];
+        updates.yearType = "square";
+        updates.courtId = mncMatch[2];
+        updates.mnc = `[${mncMatch[1]}] ${mncMatch[2]} ${mncMatch[3]}`;
       } else {
         // Fallback: extract year from [YYYY] or (YYYY)
         const yearMatch = /[\[(](\d{4})[\])]/.exec(snippet || text);
         if (yearMatch) {
-          updateField("year", yearMatch[1]);
+          updates.year = yearMatch[1];
           const bracket = (snippet || text).charAt((snippet || text).indexOf(yearMatch[0]));
-          updateField("yearType", bracket === "[" ? "square" : "round");
+          updates.yearType = bracket === "[" ? "square" : "round";
         }
       }
 
       // Extract authorised report from snippet: (YYYY) VOL Series PAGE
       const reportMatch = /\((\d{4})\)\s+(\d+)\s+([A-Z][A-Za-z\s]+?)\s+(\d+)/.exec(snippet);
       if (reportMatch) {
-        updateField("year", reportMatch[1]);
-        updateField("yearType", "round");
-        updateField("volume", reportMatch[2]);
-        updateField("reportSeries", reportMatch[3].trim());
-        updateField("startingPage", reportMatch[4]);
+        updates.year = reportMatch[1];
+        updates.yearType = "round";
+        updates.volume = reportMatch[2];
+        updates.reportSeries = reportMatch[3].trim();
+        updates.startingPage = reportMatch[4];
       }
+
+      // Apply all updates in a single setFormData call
+      setFormData((prev) => {
+        const next = { ...prev, ...updates };
+        if (!shortTitleTouched && selectedSourceType) {
+          const suggestion = suggestShortTitle(selectedSourceType as SourceType, next);
+          setShortTitle(suggestion);
+        }
+        return next;
+      });
     },
-    [updateField],
+    [shortTitleTouched, selectedSourceType],
   );
 
   const handleLegislationSelect = useCallback(
