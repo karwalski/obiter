@@ -122,8 +122,8 @@ export default function CorpusDownloadBanner({
   return (
     <div className="obiter-corpus-banner" role="region" aria-label="Corpus download">
       <p className="obiter-corpus-banner__text">
-        Download the Australian Legal Corpus for offline citation lookup (~100 MB).
-        You can also use online sources only.
+        Download the Open Australian Legal Corpus (CC BY 4.0, Isaacus) for offline
+        citation lookup (~100 MB). You can also use online sources only.
       </p>
       <div className="obiter-corpus-banner__actions">
         <button
