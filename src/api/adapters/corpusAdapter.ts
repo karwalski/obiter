@@ -28,9 +28,17 @@ function entryToLookupResult(entry: CorpusEntry): LookupResult {
       ? entry.parties ?? entry.citation
       : entry.title ?? entry.citation;
 
+  // Put the full citation in snippet so handleCaseSelect can parse
+  // MNC ([YYYY] CourtCode N) and court from it.
+  const snippetParts = [entry.citation];
+  if (entry.jurisdiction) snippetParts.push(entry.jurisdiction);
+  if (entry.courtOrRegister && !entry.citation.includes(entry.courtOrRegister)) {
+    snippetParts.push(entry.courtOrRegister);
+  }
+
   return {
     title: displayTitle,
-    snippet: `${entry.citation} (${entry.jurisdiction}, ${entry.year})`,
+    snippet: snippetParts.join(" — "),
     sourceId: entry.corpusDocId,
     confidence: 0.8,
     sourceUrl: entry.sourceUrl,

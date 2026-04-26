@@ -593,12 +593,15 @@ export default function InsertCitation(): JSX.Element {
   // BUGS-013: Existing footnotes loaded from Word on mount
   const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
 
-  // Source lookup enabled — true when corpus is downloaded and enabled, or
-  // when the master toggle is on for network adapters.
-  const [searchEnabled] = useState(() => {
+  // Source lookup enabled — re-evaluated when refresh counter changes
+  // (which fires after initializeSourceLookup completes on startup).
+  // True when corpus is downloaded and enabled, or master toggle is on.
+  const [searchEnabled, setSearchEnabled] = useState(() => {
     const corpusReady = checkCorpusAvailable() && getDevicePref("corpusEnabled") !== false;
     return isMasterEnabled() || corpusReady;
   });
+
+  // Re-check searchEnabled moved below useCitationContext (needs refreshCounter)
 
   // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
@@ -616,6 +619,12 @@ export default function InsertCitation(): JSX.Element {
 
   // COURT-007: Load court jurisdiction from store on mount and refresh
   const { refreshCounter, triggerRefresh } = useCitationContext();
+
+  // Re-check searchEnabled after corpus loads (async) or settings change
+  useEffect(() => {
+    const corpusReady = checkCorpusAvailable() && getDevicePref("corpusEnabled") !== false;
+    setSearchEnabled(isMasterEnabled() || corpusReady);
+  }, [refreshCounter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -804,27 +813,45 @@ export default function InsertCitation(): JSX.Element {
 
   const handleCaseSelect = useCallback(
     (result: LookupResult) => {
-      // Parse a typical case title like "Party1 v Party2" into fields.
-      const title = result.title;
-      const vIndex = title.search(/\s+v\s+/i);
+      const text = result.title;
+      const snippet = result.snippet || "";
+
+      // Parse "Party1 v Party2" into party fields
+      const vIndex = text.search(/\s+v\s+/i);
       if (vIndex !== -1) {
-        const p1 = title.substring(0, vIndex).trim();
-        const p2 = title.substring(vIndex).replace(/^\s+v\s+/i, "").trim();
+        const p1 = text.substring(0, vIndex).trim();
+        const p2 = text.substring(vIndex).replace(/^\s+v\s+/i, "").trim();
         updateField("party1", p1);
         updateField("party2", p2);
       } else {
-        updateField("party1", title);
+        updateField("party1", text);
       }
 
-      // Extract year from snippet or title — look for [YYYY] or (YYYY)
-      const yearMatch = /[\[(](\d{4})[\])]/.exec(result.snippet || result.title);
-      if (yearMatch) {
-        updateField("year", yearMatch[1]);
-        // Determine bracket type
-        const bracket = (result.snippet || result.title).charAt(
-          (result.snippet || result.title).indexOf(yearMatch[0]),
-        );
-        updateField("yearType", bracket === "[" ? "square" : "round");
+      // Extract MNC from snippet: [YYYY] CourtCode Number
+      const mncMatch = /\[(\d{4})\]\s+([A-Z]{2,10})\s+(\d+)/.exec(snippet || text);
+      if (mncMatch) {
+        updateField("year", mncMatch[1]);
+        updateField("yearType", "square");
+        updateField("courtId", mncMatch[2]);
+        updateField("mnc", `[${mncMatch[1]}] ${mncMatch[2]} ${mncMatch[3]}`);
+      } else {
+        // Fallback: extract year from [YYYY] or (YYYY)
+        const yearMatch = /[\[(](\d{4})[\])]/.exec(snippet || text);
+        if (yearMatch) {
+          updateField("year", yearMatch[1]);
+          const bracket = (snippet || text).charAt((snippet || text).indexOf(yearMatch[0]));
+          updateField("yearType", bracket === "[" ? "square" : "round");
+        }
+      }
+
+      // Extract authorised report from snippet: (YYYY) VOL Series PAGE
+      const reportMatch = /\((\d{4})\)\s+(\d+)\s+([A-Z][A-Za-z\s]+?)\s+(\d+)/.exec(snippet);
+      if (reportMatch) {
+        updateField("year", reportMatch[1]);
+        updateField("yearType", "round");
+        updateField("volume", reportMatch[2]);
+        updateField("reportSeries", reportMatch[3].trim());
+        updateField("startingPage", reportMatch[4]);
       }
     },
     [updateField],
