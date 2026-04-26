@@ -39,17 +39,45 @@ export class CitationStore {
 
       const partItems = scopedParts.items ?? [];
       if (partItems.length > 0) {
-        // Load existing store (use the first matching part)
-        const part = partItems[0];
-        part.load("id");
+        // Multiple parts can exist after undo/redo or version upgrades.
+        // Find the one with the most citations, then clean up duplicates.
+        let bestPart = partItems[0];
+        let bestData: ReturnType<typeof deserializeStore> | null = null;
+        let bestCitationCount = 0;
+
+        for (const part of partItems) {
+          part.load("id");
+        }
         await context.sync();
 
-        this.xmlPartId = part.id;
+        for (const part of partItems) {
+          const xmlResult = part.getXml();
+          await context.sync();
+          try {
+            const data = deserializeStore(xmlResult.value);
+            const count = data.citations.length;
+            if (count > bestCitationCount || bestData === null) {
+              bestCitationCount = count;
+              bestData = data;
+              bestPart = part;
+            }
+          } catch {
+            // Corrupt XML — skip this part
+          }
+        }
 
-        const xmlResult = part.getXml();
-        await context.sync();
+        this.xmlPartId = bestPart.id;
+        this.storeData = bestData ?? deserializeStore("");
 
-        this.storeData = deserializeStore(xmlResult.value);
+        // Clean up duplicate parts (keep only the best one)
+        if (partItems.length > 1) {
+          for (const part of partItems) {
+            if (part.id !== bestPart.id) {
+              try { part.delete(); } catch { /* ignore */ }
+            }
+          }
+          try { await context.sync(); } catch { /* ignore cleanup errors */ }
+        }
       } else {
         // First use — create an empty store
         this.storeData = {
