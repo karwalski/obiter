@@ -109,16 +109,30 @@ function pinpointsEqual(
  */
 function getAuthorSurname(citation: Citation): string {
   const data = citation.data;
+  // Structured authors array (journal articles, books)
   if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
-    const first = data.authors[0] as { surname?: string };
+    const first = data.authors[0] as { surname?: string; givenNames?: string };
     return first.surname ?? "";
   }
+  // Structured author object
   if (data.author && typeof data.author === "object") {
     const author = data.author as { surname?: string };
     return author.surname ?? "";
   }
+  // Plain string author (reports, speeches, press releases, etc.)
+  if (typeof data.author === "string" && data.author) {
+    return data.author;
+  }
+  // Institutional author
+  if (typeof data.institutionalAuthor === "string" && data.institutionalAuthor) {
+    return data.institutionalAuthor;
+  }
   if (typeof data.authorSurname === "string") {
     return data.authorSurname;
+  }
+  // Fall back to short title (for body-authored sources like "Centre for Road Safety")
+  if (citation.shortTitle) {
+    return citation.shortTitle;
   }
   return "";
 }
