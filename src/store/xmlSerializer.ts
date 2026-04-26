@@ -1,15 +1,30 @@
 /**
- * XML Serialization for the Obiter citation store.
+ * XML Serialization for the Obiter citation store (Schema v2).
  *
  * Converts between Citation objects and XML strings stored in the
  * Custom XML Part. This module is pure (no Office.js dependency)
  * and can be tested independently.
+ *
+ * ## Schema v2 (current)
+ *
+ * Citation-level scalars (shortTitle, aglcVersion, firstFootnoteNumber,
+ * createdAt, modifiedAt) are **attributes** on `<obiter:citation>`.
+ * Data fields use `<obiter:field name="...">value</obiter:field>`.
+ * This eliminates collisions between same-named fields at different
+ * nesting levels (e.g. data.shortTitle vs citation.shortTitle).
+ *
+ * ## Schema v1 (legacy — read-only)
+ *
+ * Data fields were child elements inside `<obiter:data>`, and citation-level
+ * scalars were sibling elements. The deserializer detects v1 format
+ * (absence of `<obiter:field>` elements) and falls back accordingly.
+ * After one open+save cycle the document is migrated to v2.
  */
 
 import { Citation, CitationStoreData, SourceData, SourceType } from "../types/citation";
 
 export const OBITER_NAMESPACE = "urn:obiter:aglc";
-const DEFAULT_SCHEMA_VERSION = "1.0";
+const DEFAULT_SCHEMA_VERSION = "2";
 const DEFAULT_AGLC_VERSION = "4";
 
 // ─── Generator info (INFRA-008 Layer 2) ─────────────────────────────────────
@@ -28,44 +43,38 @@ export interface GeneratorInfo {
 // ─── Serialization ───────────────────────────────────────────────────────────
 
 /**
- * Serialize a single Citation into an XML element string.
+ * Serialize a single Citation into an XML element string (v2 schema).
+ *
+ * Citation-level scalars become attributes; data fields become
+ * `<obiter:field name="...">` children.
  */
 export function serializeCitation(citation: Citation): string {
-  const lines: string[] = [];
   const attrs = [
     `id="${escapeXml(citation.id)}"`,
     `sourceType="${escapeXml(citation.sourceType)}"`,
+    `aglcVersion="${escapeXml(citation.aglcVersion)}"`,
   ];
-  lines.push(`  <obiter:citation ${attrs.join(" ")}>`);
+  if (citation.shortTitle) attrs.push(`shortTitle="${escapeXml(citation.shortTitle)}"`);
+  if (citation.firstFootnoteNumber != null) attrs.push(`firstFootnoteNumber="${citation.firstFootnoteNumber}"`);
+  if (citation.createdAt) attrs.push(`createdAt="${escapeXml(citation.createdAt)}"`);
+  if (citation.modifiedAt) attrs.push(`modifiedAt="${escapeXml(citation.modifiedAt)}"`);
 
-  // data — each key becomes a child element
-  lines.push("    <obiter:data>");
+  const lines = [`  <obiter:citation ${attrs.join(" ")}>`];
+
+  // Data fields as <obiter:field name="...">value</obiter:field>
   for (const [key, value] of Object.entries(citation.data)) {
-    lines.push(`      <obiter:${escapeXml(key)}>${escapeXml(serializeValue(value))}</obiter:${escapeXml(key)}>`);
-  }
-  lines.push("    </obiter:data>");
-
-  // optional scalar fields
-  if (citation.shortTitle != null) {
-    lines.push(`    <obiter:shortTitle>${escapeXml(citation.shortTitle)}</obiter:shortTitle>`);
-  }
-  if (citation.firstFootnoteNumber != null) {
-    lines.push(`    <obiter:firstFootnoteNumber>${citation.firstFootnoteNumber}</obiter:firstFootnoteNumber>`);
+    if (value == null || value === "") continue;
+    lines.push(`    <obiter:field name="${escapeXml(key)}">${escapeXml(serializeValue(value))}</obiter:field>`);
   }
 
-  // tags
-  if (citation.tags.length > 0) {
+  // Tags
+  if (citation.tags?.length) {
     lines.push("    <obiter:tags>");
     for (const tag of citation.tags) {
       lines.push(`      <obiter:tag>${escapeXml(tag)}</obiter:tag>`);
     }
     lines.push("    </obiter:tags>");
   }
-
-  // timestamps
-  lines.push(`    <obiter:createdAt>${escapeXml(citation.createdAt)}</obiter:createdAt>`);
-  lines.push(`    <obiter:modifiedAt>${escapeXml(citation.modifiedAt)}</obiter:modifiedAt>`);
-  lines.push(`    <obiter:aglcVersion>${escapeXml(citation.aglcVersion)}</obiter:aglcVersion>`);
 
   lines.push("  </obiter:citation>");
   return lines.join("\n");
@@ -112,72 +121,120 @@ export function serializeStore(
 // ─── Deserialization ─────────────────────────────────────────────────────────
 
 /**
- * Deserialize a single <obiter:citation> XML element string into a Citation.
+ * Deserialize a single `<obiter:citation>` XML element string into a Citation.
+ *
+ * Handles both v2 (attributes + `<obiter:field>`) and v1 (child elements +
+ * `<obiter:data>`) formats. Detection: if `<obiter:field` elements exist,
+ * use v2. Otherwise fall back to v1.
  */
 export function deserializeCitation(xml: string): Citation {
-  const id = getAttr(xml, "id");
-  const sourceType = getAttr(xml, "sourceType") as SourceType;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "text/xml");
+  const root = doc.documentElement;
 
-  // Extract <obiter:data>...</obiter:data>
-  // The data block may have accumulated nested HTML encoding from multiple
-  // save cycles (each save HTML-encodes the previous content). Unescape
-  // until we reach raw XML field tags.
-  const dataBlock = extractBlock(xml, "data");
+  const id = root.getAttribute("id") ?? "";
+  const sourceType = (root.getAttribute("sourceType") ?? "") as SourceType;
+
+  // ── v2 detection: look for <obiter:field> children ──
+  const fieldEls = findChildrenByLocalName(root, "field");
+  const isV2 = fieldEls.length > 0;
+
+  // ── Data fields ──
   const data: SourceData = {};
-  if (dataBlock) {
-    let decoded = dataBlock;
-    for (let i = 0; i < 10; i++) {
-      // Stop when we find raw (unencoded) obiter field tags with content
-      if (/<obiter:(?!data)\w+>[^&]*<\/obiter:\w+>/.test(decoded)) break;
-      if (!decoded.includes("&lt;")) break;
-      decoded = unescapeXml(decoded);
+
+  if (isV2) {
+    // v2: <obiter:field name="title">value</obiter:field>
+    for (const el of fieldEls) {
+      const name = el.getAttribute("name");
+      if (name) {
+        data[name] = deserializeValue(el.textContent ?? "");
+      }
     }
-    // Strip all <obiter:data> wrapper tags so the field regex only sees fields
-    const inner = decoded.replace(/<\/?obiter:data>/g, "");
-    const fieldRegex = /<obiter:(\w+)>([\s\S]*?)<\/obiter:\1>/g;
-    let match: RegExpExecArray | null;
-    while ((match = fieldRegex.exec(inner)) !== null) {
-      data[match[1]] = deserializeValue(unescapeXml(match[2]));
+  } else {
+    // v1: <obiter:data><obiter:title>value</obiter:title></obiter:data>
+    const dataEl = findChildByLocalName(root, "data");
+    if (dataEl) {
+      let dataChildren = Array.from(dataEl.children);
+
+      // Handle legacy nested encoding: text content may be HTML-encoded XML
+      if (dataChildren.length === 0 && dataEl.textContent) {
+        let decoded = dataEl.textContent;
+        for (let i = 0; i < 10; i++) {
+          if (decoded.includes("<obiter:") || !decoded.includes("&lt;")) break;
+          decoded = unescapeXml(decoded);
+        }
+        // Strip nested <obiter:data> wrappers
+        decoded = decoded.replace(/<\/?obiter:data>/g, "");
+        if (decoded.includes("<obiter:")) {
+          const innerDoc = parser.parseFromString(
+            `<root xmlns:obiter="${OBITER_NAMESPACE}">${decoded}</root>`,
+            "text/xml",
+          );
+          dataChildren = Array.from(innerDoc.documentElement.children);
+        }
+      }
+
+      for (const child of dataChildren) {
+        const tagName = child.localName;
+        if (tagName === "data") continue; // skip nested data wrappers
+        const textContent = child.textContent ?? "";
+        data[tagName] = deserializeValue(textContent);
+      }
     }
   }
 
-  // CRITICAL: Remove the <obiter:data>...</obiter:data> block (and
-  // <obiter:tags>...</obiter:tags> block) from the XML before extracting
-  // citation-level scalar fields. Without this, extractText("shortTitle")
-  // matches the FIRST <obiter:shortTitle> in the XML, which is the one
-  // INSIDE <obiter:data> — not the citation-level field. This caused
-  // citations to lose their shortTitle, or worse, pick up data.shortTitle
-  // as citation.shortTitle. Same issue for any field name that can appear
-  // at both levels (createdAt, aglcVersion, firstFootnoteNumber, etc.).
-  const outerXml = xml
-    .replace(/<obiter:data>[\s\S]*?<\/obiter:data>/g, "")
-    .replace(/<obiter:tags>[\s\S]*?<\/obiter:tags>/g, "");
+  // ── Citation-level scalars ──
+  let shortTitle: string | undefined;
+  let firstFootnoteNumber: number | undefined;
+  let createdAt: string;
+  let modifiedAt: string;
+  let aglcVersion: "4" | "5";
 
-  const shortTitle = extractText(outerXml, "shortTitle");
-  const firstFootnoteStr = extractText(outerXml, "firstFootnoteNumber");
-  const firstFootnoteNumber = firstFootnoteStr != null ? parseInt(firstFootnoteStr, 10) : undefined;
+  if (isV2) {
+    // v2: citation-level scalars are attributes
+    shortTitle = root.getAttribute("shortTitle") ?? undefined;
+    const firstFn = root.getAttribute("firstFootnoteNumber");
+    firstFootnoteNumber = firstFn ? parseInt(firstFn, 10) : undefined;
+    createdAt = root.getAttribute("createdAt") ?? new Date().toISOString();
+    modifiedAt = root.getAttribute("modifiedAt") ?? new Date().toISOString();
+    aglcVersion = (root.getAttribute("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
+  } else {
+    // v1: citation-level scalars are child elements (direct children of root only)
+    const getDirectChildText = (name: string): string | null => {
+      const dataEl = findChildByLocalName(root, "data");
+      for (const child of Array.from(root.children)) {
+        if (child.localName === name && child !== dataEl) {
+          return child.textContent?.trim() ?? null;
+        }
+      }
+      return null;
+    };
 
-  // tags
+    shortTitle = getDirectChildText("shortTitle") ?? undefined;
+    const firstFnStr = getDirectChildText("firstFootnoteNumber");
+    firstFootnoteNumber = firstFnStr != null ? parseInt(firstFnStr, 10) : undefined;
+    createdAt = getDirectChildText("createdAt") ?? new Date().toISOString();
+    modifiedAt = getDirectChildText("modifiedAt") ?? new Date().toISOString();
+    aglcVersion = (getDirectChildText("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
+  }
+
+  // ── Tags (same format in both v1 and v2) ──
   const tags: string[] = [];
-  const tagsBlock = extractBlock(xml, "tags");
-  if (tagsBlock) {
-    const tagRegex = /<obiter:tag>([\s\S]*?)<\/obiter:tag>/g;
-    let tagMatch: RegExpExecArray | null;
-    while ((tagMatch = tagRegex.exec(tagsBlock)) !== null) {
-      tags.push(unescapeXml(tagMatch[1]));
+  const tagsEl = findChildByLocalName(root, "tags");
+  if (tagsEl) {
+    for (const tagChild of Array.from(tagsEl.children)) {
+      if (tagChild.localName === "tag" && tagChild.textContent) {
+        tags.push(tagChild.textContent);
+      }
     }
   }
-
-  const createdAt = extractText(outerXml, "createdAt") ?? new Date().toISOString();
-  const modifiedAt = extractText(outerXml, "modifiedAt") ?? new Date().toISOString();
-  const aglcVersion = (extractText(outerXml, "aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
 
   return {
     id,
     sourceType,
     aglcVersion,
     data,
-    shortTitle: shortTitle ?? undefined,
+    shortTitle,
     firstFootnoteNumber,
     tags,
     createdAt,
@@ -187,53 +244,45 @@ export function deserializeCitation(xml: string): Citation {
 
 /**
  * Deserialize the full store XML into a CitationStoreData object.
+ *
+ * Uses DOMParser for root-level attribute extraction, eliminating
+ * the fragile regex-based approach.
  */
 export function deserializeStore(xml: string): CitationStoreData {
-  // Extract root element attributes
-  const versionMatch = xml.match(/<obiter:citationStore[^>]*\sversion="([^"]*)"/);
-  const aglcVersionMatch = xml.match(/<obiter:citationStore[^>]*\saglcVersion="([^"]*)"/);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, "text/xml");
+  const root = doc.documentElement;
 
-  const schemaVersion = versionMatch ? versionMatch[1] : DEFAULT_SCHEMA_VERSION;
-  const aglcVersion = (aglcVersionMatch ? aglcVersionMatch[1] : DEFAULT_AGLC_VERSION) as "4" | "5";
+  const schemaVersion = root.getAttribute("version") ?? "1.0";
+  const aglcVersion = (root.getAttribute("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
+  const standardId = root.getAttribute("standardId") ?? "aglc4";
+  const writingMode = (root.getAttribute("writingMode") ?? "academic") as "academic" | "court";
+  const courtJurisdiction = root.getAttribute("courtJurisdiction") ?? undefined;
+  const headingListIdStr = root.getAttribute("headingListId");
+  const headingListId = headingListIdStr ? parseInt(headingListIdStr, 10) : undefined;
+  const ccModel = (root.getAttribute("ccModel") as "flat" | "parent-child" | null) ?? undefined;
 
-  // Extract standardId attribute (backward compatible — defaults to "aglc4")
-  const standardIdMatch = xml.match(/<obiter:citationStore[^>]*\sstandardId="([^"]*)"/);
-  const standardId = standardIdMatch ? standardIdMatch[1] : "aglc4";
-
-  // Extract writingMode attribute (MULTI-014 — defaults to "academic")
-  const writingModeMatch = xml.match(/<obiter:citationStore[^>]*\swritingMode="([^"]*)"/);
-  const writingMode = (writingModeMatch ? writingModeMatch[1] : "academic") as "academic" | "court";
-
-  // Extract courtJurisdiction attribute (COURT-002 — optional)
-  const courtJurisdictionMatch = xml.match(/<obiter:citationStore[^>]*\scourtJurisdiction="([^"]*)"/);
-  const courtJurisdiction = courtJurisdictionMatch ? courtJurisdictionMatch[1] : undefined;
-
-  // Extract headingListId attribute (optional — persisted Word list ID)
-  const headingListIdMatch = xml.match(/<obiter:citationStore[^>]*\sheadingListId="(\d+)"/);
-  const headingListId = headingListIdMatch ? parseInt(headingListIdMatch[1], 10) : undefined;
-
-  // FN-005: Extract ccModel attribute (optional — defaults to undefined / "flat")
-  const ccModelMatch = xml.match(/<obiter:citationStore[^>]*\sccModel="([^"]*)"/);
-  const ccModel = ccModelMatch ? ccModelMatch[1] as "flat" | "parent-child" : undefined;
-
-  // INFRA-008 Layer 2: read generator element for migration detection
+  // INFRA-008 Layer 2: read generator element
   let generator: GeneratorInfo | undefined;
-  const generatorMatch = xml.match(/<obiter:generator\s([^/]*)\s*\/>/);
-  if (generatorMatch) {
+  const generatorEl = findChildByLocalName(root, "generator");
+  if (generatorEl) {
     generator = {
-      name: getAttr(generatorMatch[0], "name") || "Obiter",
-      version: getAttr(generatorMatch[0], "version") || "",
-      standard: getAttr(generatorMatch[0], "standard") || "",
-      mode: getAttr(generatorMatch[0], "mode") || "",
+      name: generatorEl.getAttribute("name") || "Obiter",
+      version: generatorEl.getAttribute("version") || "",
+      standard: generatorEl.getAttribute("standard") || "",
+      mode: generatorEl.getAttribute("mode") || "",
     };
   }
 
-  // Extract all <obiter:citation ...>...</obiter:citation> blocks
+  // Extract all <obiter:citation> children
   const citations: Citation[] = [];
-  const citationRegex = /<obiter:citation\s[^>]*>[\s\S]*?<\/obiter:citation>/g;
-  let match: RegExpExecArray | null;
-  while ((match = citationRegex.exec(xml)) !== null) {
-    citations.push(deserializeCitation(match[0]));
+  for (const child of Array.from(root.children)) {
+    if (child.localName === "citation") {
+      // Serialize the element back to string for deserializeCitation
+      const serializer = new XMLSerializer();
+      const citationXml = serializer.serializeToString(child);
+      citations.push(deserializeCitation(citationXml));
+    }
   }
 
   return {
@@ -271,22 +320,26 @@ function unescapeXml(str: string): string {
     .replace(/&amp;/g, "&");
 }
 
-function getAttr(xml: string, name: string): string {
-  const match = xml.match(new RegExp(`${name}="([^"]*)"`));
-  return match ? unescapeXml(match[1]) : "";
+/**
+ * Find direct children of an element by localName.
+ * Works reliably across DOMParser implementations regardless of namespace handling.
+ */
+function findChildrenByLocalName(parent: Element, name: string): Element[] {
+  const result: Element[] = [];
+  for (const child of Array.from(parent.children)) {
+    if (child.localName === name) result.push(child);
+  }
+  return result;
 }
 
-function extractBlock(xml: string, tagName: string): string | null {
-  const regex = new RegExp(`<obiter:${tagName}>[\\s\\S]*?</obiter:${tagName}>`);
-  const match = xml.match(regex);
-  return match ? match[0] : null;
-}
-
-function extractText(xml: string, tagName: string): string | null {
-  // Match direct child only (non-greedy, no nested obiter: tags)
-  const regex = new RegExp(`<obiter:${tagName}>([\\s\\S]*?)</obiter:${tagName}>`);
-  const match = xml.match(regex);
-  return match ? unescapeXml(match[1].trim()) : null;
+/**
+ * Find the first direct child of an element by localName.
+ */
+function findChildByLocalName(parent: Element, name: string): Element | null {
+  for (const child of Array.from(parent.children)) {
+    if (child.localName === name) return child;
+  }
+  return null;
 }
 
 /**

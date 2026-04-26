@@ -19,7 +19,7 @@ import {
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
 
-const DEFAULT_SCHEMA_VERSION = "1.0";
+const DEFAULT_SCHEMA_VERSION = "2";
 const DEFAULT_AGLC_VERSION: "4" | "5" = "4";
 const DEFAULT_STANDARD_ID: CitationStandardId = "aglc4";
 
