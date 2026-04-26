@@ -422,7 +422,10 @@ export default function CitationLibrary(): JSX.Element {
         const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
         const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
         let runs;
-        if (mode === "full" || isFirst) {
+        // Only force full if mode is "full" or ("auto" and first occurrence).
+        // Explicit "short" and "ibid" should work even if no prior CC is found
+        // (the user knows what format they want).
+        if (mode === "full" || (mode === "auto" && isFirst)) {
           runs = getFormattedPreview(citation, courtConfig);
         } else {
           const ctx: CitationContext = {
@@ -433,7 +436,7 @@ export default function CitationLibrary(): JSX.Element {
             currentPinpoint: pinpointInput
               ? { type: "page", value: pinpointInput }
               : undefined,
-            firstFootnoteNumber: firstFn?.footnoteIndex ?? 1,
+            firstFootnoteNumber: firstFn?.footnoteIndex ?? citation.firstFootnoteNumber ?? 1,
             isWithinSameFootnote: false,
             formatPreference: mode,
           };
