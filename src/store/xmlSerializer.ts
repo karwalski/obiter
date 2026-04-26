@@ -141,8 +141,20 @@ export function deserializeCitation(xml: string): Citation {
     }
   }
 
-  const shortTitle = extractText(xml, "shortTitle");
-  const firstFootnoteStr = extractText(xml, "firstFootnoteNumber");
+  // CRITICAL: Remove the <obiter:data>...</obiter:data> block (and
+  // <obiter:tags>...</obiter:tags> block) from the XML before extracting
+  // citation-level scalar fields. Without this, extractText("shortTitle")
+  // matches the FIRST <obiter:shortTitle> in the XML, which is the one
+  // INSIDE <obiter:data> — not the citation-level field. This caused
+  // citations to lose their shortTitle, or worse, pick up data.shortTitle
+  // as citation.shortTitle. Same issue for any field name that can appear
+  // at both levels (createdAt, aglcVersion, firstFootnoteNumber, etc.).
+  const outerXml = xml
+    .replace(/<obiter:data>[\s\S]*?<\/obiter:data>/g, "")
+    .replace(/<obiter:tags>[\s\S]*?<\/obiter:tags>/g, "");
+
+  const shortTitle = extractText(outerXml, "shortTitle");
+  const firstFootnoteStr = extractText(outerXml, "firstFootnoteNumber");
   const firstFootnoteNumber = firstFootnoteStr != null ? parseInt(firstFootnoteStr, 10) : undefined;
 
   // tags
@@ -156,9 +168,9 @@ export function deserializeCitation(xml: string): Citation {
     }
   }
 
-  const createdAt = extractText(xml, "createdAt") ?? new Date().toISOString();
-  const modifiedAt = extractText(xml, "modifiedAt") ?? new Date().toISOString();
-  const aglcVersion = (extractText(xml, "aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
+  const createdAt = extractText(outerXml, "createdAt") ?? new Date().toISOString();
+  const modifiedAt = extractText(outerXml, "modifiedAt") ?? new Date().toISOString();
+  const aglcVersion = (extractText(outerXml, "aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
 
   return {
     id,

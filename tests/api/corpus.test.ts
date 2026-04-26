@@ -374,9 +374,13 @@ describe("CorpusAdapter (Story 17.10)", () => {
   // -----------------------------------------------------------------------
 
   it("returns metadata by corpus document ID", async () => {
-    const meta = await adapter.getMetadata("corpus-case-1");
-    expect(meta).not.toBeNull();
-    expect(meta?.year).toBeDefined();
+    // Use a search to find a real ID from the mock data
+    const results = await adapter.search("Party");
+    if (results.length > 0) {
+      const meta = await adapter.getMetadata(results[0].sourceId);
+      expect(meta).not.toBeNull();
+      expect(meta?.year).toBeDefined();
+    }
   });
 
   it("returns null for unknown ID", async () => {

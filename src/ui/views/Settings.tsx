@@ -1089,6 +1089,26 @@ export default function Settings(): JSX.Element {
           </a>
         </p>
 
+        <p style={{ fontSize: 12, margin: "4px 0" }}>
+          <a
+            href="https://marketplace.microsoft.com/en-us/product/WA200010629?tab=Reviews"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Rate and review on AppSource
+          </a>
+        </p>
+
+        <p style={{ fontSize: 12, margin: "4px 0" }}>
+          <a
+            href="https://obiter.com.au/contact"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Report an issue or request a feature
+          </a>
+        </p>
+
         <details style={{ fontSize: 12, marginTop: 8 }}>
           <summary style={{ cursor: "pointer", color: "var(--colour-text-secondary)" }}>
             Sideloading instructions
