@@ -444,8 +444,13 @@ export default function CitationLibrary(): JSX.Element {
           runs = result ?? getFormattedPreview(citation, courtConfig);
         }
 
-        const title = citation.shortTitle || getCitationLabel(citation);
-        await insertCitationFootnote(citation.id, title, runs);
+        // Encode format and pinpoint in the CC title so the refresher
+        // can preserve them across rebuild cycles.
+        const resolvedMode = (mode === "full" || (mode === "auto" && isFirst)) ? "full" : mode === "ibid" ? "ibid" : "short";
+        const ccTitle = pinpointInput
+          ? `Citation:${resolvedMode}:${pinpointInput}`
+          : `Citation:${resolvedMode}`;
+        await insertCitationFootnote(citation.id, ccTitle, runs);
 
         // Update store with firstFootnoteNumber if this is the first citation
         if (isFirst) {

@@ -72,6 +72,10 @@ interface ChildEntry {
   citationId: string;
   /** 1-based footnote number. */
   footnoteNumber: number;
+  /** Per-occurrence pinpoint encoded in the CC title (e.g. "4-5"). */
+  pinpoint?: string;
+  /** The CC title string (e.g. "Citation:short:4-5"). */
+  ccTitle?: string;
 }
 
 /**
@@ -103,6 +107,8 @@ interface RenderedCitation {
   signal: IntroductorySignal | undefined;
   /** The rendered format of this citation (full/short/ibid). */
   renderedFormat: RenderedFormat;
+  /** Per-occurrence pinpoint to preserve across rebuild cycles. */
+  pinpoint?: string;
 }
 
 /**
@@ -270,15 +276,25 @@ async function scanFootnotes(
 
     // Find child CCs inside the parent (UUID tags)
     const childCCs = parentCC.contentControls;
-    childCCs.load("items/tag,items/text");
+    childCCs.load("items/tag,items/text,items/title");
     await context.sync();
 
     const children: ChildEntry[] = [];
     for (const childCC of (childCCs.items ?? [])) {
       if (childCC.tag && !childCC.tag.startsWith("obiter-")) {
+        // Extract per-occurrence pinpoint from CC title.
+        // Format: "Citation:format" or "Citation:format:pinpoint"
+        let pinpoint: string | undefined;
+        const ccTitle = childCC.title ?? "";
+        const titleParts = ccTitle.split(":");
+        if (titleParts.length >= 3) {
+          pinpoint = titleParts.slice(2).join(":"); // rejoin in case pinpoint has colons
+        }
         children.push({
           citationId: childCC.tag,
           footnoteNumber,
+          pinpoint,
+          ccTitle,
         });
       }
     }
@@ -430,8 +446,10 @@ function renderFootnoteCitations(
 
     const firstFootnoteNumber =
       footnoteMap.get(child.citationId) ?? fnEntry.footnoteNumber;
-    // Normalise pinpoint — UI stores as string, resolver expects Pinpoint object
-    const rawPinpoint = citation.data.pinpoint;
+    // Per-occurrence pinpoint from the CC title takes priority over
+    // the citation's stored pinpoint (different footnotes can cite
+    // different pages of the same source).
+    const rawPinpoint = child.pinpoint ?? citation.data.pinpoint;
     const currentPinpoint: Pinpoint | undefined = rawPinpoint
       ? typeof rawPinpoint === "string"
         ? { type: "page" as const, value: rawPinpoint }
@@ -484,6 +502,7 @@ function renderFootnoteCitations(
       citationId: child.citationId,
       signal: citation.signal,
       renderedFormat,
+      pinpoint: child.pinpoint,
     });
 
     // Update tracking state
@@ -558,15 +577,18 @@ async function rebuildParentCC(
   await context.sync();
 
   for (let j = 0; j < rendered.length; j++) {
-    const { runs, citationId, signal, renderedFormat } = rendered[j];
+    const { runs, citationId, signal, renderedFormat, pinpoint } = rendered[j];
 
     // Create a child CC at the end of the parent CC
     const endRange = parentCC.getRange("End");
     const childCC = endRange.insertContentControl("RichText");
     childCC.tag = citationId;
-    // Encode the rendered format in the title so the selection handler can
-    // detect clicks on short/ibid references and set the appropriate focusField.
-    childCC.title = `Citation:${renderedFormat}`;
+    // Encode the rendered format and pinpoint in the title so the refresher
+    // can preserve per-occurrence pinpoints across rebuild cycles.
+    // Format: "Citation:format" or "Citation:format:pinpoint"
+    childCC.title = pinpoint
+      ? `Citation:${renderedFormat}:${pinpoint}`
+      : `Citation:${renderedFormat}`;
     childCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
     // Write the citation runs into the child CC
