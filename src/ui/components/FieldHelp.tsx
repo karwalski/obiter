@@ -61,7 +61,7 @@ export default function FieldHelp({
   const handleViewInGuide = (): void => {
     setOpen(false);
     if (ruleNumber) {
-      navigate(`/abbreviations?rule=${encodeURIComponent(ruleNumber)}`);
+      navigate(`/guide?rule=${encodeURIComponent(ruleNumber)}`);
     }
   };
 
