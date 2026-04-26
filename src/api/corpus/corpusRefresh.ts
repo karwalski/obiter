@@ -10,7 +10,7 @@ import { getCorpusIndex } from "./corpusDownload";
 
 /** The manifest URL that will be checked in production. */
 export const CORPUS_MANIFEST_URL =
-  "https://corpus.obiter.com.au/corpus/manifest.json";
+  "https://obiter.com.au/corpus/manifest.json";
 
 /**
  * Compare the local corpus version against the remote manifest.

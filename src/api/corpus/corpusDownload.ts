@@ -22,8 +22,8 @@ export type CorpusStatus = "not-downloaded" | "downloading" | "ready" | "error";
 /** Progress callback: (loaded entries, total entries) => void */
 export type CorpusProgressCallback = (loaded: number, total: number) => void;
 
-/** CDN endpoint for the corpus index JSON (Cloudflare R2). */
-const CORPUS_CDN_URL = "https://corpus.obiter.com.au/corpus/index.json";
+/** CDN endpoint for the corpus index JSON. Lightsail primary, R2 fallback. */
+const CORPUS_CDN_URL = "https://obiter.com.au/corpus/index.json";
 
 /** IndexedDB database name and store names. */
 const IDB_NAME = "obiter-corpus";
