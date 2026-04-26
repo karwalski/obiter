@@ -683,6 +683,9 @@ export async function deleteCitationFootnote(
       noteItem.delete();
       await context.sync();
     }
+    // Note: after deleting a child CC, orphaned separator text ("; ") may
+    // remain in the parent. The caller should trigger a Refresh All to
+    // rebuild the footnote with correct separators and closing punctuation.
   });
 }
 

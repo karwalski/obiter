@@ -493,6 +493,12 @@ export default function EditCitation(): JSX.Element {
 
     try {
       await deleteCitationFootnote(citation.id, footnoteIndex);
+      // Rebuild footnotes to clean up orphaned separators
+      const store = await getSharedStore();
+      await Word.run(async (ctx) => {
+        const { refreshAllCitations } = await import("../../word/citationRefresher");
+        await refreshAllCitations(ctx, store);
+      });
       // Refresh the occurrences list after removal
       await loadOccurrences(citation.id);
       setSuccessMessage(`Removed from footnote ${footnoteIndex}.`);
