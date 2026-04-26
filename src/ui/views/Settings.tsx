@@ -591,6 +591,35 @@ export default function Settings(): JSX.Element {
       )}
 
       <fieldset className="settings-section">
+        <legend className="settings-section-title">Manual Citations Mode</legend>
+
+        <label className="settings-toggle">
+          <input
+            type="checkbox"
+            checked={getDevicePref("manualCitationMode") === true}
+            onChange={(e) => {
+              setDevicePref("manualCitationMode", e.target.checked || undefined);
+              // Disable auto-refresh when manual mode is on, re-enable when off
+              if (e.target.checked) {
+                setAutoRefreshCitations(false);
+                setAutoRefreshEnabled(false);
+                setDocSetting("obiter-autoRefresh", false);
+              }
+              triggerRefresh();
+            }}
+          />
+          <span className="settings-toggle-label">
+            Switch to Manual Citations
+          </span>
+        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          Disable Obiter's automatic citation corrections. When enabled, footnote
+          text is not automatically reformatted — you can edit citation text
+          directly in the document. Re-enable to resume automatic formatting.
+        </p>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Citation Standard</legend>
 
         <label style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
@@ -806,6 +835,96 @@ export default function Settings(): JSX.Element {
           Automatically updates ibid, short references, and cross-reference
           numbers when footnotes are added, moved, or deleted.
         </p>
+      </fieldset>
+
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">About</legend>
+
+        <p style={{ fontSize: 12, margin: "4px 0 6px" }}>
+          {APP_NAME} v{currentVersion}
+          {latestVersion && !updateAvailable && !versionLoading && (
+            <span style={{ color: "var(--colour-text-secondary)" }}> — up to date</span>
+          )}
+          {updateAvailable && latestVersion && (
+            <span style={{ color: "var(--colour-error)" }}> — v{latestVersion} available</span>
+          )}
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <button
+            className="bib-insert-btn"
+            onClick={handleCheckForUpdates}
+            disabled={versionLoading}
+          >
+            {versionLoading ? "Checking..." : "Check for updates"}
+          </button>
+        </div>
+
+        <div style={{ fontSize: 11, color: "var(--colour-text-secondary)", marginTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+          <p style={{ margin: 0 }}>
+            AGLC4 — Australian Guide to Legal Citation, 4th Edition (Melbourne University Law Review)
+          </p>
+          <p style={{ margin: 0 }}>
+            Open Australian Legal Corpus (CC BY 4.0, Isaacus)
+            {corpusAvailable && corpusEntryCount != null && (
+              <span> — {corpusEntryCount.toLocaleString()} entries downloaded</span>
+            )}
+          </p>
+          <p style={{ margin: 0 }}>
+            Obiter is free and open-source software under the GNU General Public License v3.0
+          </p>
+          <p style={{ margin: 0 }}>
+            <a
+              href={`https://github.com/${GITHUB_REPO}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source code on GitHub
+            </a>
+          </p>
+          <p style={{ margin: 0 }}>
+            <a
+              href="https://obiter.com.au"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              obiter.com.au
+            </a>
+          </p>
+          <p style={{ margin: 0 }}>
+            Developed by Matthew Watt
+          </p>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 10 }}>
+          <p style={{ fontSize: 12, margin: 0 }}>
+            <a
+              href={`https://github.com/${GITHUB_REPO}/releases`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View all releases on GitHub
+            </a>
+          </p>
+          <p style={{ fontSize: 12, margin: 0 }}>
+            <a
+              href="https://marketplace.microsoft.com/en-us/product/WA200010629?tab=Reviews"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Rate and review on AppSource
+            </a>
+          </p>
+          <p style={{ fontSize: 12, margin: 0 }}>
+            <a
+              href="https://obiter.com.au/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Report an issue or request a feature
+            </a>
+          </p>
+        </div>
       </fieldset>
 
       <details style={{ marginTop: 16 }}>
@@ -1054,85 +1173,6 @@ export default function Settings(): JSX.Element {
           See <a href="https://obiter.com.au" target="_blank" rel="noopener noreferrer" style={{ color: "var(--colour-accent)" }}>obiter.com.au</a> for
           step-by-step instructions.
         </p>
-      </fieldset>
-
-      <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">About</legend>
-
-        <p style={{ fontSize: 12, margin: "4px 0 6px" }}>
-          {APP_NAME} v{currentVersion}
-          {latestVersion && !updateAvailable && !versionLoading && (
-            <span style={{ color: "var(--colour-text-secondary)" }}> — up to date</span>
-          )}
-          {updateAvailable && latestVersion && (
-            <span style={{ color: "var(--colour-error)" }}> — v{latestVersion} available</span>
-          )}
-        </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <button
-            className="bib-insert-btn"
-            onClick={handleCheckForUpdates}
-            disabled={versionLoading}
-          >
-            {versionLoading ? "Checking..." : "Check for updates"}
-          </button>
-        </div>
-
-        <p style={{ fontSize: 12, margin: "10px 0 4px" }}>
-          <a
-            href={`https://github.com/${GITHUB_REPO}/releases`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View all releases on GitHub
-          </a>
-        </p>
-
-        <p style={{ fontSize: 12, margin: "4px 0" }}>
-          <a
-            href="https://marketplace.microsoft.com/en-us/product/WA200010629?tab=Reviews"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Rate and review on AppSource
-          </a>
-        </p>
-
-        <p style={{ fontSize: 12, margin: "4px 0" }}>
-          <a
-            href="https://obiter.com.au/contact"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Report an issue or request a feature
-          </a>
-        </p>
-
-        <details style={{ fontSize: 12, marginTop: 8 }}>
-          <summary style={{ cursor: "pointer", color: "var(--colour-text-secondary)" }}>
-            Sideloading instructions
-          </summary>
-          <ol style={{ paddingLeft: 18, margin: "6px 0 0", lineHeight: 1.6 }}>
-            <li>
-              Download the latest release from{" "}
-              <a
-                href={`https://github.com/${GITHUB_REPO}/releases/latest`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub Releases
-              </a>
-              .
-            </li>
-            <li>Extract the downloaded archive.</li>
-            <li>
-              In Word, go to <strong>Insert &gt; My Add-ins &gt; Upload My Add-in</strong>.
-            </li>
-            <li>Browse to the extracted <code>manifest.xml</code> file and confirm.</li>
-            <li>The updated add-in will load in the task pane.</li>
-          </ol>
-        </details>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

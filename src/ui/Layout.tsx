@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useTheme } from "./hooks/useTheme";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { APP_VERSION } from "../constants";
@@ -14,6 +14,7 @@ import { getSharedStore } from "../store/singleton";
 import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
+import { getDevicePref } from "../store/devicePreferences";
 import {
   initializeSourceLookup,
   shouldShowCorpusBanner,
@@ -35,11 +36,18 @@ const NAV_ITEMS = [
 export default function Layout(): JSX.Element {
   useTheme();
   const online = useOnlineStatus();
+  const navigate = useNavigate();
   const { triggerRefresh, refreshCounter } = useCitationContext();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [refreshing, setRefreshing] = useState(false);
   const [corpusBannerVisible, setCorpusBannerVisible] = useState(false);
+  const [manualMode, setManualMode] = useState(() => getDevicePref("manualCitationMode") === true);
+
+  // Re-read manual mode when refreshCounter changes (toggled from Settings)
+  useEffect(() => {
+    setManualMode(getDevicePref("manualCitationMode") === true);
+  }, [refreshCounter]);
 
   // Initialize source lookup adapters on mount
   useEffect(() => {
@@ -100,6 +108,24 @@ export default function Layout(): JSX.Element {
           onDismiss={() => setCorpusBannerVisible(false)}
         />
       )}
+      {manualMode && (
+        <div
+          role="status"
+          style={{
+            fontSize: 11,
+            padding: "6px 10px",
+            background: "var(--colour-warning-surface, #fff8e1)",
+            borderBottom: "1px solid var(--colour-warning, #f59e0b)",
+            color: "var(--colour-warning-text, #92400e)",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+          onClick={() => navigate("/settings")}
+          title="Go to Settings to re-enable automatic citation corrections"
+        >
+          Manual Mode — automatic citation corrections disabled
+        </div>
+      )}
       <nav className="obiter-nav" role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -116,11 +142,19 @@ export default function Layout(): JSX.Element {
         <button
           className="obiter-action-btn"
           type="button"
-          onClick={() => void handleRefreshAll()}
+          onClick={() => {
+            if (manualMode) {
+              navigate("/settings");
+            } else {
+              void handleRefreshAll();
+            }
+          }}
           disabled={refreshing}
-          title="Rebuild all footnote text: updates ibid, short references, cross-references, numbering, and heading prefixes"
+          title={manualMode
+            ? "Manual mode is active. Go to Settings to re-enable automatic corrections."
+            : "Rebuild all footnote text: updates ibid, short references, cross-references, numbering, and heading prefixes"}
         >
-          {refreshing ? "Refreshing..." : "Refresh All"}
+          {refreshing ? "Refreshing..." : manualMode ? "Manual Mode" : "Refresh All"}
         </button>
       </div>
       <main id="obiter-main" className="obiter-content" role="main">

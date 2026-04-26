@@ -210,6 +210,11 @@ export async function refreshAllCitations(
   context: Word.RequestContext,
   store: CitationStore,
 ): Promise<RefreshResult> {
+  // Gate: Manual Citations Mode disables all auto-refresh
+  if (getDevicePref("manualCitationMode") === true) {
+    return { updated: 0, unchanged: 0 };
+  }
+
   // Build config from the store's standard and writing mode, with court toggles
   const standardId = store.getStandardId();
   const baseConfig = getStandardConfig(standardId);

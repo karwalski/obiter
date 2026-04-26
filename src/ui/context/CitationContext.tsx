@@ -12,6 +12,7 @@ import {
 import { registerChangeListener, unregisterChangeListener } from "../../word/changeListener";
 import { refreshAllCitations } from "../../word/citationRefresher";
 import { getSharedStore } from "../../store/singleton";
+import { getDevicePref } from "../../store/devicePreferences";
 
 /** Which field to auto-focus after navigating to Edit from a CC click. */
 export type FocusField = "pinpoint" | "format" | null;
@@ -60,7 +61,8 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     // Auto-refresh ibid/subsequent references when enabled.
     // UX-005: Skip during the startup window to let Word finish rendering
     // footnotes before we touch content controls inside them.
-    if (!autoRefreshEnabled || refreshingRef.current || !startupReadyRef.current) return;
+    // Gate: Manual Citations Mode disables all auto-refresh.
+    if (!autoRefreshEnabled || refreshingRef.current || !startupReadyRef.current || getDevicePref("manualCitationMode") === true) return;
     refreshingRef.current = true;
 
     void Word.run(async (context) => {

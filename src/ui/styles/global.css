@@ -62,8 +62,64 @@
   --colour-accent: #2AA198;
   --colour-accent-hover: #238A83;
   --colour-accent-subtle: #1A2E2C;
+  --colour-accent-light: #5ec4bc;
+  --colour-accent-lighter: #8dd8d2;
 
   /* Semantic colours unchanged */
+}
+
+/* ─── Dark Mode Link Accessibility ─── */
+[data-theme="dark"] a,
+[data-theme="dark"] a:visited {
+  color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--colour-accent-lighter, #8dd8d2);
+}
+
+[data-theme="dark"] .field-help-link {
+  color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] .field-help-link:hover {
+  color: var(--colour-accent-lighter, #8dd8d2);
+}
+
+[data-theme="dark"] .edit-btn-primary,
+[data-theme="dark"] .library-btn--insert,
+[data-theme="dark"] .library-btn--import {
+  /* These are buttons with white text on accent bg — no change needed */
+  color: #ffffff;
+}
+
+[data-theme="dark"] .library-btn--edit {
+  color: var(--colour-accent-light, #5ec4bc);
+  border-color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] .ic-ai-suggest-link {
+  color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] .ic-ai-suggest-link:hover {
+  color: var(--colour-accent-lighter, #8dd8d2);
+}
+
+[data-theme="dark"] .citation-preview-edit-btn {
+  color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] .citation-preview-edit-btn:hover {
+  color: var(--colour-accent-lighter, #8dd8d2);
+}
+
+[data-theme="dark"] .obiter-footer a {
+  color: var(--colour-accent-light, #5ec4bc);
+}
+
+[data-theme="dark"] .obiter-footer a:hover {
+  color: var(--colour-accent-lighter, #8dd8d2);
 }
 
 *,
