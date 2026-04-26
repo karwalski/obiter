@@ -341,10 +341,30 @@ async function fetchFromCdn(): Promise<CorpusCdnResponse | null> {
     const response = await fetch(CORPUS_CDN_URL);
     if (!response.ok) return null;
 
-    const data = (await response.json()) as CorpusCdnResponse;
-    if (!data.version || !Array.isArray(data.entries)) return null;
+    const data = await response.json();
 
-    return data;
+    // CDN may return a flat array of entries or a wrapped { version, entries } object.
+    if (Array.isArray(data)) {
+      // Flat array — fetch version from manifest
+      let version = "1.0.0";
+      try {
+        const manifestUrl = CORPUS_CDN_URL.replace(/index\.json$/, "manifest.json");
+        const mRes = await fetch(manifestUrl);
+        if (mRes.ok) {
+          const manifest = await mRes.json();
+          if (manifest.version) version = manifest.version;
+        }
+      } catch { /* use default version */ }
+      return { version, entries: data as CorpusEntry[] };
+    }
+
+    // Wrapped format
+    const wrapped = data as CorpusCdnResponse;
+    if (wrapped.version && Array.isArray(wrapped.entries)) {
+      return wrapped;
+    }
+
+    return null;
   } catch {
     return null;
   }
