@@ -46,6 +46,7 @@ export interface SourceAdapterDescriptor {
 /* ------------------------------------------------------------------ */
 
 const PREF_KEY = "sourceRegistry.enabled";
+const MASTER_KEY = "sourceRegistry.masterEnabled";
 
 /** Load the persisted enabled/disabled map. */
 function loadEnabledMap(): Record<string, boolean> {
@@ -59,6 +60,18 @@ function loadEnabledMap(): Record<string, boolean> {
 /** Persist the enabled/disabled map. */
 function saveEnabledMap(map: Record<string, boolean>): void {
   setDevicePref(PREF_KEY, map);
+}
+
+/** Check whether the master source-lookup toggle is enabled. */
+export function isMasterEnabled(): boolean {
+  const saved = getDevicePref(MASTER_KEY);
+  // Default to false — user must explicitly enable source lookup
+  return saved === true;
+}
+
+/** Set the master source-lookup toggle. */
+export function setMasterEnabled(enabled: boolean): void {
+  setDevicePref(MASTER_KEY, enabled);
 }
 
 /* ------------------------------------------------------------------ */
@@ -150,141 +163,12 @@ export const TIER_LABELS: Record<AdapterTier, string> = {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Built-in adapter registrations                                     */
+/*  Adapter registrations                                              */
 /* ------------------------------------------------------------------ */
-
-registerAdapter({
-  id: "austlii",
-  name: "AustLII",
-  tier: "open",
-  jurisdictions: ["AU"],
-  licence: "Free, public legal information",
-  requiresKey: false,
-  fragile: true,
-  health: "green",
-});
-
-registerAdapter({
-  id: "jade",
-  name: "Jade.io",
-  tier: "live",
-  jurisdictions: ["AU"],
-  licence: "Free tier; premium requires key",
-  requiresKey: true,
-  fragile: false,
-  health: "green",
-});
-
-registerAdapter({
-  id: "legislation",
-  name: "Federal Register of Legislation",
-  tier: "open",
-  jurisdictions: ["AU"],
-  licence: "Free, Commonwealth legislation",
-  requiresKey: false,
-  fragile: false,
-  health: "green",
-});
-
-registerAdapter({
-  id: "treaties",
-  name: "Treaty Database",
-  tier: "open",
-  jurisdictions: ["AU", "International"],
-  licence: "Free, AustLII/UN treaties",
-  requiresKey: false,
-  fragile: true,
-  health: "green",
-});
-
-registerAdapter({
-  id: "bailii",
-  name: "BAILII",
-  tier: "open",
-  jurisdictions: ["UK", "IE"],
-  licence: "Free, UK/Irish legal information",
-  requiresKey: false,
-  fragile: true,
-  health: "green",
-});
-
-registerAdapter({
-  id: "nzlii",
-  name: "NZLII",
-  tier: "open",
-  jurisdictions: ["NZ"],
-  licence: "Free, NZ legal information",
-  requiresKey: false,
-  fragile: true,
-  health: "green",
-});
-
-registerAdapter({
-  id: "nzlegislation",
-  name: "NZ Legislation",
-  tier: "open",
-  jurisdictions: ["NZ"],
-  licence: "Free, NZ legislation",
-  requiresKey: false,
-  fragile: false,
-  health: "green",
-});
-
-/* ------------------------------------------------------------------ */
-/*  Commercial adapter registrations (Stories 17.46–17.50)             */
-/* ------------------------------------------------------------------ */
-
-registerAdapter({
-  id: "lexis-au",
-  name: "Lexis+ AU",
-  tier: "link-only",
-  jurisdictions: ["AU"],
-  licence: "Commercial — requires Lexis+ subscription",
-  requiresKey: true,
-  fragile: false,
-  health: "amber",
-});
-
-registerAdapter({
-  id: "westlaw-au",
-  name: "Westlaw AU",
-  tier: "link-only",
-  jurisdictions: ["AU"],
-  licence: "Commercial — requires Westlaw subscription",
-  requiresKey: true,
-  fragile: false,
-  health: "amber",
-});
-
-registerAdapter({
-  id: "vlex",
-  name: "vLex",
-  tier: "link-only",
-  jurisdictions: [],
-  licence: "Commercial — requires vLex subscription",
-  requiresKey: true,
-  fragile: false,
-  health: "amber",
-});
-
-registerAdapter({
-  id: "jade-pro",
-  name: "Jade Professional",
-  tier: "link-only",
-  jurisdictions: ["AU"],
-  licence: "Link-only — requires Jade Professional subscription",
-  requiresKey: false,
-  fragile: false,
-  health: "green",
-});
-
-registerAdapter({
-  id: "habeas",
-  name: "Habeas",
-  tier: "link-only",
-  jurisdictions: ["AU"],
-  licence: "Commercial — requires Habeas subscription",
-  requiresKey: true,
-  fragile: false,
-  health: "red",
-});
+/*
+ * Built-in static registrations removed. All adapter descriptors are now
+ * registered dynamically by initialiseAdapters() in adapterSearch.ts,
+ * which maps each SourceAdapter instance's descriptor into the registry
+ * format. Call initialiseAdapters() early in the app lifecycle to
+ * populate the registry before the Settings UI reads from it.
+ */

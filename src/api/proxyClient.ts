@@ -1,6 +1,11 @@
 /*
  * Obiter — AGLC4 Word Add-in
  * Copyright (C) 2026. Licensed under GPLv3.
+ *
+ * @deprecated Replaced by the adapter framework (adapterSearch.ts) as of
+ * Epic 17. The proxy endpoints on the server still exist for backward
+ * compatibility, but all new typeahead searches route through
+ * searchViaAdapters() which calls adapters directly.
  */
 
 import { WEBSITE_URL } from "../constants";

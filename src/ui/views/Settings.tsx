@@ -28,15 +28,18 @@ import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
-import { loadSearchConfig, saveSearchConfig, type SearchConfig } from "../../api/searchConfig";
 import {
   getAllAdapters,
   getAdaptersByTier,
   isAdapterEnabled,
   setAdapterEnabled,
+  isMasterEnabled,
+  setMasterEnabled,
   TIER_LABELS,
   type AdapterTier,
+  type HealthStatus,
 } from "../../api/sourceRegistry";
+import { getAdapterInstance, initialiseAdapters } from "../../api/adapterSearch";
 import { saveKey, getKey, removeKey, hasKey } from "../../api/keyVault";
 import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
@@ -123,6 +126,10 @@ function setDocSetting(key: string, value: unknown): void {
 const isDev = typeof window !== "undefined" && window.location.hostname === "localhost";
 
 export default function Settings(): JSX.Element {
+  // Ensure adapters are instantiated and registered in the sourceRegistry
+  // before any state initialisation reads from it.
+  initialiseAdapters();
+
   const [version, setVersion] = useState<AglcVersion>("4");
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [loading, setLoading] = useState(true);
@@ -162,8 +169,16 @@ export default function Settings(): JSX.Element {
   const [llmTestStatus, setLlmTestStatus] = useState<string | null>(null);
   const [llmSaveStatus, setLlmSaveStatus] = useState<string | null>(null);
 
-  // Search configuration state
-  const [searchConfig, setSearchConfig] = useState<SearchConfig>(loadSearchConfig);
+  // Source registry master toggle + adapter state (17.2 / 17.3)
+  const [masterEnabled, setMasterEnabledState] = useState(() => isMasterEnabled());
+  const [adapterHealthDots, setAdapterHealthDots] = useState<Record<string, HealthStatus>>(() => {
+    const map: Record<string, HealthStatus> = {};
+    for (const a of getAllAdapters()) {
+      map[a.id] = a.health;
+    }
+    return map;
+  });
+  const [adapterHealthErrors, setAdapterHealthErrors] = useState<Record<string, string>>({});
 
   // Source registry state (17.2 / 17.3)
   const [adapterToggles, setAdapterToggles] = useState<Record<string, boolean>>(() => {
@@ -1021,22 +1036,22 @@ export default function Settings(): JSX.Element {
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">Source Lookup (Optional)</legend>
+        <legend className="settings-section-title">Source Registry</legend>
 
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
-          Enable typeahead search in citation fields. Queries are routed through
-          the Obiter proxy to external legal databases. No data is sent unless
-          you type in a citation field with lookup enabled.
+          Enable typeahead search in citation fields. Queries are sent directly
+          to external legal databases. No data is sent unless you type in a
+          citation field with lookup enabled.
         </p>
 
         <label className="settings-toggle">
           <input
             type="checkbox"
-            checked={searchConfig.enabled}
+            checked={masterEnabled}
             onChange={(e) => {
-              const updated = { ...searchConfig, enabled: e.target.checked };
-              setSearchConfig(updated);
-              saveSearchConfig(updated);
+              const enabled = e.target.checked;
+              setMasterEnabled(enabled);
+              setMasterEnabledState(enabled);
             }}
           />
           <span className="settings-toggle-label">
@@ -1044,55 +1059,7 @@ export default function Settings(): JSX.Element {
           </span>
         </label>
 
-        <div style={{ marginTop: 8, paddingLeft: 4, opacity: searchConfig.enabled ? 1 : 0.5 }}>
-          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 6px" }}>
-            Select which providers to search:
-          </p>
-          <label className="settings-toggle" style={{ fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={searchConfig.providers.austlii}
-              disabled={!searchConfig.enabled}
-              onChange={(e) => {
-                const updated = { ...searchConfig, providers: { ...searchConfig.providers, austlii: e.target.checked } };
-                setSearchConfig(updated);
-                saveSearchConfig(updated);
-              }}
-            />
-            <span className="settings-toggle-label">AustLII (cases and legislation)</span>
-          </label>
-          <label className="settings-toggle" style={{ fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={searchConfig.providers.jade}
-              disabled={!searchConfig.enabled}
-              onChange={(e) => {
-                const updated = { ...searchConfig, providers: { ...searchConfig.providers, jade: e.target.checked } };
-                setSearchConfig(updated);
-                saveSearchConfig(updated);
-              }}
-            />
-            <span className="settings-toggle-label">Jade.io (Australian cases)</span>
-          </label>
-          <label className="settings-toggle" style={{ fontSize: 12 }}>
-            <input
-              type="checkbox"
-              checked={searchConfig.providers.legislation}
-              disabled={!searchConfig.enabled}
-              onChange={(e) => {
-                const updated = { ...searchConfig, providers: { ...searchConfig.providers, legislation: e.target.checked } };
-                setSearchConfig(updated);
-                saveSearchConfig(updated);
-              }}
-            />
-            <span className="settings-toggle-label">Federal Register of Legislation</span>
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset className="settings-section" style={{ marginTop: 12 }}>
-        <legend className="settings-section-title">Source Registry</legend>
-
+        <div style={{ marginTop: 8, opacity: masterEnabled ? 1 : 0.5, pointerEvents: masterEnabled ? "auto" : "none" }}>
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
           Manage individual source adapters. Open-access sources are enabled by
           default; live services and link-only sources must be enabled manually.
@@ -1111,7 +1078,10 @@ export default function Settings(): JSX.Element {
               }}>
                 {TIER_LABELS[tier]}
               </p>
-              {group.map((adapter) => (
+              {group.map((adapter) => {
+                const healthDot = adapterHealthDots[adapter.id] ?? adapter.health;
+                const healthError = adapterHealthErrors[adapter.id];
+                return (
                 <div
                   key={adapter.id}
                   style={{
@@ -1124,7 +1094,7 @@ export default function Settings(): JSX.Element {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span
-                      title={adapter.health === "green" ? "Healthy" : adapter.health === "amber" ? "Degraded" : "Unavailable"}
+                      title={healthDot === "green" ? "Healthy" : healthDot === "amber" ? "Degraded" : "Unavailable"}
                       style={{
                         display: "inline-block",
                         width: 8,
@@ -1132,8 +1102,8 @@ export default function Settings(): JSX.Element {
                         borderRadius: "50%",
                         flexShrink: 0,
                         background:
-                          adapter.health === "green" ? "var(--colour-success)"
-                          : adapter.health === "amber" ? "var(--colour-warning)"
+                          healthDot === "green" ? "var(--colour-success)"
+                          : healthDot === "amber" ? "var(--colour-warning)"
                           : "var(--colour-error)",
                       }}
                     />
@@ -1145,6 +1115,45 @@ export default function Settings(): JSX.Element {
                           const enabled = e.target.checked;
                           setAdapterEnabled(adapter.id, enabled);
                           setAdapterToggles((prev) => ({ ...prev, [adapter.id]: enabled }));
+                          // Auto-healthcheck when enabling
+                          if (enabled) {
+                            initialiseAdapters();
+                            const instance = getAdapterInstance(adapter.id);
+                            if (instance) {
+                              void instance.healthcheck().then((result) => {
+                                const dot: HealthStatus =
+                                  result === "healthy" ? "green"
+                                  : result === "degraded" ? "amber"
+                                  : "red";
+                                setAdapterHealthDots((prev) => ({ ...prev, [adapter.id]: dot }));
+                                if (result !== "healthy") {
+                                  setAdapterHealthErrors((prev) => ({
+                                    ...prev,
+                                    [adapter.id]: `Health check returned: ${result}`,
+                                  }));
+                                } else {
+                                  setAdapterHealthErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[adapter.id];
+                                    return next;
+                                  });
+                                }
+                              }).catch((err: unknown) => {
+                                setAdapterHealthDots((prev) => ({ ...prev, [adapter.id]: "red" }));
+                                setAdapterHealthErrors((prev) => ({
+                                  ...prev,
+                                  [adapter.id]: `Connection failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+                                }));
+                              });
+                            }
+                          } else {
+                            // Clear error when disabling
+                            setAdapterHealthErrors((prev) => {
+                              const next = { ...prev };
+                              delete next[adapter.id];
+                              return next;
+                            });
+                          }
                         }}
                       />
                       <span className="settings-toggle-label" style={{ fontSize: 12 }}>
@@ -1163,6 +1172,12 @@ export default function Settings(): JSX.Element {
                   <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0 0 14px" }}>
                     {adapter.jurisdictions.join(", ")} — {adapter.licence}
                   </p>
+
+                  {healthError && (
+                    <p style={{ fontSize: 10, color: "var(--colour-error)", margin: "4px 0 0 14px" }}>
+                      {healthError}
+                    </p>
+                  )}
 
                   {adapter.requiresKey && (
                     <div style={{ marginTop: 6, marginLeft: 14 }}>
@@ -1210,10 +1225,12 @@ export default function Settings(): JSX.Element {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           );
         })}
+        </div>
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>

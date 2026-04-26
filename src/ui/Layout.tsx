@@ -14,6 +14,11 @@ import { getSharedStore } from "../store/singleton";
 import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
+import {
+  initializeSourceLookup,
+  shouldShowCorpusBanner,
+} from "../api/initializeAdapters";
+import CorpusDownloadBanner from "./components/CorpusDownloadBanner";
 
 const NAV_ITEMS = [
   { to: "/", label: "Insert" },
@@ -34,6 +39,17 @@ export default function Layout(): JSX.Element {
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [refreshing, setRefreshing] = useState(false);
+  const [corpusBannerVisible, setCorpusBannerVisible] = useState(false);
+
+  // Initialize source lookup adapters on mount
+  useEffect(() => {
+    void (async () => {
+      await initializeSourceLookup();
+      if (shouldShowCorpusBanner()) {
+        setCorpusBannerVisible(true);
+      }
+    })();
+  }, []);
 
   // Load the active standard and writing mode on mount
   useEffect(() => {
@@ -78,6 +94,11 @@ export default function Layout(): JSX.Element {
         <div className="obiter-offline-banner" role="alert">
           Offline — search and AI features unavailable
         </div>
+      )}
+      {corpusBannerVisible && (
+        <CorpusDownloadBanner
+          onDismiss={() => setCorpusBannerVisible(false)}
+        />
       )}
       <nav className="obiter-nav" role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (

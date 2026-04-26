@@ -53,4 +53,9 @@ export type {
   HealthStatus as RegistryHealthStatus,
   SourceAdapterDescriptor,
 } from "./sourceRegistry";
+export {
+  isMasterEnabled,
+  setMasterEnabled,
+} from "./sourceRegistry";
+export { searchViaAdapters, initialiseAdapters, getAdapterInstance, getAllAdapterInstances } from "./adapterSearch";
 export { saveKey, getKey, removeKey, hasKey } from "./keyVault";

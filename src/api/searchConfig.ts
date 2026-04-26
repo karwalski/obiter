@@ -2,6 +2,12 @@
  * Obiter — AGLC4 Word Add-in
  * Copyright (C) 2026. Licensed under GPLv3.
  *
+ * @deprecated Replaced by the Source Registry (sourceRegistry.ts) and adapter
+ * framework (adapterSearch.ts) as of Epic 17. Retained for backward
+ * compatibility with any code that still reads persisted searchConfig prefs.
+ * New code should use isMasterEnabled() / isAdapterEnabled() from
+ * sourceRegistry.ts instead.
+ *
  * API-001/002/003: Search configuration management.
  *
  * External source lookup is disabled by default. Users must explicitly

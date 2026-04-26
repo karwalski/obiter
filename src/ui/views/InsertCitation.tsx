@@ -19,8 +19,8 @@ import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
 import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCitationContext";
-import { searchCasesViaProxy, searchLegislationViaProxy } from "../../api/proxyClient";
-import { loadSearchConfig, isSearchActive } from "../../api/searchConfig";
+import { searchViaAdapters } from "../../api/adapterSearch";
+import { isMasterEnabled } from "../../api/sourceRegistry";
 import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
 import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
@@ -504,18 +504,21 @@ function asString(val: unknown): string {
   return typeof val === "string" ? val : "";
 }
 
-// ─── Proxy-Based Search Functions ────────────────────────────────────────────
+// ─── Adapter-Based Search Functions ──────────────────────────────────────────
 
 /**
- * Combined case search via the proxy server. Queries AustLII and Jade
- * in parallel, merges and deduplicates by sourceId.
+ * Case search via the adapter framework (Epic 17). Queries all enabled
+ * adapters that support the "case" content type.
  */
-const searchCases = searchCasesViaProxy;
+const searchCases = (q: string): Promise<LookupResult[]> =>
+  searchViaAdapters(q, "case");
 
 /**
- * Legislation search via the proxy server (Federal Register of Legislation).
+ * Legislation search via the adapter framework (Epic 17). Queries all
+ * enabled adapters that support the "legislation" content type.
  */
-const searchLegislation = searchLegislationViaProxy;
+const searchLegislation = (q: string): Promise<LookupResult[]> =>
+  searchViaAdapters(q, "legislation");
 
 // ─── Short Title Suggestion ──────────────────────────────────────────────────
 
@@ -589,8 +592,8 @@ export default function InsertCitation(): JSX.Element {
   // BUGS-013: Existing footnotes loaded from Word on mount
   const [existingFootnotes, setExistingFootnotes] = useState<CitationFootnoteEntry[]>([]);
 
-  // Source lookup enabled
-  const [searchEnabled] = useState(() => isSearchActive(loadSearchConfig()));
+  // Source lookup enabled — now driven by the adapter registry master toggle
+  const [searchEnabled] = useState(() => isMasterEnabled());
 
   // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());

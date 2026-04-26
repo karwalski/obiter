@@ -4,8 +4,8 @@
  * Manages the lifecycle of the local corpus index: checking availability,
  * downloading from Obiter Cloud CDN, and providing progress feedback.
  *
- * Current implementation is a stub with mock data. The actual download will
- * be wired to Obiter Cloud in a future story.
+ * Downloads the corpus index JSON from the Obiter CDN. Falls back to mock
+ * data when the CDN is not reachable (development / offline).
  */
 
 import type { CorpusEntry } from "./corpusIndex";
@@ -15,6 +15,9 @@ export type CorpusStatus = "not-downloaded" | "downloading" | "ready" | "error";
 
 /** Progress callback: (loaded entries, total entries) => void */
 export type CorpusProgressCallback = (loaded: number, total: number) => void;
+
+/** CDN endpoint for the corpus index JSON. */
+const CORPUS_CDN_URL = "https://obiter.com.au/corpus/index.json";
 
 let corpusStatus: CorpusStatus = "not-downloaded";
 let corpusIndex: InMemoryCorpusIndex | null = null;
@@ -83,14 +86,55 @@ function generateMockEntries(): CorpusEntry[] {
   return entries;
 }
 
+/** Shape of the CDN response wrapping the corpus entries. */
+interface CorpusCdnResponse {
+  version: string;
+  entries: CorpusEntry[];
+}
+
 /**
- * Download (or in this stub, generate) the corpus index.
+ * Attempt to fetch the corpus index from the Obiter CDN.
+ * Returns null if the CDN is unreachable or returns an invalid response.
+ */
+async function fetchFromCdn(): Promise<CorpusCdnResponse | null> {
+  try {
+    const response = await fetch(CORPUS_CDN_URL);
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as CorpusCdnResponse;
+    if (!data.version || !Array.isArray(data.entries)) return null;
+
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check whether a newer corpus version is available on the CDN.
+ * Returns the remote version string if an update is available, or null
+ * if the local version is current (or the CDN is unreachable).
+ */
+export async function checkCorpusUpdate(): Promise<string | null> {
+  if (!corpusIndex) return null;
+
+  try {
+    const cdnData = await fetchFromCdn();
+    if (!cdnData) return null;
+
+    if (cdnData.version > corpusIndex.version) {
+      return cdnData.version;
+    }
+  } catch {
+    // CDN unreachable — no update available
+  }
+  return null;
+}
+
+/**
+ * Download the corpus index from the Obiter CDN.
+ * Falls back to mock data when the CDN is unreachable (development / offline).
  * Calls onProgress to allow UI progress bars.
- *
- * Production implementation will:
- * 1. Fetch manifest from CDN to determine latest version and file size
- * 2. Stream compressed index JSON in chunks
- * 3. Parse and load into InMemoryCorpusIndex
  */
 export async function downloadCorpusIndex(
   onProgress?: CorpusProgressCallback,
@@ -102,20 +146,34 @@ export async function downloadCorpusIndex(
   corpusStatus = "downloading";
 
   try {
-    const entries = generateMockEntries();
+    // Try CDN first
+    const cdnData = await fetchFromCdn();
+
+    let entries: CorpusEntry[];
+    let version: string;
+
+    if (cdnData) {
+      entries = cdnData.entries;
+      version = cdnData.version;
+    } else {
+      // Fall back to mock data when CDN is not available
+      entries = generateMockEntries();
+      version = "0.1.0-mock";
+    }
+
     const total = entries.length;
 
     // Simulate chunked loading with progress
     const index = new InMemoryCorpusIndex();
-    const batchSize = 25;
+    const batchSize = Math.max(25, Math.ceil(total / 100));
 
     for (let i = 0; i < total; i += batchSize) {
-      // Simulate async delay for progress feedback
+      // Yield to the event loop for progress feedback
       await new Promise((resolve) => setTimeout(resolve, 10));
       onProgress?.(Math.min(i + batchSize, total), total);
     }
 
-    index.loadFromJson(entries, "0.1.0-mock");
+    index.loadFromJson(entries, version);
     corpusIndex = index;
     corpusStatus = "ready";
   } catch {

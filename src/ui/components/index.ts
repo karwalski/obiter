@@ -12,3 +12,5 @@ export type { CitationFinderProps } from "./CitationFinder";
 export { default as CheckReference } from "./CheckReference";
 export { default as CrossReferenceInsert } from "./CrossReferenceInsert";
 export type { CrossReferenceInsertProps } from "./CrossReferenceInsert";
+export { default as CorpusDownloadBanner } from "./CorpusDownloadBanner";
+export type { CorpusDownloadBannerProps } from "./CorpusDownloadBanner";
