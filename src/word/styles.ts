@@ -198,7 +198,7 @@ export async function applyAglc4Styles(
   for (const cfg of headingConfigs) {
     try {
       const style = doc.getStyles().getByName(cfg.name);
-      style.font.name = "Times New Roman";
+      // Don't override the document's default font — let users choose their own
       style.font.size = 12;
       style.font.italic = cfg.italic;
       style.font.smallCaps = cfg.smallCaps;
@@ -380,7 +380,7 @@ export async function applyHeadingLevel(
   paragraph.font.bold = false;
   paragraph.font.smallCaps = level === 1;
   paragraph.font.size = 12;
-  paragraph.font.name = "Times New Roman";
+  // Don't override the document's default font
   paragraph.font.color = "black";
   paragraph.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
 
@@ -499,7 +499,7 @@ export async function renumberAllHeadings(
       para.font.bold = false;
       para.font.smallCaps = level === 1;
       para.font.size = 12;
-      para.font.name = "Times New Roman";
+      // Don't override the document's default font
       para.font.color = "black";
       renumbered++;
     }

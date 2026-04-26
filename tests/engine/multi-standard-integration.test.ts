@@ -704,6 +704,11 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     const citation = makeCitation("hansard", {
       title: "NZPD 21 July 2009",
       year: 2009,
+      nzpd: true,
+      date: "21 July 2009",
+      volume: 656,
+      page: 5531,
+      speaker: "Christopher Finlayson",
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);

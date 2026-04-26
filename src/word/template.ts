@@ -41,9 +41,11 @@ export async function applyAglc4Template(
     // Custom properties API may not be available
   }
 
-  // 3. Set default font
+  // 3. Set default font — only if user explicitly chose one in Settings
   const body = context.document.body;
-  body.font.name = prefs.fontName;
+  if (prefs.fontName) {
+    body.font.name = prefs.fontName;
+  }
   body.font.size = prefs.fontSize;
 
   // 4. Set page margins

@@ -145,7 +145,7 @@ export interface TemplatePreferences {
 }
 
 const DEFAULT_PREFERENCES: TemplatePreferences = {
-  fontName: "Times New Roman",
+  fontName: "",  // empty = don't override document's default font
   fontSize: 12,
   lineSpacing: 24,   // double spacing for 12pt
   marginPt: 72,      // 1 inch / 2.54 cm

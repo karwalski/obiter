@@ -29,9 +29,8 @@ Office.actions.associate("refreshAll", refreshAll);
 async function applyTemplate(event: Office.AddinCommands.Event) {
   try {
     await Word.run(async (context) => {
-      // Inline template logic — set font, spacing
+      // Inline template logic — set size only, preserve document's default font
       const body = context.document.body;
-      body.font.name = "Times New Roman";
       body.font.size = 12;
       await context.sync();
     });
@@ -75,7 +74,7 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
         para.font.bold = false;
         para.font.smallCaps = level === 1;
         para.font.size = 12;
-        para.font.name = "Times New Roman";
+        // Don't override font — use document default
         para.font.color = "black";
         para.alignment = (level <= 2 ? "Centered" : "Left") as Word.Alignment;
         // AGLC4 Rule 1.12.2 indentation

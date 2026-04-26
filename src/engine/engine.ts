@@ -45,10 +45,52 @@ import {
   formatGazette,
   formatQuasiLegislative,
 } from "./rules/v4/domestic/legislation-supplementary";
-import { formatJournalArticle } from "./rules/v4/secondary/journals";
-import { formatBook } from "./rules/v4/secondary/books";
+import { formatJournalArticle, formatOnlineJournalArticle, formatForthcomingArticle } from "./rules/v4/secondary/journals";
+import { formatBook, formatBookChapter, formatTranslatedBook, formatAudiobook } from "./rules/v4/secondary/books";
 import { formatTreaty } from "./rules/v4/international/treaties";
 import { formatGenaiOutput } from "./rules/v4/secondary/genai";
+import {
+  formatReport,
+  formatParliamentaryReport,
+  formatRoyalCommissionReport,
+  formatLawReformReport,
+  formatAbsMaterial,
+  formatResearchPaper,
+  formatParliamentaryResearchPaper,
+  formatConferencePaper,
+  formatThesis,
+  formatSpeech,
+  formatPressRelease,
+  formatHansard,
+  formatSubmissionToInquiry,
+} from "./rules/v4/secondary/other";
+import {
+  formatParliamentaryEvidence,
+  formatConstitutionalConvention,
+  formatDictionary,
+  formatLegalEncyclopedia,
+  formatLooseleaf,
+  formatIpMaterial,
+  formatConstitutiveDocument,
+  formatNewspaper,
+  formatCorrespondence,
+  formatInterview,
+  formatFilm,
+  formatInternetMaterial,
+  formatSocialMedia,
+} from "./rules/v4/secondary/other-media";
+import { formatUnDocument, formatUnCommunication, formatUnYearbook } from "./rules/v4/international/un";
+import { formatIcjDecision, formatIcjPleading } from "./rules/v4/international/icj";
+import { formatStateArbitrationReported, formatStateArbitration, formatIcsidCase } from "./rules/v4/international/arbitral";
+import { formatIccCase } from "./rules/v4/international/icc-tribunals";
+import { formatWtoDocument, formatWtoDecision, formatGattDocument } from "./rules/v4/international/economic";
+import {
+  formatEuOfficialJournal,
+  formatCjeuCase,
+  formatEchrCase,
+  formatSupranationalDecision,
+  formatSupranationalDocument,
+} from "./rules/v4/international/supranational";
 import {
   resolveSubsequentReference,
   formatShortTitleIntroduction,
@@ -706,11 +748,817 @@ function dispatchQuasiLegislative(citation: Citation): FormattedRun[] {
   });
 }
 
+// ─── Group 1: Journal Variants ──────────────────────────────────────────────
+
+/**
+ * Dispatches an online journal article citation (Rule 5.10).
+ * Delegates to formatOnlineJournalArticle which appends the URL.
+ */
+function dispatchJournalOnline(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatOnlineJournalArticle({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    year: toNumber(d.year, 0),
+    volume: toOptionalNumber(d.volume),
+    issue: d.issue as string | undefined,
+    journal: (d.journal as string) ?? "",
+    articleNumber: d.articleNumber as string | undefined,
+    url: (d.url as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a forthcoming journal article citation (Rule 5.11).
+ * Delegates to formatForthcomingArticle which appends "(forthcoming)".
+ */
+function dispatchJournalForthcoming(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatForthcomingArticle({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    journal: (d.journal as string) ?? "",
+  });
+}
+
+// ─── Group 2: Book Variants ────────────────────────────────────────────────
+
+/**
+ * Dispatches a book chapter citation (Rule 6.6.1).
+ * Delegates to formatBookChapter.
+ */
+function dispatchBookChapter(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatBookChapter({
+    chapterAuthors: (d.chapterAuthors as Author[]) ?? (d.authors as Author[]) ?? [],
+    chapterTitle: (d.chapterTitle as string) ?? (d.title as string) ?? "",
+    editors: (d.editors as Author[]) ?? [],
+    bookTitle: (d.bookTitle as string) ?? "",
+    publisher: (d.publisher as string) ?? "",
+    year: toNumber(d.year, 0),
+    startingPage: toNumber(d.startingPage, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
+}
+
+/**
+ * Dispatches a translated book citation (Rule 6.7).
+ * Delegates to formatTranslatedBook.
+ */
+function dispatchBookTranslated(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const d = citation.data;
+  return formatTranslatedBook({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    publisher: (d.publisher as string) ?? "",
+    edition: toOptionalNumber(d.edition),
+    year: toNumber(d.year, 0),
+    translator: (d.translator as string) ?? "",
+    pinpoint: normalisePinpoint(d.pinpoint),
+    editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+  });
+}
+
+/**
+ * Dispatches an audiobook citation (Rule 6.9).
+ * Delegates to formatAudiobook.
+ */
+function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const d = citation.data;
+  return formatAudiobook({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    publisher: (d.publisher as string) ?? "",
+    edition: toOptionalNumber(d.edition),
+    year: toNumber(d.year, 0),
+    narrator: (d.narrator as string) ?? "",
+    pinpoint: normalisePinpoint(d.pinpoint),
+    editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+  });
+}
+
+// ─── Group 3: Reports ──────────────────────────────────────────────────────
+
+/**
+ * Dispatches a general report citation (Rule 7.1.1).
+ * Delegates to formatReport.
+ */
+function dispatchReport(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatReport({
+    authors: d.authors as Author[] | undefined,
+    body: d.body as string | undefined,
+    bodyJurisdiction: d.bodyJurisdiction as string | undefined,
+    bodySubdivision: d.bodySubdivision as string | undefined,
+    title: (d.title as string) ?? "",
+    reportType: d.reportType as string | undefined,
+    reportNumber: d.reportNumber as string | undefined,
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
+}
+
+/**
+ * Dispatches a parliamentary committee report citation (Rule 7.1.2).
+ * Delegates to formatParliamentaryReport.
+ */
+function dispatchParliamentaryReport(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatParliamentaryReport({
+    jurisdiction: (d.jurisdiction as string) ?? "",
+    committee: (d.committee as string) ?? "",
+    title: (d.title as string) ?? "",
+    documentType: d.documentType as string | undefined,
+    number: d.number as string | undefined,
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+  });
+}
+
+/**
+ * Dispatches a royal commission report citation (Rule 7.1.3).
+ * Delegates to formatRoyalCommissionReport.
+ */
+function dispatchRoyalCommission(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatRoyalCommissionReport({
+    commissionName: (d.commissionName as string) ?? (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    title: (d.title as string) ?? "",
+    year: toNumber(d.year, 0),
+    volume: toOptionalNumber(d.volume),
+  });
+}
+
+/**
+ * Dispatches a law reform commission report citation (Rule 7.1.4).
+ * Delegates to formatLawReformReport.
+ */
+function dispatchLawReformReport(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatLawReformReport({
+    commissionName: (d.commissionName as string) ?? (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    title: (d.title as string) ?? "",
+    documentType: (d.documentType as string) ?? "Report",
+    number: (d.number as string) ?? (d.reportNumber as string) ?? "",
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+  });
+}
+
+/**
+ * Dispatches an ABS material citation (Rule 7.1.5).
+ * Delegates to formatAbsMaterial.
+ */
+function dispatchAbsMaterial(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatAbsMaterial({
+    title: (d.title as string) ?? "",
+    catalogueNumber: (d.catalogueNumber as string) ?? (d.number as string) ?? "",
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+  });
+}
+
+/**
+ * Dispatches a Waitangi Tribunal report citation (NZLSG variant).
+ * Falls through to formatReport with Waitangi Tribunal as the body.
+ */
+function dispatchWaitangiTribunalReport(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatReport({
+    body: (d.body as string) ?? "Waitangi Tribunal",
+    title: (d.title as string) ?? "",
+    reportType: d.reportType as string | undefined,
+    reportNumber: d.reportNumber as string | undefined,
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
+}
+
+// ─── Group 4: Other Secondary Sources ──────────────────────────────────────
+
+/**
+ * Dispatches a research paper citation (Rules 7.2.1-7.2.2).
+ * Delegates to formatResearchPaper.
+ */
+function dispatchResearchPaper(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatResearchPaper({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    documentType: (d.documentType as string) ?? "Working Paper",
+    number: (d.number as string) ?? "",
+    institution: (d.institution as string) ?? "",
+    year: toNumber(d.year, 0),
+  });
+}
+
+/**
+ * Dispatches a parliamentary research paper citation (Rule 7.2.3).
+ * Delegates to formatParliamentaryResearchPaper.
+ */
+function dispatchParliamentaryResearchPaper(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatParliamentaryResearchPaper({
+    body: (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    jurisdiction: d.jurisdiction as string | undefined,
+    title: (d.title as string) ?? "",
+    documentType: (d.documentType as string) ?? "Research Paper",
+    number: (d.number as string) ?? "",
+    year: toNumber(d.year, 0),
+  });
+}
+
+/**
+ * Dispatches a conference paper citation (Rule 7.2.4).
+ * Delegates to formatConferencePaper.
+ */
+function dispatchConferencePaper(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatConferencePaper({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    conferenceName: (d.conferenceName as string) ?? (d.event as string) ?? "",
+    date: (d.date as string) ?? String(toOptionalNumber(d.year) ?? ""),
+  });
+}
+
+/**
+ * Dispatches a thesis citation (Rule 7.2.5).
+ * Delegates to formatThesis.
+ */
+function dispatchThesis(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  // formatThesis expects a single Author, not Author[]
+  const authors = d.authors as Author[] | undefined;
+  const singleAuthor: Author = authors && authors.length > 0
+    ? authors[0]
+    : { givenNames: "", surname: (d.author as string) ?? "" };
+  return formatThesis({
+    author: singleAuthor,
+    title: (d.title as string) ?? "",
+    thesisType: (d.thesisType as string) ?? (d.degree as string) ?? "PhD Thesis",
+    university: (d.university as string) ?? (d.institution as string) ?? "",
+    year: toNumber(d.year, 0),
+  });
+}
+
+/**
+ * Dispatches a speech citation (Rule 7.3).
+ * Delegates to formatSpeech.
+ */
+function dispatchSpeech(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSpeech({
+    speaker: (d.speaker as string) ?? "",
+    title: (d.title as string) ?? "",
+    event: (d.event as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a press release citation (Rule 7.4).
+ * Delegates to formatPressRelease.
+ */
+function dispatchPressRelease(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatPressRelease({
+    authors: d.authors as Author[] | undefined,
+    body: d.body as string | undefined,
+    title: (d.title as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a newspaper article citation (Rules 7.11.1-7.11.4).
+ * Delegates to formatNewspaper.
+ */
+function dispatchNewspaper(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatNewspaper({
+    authors: d.authors as Author[] | undefined,
+    title: (d.title as string) ?? "",
+    newspaper: (d.newspaper as string) ?? "",
+    place: (d.place as string) ?? "",
+    date: (d.date as string) ?? "",
+    page: d.page as string | undefined,
+    isElectronic: d.isElectronic as boolean | undefined,
+    url: d.url as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a correspondence citation (Rule 7.12).
+ * Delegates to formatCorrespondence.
+ */
+function dispatchCorrespondence(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatCorrespondence({
+    type: (d.type as string) ?? (d.correspondenceType as string) ?? "Letter",
+    sender: (d.sender as string) ?? (d.author as string) ?? "",
+    recipient: (d.recipient as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches an interview citation (Rule 7.13).
+ * Delegates to formatInterview.
+ */
+function dispatchInterview(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatInterview({
+    interviewee: (d.interviewee as string) ?? "",
+    interviewer: d.interviewer as string | undefined,
+    location: d.location as string | undefined,
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a film/TV/media citation (Rules 7.14.1-7.14.4).
+ * Delegates to formatFilm.
+ */
+function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatFilm({
+    title: (d.title as string) ?? "",
+    director: (d.director as string) ?? "",
+    year: String(d.year ?? ""),
+  });
+}
+
+/**
+ * Dispatches an internet material citation (Rule 7.15).
+ * Delegates to formatInternetMaterial.
+ */
+function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatInternetMaterial({
+    authors: d.authors as Author[] | undefined,
+    title: (d.title as string) ?? "",
+    website: (d.website as string) ?? (d.siteName as string) ?? "",
+    date: (d.date as string) ?? "",
+    url: (d.url as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a social media citation (Rule 7.16).
+ * Delegates to formatSocialMedia.
+ */
+function dispatchSocialMedia(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSocialMedia({
+    author: (d.author as string) ?? (d.handle as string) ?? "",
+    platform: (d.platform as string) ?? "",
+    title: d.title as string | undefined,
+    date: (d.date as string) ?? "",
+    time: d.time as string | undefined,
+    url: (d.url as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a dictionary citation (Rule 7.6).
+ * Delegates to formatDictionary.
+ */
+function dispatchDictionary(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatDictionary({
+    title: (d.title as string) ?? "",
+    publisher: d.publisher as string | undefined,
+    edition: d.edition as string | undefined,
+    year: String(d.year ?? ""),
+    entry: (d.entry as string) ?? "",
+    definitionNumber: d.definitionNumber as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a legal encyclopedia citation (Rule 7.7).
+ * Delegates to formatLegalEncyclopedia.
+ */
+function dispatchLegalEncyclopedia(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatLegalEncyclopedia({
+    title: (d.title as string) ?? "",
+    date: (d.date as string) ?? "",
+    volume: d.volume as string | undefined,
+    titleNumber: d.titleNumber as string | undefined,
+    topic: (d.topic as string) ?? "",
+    paragraph: (d.paragraph as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a looseleaf service citation (Rule 7.8).
+ * Delegates to formatLooseleaf.
+ */
+function dispatchLooseleaf(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatLooseleaf({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    publisher: (d.publisher as string) ?? (d.service as string) ?? "",
+    date: (d.date as string) ?? "",
+    volume: d.volume as string | undefined,
+    paragraph: d.paragraph as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an intellectual property material citation (Rule 7.9).
+ * Delegates to formatIpMaterial.
+ */
+function dispatchIpMaterial(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatIpMaterial({
+    ipType: (d.ipType as string) ?? (d.type as string) ?? "Patent",
+    number: (d.number as string) ?? "",
+    title: d.title as string | undefined,
+    applicant: d.applicant as string | undefined,
+    date: d.date as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a constitutive document citation (Rule 7.10).
+ * Delegates to formatConstitutiveDocument.
+ */
+function dispatchConstitutiveDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatConstitutiveDocument({
+    companyName: (d.companyName as string) ?? (d.entity as string) ?? "",
+    documentType: (d.documentType as string) ?? (d.type as string) ?? "",
+    pinpoint: normalisePinpoint(d.pinpoint),
+  });
+}
+
+// ─── Group 5: Parliamentary ────────────────────────────────────────────────
+
+/**
+ * Dispatches a Hansard citation (Rule 7.5.1).
+ * Delegates to formatHansard.
+ */
+function dispatchHansard(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatHansard({
+    jurisdiction: (d.jurisdiction as string) ?? "",
+    chamber: (d.chamber as string) ?? "",
+    date: (d.date as string) ?? "",
+    page: (d.page as string) ?? "",
+    speaker: d.speaker as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a submission to government inquiry citation (Rule 7.5.2).
+ * Delegates to formatSubmissionToInquiry.
+ */
+function dispatchSubmissionGovernment(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSubmissionToInquiry({
+    authors: d.authors as Author[] | undefined,
+    body: d.body as string | undefined,
+    documentType: (d.documentType as string) ?? "Submission",
+    number: d.number as string | undefined,
+    committee: (d.committee as string) ?? "",
+    inquiry: (d.inquiry as string) ?? "",
+    date: d.date as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a parliamentary evidence citation (Rule 7.5.3).
+ * Delegates to formatParliamentaryEvidence.
+ */
+function dispatchParliamentaryEvidence(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatParliamentaryEvidence({
+    title: (d.title as string) ?? "",
+    committee: (d.committee as string) ?? "",
+    parliament: (d.parliament as string) ?? "",
+    jurisdiction: (d.jurisdiction as string) ?? "",
+    date: (d.date as string) ?? "",
+    page: d.page as string | undefined,
+    witness: d.witness as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a constitutional convention citation (Rule 7.5.4).
+ * Delegates to formatConstitutionalConvention.
+ */
+function dispatchConstitutionalConvention(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatConstitutionalConvention({
+    conventionName: (d.conventionName as string) ?? (d.title as string) ?? "",
+    location: (d.location as string) ?? "",
+    date: (d.date as string) ?? "",
+    volume: d.volume as string | undefined,
+    page: d.page as string | undefined,
+  });
+}
+
+// ─── Group 6: International Materials ──────────────────────────────────────
+
+/**
+ * Dispatches a UN document citation (Rules 9.2.1-9.2.14).
+ * Delegates to formatUnDocument.
+ */
+function dispatchUnDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatUnDocument({
+    author: d.author as string | undefined,
+    title: (d.title as string) ?? "",
+    resolutionNumber: d.resolutionNumber as string | undefined,
+    officialRecords: d.officialRecords as string | undefined,
+    session: d.session as string | undefined,
+    meetingNumber: d.meetingNumber as string | undefined,
+    agendaItem: d.agendaItem as string | undefined,
+    supplement: d.supplement as string | undefined,
+    documentNumber: (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "",
+    date: (d.date as string) ?? "",
+    annex: d.annex as string | undefined,
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a UN communication citation (Rule 9.3).
+ * Delegates to formatUnCommunication.
+ */
+function dispatchUnCommunication(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatUnCommunication({
+    author: (d.author as string) ?? "",
+    title: (d.title as string) ?? "",
+    committee: (d.committee as string) ?? "",
+    documentNumber: (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "",
+    date: d.date as string | undefined,
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a UN yearbook citation (Rule 9.4).
+ * Delegates to formatUnYearbook.
+ */
+function dispatchUnYearbook(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatUnYearbook({
+    title: d.title as string | undefined,
+    yearbook: (d.yearbook as string) ?? "",
+    year: toNumber(d.year, 0),
+    yearType: d.yearType as "round" | "square" | undefined,
+    volume: d.volume as string | undefined,
+    startingPage: toOptionalNumber(d.startingPage),
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an ICJ decision citation (Rules 10.1-10.5).
+ * Delegates to formatIcjDecision.
+ */
+function dispatchIcjDecision(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatIcjDecision({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    parties: d.parties as string | undefined,
+    phase: d.phase as string | undefined,
+    year: toNumber(d.year, 0),
+    reportSeries: (d.reportSeries as string) ?? "ICJ Reports",
+    seriesLetter: d.seriesLetter as string | undefined,
+    page: toOptionalNumber(d.page),
+    caseNumber: toOptionalNumber(d.caseNumber),
+    pinpoint: d.pinpoint as string | undefined,
+    judge: d.judge as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an ICJ pleading citation (Rule 10.3).
+ * Delegates to formatIcjPleading.
+ */
+function dispatchIcjPleading(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatIcjPleading({
+    documentTitle: (d.documentTitle as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseName as string) ?? "",
+    parties: d.parties as string | undefined,
+    year: toNumber(d.year, 0),
+    volume: d.volume as string | undefined,
+    page: toOptionalNumber(d.page),
+    pinpoint: d.pinpoint as string | undefined,
+    speaker: d.speaker as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a state-state arbitration citation (Rule 11.1).
+ * Routes to reported or unreported format based on data fields.
+ */
+function dispatchArbitralStateState(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  // If report series is present, use reported format (Rule 11.1.1)
+  if (d.reportSeries) {
+    return formatStateArbitrationReported({
+      caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+      parties: d.parties as string | undefined,
+      phase: d.phase as string | undefined,
+      year: toNumber(d.year, 0),
+      volume: toOptionalNumber(d.volume),
+      reportSeries: (d.reportSeries as string) ?? "",
+      startingPage: toNumber(d.startingPage, 0),
+      pinpoint: d.pinpoint as string | undefined,
+      judge: d.judge as string | undefined,
+    });
+  }
+  // Otherwise unreported format (Rule 11.1.2)
+  return formatStateArbitration({
+    parties: (d.parties as string) ?? (d.caseName as string) ?? "",
+    awardDetails: (d.awardDetails as string) ?? (d.phase as string) ?? "",
+    tribunal: (d.tribunal as string) ?? "",
+    caseNumber: d.caseNumber as string | undefined,
+    date: (d.date as string) ?? "",
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an investor-state arbitration citation (Rules 11.2-11.3).
+ * Delegates to formatIcsidCase.
+ */
+function dispatchArbitralIndividualState(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatIcsidCase({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    icsidNumber: (d.icsidNumber as string) ?? (d.caseNumber as string) ?? "",
+    awardType: (d.awardType as string) ?? (d.phase as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches an ICC/international criminal tribunal case citation (Rules 12.1-12.4).
+ * Delegates to formatIccCase.
+ */
+function dispatchIccTribunalCase(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatIccCase({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    phase: (d.phase as string) ?? "",
+    court: (d.court as string) ?? "ICC",
+    chamber: (d.chamber as string) ?? "",
+    caseNumber: (d.caseNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a WTO document citation (Rule 13.1.2).
+ * Delegates to formatWtoDocument.
+ */
+function dispatchWtoDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatWtoDocument({
+    title: (d.title as string) ?? "",
+    documentNumber: (d.documentNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a WTO decision citation (Rule 13.1.3).
+ * Delegates to formatWtoDecision.
+ */
+function dispatchWtoDecision(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatWtoDecision({
+    documentDescription: (d.documentDescription as string) ?? (d.reportType as string) ?? "Panel Report",
+    title: (d.title as string) ?? "",
+    documentNumber: (d.documentNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a GATT document citation (Rule 13.2).
+ * Delegates to formatGattDocument.
+ */
+function dispatchGattDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatGattDocument({
+    title: (d.title as string) ?? "",
+    documentNumber: (d.documentNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches an EU Official Journal citation (Rule 14.2.1).
+ * Delegates to formatEuOfficialJournal.
+ */
+function dispatchEuOfficialJournal(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatEuOfficialJournal({
+    instrumentType: (d.instrumentType as string) ?? "",
+    title: (d.title as string) ?? "",
+    year: toNumber(d.year, 0),
+    ojSeries: (d.ojSeries as string) ?? "",
+    page: (d.page as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches an EU court (CJEU) case citation (Rule 14.2.3).
+ * Delegates to formatCjeuCase.
+ */
+function dispatchEuCourt(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatCjeuCase({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseNumber: (d.caseNumber as string) ?? "",
+    year: toNumber(d.year, 0),
+    reportSeries: (d.reportSeries as string) ?? "ECR",
+    page: (d.page as string) ?? "",
+    court: d.court as string | undefined,
+  });
+}
+
+/**
+ * Dispatches an ECHR decision citation (Rules 14.3.1-14.3.3).
+ * Delegates to formatEchrCase.
+ */
+function dispatchEchrDecision(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatEchrCase({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    applicationNumber: (d.applicationNumber as string) ?? "",
+    chamber: d.chamber as string | undefined,
+    reportSeries: d.reportSeries as string | undefined,
+    date: (d.date as string) ?? "",
+    pinpoint: d.pinpoint as string | undefined,
+  });
+}
+
+/**
+ * Dispatches a supranational decision citation (Rule 14.4).
+ * Delegates to formatSupranationalDecision.
+ */
+function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSupranationalDecision({
+    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    court: (d.court as string) ?? (d.tribunal as string) ?? "",
+    caseNumber: (d.caseNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+/**
+ * Dispatches a supranational document citation (Rule 14.5).
+ * Delegates to formatSupranationalDocument.
+ */
+function dispatchSupranationalDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSupranationalDocument({
+    body: (d.body as string) ?? "",
+    title: (d.title as string) ?? "",
+    documentNumber: (d.documentNumber as string) ?? "",
+    date: (d.date as string) ?? "",
+  });
+}
+
+// ─── Group 7: Foreign Sources ──────────────────────────────────────────────
+
+/**
+ * Dispatches any foreign.* source type.
+ *
+ * Foreign sources are inherently flexible in AGLC4 — they follow the
+ * domestic rules of the foreign jurisdiction. Since each foreign
+ * jurisdiction has its own formatters (src/engine/rules/v4/foreign/*),
+ * but the Citation.data shape varies depending on whether the user
+ * entered case, legislation, or other material, we dispatch based on
+ * the sub-type field in the data. Falls through to formatGenericCitation
+ * when no sub-type is discernible.
+ */
+function dispatchForeign(citation: Citation): FormattedRun[] {
+  // Foreign sources use the generic formatter which already handles
+  // Author, Title (italic/quoted as appropriate), Year, etc.
+  // This dedicated dispatcher ensures they don't silently lose fields.
+  return formatGenericCitation(citation);
+}
+
 /**
  * Registry mapping each supported SourceType to its dispatch function.
  * Source types not in this map fall through to the generic formatter.
  */
 const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
+  // ── Domestic Cases ────────────────────────────────────────────────────────
   "case.reported": dispatchReportedCase,
   "case.unreported.mnc": dispatchUnreportedMnc,
   "case.unreported.no_mnc": dispatchUnreportedNoMnc,
@@ -720,14 +1568,92 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "case.arbitration": dispatchArbitration,
   "case.transcript": dispatchTranscript,
   "case.submission": dispatchSubmission,
+
+  // ── Domestic Legislation ──────────────────────────────────────────────────
   "legislation.statute": dispatchStatute,
   "legislation.bill": dispatchBill,
   "legislation.delegated": dispatchDelegatedLegislation,
   "legislation.constitution": dispatchConstitution,
   "legislation.explanatory": dispatchExplanatoryMemorandum,
   "legislation.quasi": dispatchQuasiLegislative,
+
+  // ── Journal Articles (Group 1) ────────────────────────────────────────────
   "journal.article": dispatchJournalArticle,
+  "journal.online": dispatchJournalOnline,
+  "journal.forthcoming": dispatchJournalForthcoming,
+
+  // ── Books (Group 2) ───────────────────────────────────────────────────────
   book: dispatchBook,
+  "book.chapter": dispatchBookChapter,
+  "book.translated": dispatchBookTranslated,
+  "book.audiobook": dispatchBookAudiobook,
+
+  // ── Reports (Group 3) ─────────────────────────────────────────────────────
+  report: dispatchReport,
+  "report.parliamentary": dispatchParliamentaryReport,
+  "report.royal_commission": dispatchRoyalCommission,
+  "report.law_reform": dispatchLawReformReport,
+  "report.abs": dispatchAbsMaterial,
+  "report.waitangi_tribunal": dispatchWaitangiTribunalReport,
+
+  // ── Other Secondary Sources (Group 4) ─────────────────────────────────────
+  research_paper: dispatchResearchPaper,
+  "research_paper.parliamentary": dispatchParliamentaryResearchPaper,
+  conference_paper: dispatchConferencePaper,
+  thesis: dispatchThesis,
+  speech: dispatchSpeech,
+  press_release: dispatchPressRelease,
+  newspaper: dispatchNewspaper,
+  correspondence: dispatchCorrespondence,
+  interview: dispatchInterview,
+  film_tv_media: dispatchFilmTvMedia,
+  internet_material: dispatchInternetMaterial,
+  social_media: dispatchSocialMedia,
+  dictionary: dispatchDictionary,
+  legal_encyclopedia: dispatchLegalEncyclopedia,
+  looseleaf: dispatchLooseleaf,
+  ip_material: dispatchIpMaterial,
+  constitutive_document: dispatchConstitutiveDocument,
+
+  // ── Parliamentary (Group 5) ───────────────────────────────────────────────
+  hansard: dispatchHansard,
+  "submission.government": dispatchSubmissionGovernment,
+  "evidence.parliamentary": dispatchParliamentaryEvidence,
+  constitutional_convention: dispatchConstitutionalConvention,
+
+  // ── International Materials (Group 6) ─────────────────────────────────────
+  "un.document": dispatchUnDocument,
+  "un.communication": dispatchUnCommunication,
+  "un.yearbook": dispatchUnYearbook,
+  "icj.decision": dispatchIcjDecision,
+  "icj.pleading": dispatchIcjPleading,
+  "arbitral.state_state": dispatchArbitralStateState,
+  "arbitral.individual_state": dispatchArbitralIndividualState,
+  "icc_tribunal.case": dispatchIccTribunalCase,
+  "wto.document": dispatchWtoDocument,
+  "wto.decision": dispatchWtoDecision,
+  "gatt.document": dispatchGattDocument,
+  "eu.official_journal": dispatchEuOfficialJournal,
+  "eu.court": dispatchEuCourt,
+  "echr.decision": dispatchEchrDecision,
+  "supranational.decision": dispatchSupranationalDecision,
+  "supranational.document": dispatchSupranationalDocument,
+
+  // ── Foreign Domestic Sources (Group 7) ────────────────────────────────────
+  "foreign.canada": dispatchForeign,
+  "foreign.china": dispatchForeign,
+  "foreign.france": dispatchForeign,
+  "foreign.germany": dispatchForeign,
+  "foreign.hong_kong": dispatchForeign,
+  "foreign.malaysia": dispatchForeign,
+  "foreign.new_zealand": dispatchForeign,
+  "foreign.singapore": dispatchForeign,
+  "foreign.south_africa": dispatchForeign,
+  "foreign.uk": dispatchForeign,
+  "foreign.usa": dispatchForeign,
+  "foreign.other": dispatchForeign,
+
+  // ── Special ───────────────────────────────────────────────────────────────
   treaty: dispatchTreaty,
   genai_output: dispatchGenaiOutput,
   custom: dispatchCustom,
