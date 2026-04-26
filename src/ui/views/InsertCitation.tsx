@@ -1779,15 +1779,24 @@ export default function InsertCitation(): JSX.Element {
                 const citationText = previewRuns.map((r) => r.text).join("");
                 const encoded = encodeURIComponent(citationText);
                 const urls: Record<string, string> = {
+                  // Free / public
                   google: `https://www.google.com/search?q=${encoded}`,
+                  scholar: `https://scholar.google.com/scholar?q=${encoded}`,
                   austlii: `https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query=${encoded}&meta=%2Fau`,
                   jade: `https://jade.io/search/?q=${encoded}`,
+                  nswcaselaw: `https://www.caselaw.nsw.gov.au/search/advanced?searchTerm=${encoded}`,
+                  legislation: `https://www.legislation.gov.au/Search/${encoded}`,
+                  hca: `https://eresources.hcourt.gov.au/search?query=${encoded}`,
+                  comcourts: `https://www.comcourts.gov.au/public/esearch`,
+                  parlinfo: `https://parlinfo.aph.gov.au/parlInfo/search/search.w3p;query=${encoded}`,
+                  // Academic
+                  heinonline: `https://heinonline.org/HOL/OneBoxCitation?cit_string=${encoded}&collection=journals`,
+                  ssrn: `https://papers.ssrn.com/sol3/results.cfm?txtKey_Words=${encoded}`,
+                  // Commercial (require subscription)
                   lexis: `https://advance.lexis.com/search/?q=${encoded}`,
                   westlaw: `https://au.westlaw.com/search/home.html?query=${encoded}`,
                   vlex: `https://au.vlex.com/search?q=${encoded}`,
-                  scholar: `https://scholar.google.com/scholar?q=${encoded}`,
-                  legislation: `https://www.legislation.gov.au/Search/${encoded}`,
-                  nswcaselaw: `https://www.caselaw.nsw.gov.au/search/advanced?searchTerm=${encoded}`,
+                  timebase: `https://www.timebase.com.au/search?q=${encoded}`,
                 };
                 const url = urls[target];
                 if (url) window.open(url, "_blank", "noopener,noreferrer");
@@ -1795,15 +1804,27 @@ export default function InsertCitation(): JSX.Element {
               }}
             >
               <option value="">Check my citation...</option>
-              <option value="google">Search Google</option>
-              <option value="scholar">Google Scholar</option>
-              <option value="austlii">AustLII</option>
-              <option value="jade">Jade.io</option>
-              <option value="nswcaselaw">NSW Caselaw</option>
-              <option value="legislation">Federal Register of Legislation</option>
-              <option value="lexis">Lexis+ AU</option>
-              <option value="westlaw">Westlaw AU</option>
-              <option value="vlex">vLex</option>
+              <optgroup label="Public">
+                <option value="google">Google</option>
+                <option value="scholar">Google Scholar</option>
+                <option value="austlii">AustLII</option>
+                <option value="jade">Jade.io</option>
+                <option value="nswcaselaw">NSW Caselaw</option>
+                <option value="legislation">Federal Register of Legislation</option>
+                <option value="hca">High Court of Australia</option>
+                <option value="comcourts">Commonwealth Courts Portal</option>
+                <option value="parlinfo">ParlInfo (Hansard)</option>
+              </optgroup>
+              <optgroup label="Academic">
+                <option value="heinonline">HeinOnline</option>
+                <option value="ssrn">SSRN</option>
+              </optgroup>
+              <optgroup label="Subscription">
+                <option value="lexis">Lexis+ AU</option>
+                <option value="westlaw">Westlaw AU</option>
+                <option value="vlex">vLex</option>
+                <option value="timebase">TimeBase</option>
+              </optgroup>
             </select>
           </div>
         </div>
