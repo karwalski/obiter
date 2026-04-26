@@ -1066,7 +1066,7 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 
 ---
 
-## New Stories (2026-04-25)
+## New Stories (2026-04-25 to 2026-04-26)
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
@@ -1075,3 +1075,24 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | INFRA-008 | Update README to reflect current features | FEATURE | DONE |
 | FORMS-UI-001 to 059 | Dedicated forms for 59 source types (replacing generic form) | FEATURE | DONE |
 | CUSTOM-001 | Custom/manual citation type with free-text input | FEATURE | DONE |
+| COURT-FIX-001 to 006 | Wire all 5 court mode toggles through engine | BUG | DONE |
+| PLUMB-001 to 007 | Full task pane field audit and wiring verification | BUG | DONE |
+| API-006 | Fix proxy endpoints (Cloudflare blocks) — clear error messages | BUG | DONE |
+| API-007 | Sustain form data across tab switches (InsertCitationContext) | FEATURE | DONE |
+| API-008 | Clear button for citation form | FEATURE | DONE |
+| Epic 17 | Source Lookup & Citation Verification (55 stories) | FEATURE | DONE |
+| FN-ARCH | Footnote architecture rebuild (FN-001 to FN-005) | FEATURE | DONE |
+| STORE-001 | XML schema v2 — DOMParser + attribute-based structure | REFACTOR | IN PROGRESS |
+| STORE-002 | Per-occurrence pinpoints in CC titles | FEATURE | DONE |
+| STORE-003 | Multiple Custom XML Part handling | BUG | DONE |
+| STORE-004 | Repair orphaned CCs from Find Citations | FEATURE | DONE |
+| UX-006 | Rate/review and feedback links in Settings | FEATURE | DONE |
+| UX-007 | Edit citation switcher and close button | FEATURE | DONE |
+| UX-008 | Click-to-edit short references and ibid | FEATURE | DONE |
+| UX-009 | Check my citation dropdown (16 sources) | FEATURE | DONE |
+| UX-010 | Simplify refresh/reload buttons | FEATURE | DONE |
+| FIX-001 | Redundant short title suppression | BUG | DONE |
+| FIX-002 | Generic formatter missing fields | BUG | DONE |
+| FIX-003 | Edit citation list refresh | BUG | DONE |
+| FIX-004 | Separator cleanup on citation delete | BUG | DONE |
+| FIX-005 | Typeahead case select batch update | BUG | DONE |
