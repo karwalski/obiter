@@ -321,12 +321,10 @@ export default function CitationLibrary(): JSX.Element {
   const standardConfig = getStandardConfig(standardId);
 
   // Load citations on mount and when refreshCounter changes.
-  // Force a fresh read from the XML Part each time to avoid stale singleton.
   useEffect(() => {
     let cancelled = false;
     async function load(): Promise<void> {
       try {
-        resetSharedStore();
         store = await getSharedStore();
         if (!cancelled) {
           setCitations(store.getAll());
