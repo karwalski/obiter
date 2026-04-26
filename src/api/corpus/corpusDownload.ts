@@ -16,8 +16,8 @@ export type CorpusStatus = "not-downloaded" | "downloading" | "ready" | "error";
 /** Progress callback: (loaded entries, total entries) => void */
 export type CorpusProgressCallback = (loaded: number, total: number) => void;
 
-/** CDN endpoint for the corpus index JSON. */
-const CORPUS_CDN_URL = "https://obiter.com.au/corpus/index.json";
+/** CDN endpoint for the corpus index JSON (Cloudflare R2). */
+const CORPUS_CDN_URL = "https://corpus.obiter.com.au/corpus/index.json";
 
 let corpusStatus: CorpusStatus = "not-downloaded";
 let corpusIndex: InMemoryCorpusIndex | null = null;
