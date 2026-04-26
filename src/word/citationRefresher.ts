@@ -39,6 +39,8 @@ import {
   applySignalAndCommentary,
 } from "../engine/engine";
 import type { CitationContext } from "../engine/engine";
+import { resolveSubsequentReference } from "../engine/resolver";
+import type { SubsequentReferenceContext } from "../engine/resolver";
 import {
   buildFootnoteMap,
   updateFirstFootnoteNumbers,
@@ -85,6 +87,9 @@ interface FootnoteEntry {
   children: ChildEntry[];
 }
 
+/** The rendered format of a citation within a footnote. */
+export type RenderedFormat = "full" | "short" | "ibid";
+
 /**
  * Rendered output for a single citation within a footnote, including
  * its formatted runs and metadata needed for separator decisions.
@@ -96,6 +101,8 @@ interface RenderedCitation {
   citationId: string;
   /** The citation's introductory signal, if any (for separator logic). */
   signal: IntroductorySignal | undefined;
+  /** The rendered format of this citation (full/short/ibid). */
+  renderedFormat: RenderedFormat;
 }
 
 /**
@@ -443,6 +450,29 @@ function renderFootnoteCitations(
       formatPreference: "auto",
     };
 
+    // Determine the rendered format by checking what the resolver returns.
+    // null → full citation; non-null → check for ibid vs short.
+    let renderedFormat: RenderedFormat = "full";
+    if (!isFirstCitation) {
+      const resolverCtx: SubsequentReferenceContext = {
+        isFirstCitation,
+        isSameAsPreceding,
+        precedingFootnoteCitationCount: prevFootnoteCitationIds.length,
+        precedingPinpoint: prevFootnotePinpoint,
+        currentPinpoint,
+        firstFootnoteNumber,
+        isWithinSameFootnote,
+        formatPreference: "auto",
+        config,
+      };
+      const subRuns = resolveSubsequentReference(citation, resolverCtx);
+      if (subRuns !== null) {
+        // Check if the text starts with "Ibid" to distinguish ibid from short
+        const subText = subRuns.map((r) => r.text).join("");
+        renderedFormat = subText.startsWith("Ibid") ? "ibid" : "short";
+      }
+    }
+
     // formatCitation returns runs WITHOUT closing punctuation
     let runs = formatCitation(citation, citationContext, config);
 
@@ -453,6 +483,7 @@ function renderFootnoteCitations(
       runs,
       citationId: child.citationId,
       signal: citation.signal,
+      renderedFormat,
     });
 
     // Update tracking state
@@ -527,13 +558,15 @@ async function rebuildParentCC(
   await context.sync();
 
   for (let j = 0; j < rendered.length; j++) {
-    const { runs, citationId, signal } = rendered[j];
+    const { runs, citationId, signal, renderedFormat } = rendered[j];
 
     // Create a child CC at the end of the parent CC
     const endRange = parentCC.getRange("End");
     const childCC = endRange.insertContentControl("RichText");
     childCC.tag = citationId;
-    childCC.title = "Citation";
+    // Encode the rendered format in the title so the selection handler can
+    // detect clicks on short/ibid references and set the appropriate focusField.
+    childCC.title = `Citation:${renderedFormat}`;
     childCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
     // Write the citation runs into the child CC

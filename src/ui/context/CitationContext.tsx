@@ -4,6 +4,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   registerSelectionHandler,
   unregisterSelectionHandler,
@@ -12,9 +13,14 @@ import { registerChangeListener, unregisterChangeListener } from "../../word/cha
 import { refreshAllCitations } from "../../word/citationRefresher";
 import { getSharedStore } from "../../store/singleton";
 
+/** Which field to auto-focus after navigating to Edit from a CC click. */
+export type FocusField = "pinpoint" | "format" | null;
+
 interface CitationContextValue {
   selectedCitationId: string | null;
   setSelectedCitationId: (id: string | null) => void;
+  focusField: FocusField;
+  setFocusField: (field: FocusField) => void;
   refreshCounter: number;
   triggerRefresh: () => void;
   autoRefreshEnabled: boolean;
@@ -25,6 +31,7 @@ const CitationContext = createContext<CitationContextValue | undefined>(undefine
 
 export function CitationProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [selectedCitationId, setSelectedCitationIdRaw] = useState<string | null>(null);
+  const [focusField, setFocusField] = useState<FocusField>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const refreshingRef = useRef(false);
@@ -44,6 +51,7 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
 
   const setSelectedCitationId = useCallback((id: string | null) => {
     setSelectedCitationIdRaw(id);
+    if (!id) setFocusField(null);
   }, []);
 
   const triggerRefresh = useCallback(() => {
@@ -67,13 +75,36 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     });
   }, [autoRefreshEnabled]);
 
-  // Register the document selection handler
+  // Register the document selection handler — auto-navigate to /edit on CC click
+  const navigateRef = useRef<ReturnType<typeof useNavigate> | null>(null);
+  const locationRef = useRef<ReturnType<typeof useLocation> | null>(null);
+
+  // Keep refs in sync (avoids re-registering the handler on every nav change)
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+  useEffect(() => { locationRef.current = location; }, [location]);
+
   useEffect(() => {
     let mounted = true;
 
-    void registerSelectionHandler((citationId: string) => {
-      if (mounted) {
-        setSelectedCitationIdRaw(citationId);
+    void registerSelectionHandler((citationId: string, ccTitle?: string) => {
+      if (!mounted) return;
+
+      setSelectedCitationIdRaw(citationId);
+
+      // Derive focusField from the child CC title set by the citationRefresher
+      if (ccTitle === "Citation:short") {
+        setFocusField("pinpoint");
+      } else if (ccTitle === "Citation:ibid") {
+        setFocusField("format");
+      } else {
+        setFocusField(null);
+      }
+
+      // Auto-navigate to the edit view if not already there
+      if (locationRef.current && locationRef.current.pathname !== "/edit") {
+        navigateRef.current?.("/edit");
       }
     }).catch(() => {
       // Ignore — Office.js may not be available in tests
@@ -106,6 +137,8 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     <CitationContext.Provider value={{
       selectedCitationId,
       setSelectedCitationId,
+      focusField,
+      setFocusField,
       refreshCounter,
       triggerRefresh,
       autoRefreshEnabled,

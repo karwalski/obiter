@@ -105,9 +105,9 @@ function App(): JSX.Element {
   const initialRoute = getInitialRoute();
 
   return (
-    <CitationProvider>
-      <InsertCitationProvider>
-        <MemoryRouter initialEntries={[initialRoute]}>
+    <InsertCitationProvider>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <CitationProvider>
           <NavigateRegistrar />
           <Routes>
             <Route element={<Layout />}>
@@ -121,9 +121,9 @@ function App(): JSX.Element {
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
-        </MemoryRouter>
-      </InsertCitationProvider>
-    </CitationProvider>
+        </CitationProvider>
+      </MemoryRouter>
+    </InsertCitationProvider>
   );
 }
 

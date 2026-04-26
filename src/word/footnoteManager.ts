@@ -49,6 +49,8 @@ export interface CitationFootnoteEntry {
   citationId: string;
   /** Human-readable label from the child CC title. */
   title: string;
+  /** The rendered format of this occurrence (full/short/ibid), parsed from the CC title. */
+  renderedFormat?: "full" | "short" | "ibid";
 }
 
 /** Result returned when cursor is next to a footnote. */
@@ -572,10 +574,19 @@ export async function getAllCitationFootnotes(): Promise<
         // Skip parent CCs and other internal obiter tags; only collect
         // child CCs which have citation UUIDs as tags.
         if (cc.tag && !cc.tag.startsWith("obiter-")) {
+          // Parse rendered format from the CC title (e.g. "Citation:short")
+          let renderedFormat: "full" | "short" | "ibid" | undefined;
+          if (cc.title) {
+            const match = cc.title.match(/^Citation:(full|short|ibid)$/);
+            if (match) {
+              renderedFormat = match[1] as "full" | "short" | "ibid";
+            }
+          }
           results.push({
             footnoteIndex: i + 1, // 1-based footnote numbering
             citationId: cc.tag,
             title: cc.title,
+            renderedFormat,
           });
         }
       }

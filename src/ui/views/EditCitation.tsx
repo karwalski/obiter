@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCitationContext } from "../context/CitationContext";
 import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
@@ -251,7 +251,11 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function EditCitation(): JSX.Element {
-  const { selectedCitationId, setSelectedCitationId, refreshCounter } = useCitationContext();
+  const { selectedCitationId, setSelectedCitationId, focusField, setFocusField, refreshCounter } = useCitationContext();
+
+  // Refs for scroll-to-field support
+  const pinpointRef = useRef<HTMLInputElement>(null);
+  const formatSectionRef = useRef<HTMLFieldSetElement>(null);
 
   const [citation, setCitation] = useState<Citation | null>(null);
   const [allCitations, setAllCitations] = useState<Citation[]>([]);
@@ -430,6 +434,26 @@ export default function EditCitation(): JSX.Element {
       cancelled = true;
     };
   }, [selectedCitationId]);
+
+  // ─── Focus Field: scroll to pinpoint or format section on CC click ───────
+
+  useEffect(() => {
+    if (!focusField || !citation) return;
+
+    // Delay slightly to ensure the DOM has rendered
+    const timer = setTimeout(() => {
+      if (focusField === "pinpoint" && pinpointRef.current) {
+        pinpointRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        pinpointRef.current.focus();
+      } else if (focusField === "format" && formatSectionRef.current) {
+        formatSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      // Clear the focus field after scrolling so it doesn't re-trigger
+      setFocusField(null);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [focusField, citation, setFocusField]);
 
   // ─── UX-004: Load Occurrences ─────────────────────────────────────────────
 
@@ -775,6 +799,7 @@ export default function EditCitation(): JSX.Element {
               {field.required && <span className="edit-field-required">*</span>}
             </span>
             <input
+              ref={field.key === "pinpoint" ? pinpointRef : undefined}
               type="text"
               className="edit-field-input"
               value={(formData[field.key] as string) ?? ""}
@@ -855,7 +880,7 @@ export default function EditCitation(): JSX.Element {
       </div>
 
       {/* Format Preference */}
-      <fieldset className="edit-format-section settings-section">
+      <fieldset ref={formatSectionRef} className="edit-format-section settings-section">
         <legend className="settings-section-title">Format Preference</legend>
         {(["auto", "full", "short", "ibid"] as FormatPreference[]).filter(
           (pref) => pref !== "ibid" || standardConfig.ibidEnabled
@@ -907,22 +932,29 @@ export default function EditCitation(): JSX.Element {
 
             {!occurrencesLoading && occurrences.length > 0 && (
               <ul className="edit-occurrences-list">
-                {occurrences.map((entry) => (
-                  <li key={entry.footnoteIndex} className="edit-occurrences-item">
-                    <span className="edit-occurrences-label">
-                      Footnote {entry.footnoteIndex}
-                      {entry.title ? ` \u2014 ${entry.title}` : ""}
-                    </span>
-                    <button
-                      type="button"
-                      className="edit-btn edit-btn-danger edit-btn-small"
-                      onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
-                      disabled={removingFootnote === entry.footnoteIndex || loading}
-                    >
-                      {removingFootnote === entry.footnoteIndex ? "Removing..." : "Remove"}
-                    </button>
-                  </li>
-                ))}
+                {occurrences.map((entry) => {
+                  const formatLabel = entry.renderedFormat
+                    ? entry.renderedFormat.charAt(0).toUpperCase() + entry.renderedFormat.slice(1)
+                    : null;
+                  return (
+                    <li key={entry.footnoteIndex} className="edit-occurrences-item">
+                      <span className="edit-occurrences-label">
+                        Footnote {entry.footnoteIndex}
+                        {formatLabel && (
+                          <span className="edit-occurrences-format"> ({formatLabel})</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="edit-btn edit-btn-danger edit-btn-small"
+                        onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
+                        disabled={removingFootnote === entry.footnoteIndex || loading}
+                      >
+                        {removingFootnote === entry.footnoteIndex ? "Removing..." : "Remove"}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
 

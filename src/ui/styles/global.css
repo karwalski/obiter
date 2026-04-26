@@ -1452,6 +1452,11 @@ body {
   color: var(--colour-ink);
 }
 
+.edit-occurrences-format {
+  color: var(--colour-muted);
+  font-style: italic;
+}
+
 .edit-occurrences-note {
   font-size: var(--text-sm);
   color: var(--colour-muted);

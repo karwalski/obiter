@@ -9,6 +9,7 @@
 const NON_CITATION_TAG_PREFIXES = [
   "obiter-heading-",
   "obiter-attribution",
+  "obiter-fn",
 ];
 
 /** Returns true if the tag looks like a citation ID (UUID), not an internal Obiter tag. */
@@ -21,9 +22,11 @@ function isCitationTag(tag: string): boolean {
 
 /**
  * Callback invoked when the user selects or clicks into a citation content
- * control. Receives the citation ID extracted from the content control's tag.
+ * control. Receives the citation ID extracted from the content control's tag,
+ * and optionally the CC title (which may encode the rendered format, e.g.
+ * "Citation:short" or "Citation:ibid").
  */
-export type CitationSelectedCallback = (citationId: string) => void;
+export type CitationSelectedCallback = (citationId: string, ccTitle?: string) => void;
 
 /** Handle returned by Office.js for the registered event handler. */
 let selectionHandlerReference: (() => void) | null = null;
@@ -53,14 +56,14 @@ export async function registerSelectionHandler(
       await Word.run(async (context) => {
         const selection = context.document.getSelection();
         const contentControls = selection.contentControls;
-        contentControls.load("items/tag");
+        contentControls.load("items/tag,items/title");
         await context.sync();
 
         // Walk through all content controls at the selection and fire the
         // callback for the first one that has a citation tag (not heading/branding tags).
         for (const cc of (contentControls.items ?? [])) {
           if (cc.tag && isCitationTag(cc.tag)) {
-            onCitationSelected(cc.tag);
+            onCitationSelected(cc.tag, cc.title);
             return;
           }
         }
@@ -68,11 +71,11 @@ export async function registerSelectionHandler(
         // If no content controls at the selection, also check if the
         // selection is *inside* a content control by walking up.
         const parentCC = selection.parentContentControlOrNullObject;
-        parentCC.load("tag,isNullObject");
+        parentCC.load("tag,title,isNullObject");
         await context.sync();
 
         if (!parentCC.isNullObject && parentCC.tag && isCitationTag(parentCC.tag)) {
-          onCitationSelected(parentCC.tag);
+          onCitationSelected(parentCC.tag, parentCC.title);
         }
       });
     } catch {
