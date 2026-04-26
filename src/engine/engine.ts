@@ -1757,6 +1757,29 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
     runs.push({ text: `, ${pinpoint.value}` });
   }
 
+  // Report/document number
+  const reportNumber = d.reportNumber as string | undefined;
+  const number = d.number as string | undefined;
+  const docNumber = reportNumber ?? number;
+  if (docNumber) {
+    runs.push({ text: `, ${docNumber}` });
+  }
+
+  // Date (for sources that use date instead of year)
+  const date = d.date as string | undefined;
+  if (date && !year) {
+    runs.push({ text: ` (${date})` });
+  }
+
+  // Body / institution / issuing body
+  const body = d.body as string | undefined;
+  const institution = d.institution as string | undefined;
+  const issuingBody = d.issuingBody as string | undefined;
+  const org = body ?? institution ?? issuingBody;
+  if (org && !runs.some((r) => r.text.includes(org))) {
+    runs.push({ text: ` (${org})` });
+  }
+
   // URL
   const url = d.url as string | undefined;
   if (url) {
