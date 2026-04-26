@@ -1763,6 +1763,13 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
     runs.push({ text: ` <${url}>` });
   }
 
+  // Additional free-text fields (from generic form or any form with extra data)
+  const additional = d.additional as string | undefined;
+  if (additional) {
+    if (runs.length > 0) runs.push({ text: ", " });
+    runs.push({ text: additional });
+  }
+
   return runs;
 }
 
