@@ -787,6 +787,16 @@ export default function CitationLibrary(): JSX.Element {
               </div>
               {insertMenuId === citation.id && (
                 <div className="library-insert-menu">
+                  <div className="library-insert-pinpoint">
+                    <input
+                      type="text"
+                      placeholder="Pinpoint (eg 42, [23])"
+                      value={pinpointInput}
+                      onChange={(e) => setPinpointInput(e.target.value)}
+                      className="library-insert-pinpoint-input"
+                      aria-label="Pinpoint reference"
+                    />
+                  </div>
                   <button
                     className="library-insert-option"
                     onClick={() => void handleInsertAs(citation, "auto")}
@@ -815,16 +825,6 @@ export default function CitationLibrary(): JSX.Element {
                       Ibid
                     </button>
                   )}
-                  <div className="library-insert-pinpoint">
-                    <input
-                      type="text"
-                      placeholder="Pinpoint (eg 42, [23])"
-                      value={pinpointInput}
-                      onChange={(e) => setPinpointInput(e.target.value)}
-                      className="library-insert-pinpoint-input"
-                      aria-label="Pinpoint reference"
-                    />
-                  </div>
                 </div>
               )}
             </div>

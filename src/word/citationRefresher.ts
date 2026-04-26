@@ -423,7 +423,13 @@ function renderFootnoteCitations(
 
     const firstFootnoteNumber =
       footnoteMap.get(child.citationId) ?? fnEntry.footnoteNumber;
-    const currentPinpoint = citation.data.pinpoint as Pinpoint | undefined;
+    // Normalise pinpoint — UI stores as string, resolver expects Pinpoint object
+    const rawPinpoint = citation.data.pinpoint;
+    const currentPinpoint: Pinpoint | undefined = rawPinpoint
+      ? typeof rawPinpoint === "string"
+        ? { type: "page" as const, value: rawPinpoint }
+        : (rawPinpoint as Pinpoint)
+      : undefined;
 
     const citationContext: CitationContext = {
       footnoteNumber: fnEntry.footnoteNumber,
