@@ -127,10 +127,15 @@ export function serializeStore(
  * `<obiter:data>`) formats. Detection: if `<obiter:field` elements exist,
  * use v2. Otherwise fall back to v1.
  */
-export function deserializeCitation(xml: string): Citation {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, "text/xml");
-  const root = doc.documentElement;
+export function deserializeCitation(xml: string | Element): Citation {
+  let root: Element;
+  if (typeof xml === "string") {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, "text/xml");
+    root = doc.documentElement;
+  } else {
+    root = xml;
+  }
 
   const id = root.getAttribute("id") ?? "";
   const sourceType = (root.getAttribute("sourceType") ?? "") as SourceType;
@@ -274,14 +279,12 @@ export function deserializeStore(xml: string): CitationStoreData {
     };
   }
 
-  // Extract all <obiter:citation> children
+  // Extract all <obiter:citation> children — pass Element directly
+  // to avoid XMLSerializer re-serialization issues with namespace prefixes.
   const citations: Citation[] = [];
   for (const child of Array.from(root.children)) {
     if (child.localName === "citation") {
-      // Serialize the element back to string for deserializeCitation
-      const serializer = new XMLSerializer();
-      const citationXml = serializer.serializeToString(child);
-      citations.push(deserializeCitation(citationXml));
+      citations.push(deserializeCitation(child));
     }
   }
 

@@ -1680,8 +1680,14 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const runs: FormattedRun[] = [];
 
-  // Author(s)
+  // Author(s) — structured array or plain string
   const authors = d.authors as Author[] | undefined;
+  const authorString = d.author as string | undefined;
+  const institutionalAuthor = d.institutionalAuthor as string | undefined;
+  const speaker = d.speaker as string | undefined;
+  const witness = d.witness as string | undefined;
+  const plainAuthor = authorString ?? institutionalAuthor ?? speaker ?? witness;
+
   if (authors && authors.length > 0) {
     const authorText = authors
       .map((a) => {
@@ -1696,6 +1702,8 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
     if (authorText) {
       runs.push({ text: authorText });
     }
+  } else if (plainAuthor) {
+    runs.push({ text: plainAuthor });
   }
 
   // Title
