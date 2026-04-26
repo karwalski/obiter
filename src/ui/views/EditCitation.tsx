@@ -251,7 +251,7 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function EditCitation(): JSX.Element {
-  const { selectedCitationId, setSelectedCitationId } = useCitationContext();
+  const { selectedCitationId, setSelectedCitationId, refreshCounter } = useCitationContext();
 
   const [citation, setCitation] = useState<Citation | null>(null);
   const [allCitations, setAllCitations] = useState<Citation[]>([]);
@@ -331,7 +331,8 @@ export default function EditCitation(): JSX.Element {
     }
   }, []);
 
-  // Load all citations on mount so the manual picker dropdown is populated.
+  // Load all citations on mount AND when refresh counter changes (new
+  // citations inserted, deleted, or settings changed).
   useEffect(() => {
     let cancelled = false;
 
@@ -350,7 +351,7 @@ export default function EditCitation(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshCounter]);
 
   // Load citation when selectedCitationId changes
   useEffect(() => {
