@@ -1886,12 +1886,20 @@ export function formatCitation(
     let result = runs;
 
     // AUDIT2-015: Short title introduction (Rule 1.4.4)
+    // Only append if the short title is genuinely shorter than the full
+    // citation text — no point adding ('Watt v R') when the case name
+    // is already "Watt v R".
     if (citation.shortTitle) {
-      const intro = formatShortTitleIntroduction(
-        citation.shortTitle,
-        citation.sourceType,
-      );
-      result = [...result, { text: " " }, ...intro];
+      const fullText = result.map((r) => r.text).join("").toLowerCase().trim();
+      const shortLower = citation.shortTitle.toLowerCase().trim();
+      const isRedundant = fullText.startsWith(shortLower) || fullText.includes(shortLower);
+      if (!isRedundant) {
+        const intro = formatShortTitleIntroduction(
+          citation.shortTitle,
+          citation.sourceType,
+        );
+        result = [...result, { text: " " }, ...intro];
+      }
     }
 
     // AUDIT2-016: Abbreviation definition (Rule 1.4.5)
