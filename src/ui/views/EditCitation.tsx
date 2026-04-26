@@ -659,27 +659,9 @@ export default function EditCitation(): JSX.Element {
           Click a citation in the document to edit it, or select one below.
         </p>
 
-        {/* UX-002: Refresh button to re-sync with document after undo */}
-        <button
-          className="edit-btn edit-btn-secondary"
-          onClick={() => void refreshCitations()}
-          disabled={loading}
-          style={{ marginBottom: "var(--space-sm)" }}
-        >
-          {loading ? "Refreshing..." : "Refresh Citations"}
-        </button>
-
         {loadError && (
           <div aria-live="polite" role="alert">
             <p className="edit-error">{loadError}</p>
-            <button
-              className="edit-btn edit-btn-secondary"
-              onClick={() => void refreshCitations()}
-              disabled={loading}
-              style={{ marginTop: "var(--space-xs)" }}
-            >
-              Reload
-            </button>
           </div>
         )}
 
@@ -724,17 +706,14 @@ export default function EditCitation(): JSX.Element {
       <div>
         <h2>Edit Citation</h2>
         <p className="edit-error">{loadError || error}</p>
-        {/* UX-002: Reload button to re-initialise the store after undo */}
         <button
           className="edit-btn edit-btn-secondary"
           onClick={() => {
             setSelectedCitationId(null);
-            void refreshCitations();
           }}
-          disabled={loading}
           style={{ marginTop: "var(--space-xs)" }}
         >
-          {loading ? "Reloading..." : "Reload"}
+          Back to picker
         </button>
       </div>
     );

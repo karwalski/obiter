@@ -593,19 +593,8 @@ export default function CitationLibrary(): JSX.Element {
     <div className="library-panel">
       <h2>Citation Library</h2>
 
-      {/* Citation Finder (collapsible) */}
+      {/* Citation Finder (collapsible) — scan document for all citations */}
       <CitationFinder refreshSignal={finderSignal} />
-
-      {/* Refresh All Citations */}
-      <div className="library-refresh-bar">
-        <button
-          className="library-btn library-btn--refresh"
-          onClick={() => void handleRefreshAll()}
-          disabled={refreshing}
-        >
-          {refreshing ? "Refreshing..." : "Refresh All Citations"}
-        </button>
-      </div>
 
       {/* Refresh status toast */}
       <div aria-live="polite" role="status">

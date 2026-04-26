@@ -118,6 +118,7 @@ export default function Layout(): JSX.Element {
           type="button"
           onClick={() => void handleRefreshAll()}
           disabled={refreshing}
+          title="Rebuild all footnote text: updates ibid, short references, cross-references, numbering, and heading prefixes"
         >
           {refreshing ? "Refreshing..." : "Refresh All"}
         </button>
