@@ -736,6 +736,30 @@ export default function EditCitation(): JSX.Element {
     <div className="edit-citation">
       <h2>Edit Citation</h2>
 
+      {/* Citation switcher — always visible so user can change or close */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 8, alignItems: "center" }}>
+        <select
+          className="edit-field-input"
+          style={{ flex: 1, fontSize: 11 }}
+          value={citation.id}
+          onChange={(e) => {
+            const newId = e.target.value;
+            if (newId === "__close__") {
+              setSelectedCitationId(null);
+            } else {
+              setSelectedCitationId(newId);
+            }
+          }}
+        >
+          <option value="__close__">Close / select another...</option>
+          {allCitations.map((c) => (
+            <option key={c.id} value={c.id}>
+              {getCitationLabel(c)}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="edit-type-badge">{typeLabel}</div>
 
       <div aria-live="polite" role="status">
