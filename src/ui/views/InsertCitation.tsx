@@ -1765,6 +1765,50 @@ export default function InsertCitation(): JSX.Element {
         )}
       </div>
 
+      {/* Check citation — open preview text in external source */}
+      {selectedSourceType && previewRuns.length > 0 && (
+        <div className="ic-check-citation" style={{ marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <select
+              className="ic-select"
+              style={{ flex: 1, fontSize: 11 }}
+              value=""
+              onChange={(e) => {
+                const target = e.target.value;
+                if (!target) return;
+                const citationText = previewRuns.map((r) => r.text).join("");
+                const encoded = encodeURIComponent(citationText);
+                const urls: Record<string, string> = {
+                  google: `https://www.google.com/search?q=${encoded}`,
+                  austlii: `https://www.austlii.edu.au/cgi-bin/sinosrch.cgi?query=${encoded}&meta=%2Fau`,
+                  jade: `https://jade.io/search/?q=${encoded}`,
+                  lexis: `https://advance.lexis.com/search/?q=${encoded}`,
+                  westlaw: `https://au.westlaw.com/search/home.html?query=${encoded}`,
+                  vlex: `https://au.vlex.com/search?q=${encoded}`,
+                  scholar: `https://scholar.google.com/scholar?q=${encoded}`,
+                  legislation: `https://www.legislation.gov.au/Search/${encoded}`,
+                  nswcaselaw: `https://www.caselaw.nsw.gov.au/search/advanced?searchTerm=${encoded}`,
+                };
+                const url = urls[target];
+                if (url) window.open(url, "_blank", "noopener,noreferrer");
+                e.target.value = "";
+              }}
+            >
+              <option value="">Check my citation...</option>
+              <option value="google">Search Google</option>
+              <option value="scholar">Google Scholar</option>
+              <option value="austlii">AustLII</option>
+              <option value="jade">Jade.io</option>
+              <option value="nswcaselaw">NSW Caselaw</option>
+              <option value="legislation">Federal Register of Legislation</option>
+              <option value="lexis">Lexis+ AU</option>
+              <option value="westlaw">Westlaw AU</option>
+              <option value="vlex">vLex</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Action buttons */}
       {selectedSourceType && (
         <div className="ic-action-bar">
