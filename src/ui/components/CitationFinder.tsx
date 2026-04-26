@@ -19,6 +19,7 @@ import {
 } from "../../word/footnoteManager";
 import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import { useCitationContext } from "../context/CitationContext";
+import type { SourceType } from "../../types/citation";
 
 // ─── Format Type Detection ──────────────────────────────────────────────────
 
@@ -51,6 +52,69 @@ function getFormatType(
   }
 
   return "short";
+}
+
+// ─── Repair: reconstruct store entries from document CCs ────────────────────
+
+/**
+ * Reads footnote CCs from the document and creates store entries for any
+ * citation IDs that exist as CCs but are missing from the XML store.
+ * Returns the number of citations repaired.
+ */
+async function repairOrphanedCitations(): Promise<number> {
+  let repaired = 0;
+
+  await Word.run(async (context) => {
+    resetSharedStore();
+    const store = await getSharedStore();
+    const storeIds = new Set(store.getAll().map((c) => c.id));
+
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const fnItems = footnotes.items ?? [];
+    for (let i = 0; i < fnItems.length; i++) {
+      const noteItem = fnItems[i];
+      const ccs = noteItem.body.contentControls;
+      ccs.load("items/tag,items/title,items/text");
+      await context.sync();
+
+      for (const cc of ccs.items ?? []) {
+        if (!cc.tag || cc.tag.startsWith("obiter-")) continue;
+        if (storeIds.has(cc.tag)) continue;
+
+        // This CC is in the document but not in the store — repair it
+        const ccText = cc.text?.trim() ?? "";
+        const citationId = cc.tag;
+
+        // Try to guess the source type from the text
+        let sourceType: SourceType = "custom";
+        const hasV = /\s+v\s+/i.test(ccText);
+        const hasAct = /\bact\b/i.test(ccText);
+        if (hasV) sourceType = "case.reported";
+        else if (hasAct) sourceType = "legislation.statute";
+
+        // Create a minimal citation in the store
+        await store.add({
+          id: citationId,
+          sourceType,
+          data: {
+            customText: ccText,
+            title: ccText.substring(0, 80),
+          },
+          shortTitle: "",
+          aglcVersion: "4",
+          firstFootnoteNumber: i + 1,
+        });
+
+        storeIds.add(citationId);
+        repaired++;
+      }
+    }
+  });
+
+  return repaired;
 }
 
 // ─── Navigate to Footnote ───────────────────────────────────────────────────
@@ -220,19 +284,20 @@ export default function CitationFinder({
                     onClick={async () => {
                       setSyncing(true);
                       try {
-                        // Force a full refresh to rebuild the store from document
+                        const count = await repairOrphanedCitations();
+                        setOrphanCount(0);
                         triggerRefresh();
-                        // Re-scan after a brief delay for the refresh to complete
-                        setTimeout(() => {
-                          setOrphanCount(0);
-                          setSyncing(false);
-                        }, 1000);
+                        if (count > 0) {
+                          setError(null);
+                        }
                       } catch {
+                        // repair failed
+                      } finally {
                         setSyncing(false);
                       }
                     }}
                   >
-                    {syncing ? "Syncing..." : "Refresh All to sync"}
+                    {syncing ? "Repairing..." : "Repair and sync to library"}
                   </button>
                 </div>
               )}
