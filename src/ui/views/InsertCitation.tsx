@@ -1704,10 +1704,11 @@ export default function InsertCitation(): JSX.Element {
           <CitationPreview
             runs={previewRuns}
             sourceType={selectedSourceType as SourceType}
-            onParsed={(parsedData) => {
+            onParsed={(parsedData, _warnings, detectedSourceType) => {
               // Map common AI field names to form-specific names
               const mapped = { ...parsedData };
-              const st = selectedSourceType;
+              // Use detected source type if available (selectedSourceType may be stale due to React batching)
+              const st = detectedSourceType ?? selectedSourceType;
               // International case/decision types: title/caseName/parties → caseTitle
               const isInternationalCase = st?.startsWith("icj.") || st?.startsWith("arbitral.") ||
                 st?.startsWith("icc_tribunal.") || st === "echr.decision" ||
@@ -1753,6 +1754,36 @@ export default function InsertCitation(): JSX.Element {
               if (st === "un.document") {
                 if (mapped.documentNumber && !mapped.docNumber) mapped.docNumber = mapped.documentNumber;
                 if (mapped.documentSymbol && !mapped.docNumber) mapped.docNumber = mapped.documentSymbol;
+              }
+              // Foreign jurisdictions: AI returns caseName/parties/mnc → form expects title/citationDetails/court
+              if (st?.startsWith("foreign.")) {
+                if (!mapped.title) {
+                  mapped.title = mapped.caseName ?? mapped.caseTitle ?? mapped.parties ?? undefined;
+                  // Build from applicant v respondent if separate
+                  if (!mapped.title && mapped.applicant && mapped.respondent) {
+                    mapped.title = `${mapped.applicant} v ${mapped.respondent}`;
+                  }
+                }
+                if (!mapped.citationDetails) {
+                  mapped.citationDetails = mapped.mnc ?? mapped.reportCitation ?? mapped.citation
+                    ?? mapped.neutralCitation ?? undefined;
+                  // Reconstruct MNC from parts if AI split it (e.g. year=2018, courtAbbrev=FCA, number=153)
+                  if (!mapped.citationDetails && mapped.year && (mapped.courtAbbrev || mapped.courtAbbreviation)) {
+                    const abbrev = mapped.courtAbbrev ?? mapped.courtAbbreviation;
+                    const num = mapped.caseNumber ?? mapped.number ?? "";
+                    mapped.citationDetails = `${mapped.year} ${abbrev}${num ? " " + num : ""}`;
+                  }
+                }
+                if (!mapped.court) {
+                  mapped.court = mapped.tribunal ?? mapped.body ?? undefined;
+                }
+                // Auto-detect foreignSubType from the citation content
+                if (!mapped.foreignSubType) {
+                  const titleStr = (mapped.title as string) ?? "";
+                  if (titleStr.includes(" v ") || mapped.mnc || mapped.caseName || mapped.parties) {
+                    mapped.foreignSubType = "case";
+                  }
+                }
               }
               setFormData((prev) => ({ ...prev, ...mapped }));
             }}

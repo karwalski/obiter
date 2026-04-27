@@ -160,6 +160,12 @@ function extractAnthropicText(json: AnthropicResponse): string {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+/** A single message in a multi-turn conversation. */
+export interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
 /**
  * Send a system + user prompt to the configured LLM provider and return the
  * assistant's text response.
@@ -224,6 +230,128 @@ export async function callLlm(
   const json: unknown = await response.json();
 
   // Proxy returns { text: "..." } directly
+  if (endpoint.useProxy) {
+    const proxyResult = json as { text?: string; error?: string };
+    if (proxyResult.error) throw new Error(proxyResult.error);
+    if (!proxyResult.text) throw new Error("Empty response from proxy");
+    return proxyResult.text.trim();
+  }
+
+  return isAnthropic
+    ? extractAnthropicText(json as AnthropicResponse)
+    : extractOpenAIText(json as OpenAIResponse);
+}
+
+/**
+ * AI-009: Multi-turn LLM conversation.
+ *
+ * Sends a sequence of messages (system + user/assistant turns) and returns
+ * the final assistant response. Both OpenAI-compatible and Anthropic APIs
+ * are supported. The system message is extracted from the first element if
+ * its role is "system".
+ */
+export async function callLlmMultiTurn(
+  config: LLMConfig,
+  messages: ChatMessage[],
+): Promise<string> {
+  const isAnthropic = config.provider === "anthropic";
+  const endpoint = resolveEndpoint(config);
+
+  // Separate system prompt from conversation messages
+  let systemPrompt = "";
+  let conversationMessages = messages;
+  if (messages.length > 0 && messages[0].role === "system") {
+    systemPrompt = messages[0].content;
+    conversationMessages = messages.slice(1);
+  }
+
+  let url: string;
+  let init: RequestInit;
+
+  if (endpoint.useProxy) {
+    // Proxy doesn't support multi-turn natively — concatenate into single turn
+    const userParts = conversationMessages.map(
+      (m) => `[${m.role}]: ${m.content}`,
+    );
+    url = endpoint.url;
+    const proxyBody = {
+      provider: config.provider,
+      model: config.model,
+      apiKey: config.apiKey,
+      maxTokens: config.maxTokens,
+      systemPrompt,
+      userPrompt: userParts.join("\n\n"),
+    };
+    init = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proxyBody),
+    };
+  } else if (isAnthropic) {
+    const body = {
+      model: config.model,
+      max_tokens: config.maxTokens,
+      system: systemPrompt,
+      messages: conversationMessages.map((m) => ({
+        role: m.role === "system" ? "user" : m.role,
+        content: m.content,
+      })),
+    };
+    url = endpoint.url;
+    init = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": config.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify(body),
+    };
+  } else {
+    const body: OpenAIRequestBody = {
+      model: config.model,
+      messages: [
+        ...(systemPrompt
+          ? [{ role: "system" as const, content: systemPrompt }]
+          : []),
+        ...conversationMessages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      ],
+      max_tokens: config.maxTokens,
+    };
+    url = endpoint.url;
+    init = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    };
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, init);
+  } catch (fetchErr: unknown) {
+    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+    throw new Error(
+      `Cannot reach ${config.provider} API. Error: ${msg}`,
+    );
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(
+      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`,
+    );
+  }
+
+  const json: unknown = await response.json();
+
   if (endpoint.useProxy) {
     const proxyResult = json as { text?: string; error?: string };
     if (proxyResult.error) throw new Error(proxyResult.error);

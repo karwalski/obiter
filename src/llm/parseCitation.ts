@@ -145,6 +145,12 @@ Treaties (treaty):
   Example: "Convention on the Rights of the Child, opened for signature 20 November 1989, 1577 UNTS 3 (entered into force 2 September 1990)" ->
     { title: "Convention on the Rights of the Child", openedDate: "20 November 1989", treatySeries: "UNTS", volume: "1577", startingPage: "3", entryIntoForceDate: "2 September 1990" }
 
+Foreign jurisdictions (foreign.canada, foreign.uk, foreign.usa, foreign.new_zealand, etc.):
+  title (case name or legislation title), citationDetails (the FULL citation string as used in that jurisdiction e.g. "2018 FCA 153" or "[2020] UKSC 5"), court, year, foreignSubType ("case", "legislation", or "secondary"), pinpoint
+  IMPORTANT: citationDetails must be the COMPLETE citation identifier — do NOT split MNCs into separate fields.
+  Example: "*Tsleil-Waututh Nation v Canada (Attorney General)* 2018 FCA 153, [558]–[561]" ->
+    { title: "Tsleil-Waututh Nation v Canada (Attorney General)", citationDetails: "2018 FCA 153", court: "FCA", year: "2018", foreignSubType: "case", pinpoint: "[558]–[561]" }
+
 Also extract a suggested shortTitle where appropriate (e.g. first party name for cases, abbreviated title for legislation).
 
 Respond with ONLY valid JSON in this exact shape (no markdown fencing):

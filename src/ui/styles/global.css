@@ -2435,3 +2435,226 @@ body {
 [data-theme="dark"] .obiter-corpus-banner--error {
   background: #3a1b1b;
 }
+
+/* ─── Error Boundary ───────────────────────────────────────────────────────── */
+
+.error-boundary {
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.error-boundary-content {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+
+.error-boundary-heading {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--colour-error);
+  margin: 0 0 var(--space-sm);
+}
+
+.error-boundary-message {
+  font-size: var(--text-sm);
+  color: var(--colour-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--space-lg);
+}
+
+.error-boundary-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.error-boundary-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+  transition: background-color var(--transition-fast);
+}
+
+.error-boundary-btn:hover {
+  background: var(--colour-border);
+}
+
+.error-boundary-btn-primary {
+  background: var(--colour-accent);
+  color: #fff;
+  border-color: var(--colour-accent);
+}
+
+.error-boundary-btn-primary:hover {
+  background: var(--colour-accent-hover);
+}
+
+.error-boundary-details-toggle {
+  background: none;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--colour-text-secondary);
+  cursor: pointer;
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-sm);
+}
+
+.error-boundary-details-toggle:hover {
+  color: var(--colour-ink);
+}
+
+.error-boundary-details {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--colour-surface);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--colour-text-secondary);
+}
+
+/* ─── Error Reporter Modal ─────────────────────────────────────────────────── */
+
+.error-reporter-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-lg);
+}
+
+.error-reporter-modal {
+  background: var(--colour-bg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.error-reporter-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--colour-ink);
+  margin: 0 0 var(--space-sm);
+}
+
+.error-reporter-description {
+  font-size: var(--text-sm);
+  color: var(--colour-text-secondary);
+  margin: 0 0 var(--space-md);
+}
+
+.error-reporter-info {
+  background: var(--colour-surface);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.error-reporter-info-heading {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--colour-ink);
+  margin: 0 0 var(--space-xs);
+}
+
+.error-reporter-info-list {
+  margin: 0;
+  padding-left: var(--space-lg);
+  font-size: var(--text-xs);
+  color: var(--colour-text-secondary);
+  line-height: 1.6;
+}
+
+.error-reporter-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--colour-ink);
+  margin-bottom: var(--space-md);
+  cursor: pointer;
+}
+
+.error-reporter-checkbox input {
+  margin-top: 2px;
+}
+
+.error-reporter-error {
+  font-size: var(--text-xs);
+  color: var(--colour-error);
+  margin: 0 0 var(--space-sm);
+}
+
+.error-reporter-sent {
+  font-size: var(--text-sm);
+  color: var(--colour-success);
+  text-align: center;
+  margin: var(--space-md) 0;
+}
+
+.error-reporter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.error-reporter-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+  transition: background-color var(--transition-fast);
+}
+
+.error-reporter-btn:hover {
+  background: var(--colour-border);
+}
+
+.error-reporter-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-reporter-btn-primary {
+  background: var(--colour-accent);
+  color: #fff;
+  border-color: var(--colour-accent);
+}
+
+.error-reporter-btn-primary:hover {
+  background: var(--colour-accent-hover);
+}
+
+.error-reporter-btn-primary:disabled {
+  background: var(--colour-accent);
+}

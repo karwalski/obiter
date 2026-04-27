@@ -241,8 +241,58 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Send a notification to the admin when an error report is received from the add-in.
+ */
+async function sendErrorNotification(report) {
+  var adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.warn("ADMIN_EMAIL not set; skipping error report notification.");
+    return;
+  }
+
+  var subject = "Error Report — Obiter Add-in (" + escapeHtml(report.action || "Unknown action") + ")";
+
+  var rows = [
+    ["Error", escapeHtml(report.errorMessage || "N/A")],
+    ["Action", escapeHtml(report.action || "N/A")],
+    ["Obiter Version", escapeHtml(report.obiterVersion || "N/A")],
+    ["Word Version", escapeHtml(report.wordVersion || "N/A")],
+    ["Platform", escapeHtml(report.platform || "N/A")],
+    ["Timestamp", escapeHtml(report.timestamp || "N/A")],
+  ];
+
+  var tableRows = rows.map(function (row) {
+    return "    <tr><td style=\"padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #D1D5DB;\">" + row[0] + "</td><td style=\"padding: 8px 12px; border-bottom: 1px solid #D1D5DB;\">" + row[1] + "</td></tr>";
+  }).join("\n");
+
+  var stackSection = report.errorStack
+    ? "<h3 style=\"font-size: 1rem; margin-top: 16px;\">Stack Trace</h3><pre style=\"background: #F4F5F7; padding: 12px; border-radius: 4px; font-size: 0.8125rem; overflow-x: auto; white-space: pre-wrap; word-break: break-word;\">" + escapeHtml(report.errorStack) + "</pre>"
+    : "";
+
+  var formDataSection = report.formData
+    ? "<h3 style=\"font-size: 1rem; margin-top: 16px;\">Form Data</h3><pre style=\"background: #F4F5F7; padding: 12px; border-radius: 4px; font-size: 0.8125rem; overflow-x: auto; white-space: pre-wrap;\">" + escapeHtml(JSON.stringify(report.formData, null, 2)) + "</pre>"
+    : "";
+
+  var html = [
+    "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #1E2A38;\">",
+    "  <h2 style=\"font-size: 1.25rem; margin-bottom: 16px; color: #C62828;\">Error Report from Add-in</h2>",
+    "  <table style=\"border-collapse: collapse; width: 100%;\">",
+    tableRows,
+    "  </table>",
+    stackSection,
+    formDataSection,
+    "  <hr style=\"border: none; border-top: 1px solid #D1D5DB; margin: 24px 0;\">",
+    "  <p style=\"font-size: 0.8125rem; color: #5A6577;\">Obiter Website Server</p>",
+    "</div>"
+  ].join("\n");
+
+  await sendEmail(adminEmail, subject, html);
+}
+
 module.exports = {
   sendVerificationEmail,
   sendContactNotification,
-  sendAdminNotification
+  sendAdminNotification,
+  sendErrorNotification
 };

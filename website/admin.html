@@ -291,6 +291,7 @@
       <div class="admin-tabs">
         <button class="admin-tab is-active" data-tab="signatures">Signatures</button>
         <button class="admin-tab" data-tab="contacts">Contacts</button>
+        <button class="admin-tab" data-tab="errors">Error Reports</button>
         <button class="admin-tab" data-tab="settings">Settings</button>
       </div>
 
@@ -346,6 +347,28 @@
         <div class="admin-empty" id="contact-empty" style="display: none;">No contacts found.</div>
       </div>
 
+      <!-- Error Reports Panel -->
+      <div class="admin-panel" id="panel-errors">
+        <div class="admin-toolbar">
+          <span class="admin-count" id="error-count"></span>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Error</th>
+              <th>Action</th>
+              <th>Version</th>
+              <th>Platform</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="error-tbody"></tbody>
+        </table>
+        <div class="admin-empty" id="error-empty" style="display: none;">No error reports found.</div>
+      </div>
+
       <!-- Settings Panel -->
       <div class="admin-panel" id="panel-settings">
         <h3>Notification Settings</h3>
@@ -394,6 +417,9 @@
     var contactTbody = document.getElementById("contact-tbody");
     var contactCount = document.getElementById("contact-count");
     var contactEmpty = document.getElementById("contact-empty");
+    var errorTbody = document.getElementById("error-tbody");
+    var errorCount = document.getElementById("error-count");
+    var errorEmpty = document.getElementById("error-empty");
 
     // -------------------------------------------------------
     // Auth
@@ -409,6 +435,7 @@
       adminNav.style.display = "";
       loadSignatures();
       loadContacts();
+      loadErrors();
     }
 
     function showLogin() {
@@ -611,6 +638,64 @@
           });
         })
         .catch(function (err) { console.error("Failed to load contacts:", err); });
+    }
+
+    // -------------------------------------------------------
+    // Error Reports
+    // -------------------------------------------------------
+
+    function loadErrors() {
+      fetch(API_BASE + "/admin/errors", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var errors = data.errors || [];
+          errorCount.textContent = errors.length + " report" + (errors.length !== 1 ? "s" : "");
+          errorEmpty.style.display = errors.length === 0 ? "" : "none";
+
+          errorTbody.innerHTML = "";
+
+          errors.forEach(function (e) {
+            var tr = document.createElement("tr");
+            var readStatus = e.is_read ? "read" : "unread";
+            var formDataCell = "";
+            if (e.form_data) {
+              try {
+                var fd = JSON.parse(e.form_data);
+                formDataCell = "<details style=\"font-size: 0.75rem; max-width: 200px;\"><summary>View form data</summary><pre style=\"white-space: pre-wrap; word-break: break-word; font-size: 0.6875rem;\">" + esc(JSON.stringify(fd, null, 2)) + "</pre></details>";
+              } catch (_e) {
+                formDataCell = esc(e.form_data);
+              }
+            }
+            tr.innerHTML = [
+              "<td>" + formatDate(e.created_at) + "</td>",
+              "<td class=\"message-cell\" title=\"" + esc(e.error_message) + "\">" + esc(e.error_message) + "</td>",
+              "<td>" + esc(e.action || "") + "</td>",
+              "<td>" + esc((e.obiter_version || "") + (e.word_version ? " / Word " + e.word_version : "")) + "</td>",
+              "<td>" + esc(e.platform || "") + "</td>",
+              "<td><span class=\"status-badge status-badge--" + readStatus + "\">" + readStatus + "</span></td>",
+              "<td class=\"admin-actions\">" +
+                (e.is_read ? "" : "<button class=\"btn-mark-read\" data-error-id=\"" + e.id + "\">Mark Read</button>") +
+                (e.error_stack ? " <details style=\"font-size: 0.6875rem; max-width: 200px;\"><summary>Stack</summary><pre style=\"white-space: pre-wrap; word-break: break-word;\">" + esc(e.error_stack) + "</pre></details>" : "") +
+                formDataCell +
+              "</td>"
+            ].join("");
+            errorTbody.appendChild(tr);
+          });
+
+          errorTbody.querySelectorAll("[data-error-id]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              fetch(API_BASE + "/admin/errors/" + btn.dataset.errorId + "/read", {
+                method: "POST",
+                headers: authHeaders()
+              })
+                .then(function (r) {
+                  if (r.ok) { loadErrors(); }
+                })
+                .catch(function (err) { console.error(err); });
+            });
+          });
+        })
+        .catch(function (err) { console.error("Failed to load error reports:", err); });
     }
 
     // -------------------------------------------------------

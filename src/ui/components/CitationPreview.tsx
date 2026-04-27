@@ -14,7 +14,7 @@ export interface CitationPreviewProps {
   runs: FormattedRun[];
   sourceType?: SourceType;
   /** Called when the user edits the preview text and fields are parsed out. */
-  onParsed?: (data: Partial<SourceData>, warnings: string[]) => void;
+  onParsed?: (data: Partial<SourceData>, warnings: string[], detectedSourceType?: string) => void;
   /** Called when the user's manual text should be used as-is for insertion. */
   onOverride?: (text: string) => void;
   /** Called when AI parsing detects a different source type than currently selected. */
@@ -240,7 +240,7 @@ export default function CitationPreview({
       }
 
       if (fieldCount > 0) {
-        onParsed(result.data as Partial<SourceData>, result.warnings);
+        onParsed(result.data as Partial<SourceData>, result.warnings, result.detectedSourceType);
         setParseSource(result.source);
 
         const sourceLabel =

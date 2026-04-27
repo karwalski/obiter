@@ -1589,15 +1589,19 @@ function dispatchForeign(citation: Citation): FormattedRun[] {
     ?? (d.parties as string) ?? "";
 
   // For case-like foreign citations (has "v" in name), format like a case
-  const isCase = caseName.includes(" v ") || d.foreignSubType === "Case"
-    || (d.foreignSubType as string)?.toLowerCase()?.includes("case");
+  const isCase = caseName.includes(" v ") || (d.foreignSubType as string)?.toLowerCase() === "case";
 
   if (caseName) {
     runs.push({ text: caseName, italic: isCase });
   }
 
   // Citation details (MNC, report series, etc.)
-  const citationDetails = (d.citationDetails as string) ?? (d.mnc as string) ?? "";
+  // If AI split MNC into parts (year, court abbreviation, number), reconstruct
+  let citationDetails = (d.citationDetails as string) ?? (d.mnc as string) ?? "";
+  if (!citationDetails && d.year && d.courtAbbrev) {
+    const num = (d.caseNumber as string) ?? (d.number as string) ?? "";
+    citationDetails = `${d.year} ${d.courtAbbrev}${num ? " " + num : ""}`;
+  }
   if (citationDetails) {
     if (runs.length > 0) runs.push({ text: " " });
     runs.push({ text: citationDetails });

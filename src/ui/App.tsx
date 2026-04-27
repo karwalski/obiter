@@ -20,6 +20,7 @@ import Settings from "./views/Settings";
 import Styling from "./views/Styling";
 import { CitationProvider } from "./context/CitationContext";
 import { InsertCitationProvider } from "./context/InsertCitationContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import "./styles/global.css";
 
 /** Registers the React Router navigate function for screenshot prep. */
@@ -109,18 +110,20 @@ function App(): JSX.Element {
       <MemoryRouter initialEntries={[initialRoute]}>
         <CitationProvider>
           <NavigateRegistrar />
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<InsertCitation />} />
-              <Route path="edit" element={<EditCitation />} />
-              <Route path="library" element={<CitationLibrary />} />
-              <Route path="guide" element={<AbbreviationLookup />} />
-              <Route path="validation" element={<Validation />} />
-              <Route path="bibliography" element={<Bibliography />} />
-              <Route path="styling" element={<Styling />} />
-              <Route path="settings" element={<Settings />} />
-            </Route>
-          </Routes>
+          <ErrorBoundary label="Application">
+            <Routes>
+              <Route element={<Layout />}>
+                <Route index element={<ErrorBoundary label="Insert Citation"><InsertCitation /></ErrorBoundary>} />
+                <Route path="edit" element={<ErrorBoundary label="Edit Citation"><EditCitation /></ErrorBoundary>} />
+                <Route path="library" element={<ErrorBoundary label="Citation Library"><CitationLibrary /></ErrorBoundary>} />
+                <Route path="guide" element={<ErrorBoundary label="Abbreviation Lookup"><AbbreviationLookup /></ErrorBoundary>} />
+                <Route path="validation" element={<ErrorBoundary label="Validation"><Validation /></ErrorBoundary>} />
+                <Route path="bibliography" element={<ErrorBoundary label="Bibliography"><Bibliography /></ErrorBoundary>} />
+                <Route path="styling" element={<ErrorBoundary label="Styling"><Styling /></ErrorBoundary>} />
+                <Route path="settings" element={<ErrorBoundary label="Settings"><Settings /></ErrorBoundary>} />
+              </Route>
+            </Routes>
+          </ErrorBoundary>
         </CitationProvider>
       </MemoryRouter>
     </InsertCitationProvider>

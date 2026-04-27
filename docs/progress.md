@@ -1136,8 +1136,12 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | FIX-042 | Refresh All loading note for large documents | FEATURE | DONE |
 | FIX-043 | UN Communication field name variants in dispatcher/mapping | BUG | DONE |
 | UX-006 | Rate/review and feedback links in Settings | FEATURE | DONE |
-| ERR-001 | Error boundaries — no white screens | FEATURE | IN PROGRESS |
-| ERR-002 | Error reporting UI + diagnostics collection | FEATURE | IN PROGRESS |
-| ERR-003 | Server error endpoint + admin section + email | FEATURE | IN PROGRESS |
-| ERR-004 | Privacy policy update for error reporting | FEATURE | IN PROGRESS |
-| TEST-001 | Word API validation tests with mocks | FEATURE | IN PROGRESS |
+| ERR-001 | Error boundaries — no white screens | FEATURE | DONE |
+| ERR-002 | Error reporting UI + diagnostics collection | FEATURE | DONE |
+| ERR-003 | Server error endpoint + admin section + email | FEATURE | DONE |
+| ERR-004 | Privacy policy update for error reporting | FEATURE | DONE |
+| TEST-001 | Word API validation tests with mocks (195 tests) | FEATURE | DONE |
+| FIX-044 | Foreign jurisdiction parse timing + field name mapping | BUG | DONE |
+| FIX-045 | LLM prompt: add foreign field mapping with examples | BUG | DONE |
+| FIX-046 | onParsed uses detectedSourceType to avoid React batch stale state | BUG | DONE |
+| AI-009 | Multi-turn AI parser: classify → schema → corpus context → extract | FEATURE | DONE |

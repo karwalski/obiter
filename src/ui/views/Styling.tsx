@@ -96,6 +96,7 @@ const SAMPLE_TEXTS: Record<number, string> = {
 export default function Styling(): JSX.Element {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
   // Load the active standard and heading list ID on mount
@@ -129,6 +130,7 @@ export default function Styling(): JSX.Element {
   const standardLabel = getStandardConfig(standardId).standardLabel;
 
   const handleApplyHeading = useCallback(async (level: 1 | 2 | 3 | 4 | 5) => {
+    setApplying(true);
     try {
       setStatus(null);
       setError(null);
@@ -151,11 +153,14 @@ export default function Styling(): JSX.Element {
       });
       setStatus(`Applied Level ${HEADINGS[level - 1].label.split(" ")[1]} heading.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to apply heading");
+      setError(err instanceof Error ? err.message : "Failed to apply heading.");
+    } finally {
+      setApplying(false);
     }
   }, []);
 
   const handleBlockQuote = useCallback(async () => {
+    setApplying(true);
     try {
       setStatus(null);
       setError(null);
@@ -177,11 +182,14 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Applied block quote formatting.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to apply block quote");
+      setError(err instanceof Error ? err.message : "Failed to apply block quote.");
+    } finally {
+      setApplying(false);
     }
   }, []);
 
   const handleSetupDocument = useCallback(async () => {
+    setApplying(true);
     try {
       setStatus(null);
       setError(null);
@@ -195,7 +203,9 @@ export default function Styling(): JSX.Element {
         ? "Document set up with AGLC4 styles and template."
         : "Document set up with template formatting.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Setup failed");
+      setError(err instanceof Error ? err.message : "Failed to set up document.");
+    } finally {
+      setApplying(false);
     }
   }, [isAglc]);
 
@@ -214,8 +224,9 @@ export default function Styling(): JSX.Element {
           className="bib-insert-btn"
           style={{ width: "100%" }}
           onClick={() => void handleSetupDocument()}
+          disabled={applying}
         >
-          {isAglc ? "Set Up Document (Styles + Template)" : "Set Up Document (Template)"}
+          {applying ? "Applying..." : isAglc ? "Set Up Document (Styles + Template)" : "Set Up Document (Template)"}
         </button>
       </fieldset>
 
@@ -242,6 +253,7 @@ export default function Styling(): JSX.Element {
                     borderRadius: "var(--radius-md)",
                   }}
                   onClick={() => void handleApplyHeading(h.level)}
+                  disabled={applying}
                 >
                   <span style={{
                     flex: "0 0 auto",
@@ -289,8 +301,9 @@ export default function Styling(): JSX.Element {
           className="bib-insert-btn"
           style={{ width: "100%" }}
           onClick={() => void handleBlockQuote()}
+          disabled={applying}
         >
-          Apply Block Quote
+          {applying ? "Applying..." : "Apply Block Quote"}
         </button>
       </fieldset>
 

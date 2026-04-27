@@ -124,6 +124,54 @@ app.post("/api/contact", async function (req, res) {
 });
 
 /**
+ * POST /api/errors
+ *
+ * Receives error reports from the Obiter Word Add-in.
+ * Stores in the database and sends a notification email to the admin.
+ * No authentication required — reports are anonymous and voluntary.
+ */
+app.post("/api/errors", async function (req, res) {
+  try {
+    var { errorMessage, errorStack, action, wordVersion, platform, obiterVersion, timestamp, formData, standardId, writingMode } = req.body;
+
+    // Validation — require at least an error message
+    if (!errorMessage) {
+      return res.status(400).json({ error: "Error message is required." });
+    }
+
+    // Store in database
+    db.insertError.run({
+      errorMessage: String(errorMessage).substring(0, 2000),
+      errorStack: errorStack ? String(errorStack).substring(0, 10000) : null,
+      action: action ? String(action).substring(0, 200) : null,
+      wordVersion: wordVersion ? String(wordVersion).substring(0, 100) : null,
+      platform: platform ? String(platform).substring(0, 100) : null,
+      obiterVersion: obiterVersion ? String(obiterVersion).substring(0, 50) : null,
+      formData: formData ? JSON.stringify(formData).substring(0, 5000) : null,
+      standardId: standardId ? String(standardId).substring(0, 50) : null,
+      writingMode: writingMode ? String(writingMode).substring(0, 50) : null,
+    });
+
+    // Email notification to admin (non-blocking)
+    email.sendErrorNotification({
+      errorMessage: errorMessage,
+      errorStack: errorStack,
+      action: action,
+      wordVersion: wordVersion,
+      platform: platform,
+      obiterVersion: obiterVersion,
+      timestamp: timestamp,
+      formData: formData,
+    });
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error("POST /api/errors error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
  * POST /api/signatures
  *
  * Submit a new open letter signature.
@@ -461,6 +509,39 @@ app.post("/api/admin/signatures/:id/unhide", requireAdmin, function (req, res) {
     res.json({ message: "Signature restored." });
   } catch (err) {
     console.error("POST /api/admin/signatures/:id/unhide error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /api/admin/errors
+ *
+ * Returns all error reports from the add-in.
+ */
+app.get("/api/admin/errors", requireAdmin, function (req, res) {
+  try {
+    var errors = db.getAllErrors.all();
+    res.json({ errors: errors });
+  } catch (err) {
+    console.error("GET /api/admin/errors error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * POST /api/admin/errors/:id/read
+ *
+ * Mark an error report as read.
+ */
+app.post("/api/admin/errors/:id/read", requireAdmin, function (req, res) {
+  try {
+    var result = db.markErrorRead.run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: "Error report not found." });
+    }
+    res.json({ message: "Marked as read." });
+  } catch (err) {
+    console.error("POST /api/admin/errors/:id/read error:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 });

@@ -262,7 +262,7 @@ export default function Bibliography(): JSX.Element {
       <button
         className="bib-insert-btn"
         disabled={isEmpty || inserting}
-        onClick={handleInsert}
+        onClick={() => void handleInsert()}
       >
         {inserting ? "Inserting..." : `Insert ${getBibliographyHeading(writingMode, bibStructure)} at Cursor`}
       </button>

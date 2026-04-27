@@ -14,3 +14,6 @@ export { default as CrossReferenceInsert } from "./CrossReferenceInsert";
 export type { CrossReferenceInsertProps } from "./CrossReferenceInsert";
 export { default as CorpusDownloadBanner } from "./CorpusDownloadBanner";
 export type { CorpusDownloadBannerProps } from "./CorpusDownloadBanner";
+export { default as ErrorBoundary } from "./ErrorBoundary";
+export { default as ErrorReporter } from "./ErrorReporter";
+export type { ErrorReporterProps } from "./ErrorReporter";

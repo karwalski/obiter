@@ -50,6 +50,21 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS error_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    error_message TEXT NOT NULL,
+    error_stack TEXT,
+    action TEXT,
+    word_version TEXT,
+    platform TEXT,
+    obiter_version TEXT,
+    form_data TEXT,
+    standard_id TEXT,
+    writing_mode TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // -------------------------------------------------------
@@ -114,6 +129,23 @@ const markContactRead = db.prepare(`
 `);
 
 // -------------------------------------------------------
+// Prepared statements — error reports
+// -------------------------------------------------------
+
+const insertError = db.prepare(`
+  INSERT INTO error_reports (error_message, error_stack, action, word_version, platform, obiter_version, form_data, standard_id, writing_mode)
+  VALUES (@errorMessage, @errorStack, @action, @wordVersion, @platform, @obiterVersion, @formData, @standardId, @writingMode)
+`);
+
+const getAllErrors = db.prepare(`
+  SELECT * FROM error_reports ORDER BY created_at DESC
+`);
+
+const markErrorRead = db.prepare(`
+  UPDATE error_reports SET is_read = 1 WHERE id = ?
+`);
+
+// -------------------------------------------------------
 // Prepared statements — admin settings
 // -------------------------------------------------------
 
@@ -144,6 +176,9 @@ module.exports = {
   insertContact,
   getAllContacts,
   markContactRead,
+  insertError,
+  getAllErrors,
+  markErrorRead,
   getSetting,
   upsertSetting
 };
