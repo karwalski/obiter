@@ -1096,3 +1096,48 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | FIX-003 | Edit citation list refresh | BUG | DONE |
 | FIX-004 | Separator cleanup on citation delete | BUG | DONE |
 | FIX-005 | Typeahead case select batch update | BUG | DONE |
+| STORE-001 | XML schema v2 — DOMParser + attribute-based structure | REFACTOR | DONE |
+| FIX-006 | extractText matched inside data block (root cause) | BUG | DONE |
+| FIX-007 | Strip data wrapper tags before field extraction | BUG | DONE |
+| FIX-008 | Pass Element to deserializeCitation (avoid XMLSerializer) | BUG | DONE |
+| FIX-009 | Generic formatter reads plain string author fields | BUG | DONE |
+| FIX-010 | getAuthorSurname reads plain string + institutionalAuthor | BUG | DONE |
+| FIX-011 | Aggressive resetSharedStore removed from Library/Edit | BUG | DONE |
+| FIX-012 | Multiple Custom XML Parts — pick richest, clean duplicates | BUG | DONE |
+| FIX-013 | Corpus CDN CORS fix (Cloudflare Transform Rule) | BUG | DONE |
+| FIX-014 | Corpus persistence to IndexedDB (survives refresh) | BUG | DONE |
+| FIX-015 | Corpus enable/disable toggle without deleting data | FEATURE | DONE |
+| FIX-016 | FieldHelp "View in guide" wrong route (/abbreviations → /guide) | BUG | DONE |
+| FIX-017 | Redundant short title suppression (same as citation text) | BUG | DONE |
+| FIX-018 | Generic formatter reads reportNumber, date, body fields | BUG | DONE |
+| FIX-019 | Edit citation switcher and close option | FEATURE | DONE |
+| FIX-020 | Per-occurrence pinpoints in CC titles | FEATURE | DONE |
+| FIX-021 | Separator cleanup on citation delete (triggers refresh) | BUG | DONE |
+| FIX-022 | Typeahead case select applies all fields in single batch | BUG | DONE |
+| FIX-023 | Edit citation list refreshes on insert/delete | BUG | DONE |
+| FIX-024 | Repair orphaned CCs from Find Citations | FEATURE | DONE |
+| FIX-025 | Click-to-edit short references and ibid | FEATURE | DONE |
+| FIX-026 | Simplify refresh/reload buttons across views | FEATURE | DONE |
+| FIX-027 | Check my citation dropdown (16 sources, 3 groups) | FEATURE | DONE |
+| FIX-028 | Manual citations mode toggle | FEATURE | DONE |
+| FIX-029 | About section with attributions, dark mode link a11y | FEATURE | DONE |
+| FIX-030 | Stop forcing Times New Roman — use document default | BUG | DONE |
+| FIX-031 | 60 dedicated dispatchers for all source types | FEATURE | DONE |
+| FIX-032 | Corpus-first citation parsing (5-step cascade) | FEATURE | DONE |
+| FIX-033 | International dispatcher field name alignment | BUG | DONE |
+| FIX-034 | Speech/press/interview/film/newspaper field name fallbacks | BUG | DONE |
+| FIX-035 | Foreign dispatcher handles case names, MNCs, courts | BUG | DONE |
+| FIX-036 | Library two-line cards with detail + duplicate warning | FEATURE | DONE |
+| FIX-037 | Library insert loading state | FEATURE | DONE |
+| FIX-038 | Insert page reset after successful insert | FEATURE | DONE |
+| FIX-039 | Occurrences list shows footnote numbers and format labels | FEATURE | DONE |
+| FIX-040 | Auto ibid fix (preceding footnote uses max index not count) | BUG | DONE |
+| FIX-041 | Auto-refresh debounced to 1.5s for performance | FEATURE | DONE |
+| FIX-042 | Refresh All loading note for large documents | FEATURE | DONE |
+| FIX-043 | UN Communication field name variants in dispatcher/mapping | BUG | DONE |
+| UX-006 | Rate/review and feedback links in Settings | FEATURE | DONE |
+| ERR-001 | Error boundaries — no white screens | FEATURE | IN PROGRESS |
+| ERR-002 | Error reporting UI + diagnostics collection | FEATURE | IN PROGRESS |
+| ERR-003 | Server error endpoint + admin section + email | FEATURE | IN PROGRESS |
+| ERR-004 | Privacy policy update for error reporting | FEATURE | IN PROGRESS |
+| TEST-001 | Word API validation tests with mocks | FEATURE | IN PROGRESS |
