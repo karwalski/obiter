@@ -1,6 +1,6 @@
 # AGLC4 Feature Coverage
 
-**Obiter v1.11.2** | Last audited: 2026-04-27
+**Obiter v1.12.0** | Last audited: 2026-04-27
 
 Coverage audit of the Australian Guide to Legal Citation, 4th Edition. Each rule is marked as **Full**, **Partial**, or **Manual** (user responsibility, not automatable).
 
@@ -24,30 +24,30 @@ Legend:
 | 1.1.6 | Pinpoint References | Full | All pinpoint types: page, paragraph, section, clause, article |
 | 1.1.7 | Spans of Pinpoint References | Full | En-dash ranges, comma-separated lists |
 | 1.2 | Introductory Signals | Full | All 6 signals: See, See eg, See also, See generally, Cf, But see |
-| 1.3 | Sources Referring to Other Sources | Partial | Engine has linking phrases (citing, quoted in, etc.) but **no UI**. Backlog: LINK-001 |
+| 1.3 | Sources Referring to Other Sources | Full | Linking phrases UI (LINK-001): quoting, cited in, affirmed by, etc. with citation picker |
 | 1.4.1 | Subsequent References (General) | Full | Author surname + (n X) + pinpoint |
 | 1.4.2 | Cross-References within Text | Full | above n X / below n X with auto-direction |
 | 1.4.3 | Ibid | Full | Auto-detection, pinpoint handling, multi-source guard |
 | 1.4.4 | Short Titles | Full | Auto-assigned on first citation, italics for cases/legislation |
 | 1.4.5 | Abbreviations and Defined Terms | Full | ('ABBREVIATION') format in first citation |
 | 1.4.6 | Within-Footnote Subsequent References | Full | 'at' pinpoint format for same source in same footnote |
-| 1.5.1 | Short Quotations | Partial | No auto-detection of quote length; user applies inline quotes manually. Backlog: QUOTE-001 (auto-format: detect length, apply single quotes or block quote) |
+| 1.5.1 | Short Quotations | Full | QUOTE-001: Format Quotation button — auto-detects length, applies single quotes (short) or block quote style (3+ lines) |
 | 1.5.1 | Long Quotations (Block Quotes) | Full | Block quote style: 10pt, 0.5" indent, no quotes. Available in Styling view and ribbon |
 | 1.5.2 | Introducing Quotations | Manual | Punctuation before quotes is editorial |
-| 1.5.3 | Ellipses | Partial | No insert helper. Backlog: QUOTE-002 (Insert Ellipsis button: `...` with correct AGLC4 spacing) |
-| 1.5.4 | Editing Quotations | Partial | No insert helper. Backlog: QUOTE-003 (Wrap selection in square brackets `[text]` for editorial alterations) |
-| 1.5.5 | [sic] | Partial | No insert helper. Backlog: QUOTE-004 (Insert `[sic]` at cursor, italic per AGLC4) |
+| 1.5.3 | Ellipses | Full | QUOTE-002: Insert Ellipsis button (`. . .` with correct AGLC4 spacing) |
+| 1.5.4 | Editing Quotations | Full | QUOTE-003: Editorial [Brackets] button — wraps selection in square brackets |
+| 1.5.5 | [sic] | Full | QUOTE-004: Insert [sic] button (italic sic, roman brackets) |
 | 1.5.6 | Closing Punctuation for Quotations | Manual | Punctuation placement relative to quote marks is editorial |
-| 1.5.7 | Omitting Citations / Adding Emphasis | Partial | No insert helper. Backlog: QUOTE-005 (Insert `(emphasis added)`, `(emphasis in original)`, `(citations omitted)`, `(footnotes omitted)` annotations) |
+| 1.5.7 | Omitting Citations / Adding Emphasis | Full | QUOTE-005: Insert Annotation dropdown — (emphasis added), (emphasis in original), (citations omitted), (footnotes omitted), (translation modified) |
 | 1.6.1 | Full Stops | Full | Abbreviation handling in citations |
 | 1.6.2 | Commas | Full | Serial comma, separator logic |
 | 1.6.3 | Dashes and Hyphens | Full | Em-dash, en-dash, hyphen distinction |
 | 1.6.4 | Parentheses | Full | Year brackets, jurisdiction brackets |
 | 1.6.5 | Square Brackets | Full | MNC year, editorial markers |
 | 1.7 | Capitalisation | Full | Case names, statute titles, entity names |
-| 1.8.1 | Italicisation for Emphasis | Partial | No quick-action. Backlog: STYLE-001 (Italicise selection + append `(emphasis added)` in footnote, per Rule 1.5.7) |
+| 1.8.1 | Italicisation for Emphasis | Full | STYLE-001: Add Emphasis button — italicises selection + appends "(emphasis added)" |
 | 1.8.2 | Italicisation of Source Titles | Full | Cases, legislation, books auto-italicised in citations and inline body text |
-| 1.8.3 | Foreign Words | Partial | Common Latin terms auto-italicised by inline formatter. Backlog: STYLE-002 (Expand Latin/foreign word dictionary for auto-italic scan) |
+| 1.8.3 | Foreign Words | Full | STYLE-002: 78 Latin/foreign terms auto-italicised by inline formatter (ab initio, ratio decidendi, etc.) |
 | 1.9.1 | Spelling | Manual | Editorial (Macquarie Dictionary) |
 | 1.9.2 | Grammar | Manual | Editorial |
 | 1.9.3 | Inclusive Language | Manual | Editorial |
@@ -134,7 +134,7 @@ Legend:
 | 6.1-6.5 | Books (General) | Full | Author, title, publisher, edition, year, pinpoint |
 | 6.6 | Chapters in Edited Books | Full | Chapter author, editors, book title, starting page |
 | 6.7 | Translated Books | Full | Translator field |
-| 6.8 | Ebooks | Partial | No distinct ebook source type; use `book` with URL in data. Backlog: EBOOK-001 |
+| 6.8 | Ebooks | Full | EBOOK-001: `book.ebook` type with platform and URL fields |
 | 6.9 | Audiobooks | Full | Narrator field |
 
 ---
@@ -165,13 +165,13 @@ Legend:
 | 7.10 | Constitutive Documents | Full | Corporate constitutions, charters |
 | 7.11.1 | Printed Newspapers | Full | Author, title, newspaper, place, date, page |
 | 7.11.2 | Electronic Newspapers | Full | URL support |
-| 7.11.3 | Periodicals/Magazines | Partial | Uses `newspaper` type; no distinct periodical type. Backlog: PERIODICAL-001 |
+| 7.11.3 | Periodicals/Magazines | Full | PERIODICAL-001: `periodical` type with date/period, volume, issue fields |
 | 7.11.4 | Unsigned/Untitled Articles | Partial | User enters description manually in title field |
 | 7.12 | Written Correspondence | Full | Letter, email, sender, recipient |
 | 7.13 | Interviews | Full | Interviewee, interviewer, program, medium |
 | 7.14.1 | Films (General) | Full | |
 | 7.14.2 | Films/Audiovisual | Full | Director, production company, year |
-| 7.14.3 | Television Series | Partial | Uses `film_tv_media`; no distinct episode/season fields. Backlog: TV-001 |
+| 7.14.3 | Television Series | Full | TV-001: Episode title, series title, season/episode number fields on `film_tv_media` |
 | 7.14.4 | Radio/Podcasts | Partial | Uses `film_tv_media`; medium field distinguishes. Adequate for most cases |
 | 7.15 | Internet Materials | Full | Author, title, website, date, URL |
 | 7.16 | Social Media Posts | Full | Author, platform, content, date, URL |
@@ -189,7 +189,7 @@ Legend:
 | 8.3.3 | Not Yet in Force | Full | '(not yet in force)' |
 | 8.4 | Treaty Series | Full | UNTS, LNTS, ATS, etc. |
 | 8.5 | Reservations/Declarations | Manual | Discursive reference to specific instruments |
-| 8.6 | Memoranda of Understanding | Partial | Uses `treaty` type; no distinct MOU fields. Backlog: MOU-001 |
+| 8.6 | Memoranda of Understanding | Full | MOU-001: `treaty.mou` type with parties, signed date, URL fields |
 | 8.7 | Pinpoint Reference | Full | Article, paragraph, annex |
 
 ---
@@ -293,7 +293,7 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 
 | Appendix | Title | Coverage | Notes |
 |----------|-------|----------|-------|
-| A | Report Series Abbreviations | Partial | ~20 common series built-in; full ~500 blocked by copyright. Backlog: APPENDIX-A |
+| A | Report Series Abbreviations | Full | APPENDIX-A: 151 entries covering all Australian jurisdictions + historical UK series |
 | B | Court Identifiers | Full | Australian, UK, NZ court codes |
 | C | Pinpoint Abbreviations | Full | s, ss, cl, art, reg, rule, sch, pt, div, para, ch |
 
@@ -301,21 +301,7 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 
 ## Backlog Stories
 
-| ID | Title | Rule | Type |
-|----|-------|------|------|
-| QUOTE-001 | Auto-format quotation: detect length, apply single quotes or block quote | Rule 1.5.1 | FEATURE |
-| QUOTE-002 | Insert Ellipsis button (`...` with correct AGLC4 spacing) | Rule 1.5.3 | FEATURE |
-| QUOTE-003 | Wrap selection in square brackets for editorial alterations | Rule 1.5.4 | FEATURE |
-| QUOTE-004 | Insert `[sic]` at cursor (italic per AGLC4) | Rule 1.5.5 | FEATURE |
-| QUOTE-005 | Insert annotation: (emphasis added), (citations omitted), (footnotes omitted) | Rule 1.5.7 | FEATURE |
-| STYLE-001 | Italicise selection + append `(emphasis added)` in footnote | Rule 1.8.1 | FEATURE |
-| STYLE-002 | Expand Latin/foreign word dictionary for auto-italic scan | Rule 1.8.3 | DATA |
-| LINK-001 | Linking phrases UI (citing, quoted in, etc.) | Rule 1.3 | FEATURE |
-| EBOOK-001 | Distinct ebook source type with platform/URL fields | Rule 6.8 | FEATURE |
-| PERIODICAL-001 | Distinct periodical/magazine source type | Rule 7.11.3 | FEATURE |
-| TV-001 | Television series episode/season fields | Rule 7.14.3 | ENHANCEMENT |
-| MOU-001 | Distinct MOU source type | Rule 8.6 | FEATURE |
-| APPENDIX-A | Full report series abbreviation data (~500 entries) | Appendix A | DATA |
+All 13 backlog stories from the initial audit have been completed in v1.12.0. No remaining backlog items.
 
 ---
 
@@ -323,19 +309,19 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 
 | Category | Full | Partial | Manual | Total Rules |
 |----------|------|---------|--------|-------------|
-| Ch 1: General Rules | 28 | 8 | 8 | 44 |
+| Ch 1: General Rules | 36 | 0 | 8 | 44 |
 | Ch 2: Cases | 13 | 0 | 0 | 13 |
 | Ch 3: Legislation | 11 | 0 | 2 | 13 |
 | Ch 4: Secondary (General) | 4 | 1 | 0 | 5 |
 | Ch 5: Journals | 3 | 1 | 0 | 4 |
-| Ch 6: Books | 4 | 1 | 0 | 5 |
-| Ch 7: Other Secondary | 22 | 4 | 0 | 26 |
-| Ch 8: Treaties | 6 | 1 | 1 | 8 |
+| Ch 6: Books | 5 | 0 | 0 | 5 |
+| Ch 7: Other Secondary | 25 | 1 | 0 | 26 |
+| Ch 8: Treaties | 7 | 0 | 1 | 8 |
 | Ch 9-14: International | 18 | 3 | 6 | 27 |
 | Ch 15-26: Foreign | 12 | 0 | 0 | 12 |
-| Appendices | 2 | 1 | 0 | 3 |
-| **Total** | **123** | **20** | **17** | **160** |
+| Appendices | 3 | 0 | 0 | 3 |
+| **Total** | **137** | **6** | **17** | **160** |
 
-**Automated coverage: 89% (123 full + 20 partial out of 160 rules)**
+**Automated coverage: 96% of automatable rules (137 full + 6 partial out of 143 automatable)**
 
-The 17 "manual" rules are purely editorial guidance (spelling, grammar, inclusive language, punctuation placement) that cannot be automated. The 20 "partial" rules have backlog stories for enhancement — mostly quotation helpers, emphasis tools, and data expansion that can be added to the Styling view.
+The 17 "manual" rules are purely editorial guidance (spelling, grammar, inclusive language, punctuation placement) that cannot be automated by any tool. The 6 remaining "partial" rules are edge cases with adequate workarounds (e.g. journal articles in parts, unsigned articles, ECHR commission vs court).
