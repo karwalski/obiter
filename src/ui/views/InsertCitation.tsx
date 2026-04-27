@@ -1705,11 +1705,31 @@ export default function InsertCitation(): JSX.Element {
             onParsed={(parsedData) => {
               // Map common AI field names to form-specific names
               const mapped = { ...parsedData };
-              if (mapped.title && !mapped.caseTitle && selectedSourceType?.startsWith("icj.") || selectedSourceType?.startsWith("arbitral.") || selectedSourceType?.startsWith("icc_tribunal.") || selectedSourceType === "echr.decision" || selectedSourceType?.startsWith("eu.court") || selectedSourceType?.startsWith("supranational.decision")) {
-                mapped.caseTitle = mapped.title;
+              const st = selectedSourceType;
+              // International case/decision types: title/caseName/parties → caseTitle
+              const isInternationalCase = st?.startsWith("icj.") || st?.startsWith("arbitral.") ||
+                st?.startsWith("icc_tribunal.") || st === "echr.decision" ||
+                st?.startsWith("eu.court") || st?.startsWith("supranational.");
+              if (isInternationalCase) {
+                if (!mapped.caseTitle) {
+                  mapped.caseTitle = mapped.caseName ?? mapped.title ?? mapped.parties ?? undefined;
+                }
+                if (mapped.tribunal && !mapped.court) mapped.court = mapped.tribunal;
+                if (mapped.courtTribunal && !mapped.court) mapped.court = mapped.courtTribunal;
               }
               if (mapped.caseName && !mapped.caseTitle) {
                 mapped.caseTitle = mapped.caseName;
+              }
+              // UN communications: documentNumber/documentSymbol → docNumber
+              if (st === "un.communication") {
+                if (mapped.documentNumber && !mapped.docNumber) mapped.docNumber = mapped.documentNumber;
+                if (mapped.documentSymbol && !mapped.docNumber) mapped.docNumber = mapped.documentSymbol;
+                if (mapped.commNumber && !mapped.communicationNumber) mapped.communicationNumber = mapped.commNumber;
+              }
+              // UN documents: documentNumber/documentSymbol → docNumber
+              if (st === "un.document") {
+                if (mapped.documentNumber && !mapped.docNumber) mapped.docNumber = mapped.documentNumber;
+                if (mapped.documentSymbol && !mapped.docNumber) mapped.docNumber = mapped.documentSymbol;
               }
               setFormData((prev) => ({ ...prev, ...mapped }));
             }}

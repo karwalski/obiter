@@ -1290,11 +1290,25 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
  */
 function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // Form field: "author" for the applicant/parties (e.g. "Ángela Poma Poma v Peru")
+  // AI may put the case name in "title" instead of "author"
+  const author = (d.author as string) ?? (d.title as string) ?? "";
+  // Form field: "communicationNumber" (e.g. "1457/2006")
+  const commNo = (d.communicationNumber as string) ?? (d.commNumber as string) ?? "";
+  // Form field: "committee" (e.g. "Human Rights Committee")
+  const committee = (d.committee as string) ?? "";
+  // Form field: "docNumber" (e.g. "CCPR/C/95/D/1457/2006")
+  const docNumber = (d.docNumber as string) ?? (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "";
+  // Build the title: "Author, Committee, Communication No X"
+  const titleParts: string[] = [];
+  if (committee) titleParts.push(committee);
+  if (commNo) titleParts.push(`Communication No ${commNo}`);
+  const title = titleParts.join(", ");
   return formatUnCommunication({
-    author: (d.author as string) ?? "",
-    title: (d.title as string) ?? "",
-    committee: (d.committee as string) ?? "",
-    documentNumber: (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "",
+    author,
+    title,
+    committee,
+    documentNumber: docNumber,
     date: d.date as string | undefined,
     pinpoint: d.pinpoint as string | undefined,
   });
@@ -1511,12 +1525,23 @@ function dispatchEchrDecision(citation: Citation): FormattedRun[] {
  */
 function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  return formatSupranationalDecision({
-    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
-    court: (d.court as string) ?? (d.tribunal as string) ?? "",
-    caseNumber: (d.caseNumber as string) ?? "",
-    date: (d.date as string) ?? "",
+  const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? (d.parties as string) ?? "";
+  const court = (d.court as string) ?? (d.tribunal as string) ?? (d.courtTribunal as string) ?? "";
+  const caseNumber = (d.caseNumber as string) ?? (d.communicationNumber as string) ?? (d.number as string) ?? "";
+  const seriesNo = (d.seriesNumber as string) ?? (d.series as string) ?? "";
+  const date = (d.date as string) ?? "";
+  const pinpoint = d.pinpoint as string | undefined;
+
+  const runs = formatSupranationalDecision({
+    caseName,
+    court,
+    caseNumber: caseNumber || seriesNo,
+    date,
   });
+  if (pinpoint) {
+    runs.push({ text: ` ${pinpoint}` });
+  }
+  return runs;
 }
 
 /**
