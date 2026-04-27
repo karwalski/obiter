@@ -5,11 +5,13 @@
 
 import type { ValidationIssue } from "./types/validation";
 import { Citation } from "../types/citation";
-import type { ParallelCitation } from "../types/citation";
+import type { ParallelCitation, SourceType } from "../types/citation";
 import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punctuation";
 import { checkDateFormatting } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
+import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
 import { COURT_IDENTIFIERS } from "./data/court-identifiers";
+import { LATIN_TERMS_ITALICISED } from "./data/latin-terms";
 import type { WritingMode, ParallelCitationMode as ConfigParallelCitationMode, IbidSuppressionMode } from "./standards/types";
 import {
   type CourtJurisdiction as PresetCourtJurisdiction,
@@ -94,6 +96,14 @@ export interface DocumentFormattingMetrics {
  * @remarks Orchestrates Rules 1.1.3, 1.1.4, 1.4.3, 1.6.1, 1.6.3, 1.10.1,
  * 1.11.1, and completeness checks for major source types.
  */
+/**
+ * Heading entry passed from the UI layer for heading format validation.
+ */
+export interface HeadingEntry {
+  level: number;
+  text: string;
+}
+
 export function validateDocument(
   footnoteTexts: string[],
   citations: Citation[],
@@ -102,6 +112,7 @@ export function validateDocument(
   courtJurisdiction?: string,
   parallelCitationMode?: ConfigParallelCitationMode,
   ibidSuppressionMode?: IbidSuppressionMode,
+  headings?: HeadingEntry[],
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
   const isCourtMode = writingMode === "court";
@@ -109,11 +120,30 @@ export function validateDocument(
   // Falls back to court mode check for backward compatibility when toggle not provided.
   const ibidSuppressed = ibidSuppressionMode ? ibidSuppressionMode === "on" : isCourtMode;
 
-  // Footnote-level checks
+  // Footnote-level checks — stamp footnoteIndex on each issue for navigation
   for (let i = 0; i < footnoteTexts.length; i++) {
-    allIssues.push(...checkFootnoteFormat(footnoteTexts[i], i));
-    allIssues.push(...checkTypography(footnoteTexts[i]));
-    allIssues.push(...checkDatesAndNumbers(footnoteTexts[i]));
+    const fnIssues: ValidationIssue[] = [
+      ...checkFootnoteFormat(footnoteTexts[i], i),
+      ...checkTypography(footnoteTexts[i]),
+      ...checkDatesAndNumbers(footnoteTexts[i]),
+      ...checkEllipsisFormat(footnoteTexts[i], i),
+      ...checkLongQuotation(footnoteTexts[i], i),
+      ...checkLatinTermsItalicised(footnoteTexts[i], i),
+    ];
+    const fnText = footnoteTexts[i];
+    for (const issue of fnIssues) {
+      issue.footnoteIndex = i + 1; // 1-based for Word API
+      // Extract a short searchable snippet from the footnote text at the issue offset
+      if (!issue.searchText && issue.offset >= 0 && issue.length > 0) {
+        const start = Math.max(0, issue.offset);
+        const end = Math.min(fnText.length, start + Math.max(issue.length, 20));
+        const snippet = fnText.slice(start, end).trim();
+        if (snippet.length > 0) {
+          issue.searchText = snippet;
+        }
+      }
+    }
+    allIssues.push(...fnIssues);
   }
 
   // Cross-footnote checks
@@ -131,6 +161,13 @@ export function validateDocument(
   // Citation completeness checks
   for (const citation of citations) {
     allIssues.push(...checkCitationCompleteness(citation));
+    allIssues.push(...checkCitationCapitalisation(citation));
+    allIssues.push(...checkTitlePresence(citation));
+  }
+
+  // Heading format checks (VALID-011, Rule 1.12.2)
+  if (headings && headings.length > 0) {
+    allIssues.push(...checkHeadingFormat(headings));
   }
 
   // Parallel citation checks (Rule 2.2.7 / court practice directions)
@@ -442,6 +479,213 @@ export function checkDatesAndNumbers(text: string): ValidationIssue[] {
   return issues;
 }
 
+// ─── VALID-008: Ellipsis format check ─────────────────────────────────────────
+
+/**
+ * Checks footnote text for incorrect ellipsis formatting.
+ *
+ * AGLC4 requires ellipses as `. . .` (three spaced dots). This function flags:
+ * 1. `...` (three or more consecutive dots) — should be `. . .`
+ * 2. `\u2026` (Unicode ellipsis character U+2026) — should be `. . .`
+ *
+ * Already-correct `. . .` patterns are not flagged.
+ *
+ * @remarks AGLC4 Rule 1.5.3 — "An ellipsis should be indicated by three
+ * full stops separated by spaces (. . .)."
+ */
+export function checkEllipsisFormat(
+  footnoteText: string,
+  footnoteIndex: number,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const trimmed = footnoteText.trim();
+
+  if (trimmed.length === 0) {
+    return issues;
+  }
+
+  // Flag three or more consecutive dots (not spaced)
+  const consecutiveDotsRegex = /\.{3,}/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = consecutiveDotsRegex.exec(trimmed)) !== null) {
+    issues.push({
+      ruleNumber: "1.5.3",
+      message: `Footnote ${footnoteIndex + 1}: ellipsis should be formatted as '. . .' (spaced dots), not '${match[0]}'`,
+      severity: "warning",
+      offset: match.index,
+      length: match[0].length,
+      suggestion: ". . .",
+    });
+  }
+
+  // Flag Unicode ellipsis character (U+2026)
+  const unicodeEllipsisRegex = /\u2026/g;
+
+  while ((match = unicodeEllipsisRegex.exec(trimmed)) !== null) {
+    issues.push({
+      ruleNumber: "1.5.3",
+      message: `Footnote ${footnoteIndex + 1}: Unicode ellipsis '\u2026' should be replaced with '. . .' (spaced dots)`,
+      severity: "warning",
+      offset: match.index,
+      length: 1,
+      suggestion: ". . .",
+    });
+  }
+
+  return issues;
+}
+
+// ─── VALID-009: Long quotation not block-quoted ───────────────────────────────
+
+/**
+ * Checks footnote text for long quotations that may need block quote
+ * formatting.
+ *
+ * AGLC4 Rule 1.5.1 requires quotations of three or more lines to be
+ * formatted as block quotes (indented, smaller font, no quotation marks).
+ * This is a heuristic check: if text enclosed in matching quotation marks
+ * exceeds 250 characters, it flags a suggestion.
+ *
+ * Scans for text enclosed in single quotes (`\u2018...\u2019`) that exceeds
+ * 250 characters.
+ *
+ * @remarks AGLC4 Rule 1.5.1 — "Quotations of three or more lines should
+ * be set apart from the text by indentation."
+ */
+export function checkLongQuotation(
+  footnoteText: string,
+  footnoteIndex: number,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const trimmed = footnoteText.trim();
+
+  if (trimmed.length === 0) {
+    return issues;
+  }
+
+  // Match text enclosed in curly single quotes (AGLC4 convention)
+  const curlyQuoteRegex = /\u2018([^'\u2018\u2019]*)\u2019/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = curlyQuoteRegex.exec(trimmed)) !== null) {
+    const quotedContent = match[1];
+    if (quotedContent.length > 250) {
+      issues.push({
+        ruleNumber: "1.5.1",
+        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
+        severity: "info",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+  }
+
+  // Also match straight single quotes as a fallback
+  const straightQuoteRegex = /'([^']*?)'/g;
+
+  while ((match = straightQuoteRegex.exec(trimmed)) !== null) {
+    const quotedContent = match[1];
+    if (quotedContent.length > 250) {
+      issues.push({
+        ruleNumber: "1.5.1",
+        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
+        severity: "info",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+  }
+
+  return issues;
+}
+
+// ─── VALID-010: Latin terms not italicised ────────────────────────────────────
+
+/**
+ * Sorted Latin terms array for matching, longest-first to prefer multi-word
+ * phrases over shorter substrings (e.g. "obiter dictum" before "dictum").
+ */
+const LATIN_TERMS_SORTED: readonly string[] = [...LATIN_TERMS_ITALICISED].sort(
+  (a, b) => b.length - a.length,
+);
+
+/**
+ * Checks footnote text for Latin/foreign terms from the AGLC4 Rule 1.8.3
+ * italicisation list that appear in the text.
+ *
+ * Since the validator receives plain text (no formatting information), this
+ * is a **presence check only** — it flags that the term appears and reminds
+ * the user to verify it is italicised.
+ *
+ * - Case-insensitive, whole-word matching
+ * - Skips terms inside square brackets (may be editorial)
+ * - Limited to first 5 matches per footnote to avoid flooding
+ *
+ * @remarks AGLC4 Rule 1.8.3 — "Latin and foreign words that are not
+ * commonly used in English should be italicised."
+ */
+export function checkLatinTermsItalicised(
+  footnoteText: string,
+  footnoteIndex: number,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const trimmed = footnoteText.trim();
+
+  if (trimmed.length === 0) {
+    return issues;
+  }
+
+  // Build a set of character ranges that fall inside square brackets
+  const bracketRanges: Array<{ start: number; end: number }> = [];
+  const bracketRegex = /\[[^\]]*\]/g;
+  let bracketMatch: RegExpExecArray | null;
+
+  while ((bracketMatch = bracketRegex.exec(trimmed)) !== null) {
+    bracketRanges.push({
+      start: bracketMatch.index,
+      end: bracketMatch.index + bracketMatch[0].length,
+    });
+  }
+
+  const isInsideBrackets = (offset: number): boolean =>
+    bracketRanges.some((r) => offset >= r.start && offset < r.end);
+
+  const maxMatchesPerFootnote = 5;
+
+  for (const term of LATIN_TERMS_SORTED) {
+    if (issues.length >= maxMatchesPerFootnote) {
+      break;
+    }
+
+    // Whole-word, case-insensitive match
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const termRegex = new RegExp(`\\b${escaped}\\b`, "gi");
+    let match: RegExpExecArray | null;
+
+    while ((match = termRegex.exec(trimmed)) !== null) {
+      if (issues.length >= maxMatchesPerFootnote) {
+        break;
+      }
+
+      // Skip matches inside square brackets
+      if (isInsideBrackets(match.index)) {
+        continue;
+      }
+
+      issues.push({
+        ruleNumber: "1.8.3",
+        message: `'${match[0]}' should be italicised per Rule 1.8.3 \u2014 verify formatting`,
+        severity: "info",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+  }
+
+  return issues;
+}
+
 // ─── VALID-005: Citation completeness checks ─────────────────────────────────
 
 /**
@@ -534,6 +778,282 @@ function getRuleForSourceType(sourceType: string): string {
   if (sourceType.startsWith("book")) return "6";
   if (sourceType === "treaty") return "8";
   return "1";
+}
+
+// ─── VALID-011: Heading format validation ──────────────────────────────────────
+
+/**
+ * Roman numeral pattern that validates the prefix is actually a valid Roman numeral,
+ * not just any combination of IVXLCDM characters.
+ */
+const ROMAN_NUMERAL_REGEX = /^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{1,3})$/;
+
+/**
+ * Validates heading format per AGLC4 Rule 1.12.2.
+ *
+ * Checks:
+ * - Level I headings should be uppercase or small caps
+ * - Level II headings should be capitalised
+ * - Numbering consistency: Level I uses Roman numerals, Level II uses A/B/C,
+ *   Level III uses 1/2/3, Level IV uses a/b/c
+ * - Flags if heading text starts with wrong numbering prefix for its level
+ *
+ * @param headings - Array of heading entries with level and text.
+ * @returns Array of validation issues found.
+ *
+ * @remarks AGLC4 Rule 1.12.2 — Headings and sub-headings.
+ */
+export function checkHeadingFormat(headings: HeadingEntry[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const heading of headings) {
+    const text = heading.text.trim();
+
+    if (text.length === 0) continue;
+
+    // Level I: should be uppercase or small caps
+    if (heading.level === 1) {
+      // Extract the text portion after any numbering prefix
+      const textAfterPrefix = text.replace(/^[IVXLCDM]+\s+/i, "").replace(/^\d+\s+/, "");
+      const letterContent = textAfterPrefix.replace(/[^a-zA-Z]/g, "");
+
+      if (letterContent.length > 0 && letterContent !== letterContent.toUpperCase()) {
+        issues.push({
+          ruleNumber: "1.12.2",
+          message: `Heading '${text}': Level I headings should be uppercase or small caps`,
+          severity: "warning",
+          offset: 0,
+          length: text.length,
+        });
+      }
+    }
+
+    // Level II: should be capitalised (title-case — first letter of major words capitalised)
+    if (heading.level === 2) {
+      const textAfterPrefix = text.replace(/^[A-Z]\s+/, "");
+      const words = textAfterPrefix.split(/\s+/).filter((w) => w.length > 0);
+
+      if (words.length > 0) {
+        const firstWord = words[0];
+        // Only flag if the first letter is clearly lowercase
+        if (/^[a-z]/.test(firstWord)) {
+          issues.push({
+            ruleNumber: "1.12.2",
+            message: `Heading '${text}': Level II headings should be capitalised`,
+            severity: "warning",
+            offset: 0,
+            length: text.length,
+          });
+        }
+      }
+    }
+
+    // Numbering prefix validation for levels 1–4
+    if (heading.level >= 1 && heading.level <= 4) {
+      // Extract the first "word" from the heading text
+      const firstToken = text.split(/\s+/)[0];
+
+      // Check if the heading starts with a numbering prefix at all
+      const hasAnyPrefix =
+        /^[IVXLCDM]+$/i.test(firstToken) ||
+        /^[A-Z]$/.test(firstToken) ||
+        /^\d+$/.test(firstToken) ||
+        /^[a-z]$/.test(firstToken);
+
+      if (hasAnyPrefix) {
+        // Validate the prefix matches the expected pattern for this level
+        let isCorrectPrefix = false;
+        let expectedLabel = "";
+
+        if (heading.level === 1) {
+          // Level I expects Roman numerals
+          isCorrectPrefix = ROMAN_NUMERAL_REGEX.test(firstToken.toUpperCase());
+          expectedLabel = "Roman numerals";
+        } else if (heading.level === 2) {
+          // Level II expects single uppercase letter
+          isCorrectPrefix = /^[A-Z]$/.test(firstToken);
+          expectedLabel = "Uppercase letters (A, B, C)";
+        } else if (heading.level === 3) {
+          // Level III expects Arabic numeral
+          isCorrectPrefix = /^\d+$/.test(firstToken);
+          expectedLabel = "Arabic numerals (1, 2, 3)";
+        } else if (heading.level === 4) {
+          // Level IV expects single lowercase letter
+          isCorrectPrefix = /^[a-z]$/.test(firstToken);
+          expectedLabel = "Lowercase letters (a, b, c)";
+        }
+
+        if (!isCorrectPrefix) {
+          issues.push({
+            ruleNumber: "1.12.2",
+            message: `Heading '${text}': Level ${heading.level} headings should use ${expectedLabel} numbering`,
+            severity: "warning",
+            offset: 0,
+            length: firstToken.length,
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+// ─── VALID-012: Citation capitalisation check ─────────────────────────────────
+
+/**
+ * Checks citation data for obvious capitalisation issues per Rule 1.7.
+ *
+ * Flags:
+ * - All-lowercase party names in case citations (e.g. "smith" -> "Smith")
+ * - ALL-CAPS party names in case citations (e.g. "SMITH" -> "Smith")
+ * - All-lowercase legislation titles
+ * - ALL-CAPS legislation titles
+ *
+ * Does NOT flag lowercase "v" in case names (correct per AGLC4).
+ *
+ * @param citation - The citation record to check.
+ * @returns Array of validation issues found.
+ *
+ * @remarks AGLC4 Rule 1.7 — Capitalisation.
+ */
+export function checkCitationCapitalisation(citation: Citation): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const label = citation.shortTitle || citation.id;
+
+  if (citation.sourceType.startsWith("case.")) {
+    // Check party1 and party2
+    const parties = ["party1", "party2"] as const;
+    for (const field of parties) {
+      const value = citation.data[field] as string | undefined;
+      if (!value || typeof value !== "string" || value.trim().length === 0) continue;
+
+      const trimmed = value.trim();
+      // Skip single-character values and "v" (correct lowercase)
+      if (trimmed === "v") continue;
+
+      const letterContent = trimmed.replace(/[^a-zA-Z]/g, "");
+      if (letterContent.length === 0) continue;
+
+      if (letterContent === letterContent.toLowerCase()) {
+        issues.push({
+          ruleNumber: "1.7",
+          message: `Case '${label}': party name '${trimmed}' appears to be all-lowercase — should have initial capitals`,
+          severity: "warning",
+          offset: 0,
+          length: 0,
+        });
+      } else if (letterContent === letterContent.toUpperCase() && letterContent.length > 1) {
+        issues.push({
+          ruleNumber: "1.7",
+          message: `Case '${label}': party name '${trimmed}' appears to be ALL-CAPS — should have initial capitals (e.g. title-case)`,
+          severity: "warning",
+          offset: 0,
+          length: 0,
+        });
+      }
+    }
+  }
+
+  if (citation.sourceType.startsWith("legislation.")) {
+    const title = citation.data.title as string | undefined;
+    if (title && typeof title === "string" && title.trim().length > 0) {
+      const trimmed = title.trim();
+      const letterContent = trimmed.replace(/[^a-zA-Z]/g, "");
+      if (letterContent.length > 0) {
+        if (letterContent === letterContent.toLowerCase()) {
+          issues.push({
+            ruleNumber: "1.7",
+            message: `Legislation '${label}': title '${trimmed}' appears to be all-lowercase — major words should have initial capitals`,
+            severity: "warning",
+            offset: 0,
+            length: 0,
+          });
+        } else if (letterContent === letterContent.toUpperCase() && letterContent.length > 1) {
+          issues.push({
+            ruleNumber: "1.7",
+            message: `Legislation '${label}': title '${trimmed}' appears to be ALL-CAPS — major words should have initial capitals`,
+            severity: "warning",
+            offset: 0,
+            length: 0,
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+// ─── VALID-013: Title presence check ──────────────────────────────────────────
+
+/**
+ * Checks that citations with source types requiring a title actually have one.
+ *
+ * Uses `shouldItaliciseTitle()` from the italicisation module to determine
+ * which source types require titles. For cases, checks `party1`; for all
+ * other italicised types, checks `title`.
+ *
+ * Severity:
+ * - Warning for cases (party1 missing)
+ * - Error for legislation/books and other title-requiring types (title missing)
+ *
+ * @param citation - The citation record to check.
+ * @returns Array of validation issues found.
+ *
+ * @remarks AGLC4 Rule 1.8.2 — Source types that need titles have them.
+ */
+export function checkTitlePresence(citation: Citation): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const label = citation.shortTitle || citation.id;
+
+  if (!shouldItaliciseTitle(citation.sourceType as SourceType)) {
+    return issues;
+  }
+
+  if (citation.sourceType.startsWith("case.")) {
+    // Cases use party1 as the primary identifier
+    const party1 = citation.data.party1 as string | undefined;
+    const isEmpty = !party1 || (typeof party1 === "string" && party1.trim() === "");
+
+    if (isEmpty) {
+      issues.push({
+        ruleNumber: "1.8.2",
+        message: `Case '${label}': party name (party1) is missing — cases require at least one party name`,
+        severity: "warning",
+        offset: 0,
+        length: 0,
+      });
+    }
+  } else {
+    // All other italicised source types use title
+    const title = citation.data.title as string | undefined;
+    const isEmpty = !title || (typeof title === "string" && title.trim() === "");
+
+    if (isEmpty) {
+      issues.push({
+        ruleNumber: "1.8.2",
+        message: `${getSourceTypeLabel(citation.sourceType)} '${label}': title is missing — this source type requires a title`,
+        severity: "error",
+        offset: 0,
+        length: 0,
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Returns a human-readable label for a source type prefix.
+ */
+function getSourceTypeLabel(sourceType: string): string {
+  if (sourceType.startsWith("legislation.")) return "Legislation";
+  if (sourceType.startsWith("book")) return "Book";
+  if (sourceType.startsWith("report")) return "Report";
+  if (sourceType.startsWith("treaty")) return "Treaty";
+  if (sourceType.startsWith("film_tv_media")) return "Film/TV/Media";
+  return "Source";
 }
 
 // ─── VALID-EXT-001: OSCOLA-specific validation ────────────────────────────────

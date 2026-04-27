@@ -13,4 +13,10 @@ export interface ValidationIssue {
   offset: number;
   length: number;
   suggestion?: string;
+  /** 1-based footnote index for navigation (if the issue is in a footnote). */
+  footnoteIndex?: number;
+  /** A short text snippet to search for when navigating to the issue. */
+  searchText?: string;
+  /** Citation ID for issues tied to a specific citation. */
+  citationId?: string;
 }

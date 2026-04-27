@@ -937,6 +937,29 @@ body {
   color: var(--colour-text-secondary);
 }
 
+.validation-goto-btn {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  background: var(--colour-surface);
+  color: var(--colour-accent);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.validation-goto-btn:hover {
+  background: var(--colour-border);
+}
+
+.validation-goto-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .validation-card-message {
   margin: 0;
   font-size: var(--text-sm);

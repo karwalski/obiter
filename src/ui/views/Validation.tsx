@@ -110,6 +110,55 @@ export default function Validation(): JSX.Element {
   const [formatting, setFormatting] = useState(false);
   const [formatResult, setFormatResult] = useState<FormatResult | null>(null);
   const [formatError, setFormatError] = useState<string | null>(null);
+  const [navigating, setNavigating] = useState<number | null>(null);
+
+  /** Navigate to a validation issue's location in the document. */
+  const handleGoTo = useCallback(async (issue: ValidationIssue, idx: number) => {
+    setNavigating(idx);
+    try {
+      await Word.run(async (context) => {
+        // If the issue is in a footnote, navigate to that footnote
+        if (issue.footnoteIndex) {
+          const footnotes = context.document.body.footnotes;
+          footnotes.load("items");
+          await context.sync();
+
+          const fnItems = footnotes.items ?? [];
+          const fn = fnItems[issue.footnoteIndex - 1];
+          if (fn) {
+            // Get the footnote body and select the relevant text
+            const body = fn.body;
+            if (issue.searchText) {
+              const results = body.search(issue.searchText, { matchCase: true });
+              results.load("items");
+              await context.sync();
+              if (results.items && results.items.length > 0) {
+                results.items[0].select();
+                await context.sync();
+                return;
+              }
+            }
+            // Fallback: select the footnote body
+            body.getRange().select();
+            await context.sync();
+          }
+        } else if (issue.searchText) {
+          // Search in body text
+          const results = context.document.body.search(issue.searchText, { matchCase: true });
+          results.load("items");
+          await context.sync();
+          if (results.items && results.items.length > 0) {
+            results.items[0].select();
+            await context.sync();
+          }
+        }
+      });
+    } catch {
+      // Silent — navigation is best-effort
+    } finally {
+      setNavigating(null);
+    }
+  }, []);
 
   const handleValidate = useCallback(async () => {
     setScanning(true);
@@ -369,6 +418,16 @@ export default function Validation(): JSX.Element {
                 <div className="validation-card-header">
                   {severityIcon(issue.severity)}
                   <span className="validation-card-rule">Rule {issue.ruleNumber}</span>
+                  {(issue.footnoteIndex || issue.searchText) && (
+                    <button
+                      className="validation-goto-btn"
+                      onClick={() => void handleGoTo(issue, idx)}
+                      disabled={navigating === idx}
+                      title="Navigate to this issue in the document"
+                    >
+                      {navigating === idx ? "..." : "Go to"}
+                    </button>
+                  )}
                 </div>
                 <p className="validation-card-message">{issue.message}</p>
                 {issue.suggestion && (

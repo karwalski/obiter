@@ -1167,3 +1167,10 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | TV-001 | Television series episode/season fields (Rule 7.14.3) | ENHANCEMENT | DONE |
 | MOU-001 | Distinct MOU source type (Rule 8.6) | FEATURE | DONE |
 | APPENDIX-A | Full report series abbreviation data (151 entries) | DATA | DONE |
+| VALID-008 | Ellipsis format check (... or … → `. . .`) Rule 1.5.3 | FEATURE | DONE |
+| VALID-009 | Long quotation not block-quoted check Rule 1.5.1 | FEATURE | DONE |
+| VALID-010 | Latin terms not italicised check Rule 1.8.3 | FEATURE | DONE |
+| VALID-011 | Heading format validation Rule 1.12.2 | FEATURE | DONE |
+| VALID-012 | Capitalisation check for case/legislation titles Rule 1.7 | FEATURE | DONE |
+| VALID-013 | Source titles not italicised check Rule 1.8.2 | FEATURE | DONE |
+| UX-011 | Validation "Go to" button — navigates to issue location in document | FEATURE | DONE |
