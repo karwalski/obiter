@@ -1010,10 +1010,17 @@ export default function EditCitation(): JSX.Element {
         )}
       </fieldset>
 
-      {/* Citation Preview */}
+      {/* Citation Preview — editable: paste/type a citation to repopulate fields */}
       <fieldset className="settings-section" style={{ marginTop: 8 }}>
         <legend className="settings-section-title">Preview</legend>
-        <CitationPreview runs={previewRuns} sourceType={citation?.sourceType} />
+        <CitationPreview
+          runs={previewRuns}
+          sourceType={citation?.sourceType}
+          onParsed={(parsedData) => {
+            setFormData((prev) => ({ ...prev, ...parsedData }));
+            setSuccessMessage(null);
+          }}
+        />
       </fieldset>
 
       {/* Action Buttons */}
