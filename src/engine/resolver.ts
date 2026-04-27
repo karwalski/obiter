@@ -407,25 +407,25 @@ export function formatShortTitleIntroduction(
   sourceType: SourceType,
 ): FormattedRun[] {
   if (isCase(sourceType)) {
-    // Cases: ('Short Title') — title italic inside quotes, parens not italic
+    // Cases: ('Short Title') — title italic inside curly quotes, parens not italic
     return [
-      { text: "('" },
+      { text: "(\u2018" },
       { text: shortTitle, italic: true },
-      { text: "')" },
+      { text: "\u2019)" },
     ];
   }
 
   if (isLegislation(sourceType)) {
     // Legislation: ('Short Title') — title italic
     return [
-      { text: "('" },
+      { text: "(\u2018" },
       { text: shortTitle, italic: true },
-      { text: "')" },
+      { text: "\u2019)" },
     ];
   }
 
   // Secondary sources: ('Short Title') — not italic
-  return [{ text: `('${shortTitle}')` }];
+  return [{ text: `(\u2018${shortTitle}\u2019)` }];
 }
 
 // ─── GEN-010: Within-Footnote Subsequent References (Rule 1.4.6) ─────────────
@@ -458,7 +458,7 @@ export function formatWithinFootnoteReference(
 export function formatAbbreviationDefinition(
   abbreviation: string,
 ): FormattedRun[] {
-  return [{ text: `('${abbreviation}')` }];
+  return [{ text: `(\u2018${abbreviation}\u2019)` }];
 }
 
 // ─── RESEARCH-002: Cross-Reference Formatting (Rule 1.4.2) ───────────────────

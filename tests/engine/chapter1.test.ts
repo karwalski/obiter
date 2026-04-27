@@ -553,23 +553,23 @@ describe("Rule 1.4.4 — Short titles", () => {
   test("case short title: parenthesised with quotes and italic (AGLC4 fn 53)", () => {
     // ('Penfolds Wines')
     const result = formatShortTitleIntroduction("Penfolds Wines", "case.reported");
-    expect(runsToText(result)).toBe("('Penfolds Wines')");
+    expect(runsToText(result)).toBe("(\u2018Penfolds Wines\u2019)");
     // The short title itself should be italicised
     expect(isRunItalic(result, 1)).toBe(true);
   });
 
   test("secondary source short title: not italic (AGLC4 fn 58)", () => {
-    // ('Meanings of Membership')
+    // (\u2018Meanings of Membership\u2019)
     const result = formatShortTitleIntroduction("Meanings of Membership", "journal.article");
-    expect(runsToText(result)).toBe("('Meanings of Membership')");
+    expect(runsToText(result)).toBe("(\u2018Meanings of Membership\u2019)");
     // Should NOT be italic
     expect(result[0].italic).toBeUndefined();
   });
 
   test("legislation short title: italic (AGLC4 fn 63)", () => {
-    // ('ADJR Act')
+    // (\u2018ADJR Act\u2019)
     const result = formatShortTitleIntroduction("ADJR Act", "legislation.statute");
-    expect(runsToText(result)).toBe("('ADJR Act')");
+    expect(runsToText(result)).toBe("(\u2018ADJR Act\u2019)");
     expect(isRunItalic(result, 1)).toBe(true);
   });
 });
