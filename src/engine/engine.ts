@@ -270,6 +270,32 @@ function toOptionalNumber(raw: unknown): number | undefined {
 }
 
 /**
+ * Safely coerce a data field to a string. Prevents [object Object] in output
+ * when the AI parser returns an array or structured object instead of a string.
+ * For author arrays, extracts the first author's name.
+ */
+function toStr(raw: unknown): string {
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw) && raw.length > 0) {
+    const first = raw[0];
+    if (typeof first === "string") return first;
+    if (typeof first === "object" && first !== null) {
+      const a = first as { givenNames?: string; surname?: string; name?: string };
+      if (a.surname) return a.givenNames ? `${a.givenNames} ${a.surname}` : a.surname;
+      if (a.name) return a.name;
+    }
+    return String(first);
+  }
+  if (typeof raw === "object") {
+    const obj = raw as { name?: string; surname?: string; givenNames?: string };
+    if (obj.name) return obj.name;
+    if (obj.surname) return obj.givenNames ? `${obj.givenNames} ${obj.surname}` : obj.surname;
+  }
+  return String(raw);
+}
+
+/**
  * Dispatches a reported case citation (Rule 2.2).
  *
  * Extracts party names, year, volume, report series, starting page,
@@ -1007,10 +1033,10 @@ function dispatchThesis(citation: Citation): FormattedRun[] {
 function dispatchSpeech(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatSpeech({
-    speaker: (d.speaker as string) ?? (d.author as string) ?? (d.name as string) ?? "",
-    title: (d.title as string) ?? "",
-    event: (d.event as string) ?? (d.occasion as string) ?? (d.venue as string) ?? (d.location as string) ?? "",
-    date: (d.date as string) ?? "",
+    speaker: toStr(d.speaker) || toStr(d.author) || toStr(d.authors) || toStr(d.name),
+    title: toStr(d.title),
+    event: toStr(d.event) || toStr(d.occasion) || toStr(d.venue) || toStr(d.location),
+    date: toStr(d.date),
   });
 }
 
@@ -2682,12 +2708,8 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author(s) — structured array or plain string
-  const authors = d.authors as Author[] | undefined;
-  const authorString = d.author as string | undefined;
-  const institutionalAuthor = d.institutionalAuthor as string | undefined;
-  const speaker = d.speaker as string | undefined;
-  const witness = d.witness as string | undefined;
-  const plainAuthor = authorString ?? institutionalAuthor ?? speaker ?? witness;
+  const authors = Array.isArray(d.authors) ? (d.authors as Author[]) : undefined;
+  const plainAuthor = toStr(d.author) || toStr(d.institutionalAuthor) || toStr(d.speaker) || toStr(d.witness) || "";
 
   if (authors && authors.length > 0) {
     const authorText = authors

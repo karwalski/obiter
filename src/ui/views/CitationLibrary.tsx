@@ -10,7 +10,7 @@ import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
-import { insertCitationFootnote, getAllCitationFootnotes, deleteCitationFootnote } from "../../word/footnoteManager";
+import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences } from "../../word/footnoteManager";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
 import type { RefreshResult } from "../../word/citationRefresher";
@@ -530,17 +530,19 @@ export default function CitationLibrary(): JSX.Element {
     [pinpointInput, triggerRefresh, standardId],
   );
 
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const handleDelete = useCallback(
     async (id: string) => {
+      if (deleteLoading) return; // guard against double-click
+      setDeleteLoading(true);
       try {
         // FN-004: Remove all child CCs from footnotes before removing from store.
-        // Without this, deleting from the library would leave orphaned child CCs
-        // in the document that the refresher cannot clean up.
         const allEntries = await getAllCitationFootnotes();
         const matching = allEntries.filter((e) => e.citationId === id);
-        for (const entry of matching) {
-          await deleteCitationFootnote(id, entry.footnoteIndex);
-        }
+
+        // Batch all footnote deletions into a single Word.run()
+        await deleteAllOccurrences(id, matching.map((e) => e.footnoteIndex));
 
         await store.remove(id);
         setCitations((prev) => prev.filter((c) => c.id !== id));
@@ -550,9 +552,11 @@ export default function CitationLibrary(): JSX.Element {
           err instanceof Error ? err.message : "Failed to delete citation";
         setError(message);
         setDeletingId(null);
+      } finally {
+        setDeleteLoading(false);
       }
     },
-    [],
+    [deleteLoading],
   );
 
   const handleImportFromWord = useCallback(async () => {
@@ -821,24 +825,35 @@ export default function CitationLibrary(): JSX.Element {
                 </button>
                 {deletingId === citation.id ? (
                   <span className="library-confirm">
-                    Delete?{" "}
-                    <button
-                      className="library-btn library-btn--danger"
-                      onClick={() => void handleDelete(citation.id)}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      className="library-btn"
-                      onClick={() => setDeletingId(null)}
-                    >
-                      No
-                    </button>
+                    {deleteLoading ? (
+                      <span className="library-btn library-btn--danger" style={{ opacity: 0.6 }}>
+                        Deleting...
+                      </span>
+                    ) : (
+                      <>
+                        Delete?{" "}
+                        <button
+                          className="library-btn library-btn--danger"
+                          onClick={() => void handleDelete(citation.id)}
+                          disabled={deleteLoading}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          className="library-btn"
+                          onClick={() => setDeletingId(null)}
+                          disabled={deleteLoading}
+                        >
+                          No
+                        </button>
+                      </>
+                    )}
                   </span>
                 ) : (
                   <button
                     className="library-btn library-btn--delete"
                     onClick={() => setDeletingId(citation.id)}
+                    disabled={deleteLoading}
                   >
                     Delete
                   </button>

@@ -690,6 +690,56 @@ export async function deleteCitationFootnote(
 }
 
 /**
+ * Delete ALL occurrences of a citation from the document in a single Word.run().
+ * Much faster than calling deleteCitationFootnote() in a loop, which creates
+ * a separate Word.run() per occurrence.
+ */
+export async function deleteAllOccurrences(
+  citationId: string,
+  footnoteIndices: number[],
+): Promise<void> {
+  if (footnoteIndices.length === 0) return;
+
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const fnItems = footnotes.items ?? [];
+
+    // Process in reverse order so that deleting a footnote doesn't shift
+    // the indices of footnotes we haven't processed yet.
+    const sorted = [...footnoteIndices].sort((a, b) => b - a);
+
+    for (const footnoteIndex of sorted) {
+      const noteItem = fnItems[footnoteIndex - 1];
+      if (!noteItem) continue;
+
+      const parentCC = await findParentCC(noteItem, context);
+      if (!parentCC) {
+        await deleteLegacyCitation(noteItem, citationId, context);
+        continue;
+      }
+
+      const childCC = await findChildCC(parentCC, citationId, context);
+      if (!childCC) continue;
+
+      childCC.delete(false);
+      await context.sync();
+
+      const remainingChildren = parentCC.contentControls;
+      remainingChildren.load("items");
+      await context.sync();
+
+      if ((remainingChildren.items ?? []).length === 0) {
+        noteItem.delete();
+        await context.sync();
+      }
+    }
+  });
+}
+
+/**
  * Legacy deletion fallback for documents without the parent-child CC model.
  * Searches for content controls with the matching tag directly in the
  * footnote body (flat structure) and deletes them.
