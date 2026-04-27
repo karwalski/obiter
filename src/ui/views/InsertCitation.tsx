@@ -1703,8 +1703,15 @@ export default function InsertCitation(): JSX.Element {
             runs={previewRuns}
             sourceType={selectedSourceType as SourceType}
             onParsed={(parsedData) => {
-              // Merge parsed fields into formData
-              setFormData((prev) => ({ ...prev, ...parsedData }));
+              // Map common AI field names to form-specific names
+              const mapped = { ...parsedData };
+              if (mapped.title && !mapped.caseTitle && selectedSourceType?.startsWith("icj.") || selectedSourceType?.startsWith("arbitral.") || selectedSourceType?.startsWith("icc_tribunal.") || selectedSourceType === "echr.decision" || selectedSourceType?.startsWith("eu.court") || selectedSourceType?.startsWith("supranational.decision")) {
+                mapped.caseTitle = mapped.title;
+              }
+              if (mapped.caseName && !mapped.caseTitle) {
+                mapped.caseTitle = mapped.caseName;
+              }
+              setFormData((prev) => ({ ...prev, ...mapped }));
             }}
             onOverride={(text) => {
               // Store override text for direct insertion

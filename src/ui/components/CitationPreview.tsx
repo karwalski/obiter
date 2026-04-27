@@ -7,7 +7,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type { FormattedRun } from "../../types/formattedRun";
 import type { SourceType, SourceData } from "../../types/citation";
 import { loadLlmConfig } from "../../llm/config";
-import { parseCitationText as parseCitationWithLlm } from "../../llm/parseCitation";
+import { parseWithCorpusFirst } from "../../llm/corpusEnhancedParse";
+import { checkCorpusAvailable } from "../../api/corpus/corpusDownload";
 
 export interface CitationPreviewProps {
   runs: FormattedRun[];
@@ -168,6 +169,7 @@ export default function CitationPreview({
   const [overrideMode, setOverrideMode] = useState(false);
   const [aiParsing, setAiParsing] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [parseSource, setParseSource] = useState<"corpus" | "llm" | "parser" | null>(null);
   const [llmAvailable, setLlmAvailable] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -206,33 +208,69 @@ export default function CitationPreview({
     if (!manualText.trim() || !onParsed) return;
 
     const config = loadLlmConfig();
-    if (!config || !config.enabled) return;
+
+    // Allow parsing even without LLM — deterministic/corpus paths don't need it
+    const llmConfig = config && config.enabled ? config : null;
 
     setAiParsing(true);
     setAiMessage(null);
+    setParseSource(null);
 
     try {
-      const result = await parseCitationWithLlm(manualText, config);
+      const result = await parseWithCorpusFirst(
+        manualText,
+        sourceType ?? "case.unreported.mnc",
+        llmConfig,
+      );
       const fieldCount = Object.keys(result.data).length;
 
-      // If the AI detected a different source type, notify the parent
-      if (onSourceTypeDetected && result.sourceType !== sourceType) {
-        onSourceTypeDetected(result.sourceType);
+      // If the parse detected a different source type, notify the parent
+      if (
+        onSourceTypeDetected &&
+        result.detectedSourceType &&
+        result.detectedSourceType !== sourceType
+      ) {
+        onSourceTypeDetected(result.detectedSourceType);
       }
 
-      // Map returned data to form fields
-      onParsed(result.data as Partial<SourceData>, []);
-      setWarnings([]);
-      setAiMessage(`AI parsed ${fieldCount} field${fieldCount !== 1 ? "s" : ""}`);
+      if (result.warnings.length > 0) {
+        setWarnings(result.warnings);
+      } else {
+        setWarnings([]);
+      }
 
-      // Clear success message after a few seconds
-      setTimeout(() => setAiMessage(null), 3000);
+      if (fieldCount > 0) {
+        onParsed(result.data as Partial<SourceData>, result.warnings);
+        setParseSource(result.source);
+
+        const sourceLabel =
+          result.source === "corpus"
+            ? "Matched from corpus"
+            : result.source === "parser"
+              ? "Parsed locally"
+              : "Parsed by AI";
+        setAiMessage(`${sourceLabel} — ${fieldCount} field${fieldCount !== 1 ? "s" : ""}`);
+
+        // Clear success message after a few seconds
+        setTimeout(() => {
+          setAiMessage(null);
+          setParseSource(null);
+        }, 4000);
+      } else {
+        // No fields extracted — fall back to inline regex parsing
+        const { data, warnings: w } = parseCitationText(manualText, sourceType);
+        setWarnings([...result.warnings, ...w]);
+        if (Object.keys(data).length > 0) {
+          onParsed(data, w);
+        }
+      }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "AI parsing failed";
+      const message = err instanceof Error ? err.message : "Parsing failed";
       setAiMessage(null);
-      // Fall back to regex parsing
+      setParseSource(null);
+      // Fall back to inline regex parsing
       const { data, warnings: w } = parseCitationText(manualText, sourceType);
-      setWarnings([`AI parse failed: ${message}. Fell back to regex parsing.`, ...w]);
+      setWarnings([`Parse failed: ${message}. Fell back to regex parsing.`, ...w]);
       if (Object.keys(data).length > 0) {
         onParsed(data, w);
       }
@@ -341,7 +379,7 @@ export default function CitationPreview({
             </div>
           )}
           {aiMessage && (
-            <div className="citation-preview-ai-success">
+            <div className={`citation-preview-ai-success${parseSource ? ` citation-preview-source--${parseSource}` : ""}`}>
               {aiMessage}
             </div>
           )}
@@ -353,14 +391,14 @@ export default function CitationPreview({
             >
               Done editing
             </button>
-            {llmAvailable && (
+            {(llmAvailable || checkCorpusAvailable()) && (
               <button
                 type="button"
                 className="citation-preview-ai-btn"
                 onClick={handleAiParse}
                 disabled={aiParsing || !manualText.trim()}
               >
-                {aiParsing ? "Parsing..." : "Parse with AI"}
+                {aiParsing ? "Parsing..." : "Parse citation"}
               </button>
             )}
           </div>

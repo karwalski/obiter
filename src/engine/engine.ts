@@ -1324,7 +1324,7 @@ function dispatchUnYearbook(citation: Citation): FormattedRun[] {
 function dispatchIcjDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatIcjDecision({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     parties: d.parties as string | undefined,
     phase: d.phase as string | undefined,
     year: toNumber(d.year, 0),
@@ -1364,7 +1364,7 @@ function dispatchArbitralStateState(citation: Citation): FormattedRun[] {
   // If report series is present, use reported format (Rule 11.1.1)
   if (d.reportSeries) {
     return formatStateArbitrationReported({
-      caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+      caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
       parties: d.parties as string | undefined,
       phase: d.phase as string | undefined,
       year: toNumber(d.year, 0),
@@ -1393,7 +1393,7 @@ function dispatchArbitralStateState(citation: Citation): FormattedRun[] {
 function dispatchArbitralIndividualState(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatIcsidCase({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     icsidNumber: (d.icsidNumber as string) ?? (d.caseNumber as string) ?? "",
     awardType: (d.awardType as string) ?? (d.phase as string) ?? "",
     date: (d.date as string) ?? "",
@@ -1407,7 +1407,7 @@ function dispatchArbitralIndividualState(citation: Citation): FormattedRun[] {
 function dispatchIccTribunalCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatIccCase({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     phase: (d.phase as string) ?? "",
     court: (d.court as string) ?? "ICC",
     chamber: (d.chamber as string) ?? "",
@@ -1480,7 +1480,7 @@ function dispatchEuOfficialJournal(citation: Citation): FormattedRun[] {
 function dispatchEuCourt(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatCjeuCase({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     caseNumber: (d.caseNumber as string) ?? "",
     year: toNumber(d.year, 0),
     reportSeries: (d.reportSeries as string) ?? "ECR",
@@ -1496,7 +1496,7 @@ function dispatchEuCourt(citation: Citation): FormattedRun[] {
 function dispatchEchrDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatEchrCase({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     applicationNumber: (d.applicationNumber as string) ?? "",
     chamber: d.chamber as string | undefined,
     reportSeries: d.reportSeries as string | undefined,
@@ -1512,7 +1512,7 @@ function dispatchEchrDecision(citation: Citation): FormattedRun[] {
 function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatSupranationalDecision({
-    caseName: (d.caseName as string) ?? (d.title as string) ?? "",
+    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
     court: (d.court as string) ?? (d.tribunal as string) ?? "",
     caseNumber: (d.caseNumber as string) ?? "",
     date: (d.date as string) ?? "",
