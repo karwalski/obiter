@@ -31,23 +31,23 @@ Legend:
 | 1.4.4 | Short Titles | Full | Auto-assigned on first citation, italics for cases/legislation |
 | 1.4.5 | Abbreviations and Defined Terms | Full | ('ABBREVIATION') format in first citation |
 | 1.4.6 | Within-Footnote Subsequent References | Full | 'at' pinpoint format for same source in same footnote |
-| 1.5.1 | Short Quotations | Manual | Text formatting, not citation |
-| 1.5.1 | Long Quotations (Block Quotes) | Full | Block quote style: 10pt, 0.5" indent, no quotes |
-| 1.5.2 | Introducing Quotations | Manual | Punctuation before quotes |
-| 1.5.3 | Ellipses | Manual | Text editing |
-| 1.5.4 | Editing Quotations | Manual | Square bracket alterations |
-| 1.5.5 | [sic] | Manual | Text editing |
-| 1.5.6 | Closing Punctuation for Quotations | Manual | Text formatting |
-| 1.5.7 | Omitting Citations / Adding Emphasis | Manual | Text editing |
+| 1.5.1 | Short Quotations | Partial | No auto-detection of quote length; user applies inline quotes manually. Backlog: QUOTE-001 (auto-format: detect length, apply single quotes or block quote) |
+| 1.5.1 | Long Quotations (Block Quotes) | Full | Block quote style: 10pt, 0.5" indent, no quotes. Available in Styling view and ribbon |
+| 1.5.2 | Introducing Quotations | Manual | Punctuation before quotes is editorial |
+| 1.5.3 | Ellipses | Partial | No insert helper. Backlog: QUOTE-002 (Insert Ellipsis button: `...` with correct AGLC4 spacing) |
+| 1.5.4 | Editing Quotations | Partial | No insert helper. Backlog: QUOTE-003 (Wrap selection in square brackets `[text]` for editorial alterations) |
+| 1.5.5 | [sic] | Partial | No insert helper. Backlog: QUOTE-004 (Insert `[sic]` at cursor, italic per AGLC4) |
+| 1.5.6 | Closing Punctuation for Quotations | Manual | Punctuation placement relative to quote marks is editorial |
+| 1.5.7 | Omitting Citations / Adding Emphasis | Partial | No insert helper. Backlog: QUOTE-005 (Insert `(emphasis added)`, `(emphasis in original)`, `(citations omitted)`, `(footnotes omitted)` annotations) |
 | 1.6.1 | Full Stops | Full | Abbreviation handling in citations |
 | 1.6.2 | Commas | Full | Serial comma, separator logic |
 | 1.6.3 | Dashes and Hyphens | Full | Em-dash, en-dash, hyphen distinction |
 | 1.6.4 | Parentheses | Full | Year brackets, jurisdiction brackets |
 | 1.6.5 | Square Brackets | Full | MNC year, editorial markers |
 | 1.7 | Capitalisation | Full | Case names, statute titles, entity names |
-| 1.8.1 | Italicisation for Emphasis | Manual | Text formatting |
-| 1.8.2 | Italicisation of Source Titles | Full | Cases, legislation, books auto-italicised |
-| 1.8.3 | Foreign Words | Partial | Common Latin terms handled; user may need manual italic for rare terms |
+| 1.8.1 | Italicisation for Emphasis | Partial | No quick-action. Backlog: STYLE-001 (Italicise selection + append `(emphasis added)` in footnote, per Rule 1.5.7) |
+| 1.8.2 | Italicisation of Source Titles | Full | Cases, legislation, books auto-italicised in citations and inline body text |
+| 1.8.3 | Foreign Words | Partial | Common Latin terms auto-italicised by inline formatter. Backlog: STYLE-002 (Expand Latin/foreign word dictionary for auto-italic scan) |
 | 1.9.1 | Spelling | Manual | Editorial (Macquarie Dictionary) |
 | 1.9.2 | Grammar | Manual | Editorial |
 | 1.9.3 | Inclusive Language | Manual | Editorial |
@@ -303,6 +303,13 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 
 | ID | Title | Rule | Type |
 |----|-------|------|------|
+| QUOTE-001 | Auto-format quotation: detect length, apply single quotes or block quote | Rule 1.5.1 | FEATURE |
+| QUOTE-002 | Insert Ellipsis button (`...` with correct AGLC4 spacing) | Rule 1.5.3 | FEATURE |
+| QUOTE-003 | Wrap selection in square brackets for editorial alterations | Rule 1.5.4 | FEATURE |
+| QUOTE-004 | Insert `[sic]` at cursor (italic per AGLC4) | Rule 1.5.5 | FEATURE |
+| QUOTE-005 | Insert annotation: (emphasis added), (citations omitted), (footnotes omitted) | Rule 1.5.7 | FEATURE |
+| STYLE-001 | Italicise selection + append `(emphasis added)` in footnote | Rule 1.8.1 | FEATURE |
+| STYLE-002 | Expand Latin/foreign word dictionary for auto-italic scan | Rule 1.8.3 | DATA |
 | LINK-001 | Linking phrases UI (citing, quoted in, etc.) | Rule 1.3 | FEATURE |
 | EBOOK-001 | Distinct ebook source type with platform/URL fields | Rule 6.8 | FEATURE |
 | PERIODICAL-001 | Distinct periodical/magazine source type | Rule 7.11.3 | FEATURE |
@@ -316,7 +323,7 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 
 | Category | Full | Partial | Manual | Total Rules |
 |----------|------|---------|--------|-------------|
-| Ch 1: General Rules | 28 | 2 | 14 | 44 |
+| Ch 1: General Rules | 28 | 8 | 8 | 44 |
 | Ch 2: Cases | 13 | 0 | 0 | 13 |
 | Ch 3: Legislation | 11 | 0 | 2 | 13 |
 | Ch 4: Secondary (General) | 4 | 1 | 0 | 5 |
@@ -327,8 +334,8 @@ All foreign jurisdictions use a single `dispatchForeign` formatter with `title`,
 | Ch 9-14: International | 18 | 3 | 6 | 27 |
 | Ch 15-26: Foreign | 12 | 0 | 0 | 12 |
 | Appendices | 2 | 1 | 0 | 3 |
-| **Total** | **123** | **14** | **23** | **160** |
+| **Total** | **123** | **20** | **17** | **160** |
 
-**Automated coverage: 86% (123/160 rules fully automated, 14 partial, 23 manual/editorial)**
+**Automated coverage: 89% (123 full + 20 partial out of 160 rules)**
 
-The 23 "manual" rules are editorial guidance (spelling, grammar, inclusive language, quotation editing) that are inherently not automatable by a citation engine. Excluding those, **Obiter automates 90% of AGLC4's automatable rules** (123 full + 14 partial out of 137).
+The 17 "manual" rules are purely editorial guidance (spelling, grammar, inclusive language, punctuation placement) that cannot be automated. The 20 "partial" rules have backlog stories for enhancement — mostly quotation helpers, emphasis tools, and data expansion that can be added to the Styling view.
