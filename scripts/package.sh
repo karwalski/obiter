@@ -42,6 +42,14 @@ cp README.md "$STAGING_DIR/README.md"
 cp LICENSE "$STAGING_DIR/LICENSE"
 cp INSTALL.md "$STAGING_DIR/INSTALL.md"
 
+# Copy corpus for offline use (pre-built index from Open Australian Legal Corpus)
+if [ -d "$PROJECT_ROOT/corpus" ] && [ -f "$PROJECT_ROOT/corpus/index.json" ]; then
+  echo "==> Including corpus for offline use..."
+  mkdir -p "$STAGING_DIR/corpus"
+  cp "$PROJECT_ROOT/corpus/index.json" "$STAGING_DIR/corpus/index.json"
+  cp "$PROJECT_ROOT/corpus/manifest.json" "$STAGING_DIR/corpus/manifest.json"
+fi
+
 # ── Step 4: Create zip ───────────────────────────────────────────────────────
 echo "==> Creating ${ZIP_NAME}..."
 
