@@ -655,6 +655,26 @@ function dispatchCustom(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches an explanatory note. Free-text content inserted as-is in roman.
+ * Unlike custom citations, explanatory notes have no ibid/short-ref treatment,
+ * are excluded from bibliographies, and use sentence separators (". ") when
+ * mixed with citations in the same footnote.
+ */
+function dispatchExplanatoryNote(citation: Citation): FormattedRun[] {
+  const text = toStr(citation.data.noteText) || toStr(citation.data.customText);
+  if (!text.trim()) return [{ text: "[Explanatory note]" }];
+  return [{ text: text.trim() }];
+}
+
+/**
+ * Returns true if the citation is an explanatory note (not a real citation).
+ * Used by the resolver, refresher, and bibliography to skip these.
+ */
+export function isExplanatoryNote(citation: Citation): boolean {
+  return citation.sourceType === "explanatory_note";
+}
+
+/**
  * Dispatches a bill citation (AUDIT2-009, Rule 3.2).
  *
  * Bills are NOT italicised (unlike statutes). Extracts title, year,
@@ -1758,6 +1778,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   treaty: dispatchTreaty,
   genai_output: dispatchGenaiOutput,
   custom: dispatchCustom,
+  explanatory_note: dispatchExplanatoryNote,
 };
 
 // ─── NZLSG Dispatch (NZLSG-ENH-001) ─────────────────────────────────────────

@@ -64,6 +64,8 @@ export function getSourceTypeBadge(sourceType: SourceType): string {
     ip_material: "IP Material",
     constitutive_document: "Constitutive",
     constitutional_convention: "Convention",
+    custom: "Custom",
+    explanatory_note: "Note",
   };
   return labelMap[sourceType] ?? "Other";
 }

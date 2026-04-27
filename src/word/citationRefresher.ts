@@ -109,6 +109,8 @@ interface RenderedCitation {
   renderedFormat: RenderedFormat;
   /** Per-occurrence pinpoint to preserve across rebuild cycles. */
   pinpoint?: string;
+  /** Whether this is an explanatory note (uses sentence separator). */
+  isNote?: boolean;
 }
 
 /**
@@ -157,7 +159,13 @@ function runsToPlainText(runs: FormattedRun[]): string {
 function getSeparator(
   prevSignal: IntroductorySignal | undefined,
   currSignal: IntroductorySignal | undefined,
+  prevIsNote?: boolean,
+  currIsNote?: boolean,
 ): string {
+  // Explanatory notes are separate sentences, not citation-list items
+  if (prevIsNote || currIsNote) {
+    return ". ";
+  }
   // Rule 1.1.3: Different introductory signals → new sentence
   if (currSignal !== undefined && currSignal !== prevSignal) {
     return ". ";
@@ -508,6 +516,7 @@ function renderFootnoteCitations(
       signal: citation.signal,
       renderedFormat,
       pinpoint: child.pinpoint,
+      isNote: citation.sourceType === "explanatory_note",
     });
 
     // Update tracking state
@@ -540,7 +549,7 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
 
   for (let j = 0; j < rendered.length; j++) {
     if (j > 0) {
-      const separator = getSeparator(rendered[j - 1].signal, rendered[j].signal);
+      const separator = getSeparator(rendered[j - 1].signal, rendered[j].signal, rendered[j - 1].isNote, rendered[j].isNote);
       parts.push(separator);
     }
     parts.push(runsToPlainText(rendered[j].runs));
@@ -604,7 +613,7 @@ async function rebuildParentCC(
 
     // Insert separator after this child (if not the last)
     if (j < rendered.length - 1) {
-      const separator = getSeparator(signal, rendered[j + 1].signal);
+      const separator = getSeparator(signal, rendered[j + 1].signal, rendered[j].isNote, rendered[j + 1].isNote);
       parentCC.insertText(separator, "End");
     }
   }

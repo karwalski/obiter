@@ -184,7 +184,8 @@ export type SourceType =
   | "foreign.other" // Rule 26
 
   // Custom / Manual
-  | "custom"; // User-entered free text citation
+  | "custom" // User-entered free text citation
+  | "explanatory_note"; // Free-text explanatory/commentary footnote (no ibid, no bibliography)
 
 // ─── Source Data (type-specific fields) ───────────────────────────────────────
 //

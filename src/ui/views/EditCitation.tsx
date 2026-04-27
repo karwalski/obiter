@@ -108,6 +108,8 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   "foreign.uk": "United Kingdom Source",
   "foreign.usa": "United States Source",
   "foreign.other": "Other Foreign Source",
+  custom: "Custom / Manual Citation",
+  explanatory_note: "Explanatory Note",
 };
 
 // ─── Field Definitions Per Source Type ────────────────────────────────────────

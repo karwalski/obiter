@@ -80,6 +80,7 @@ const SOURCE_TYPES: SourceType[] = [
   "foreign.singapore", "foreign.south_africa", "foreign.uk",
   "foreign.usa", "foreign.other",
   "custom",
+  "explanatory_note",
 ];
 
 /**
@@ -637,6 +638,12 @@ export function getFieldSchemaForSourceType(
     ];
   }
 
+  if (sourceType === "explanatory_note") {
+    return [
+      { name: "noteText", description: "Explanatory note text" },
+    ];
+  }
+
   return schemas[sourceType] ?? [
     { name: "author", description: "Author name" },
     { name: "title", description: "Title" },
@@ -922,40 +929,36 @@ async function multiTurnLlmParse(
 
   let candidates: ClassifyCandidate[] = [];
   try {
-    const classification = parseJsonResponse<{
-      candidates?: Array<{ sourceType?: string; confidence?: number }>;
-      // Fallback: old single-type response
-      sourceType?: string;
-      confidence?: number;
-    }>(classifyResponse);
+    const rawClassification = parseJsonResponse<unknown>(classifyResponse);
 
-    if (classification.candidates && Array.isArray(classification.candidates)) {
-      // Multi-candidate response
-      candidates = classification.candidates
-        .filter(
-          (c) =>
-            c.sourceType &&
-            SOURCE_TYPES.includes(c.sourceType as SourceType),
-        )
-        .map((c) => ({
-          sourceType: c.sourceType as SourceType,
-          confidence: Math.max(0, Math.min(1, Number(c.confidence) || 0)),
-        }));
-    } else if (
-      classification.sourceType &&
-      SOURCE_TYPES.includes(classification.sourceType as SourceType)
-    ) {
-      // Single-candidate fallback (in case LLM ignores the array format)
-      candidates = [
-        {
-          sourceType: classification.sourceType as SourceType,
-          confidence: Math.max(
-            0,
-            Math.min(1, Number(classification.confidence) || 0),
-          ),
-        },
-      ];
+    // Normalise: LLM might return { candidates: [...] }, { sourceType, confidence },
+    // or a raw array [{sourceType, confidence}, ...] at the top level.
+    let candidateArray: Array<{ sourceType?: string; confidence?: number }> = [];
+
+    if (Array.isArray(rawClassification)) {
+      // Raw array at top level
+      candidateArray = rawClassification.filter(
+        (e): e is Record<string, unknown> => e !== null && typeof e === "object",
+      ) as typeof candidateArray;
+    } else if (rawClassification !== null && typeof rawClassification === "object") {
+      const obj = rawClassification as Record<string, unknown>;
+      if (Array.isArray(obj.candidates)) {
+        candidateArray = obj.candidates as typeof candidateArray;
+      } else if (obj.sourceType) {
+        candidateArray = [obj as { sourceType: string; confidence?: number }];
+      }
     }
+
+    candidates = candidateArray
+      .filter(
+        (c) =>
+          c.sourceType &&
+          SOURCE_TYPES.includes(c.sourceType as SourceType),
+      )
+      .map((c) => ({
+        sourceType: c.sourceType as SourceType,
+        confidence: Math.max(0, Math.min(1, Number(c.confidence) || 0)),
+      }));
   } catch {
     // If classification JSON fails, fall back to the hint type
   }
@@ -978,11 +981,34 @@ async function multiTurnLlmParse(
   );
   const extractResponse = await callLlmMultiTurn(llmConfig, extractMessages);
 
-  const extracted = parseJsonResponse<{
+  const rawExtracted = parseJsonResponse<unknown>(extractResponse);
+
+  // Defensive: LLM may return an array of results instead of a single object.
+  // Normalise to a single extraction object — take the first element if array,
+  // or the highest-confidence entry if each has a confidence field.
+  let extracted: {
     sourceType?: string;
     data?: Record<string, unknown>;
     shortTitle?: string;
-  }>(extractResponse);
+    confidence?: number;
+  };
+
+  if (Array.isArray(rawExtracted)) {
+    // Pick the entry with the highest confidence, or just the first
+    const sorted = rawExtracted
+      .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
+      .sort((a, b) => (Number(b.confidence) || 0) - (Number(a.confidence) || 0));
+    extracted = (sorted[0] ?? {}) as typeof extracted;
+  } else if (rawExtracted !== null && typeof rawExtracted === "object") {
+    extracted = rawExtracted as typeof extracted;
+  } else {
+    extracted = {};
+  }
+
+  // Defensive: data must be a plain object, not an array or primitive
+  if (extracted.data && (Array.isArray(extracted.data) || typeof extracted.data !== "object")) {
+    extracted.data = {};
+  }
 
   // The LLM picks the final type in Turn 2 after seeing the schemas
   const finalType =

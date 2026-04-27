@@ -14,6 +14,7 @@ import { getSharedStore } from "../store/singleton";
 import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
+import { useInsertCitationContext } from "./context/InsertCitationContext";
 import { getDevicePref } from "../store/devicePreferences";
 import {
   initializeSourceLookup,
@@ -38,6 +39,7 @@ export default function Layout(): JSX.Element {
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const { triggerRefresh, refreshCounter } = useCitationContext();
+  const { setSelectedCategory, setSelectedSourceType, resetForm } = useInsertCitationContext();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [refreshing, setRefreshing] = useState(false);
@@ -155,6 +157,19 @@ export default function Layout(): JSX.Element {
             : "Rebuild all footnote text: updates ibid, short references, cross-references, numbering, and heading prefixes"}
         >
           {refreshing ? "Refreshing..." : manualMode ? "Manual Mode" : "Refresh All"}
+        </button>
+        <button
+          className="obiter-action-btn"
+          type="button"
+          onClick={() => {
+            resetForm();
+            setSelectedCategory("Other");
+            setSelectedSourceType("explanatory_note");
+            navigate("/");
+          }}
+          title="Insert a free-text explanatory or commentary footnote"
+        >
+          Add Note
         </button>
         {refreshing && (
           <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0 0", textAlign: "center" }}>

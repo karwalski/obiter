@@ -159,6 +159,7 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
         label: "Other",
         types: [
           { value: "custom", label: "Custom / Manual Citation" },
+          { value: "explanatory_note", label: "Explanatory Note" },
         ],
       },
     ],
@@ -389,6 +390,7 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "supranational.decision",
   "supranational.document",
   "custom",
+  "explanatory_note",
 ];
 
 // ─── Help Me Choose: Category Lookup ─────────────────────────────────────────
@@ -1490,6 +1492,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "supranational.decision" && renderSupranationalDecisionForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "supranational.document" && renderSupranationalDocumentForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "custom" && renderCustomForm(formData, updateField)}
+      {selectedSourceType === "explanatory_note" && renderExplanatoryNoteForm(formData, updateField)}
       {selectedSourceType?.startsWith("foreign.") && renderForeignForm(formData, updateField, selectedSourceType === "foreign.other" ? "Other Foreign" : selectedSourceType.split(".")[1].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), selectedSourceType === "foreign.canada" ? "15" : selectedSourceType === "foreign.china" ? "16" : selectedSourceType === "foreign.france" ? "17" : selectedSourceType === "foreign.germany" ? "18" : selectedSourceType === "foreign.hong_kong" ? "19" : selectedSourceType === "foreign.malaysia" ? "20" : selectedSourceType === "foreign.new_zealand" ? "21" : selectedSourceType === "foreign.singapore" ? "22" : selectedSourceType === "foreign.south_africa" ? "23" : selectedSourceType === "foreign.uk" ? "24" : selectedSourceType === "foreign.usa" ? "25" : "26", isAglcStandard)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
 
@@ -1783,6 +1786,61 @@ export default function InsertCitation(): JSX.Element {
                   if (titleStr.includes(" v ") || mapped.mnc || mapped.caseName || mapped.parties) {
                     mapped.foreignSubType = "case";
                   }
+                }
+              }
+              // Coerce any object/array values to strings for plain-string form fields.
+              // The AI may return authors as [{givenNames, surname}] but forms like
+              // speech, report, newspaper expect a plain string in speaker/author/etc.
+              const plainStringFields = [
+                "speaker", "author", "witness", "interviewee", "interviewer",
+                "body", "issuingBody", "applicant", "commissioner", "narrator",
+                "translator", "director", "recipient", "sender", "accused",
+                "party", "partyName", "entityName", "editors", "parties",
+              ];
+              const personToStr = (p: Record<string, string>): string =>
+                p.givenNames ? `${p.givenNames} ${p.surname ?? ""}`.trim()
+                  : p.surname ?? p.name ?? "";
+              for (const key of plainStringFields) {
+                const val = mapped[key];
+                if (val !== undefined && typeof val !== "string") {
+                  if (Array.isArray(val)) {
+                    // Join all names (editors, parties list, etc.)
+                    mapped[key] = val
+                      .map((item) => typeof item === "string" ? item : personToStr(item as Record<string, string>))
+                      .filter(Boolean)
+                      .join(", ");
+                  } else if (typeof val === "object" && val !== null) {
+                    const obj = val as Record<string, string>;
+                    // Handle {applicant, respondent} for parties
+                    if (obj.applicant || obj.claimant) {
+                      const p1 = obj.applicant ?? obj.claimant ?? "";
+                      mapped[key] = obj.respondent ? `${p1} v ${obj.respondent}` : p1;
+                    } else {
+                      mapped[key] = personToStr(obj);
+                    }
+                  }
+                }
+              }
+              // If AI returned authors array but form expects speaker/author as string
+              if (mapped.authors && Array.isArray(mapped.authors)) {
+                const authorArr = mapped.authors as Array<Record<string, string>>;
+                const authorStr = authorArr
+                  .map((a) => a.givenNames ? `${a.givenNames} ${a.surname ?? ""}`.trim() : a.surname ?? a.name ?? "")
+                  .filter(Boolean)
+                  .join(", ");
+                // Map to the appropriate plain-string field if it's empty
+                if (!mapped.speaker && (st === "speech" || st === "constitutional_convention")) {
+                  mapped.speaker = authorStr;
+                }
+                if (!mapped.author && ["report", "newspaper", "internet_material", "thesis",
+                  "submission.government", "correspondence", "social_media"].includes(st ?? "")) {
+                  mapped.author = authorStr;
+                }
+                if (!mapped.witness && st === "evidence.parliamentary") {
+                  mapped.witness = authorStr;
+                }
+                if (!mapped.interviewee && st === "interview") {
+                  mapped.interviewee = authorStr;
                 }
               }
               setFormData((prev) => ({ ...prev, ...mapped }));
@@ -9256,6 +9314,33 @@ function renderForeignForm(
           placeholder="e.g. [42]"
           onChange={(e) => updateField("pinpoint", e.target.value)}
         />
+      </div>
+    </div>
+  );
+}
+
+function renderExplanatoryNoteForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-note-text">
+          Footnote Text
+        </label>
+        <textarea
+          id="ic-note-text"
+          className="ic-input"
+          rows={5}
+          value={(data.noteText as string) || ""}
+          placeholder="Enter the explanatory or commentary text for this footnote"
+          onChange={(e) => updateField("noteText", e.target.value)}
+          style={{ resize: "vertical" }}
+        />
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          Explanatory notes are not included in bibliographies or lists of authorities. When appended to an existing footnote, they are separated by a full stop (new sentence).
+        </p>
       </div>
     </div>
   );

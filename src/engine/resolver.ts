@@ -577,6 +577,11 @@ export function resolveSubsequentReference(
   citation: Citation,
   context: SubsequentReferenceContext,
 ): FormattedRun[] | null {
+  // Explanatory notes always render in full — no ibid or short ref
+  if (citation.sourceType === "explanatory_note") {
+    return null;
+  }
+
   // 1. First citation — caller renders full
   if (context.isFirstCitation) {
     return null;

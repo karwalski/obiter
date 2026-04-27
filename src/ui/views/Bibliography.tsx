@@ -168,12 +168,16 @@ export default function Bibliography(): JSX.Element {
     };
   }, []);
 
-  // Filter citations based on the "cited only" toggle
+  // Filter citations: exclude explanatory notes (never in bibliography) and
+  // optionally limit to cited-only sources
   const filteredCitations = useMemo(() => {
-    if (!citedOnly) return citations;
-    return citations.filter(
-      (c) => c.firstFootnoteNumber !== undefined && c.firstFootnoteNumber > 0
-    );
+    let filtered = citations.filter((c) => c.sourceType !== "explanatory_note");
+    if (citedOnly) {
+      filtered = filtered.filter(
+        (c) => c.firstFootnoteNumber !== undefined && c.firstFootnoteNumber > 0
+      );
+    }
+    return filtered;
   }, [citations, citedOnly]);
 
   // Generate bibliography or List of Authorities from filtered citations
