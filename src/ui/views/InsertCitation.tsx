@@ -1172,7 +1172,9 @@ export default function InsertCitation(): JSX.Element {
         : "Citation inserted as footnote.";
       setFeedback({ type: "success", message: successMsg });
 
-      // Reset form
+      // Reset form — go back to category selection
+      setSelectedCategory("");
+      setSelectedSourceType("");
       setFormData({});
       setAuthors([{ givenNames: "", surname: "" }]);
       setShortTitle("");
@@ -1712,19 +1714,40 @@ export default function InsertCitation(): JSX.Element {
                 st?.startsWith("eu.court") || st?.startsWith("supranational.");
               if (isInternationalCase) {
                 if (!mapped.caseTitle) {
-                  mapped.caseTitle = mapped.caseName ?? mapped.title ?? mapped.parties ?? undefined;
+                  mapped.caseTitle = mapped.caseName ?? mapped.title ?? mapped.parties
+                    ?? mapped.applicant ?? mapped.claimant ?? undefined;
+                  // Build case name from applicant v respondent if separate
+                  if (!mapped.caseTitle && (mapped.applicant || mapped.claimant) && mapped.respondent) {
+                    mapped.caseTitle = `${mapped.applicant ?? mapped.claimant} v ${mapped.respondent}`;
+                  }
                 }
-                if (mapped.tribunal && !mapped.court) mapped.court = mapped.tribunal;
-                if (mapped.courtTribunal && !mapped.court) mapped.court = mapped.courtTribunal;
+                if (!mapped.court) {
+                  mapped.court = mapped.tribunal ?? mapped.courtTribunal
+                    ?? mapped.body ?? mapped.commission ?? mapped.committee ?? undefined;
+                }
+                if (!mapped.caseNumber && !mapped.communicationNumber) {
+                  mapped.caseNumber = mapped.communicationNo ?? mapped.commNo
+                    ?? mapped.applicationNumber ?? mapped.complaintNumber ?? undefined;
+                }
               }
               if (mapped.caseName && !mapped.caseTitle) {
                 mapped.caseTitle = mapped.caseName;
               }
-              // UN communications: documentNumber/documentSymbol → docNumber
+              // UN communications: map AI field name variants to form fields
               if (st === "un.communication") {
-                if (mapped.documentNumber && !mapped.docNumber) mapped.docNumber = mapped.documentNumber;
-                if (mapped.documentSymbol && !mapped.docNumber) mapped.docNumber = mapped.documentSymbol;
-                if (mapped.commNumber && !mapped.communicationNumber) mapped.communicationNumber = mapped.commNumber;
+                if (!mapped.docNumber) {
+                  mapped.docNumber = mapped.documentNumber ?? mapped.documentSymbol ?? mapped.unDoc ?? undefined;
+                }
+                if (!mapped.communicationNumber) {
+                  mapped.communicationNumber = mapped.commNumber ?? mapped.communicationNo ?? mapped.commNo ?? undefined;
+                }
+                if (!mapped.committee) {
+                  mapped.committee = mapped.body ?? mapped.commission ?? mapped.organ ?? undefined;
+                }
+                // If AI put case name in title/caseName, move to author (form field)
+                if (!mapped.author && (mapped.title || mapped.caseName || mapped.parties)) {
+                  mapped.author = mapped.caseName ?? mapped.parties ?? mapped.title;
+                }
               }
               // UN documents: documentNumber/documentSymbol → docNumber
               if (st === "un.document") {

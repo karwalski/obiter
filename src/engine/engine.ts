@@ -1007,9 +1007,9 @@ function dispatchThesis(citation: Citation): FormattedRun[] {
 function dispatchSpeech(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatSpeech({
-    speaker: (d.speaker as string) ?? "",
+    speaker: (d.speaker as string) ?? (d.author as string) ?? (d.name as string) ?? "",
     title: (d.title as string) ?? "",
-    event: (d.event as string) ?? "",
+    event: (d.event as string) ?? (d.occasion as string) ?? (d.venue as string) ?? (d.location as string) ?? "",
     date: (d.date as string) ?? "",
   });
 }
@@ -1022,7 +1022,7 @@ function dispatchPressRelease(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatPressRelease({
     authors: d.authors as Author[] | undefined,
-    body: d.body as string | undefined,
+    body: (d.body as string) ?? (d.issuingBody as string) ?? (d.author as string) ?? undefined,
     title: (d.title as string) ?? "",
     date: (d.date as string) ?? "",
   });
@@ -1037,10 +1037,10 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
   return formatNewspaper({
     authors: d.authors as Author[] | undefined,
     title: (d.title as string) ?? "",
-    newspaper: (d.newspaper as string) ?? "",
-    place: (d.place as string) ?? "",
+    newspaper: (d.newspaper as string) ?? (d.newspaperName as string) ?? (d.publication as string) ?? "",
+    place: (d.place as string) ?? (d.location as string) ?? (d.city as string) ?? "",
     date: (d.date as string) ?? "",
-    page: d.page as string | undefined,
+    page: (d.page as string) ?? (d.startingPage as string) ?? undefined,
     isElectronic: d.isElectronic as boolean | undefined,
     url: d.url as string | undefined,
   });
@@ -1067,9 +1067,9 @@ function dispatchCorrespondence(citation: Citation): FormattedRun[] {
 function dispatchInterview(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatInterview({
-    interviewee: (d.interviewee as string) ?? "",
-    interviewer: d.interviewer as string | undefined,
-    location: d.location as string | undefined,
+    interviewee: (d.interviewee as string) ?? (d.author as string) ?? (d.name as string) ?? "",
+    interviewer: (d.interviewer as string) ?? (d.host as string) ?? undefined,
+    location: (d.location as string) ?? (d.program as string) ?? (d.publication as string) ?? undefined,
     date: (d.date as string) ?? "",
   });
 }
@@ -1082,7 +1082,7 @@ function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatFilm({
     title: (d.title as string) ?? "",
-    director: (d.director as string) ?? "",
+    director: (d.director as string) ?? (d.author as string) ?? (d.producer as string) ?? "",
     year: String(d.year ?? ""),
   });
 }
@@ -1294,11 +1294,11 @@ function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   // AI may put the case name in "title" instead of "author"
   const author = (d.author as string) ?? (d.title as string) ?? "";
   // Form field: "communicationNumber" (e.g. "1457/2006")
-  const commNo = (d.communicationNumber as string) ?? (d.commNumber as string) ?? "";
+  const commNo = (d.communicationNumber as string) ?? (d.commNumber as string) ?? (d.communicationNo as string) ?? "";
   // Form field: "committee" (e.g. "Human Rights Committee")
-  const committee = (d.committee as string) ?? "";
+  const committee = (d.committee as string) ?? (d.body as string) ?? (d.commission as string) ?? (d.organ as string) ?? "";
   // Form field: "docNumber" (e.g. "CCPR/C/95/D/1457/2006")
-  const docNumber = (d.docNumber as string) ?? (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "";
+  const docNumber = (d.docNumber as string) ?? (d.documentNumber as string) ?? (d.documentSymbol as string) ?? (d.unDoc as string) ?? "";
   // Build the title: "Author, Committee, Communication No X"
   const titleParts: string[] = [];
   if (committee) titleParts.push(committee);
@@ -1525,9 +1525,18 @@ function dispatchEchrDecision(citation: Citation): FormattedRun[] {
  */
 function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? (d.parties as string) ?? "";
-  const court = (d.court as string) ?? (d.tribunal as string) ?? (d.courtTribunal as string) ?? "";
-  const caseNumber = (d.caseNumber as string) ?? (d.communicationNumber as string) ?? (d.number as string) ?? "";
+  // Case name: try every possible field name the AI or form might use
+  let caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? (d.parties as string) ?? "";
+  if (!caseName && d.applicant) {
+    caseName = d.respondent ? `${d.applicant} v ${d.respondent}` : (d.applicant as string);
+  }
+  // Court/body
+  const court = (d.court as string) ?? (d.tribunal as string) ?? (d.courtTribunal as string)
+    ?? (d.body as string) ?? (d.commission as string) ?? (d.committee as string) ?? "";
+  // Case/communication number
+  const caseNumber = (d.caseNumber as string) ?? (d.communicationNumber as string)
+    ?? (d.communicationNo as string) ?? (d.number as string)
+    ?? (d.applicationNumber as string) ?? "";
   const seriesNo = (d.seriesNumber as string) ?? (d.series as string) ?? "";
   const date = (d.date as string) ?? "";
   const pinpoint = d.pinpoint as string | undefined;
@@ -1572,10 +1581,47 @@ function dispatchSupranationalDocument(citation: Citation): FormattedRun[] {
  * when no sub-type is discernible.
  */
 function dispatchForeign(citation: Citation): FormattedRun[] {
-  // Foreign sources use the generic formatter which already handles
-  // Author, Title (italic/quoted as appropriate), Year, etc.
-  // This dedicated dispatcher ensures they don't silently lose fields.
-  return formatGenericCitation(citation);
+  const d = citation.data;
+  const runs: FormattedRun[] = [];
+
+  // Case name / title — try every possible field name
+  const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string)
+    ?? (d.parties as string) ?? "";
+
+  // For case-like foreign citations (has "v" in name), format like a case
+  const isCase = caseName.includes(" v ") || d.foreignSubType === "Case"
+    || (d.foreignSubType as string)?.toLowerCase()?.includes("case");
+
+  if (caseName) {
+    runs.push({ text: caseName, italic: isCase });
+  }
+
+  // Citation details (MNC, report series, etc.)
+  const citationDetails = (d.citationDetails as string) ?? (d.mnc as string) ?? "";
+  if (citationDetails) {
+    if (runs.length > 0) runs.push({ text: " " });
+    runs.push({ text: citationDetails });
+  }
+
+  // Year (only if not already in citation details)
+  const year = toOptionalNumber(d.year);
+  if (year && !citationDetails.includes(String(year))) {
+    runs.push({ text: ` (${year})` });
+  }
+
+  // Court/body
+  const court = (d.court as string) ?? "";
+  if (court && !citationDetails.includes(court)) {
+    runs.push({ text: ` (${court})` });
+  }
+
+  // Pinpoint
+  const pinpoint = normalisePinpoint(d.pinpoint);
+  if (pinpoint) {
+    runs.push({ text: `, ${pinpoint.value}` });
+  }
+
+  return runs.length > 0 ? runs : formatGenericCitation(citation);
 }
 
 /**

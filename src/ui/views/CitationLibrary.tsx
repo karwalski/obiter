@@ -122,6 +122,58 @@ export function getCitationLabel(citation: Citation): string {
   );
 }
 
+/** Get a second line of detail for the citation card. */
+function getCitationDetail(citation: Citation): string {
+  const d = citation.data;
+  const parts: string[] = [];
+
+  // Source type badge
+  parts.push(getSourceTypeBadge(citation.sourceType));
+
+  // Year
+  const year = asString(d.year) || asString(d.date);
+  if (year) parts.push(year.length > 4 ? year : `(${year})`);
+
+  // Jurisdiction
+  const jurisdiction = asString(d.jurisdiction);
+  if (jurisdiction) parts.push(jurisdiction);
+
+  // Author (if not already in the label)
+  const author = asString(d.author) ?? asString(d.institutionalAuthor) ?? asString(d.speaker) ?? asString(d.issuingBody);
+  if (author && author !== citation.shortTitle) parts.push(author);
+
+  // Court
+  const court = asString(d.court) ?? asString(d.courtId);
+  if (court) parts.push(court);
+
+  // Report series / journal
+  const series = asString(d.reportSeries) ?? asString(d.journal);
+  if (series) parts.push(series);
+
+  return parts.filter(Boolean).join(" · ");
+}
+
+/**
+ * Check if a short title is duplicated across citations and suggest disambiguation.
+ * Per AGLC4 Rule 1.4.4, when two sources share the same short title, add the year
+ * or other distinguishing information.
+ */
+function getDisambiguatedShortTitle(citation: Citation, allCitations: Citation[]): string | null {
+  const shortTitle = citation.shortTitle;
+  if (!shortTitle) return null;
+
+  const duplicates = allCitations.filter(
+    (c) => c.id !== citation.id && c.shortTitle === shortTitle
+  );
+  if (duplicates.length === 0) return null;
+
+  // Suggest adding year to disambiguate
+  const year = asString(citation.data.year);
+  if (year) return `${shortTitle} (${year})`;
+
+  return `${shortTitle} [${citation.id.slice(0, 4)}]`;
+}
+
 /** Safely coerce an unknown value to string, returning empty string for non-strings. */
 function asString(val: unknown): string {
   return typeof val === "string" ? val : "";
@@ -308,6 +360,7 @@ export default function CitationLibrary(): JSX.Element {
   const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortKey>("firstCited");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [insertingId, setInsertingId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -403,15 +456,19 @@ export default function CitationLibrary(): JSX.Element {
 
   const handleInsertAs = useCallback(
     async (citation: Citation, mode: "full" | "short" | "ibid" | "auto") => {
+      setInsertingId(citation.id);
       try {
         // Scan existing footnotes to build context
         const existing = await getAllCitationFootnotes();
         const firstFn = existing.find((e) => e.citationId === citation.id);
-        const totalFootnotes = existing.length;
+        // Get the actual last footnote number (max footnoteIndex), not the entry count
+        const lastFootnoteNumber = existing.length > 0
+          ? Math.max(...existing.map((e) => e.footnoteIndex))
+          : 0;
 
-        // Determine preceding footnote's citations
+        // Determine preceding footnote's citations (the last footnote before the new one)
         const precedingCitations = existing.filter(
-          (e) => e.footnoteIndex === totalFootnotes
+          (e) => e.footnoteIndex === lastFootnoteNumber
         );
 
         const isFirst = !firstFn;
@@ -429,7 +486,7 @@ export default function CitationLibrary(): JSX.Element {
           runs = getFormattedPreview(citation, courtConfig);
         } else {
           const ctx: CitationContext = {
-            footnoteNumber: totalFootnotes + 1,
+            footnoteNumber: lastFootnoteNumber + 1,
             isFirstCitation: false,
             isSameAsPreceding: mode === "ibid" ? true : isSameAsPreceding,
             precedingFootnoteCitationCount: precedingCitations.length,
@@ -454,7 +511,7 @@ export default function CitationLibrary(): JSX.Element {
 
         // Update store with firstFootnoteNumber if this is the first citation
         if (isFirst) {
-          citation.firstFootnoteNumber = totalFootnotes + 1;
+          citation.firstFootnoteNumber = lastFootnoteNumber + 1;
           await store.update(citation);
         }
 
@@ -466,6 +523,8 @@ export default function CitationLibrary(): JSX.Element {
           err instanceof Error ? err.message : "Failed to insert citation";
         setError(message);
         setInsertMenuId(null);
+      } finally {
+        setInsertingId(null);
       }
     },
     [pinpointInput, triggerRefresh, standardId],
@@ -732,14 +791,17 @@ export default function CitationLibrary(): JSX.Element {
               <div className="library-card-title">
                 {getCitationLabel(citation)}
               </div>
-              <div className="library-card-date">
-                Added{" "}
-                {new Date(citation.createdAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
+              <div style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0" }}>
+                {getCitationDetail(citation)}
               </div>
+              {(() => {
+                const dup = getDisambiguatedShortTitle(citation, citations);
+                return dup ? (
+                  <div style={{ fontSize: 10, color: "var(--colour-warning, #f59e0b)", margin: "2px 0" }}>
+                    Duplicate short title — consider: {dup}
+                  </div>
+                ) : null;
+              })()}
               <div className="library-card-actions">
                 <button
                   className="library-btn library-btn--edit"
@@ -794,20 +856,28 @@ export default function CitationLibrary(): JSX.Element {
                       aria-label="Pinpoint reference"
                     />
                   </div>
+                  {insertingId === citation.id && (
+                    <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", padding: "4px 0", textAlign: "center" }}>
+                      Inserting...
+                    </p>
+                  )}
                   <button
                     className="library-insert-option"
+                    disabled={insertingId !== null}
                     onClick={() => void handleInsertAs(citation, "auto")}
                   >
-                    Auto (full or short)
+                    {insertingId === citation.id ? "Inserting..." : "Auto (full or short)"}
                   </button>
                   <button
                     className="library-insert-option"
+                    disabled={insertingId !== null}
                     onClick={() => void handleInsertAs(citation, "full")}
                   >
                     Full citation
                   </button>
                   <button
                     className="library-insert-option"
+                    disabled={insertingId !== null}
                     onClick={() => void handleInsertAs(citation, "short")}
                   >
                     {standardConfig.subsequentReferenceFormat === "above n"
@@ -817,6 +887,7 @@ export default function CitationLibrary(): JSX.Element {
                   {standardConfig.ibidEnabled && (
                     <button
                       className="library-insert-option"
+                      disabled={insertingId !== null}
                       onClick={() => void handleInsertAs(citation, "ibid")}
                     >
                       Ibid

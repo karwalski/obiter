@@ -577,7 +577,7 @@ export async function getAllCitationFootnotes(): Promise<
           // Parse rendered format from the CC title (e.g. "Citation:short")
           let renderedFormat: "full" | "short" | "ibid" | undefined;
           if (cc.title) {
-            const match = cc.title.match(/^Citation:(full|short|ibid)$/);
+            const match = cc.title.match(/^Citation:(full|short|ibid)(?::|$)/);
             if (match) {
               renderedFormat = match[1] as "full" | "short" | "ibid";
             }

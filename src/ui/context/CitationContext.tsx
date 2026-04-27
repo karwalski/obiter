@@ -36,6 +36,7 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const refreshingRef = useRef(false);
+  const debounceTimerRef = useRef<number | null>(null);
 
   // UX-005: Delay auto-refresh until Word finishes its initial document
   // render (including footnote numbering). Without this guard, the change
@@ -59,22 +60,27 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     setRefreshCounter((prev) => prev + 1);
 
     // Auto-refresh ibid/subsequent references when enabled.
-    // UX-005: Skip during the startup window to let Word finish rendering
-    // footnotes before we touch content controls inside them.
+    // Debounced: waits 1.5s after the last trigger before running, so rapid
+    // inserts don't cause back-to-back full refreshes (O(n) each).
     // Gate: Manual Citations Mode disables all auto-refresh.
-    if (!autoRefreshEnabled || refreshingRef.current || !startupReadyRef.current || getDevicePref("manualCitationMode") === true) return;
-    refreshingRef.current = true;
+    if (!autoRefreshEnabled || !startupReadyRef.current || getDevicePref("manualCitationMode") === true) return;
 
-    void Word.run(async (context) => {
-      try {
-        const store = await getSharedStore();
-        await refreshAllCitations(context, store);
-      } catch {
-        // Refresh failed — non-critical, will catch up on next trigger
-      } finally {
-        refreshingRef.current = false;
-      }
-    });
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = window.setTimeout(() => {
+      if (refreshingRef.current) return;
+      refreshingRef.current = true;
+
+      void Word.run(async (context) => {
+        try {
+          const store = await getSharedStore();
+          await refreshAllCitations(context, store);
+        } catch {
+          // Refresh failed — non-critical, will catch up on next trigger
+        } finally {
+          refreshingRef.current = false;
+        }
+      });
+    }, 1500);
   }, [autoRefreshEnabled]);
 
   // Register the document selection handler — auto-navigate to /edit on CC click

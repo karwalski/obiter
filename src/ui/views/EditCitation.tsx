@@ -920,22 +920,21 @@ export default function EditCitation(): JSX.Element {
                 {occurrences.map((entry) => {
                   const formatLabel = entry.renderedFormat
                     ? entry.renderedFormat.charAt(0).toUpperCase() + entry.renderedFormat.slice(1)
-                    : null;
+                    : "Full";
                   return (
-                    <li key={entry.footnoteIndex} className="edit-occurrences-item">
-                      <span className="edit-occurrences-label">
-                        Footnote {entry.footnoteIndex}
-                        {formatLabel && (
-                          <span className="edit-occurrences-format"> ({formatLabel})</span>
-                        )}
+                    <li key={entry.footnoteIndex} className="edit-occurrences-item" style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      <span className="edit-occurrences-label" style={{ flex: "1 1 auto", minWidth: 80 }}>
+                        <strong>n {entry.footnoteIndex}</strong>
+                        <span className="edit-occurrences-format" style={{ marginLeft: 4 }}>({formatLabel})</span>
                       </span>
                       <button
                         type="button"
                         className="edit-btn edit-btn-danger edit-btn-small"
                         onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
                         disabled={removingFootnote === entry.footnoteIndex || loading}
+                        style={{ fontSize: 10 }}
                       >
-                        {removingFootnote === entry.footnoteIndex ? "Removing..." : "Remove"}
+                        {removingFootnote === entry.footnoteIndex ? "..." : "Remove"}
                       </button>
                     </li>
                   );

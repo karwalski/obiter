@@ -156,6 +156,11 @@ export default function Layout(): JSX.Element {
         >
           {refreshing ? "Refreshing..." : manualMode ? "Manual Mode" : "Refresh All"}
         </button>
+        {refreshing && (
+          <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0 0", textAlign: "center" }}>
+            Rebuilding all footnotes. This may take a moment for large documents.
+          </p>
+        )}
       </div>
       <main id="obiter-main" className="obiter-content" role="main">
         <Outlet />
