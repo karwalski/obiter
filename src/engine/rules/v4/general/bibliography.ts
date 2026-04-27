@@ -154,6 +154,21 @@ function formatBibliographyAuthors(
  */
 function getSortKey(citation: Citation): string {
   const data = citation.data;
+
+  // Cases: sort by first party name
+  if (citation.sourceType.startsWith("case.")) {
+    const party1 = (data["party1"] as string | undefined) ?? "";
+    if (party1) return party1.toLowerCase();
+  }
+
+  // ICJ/supranational: sort by case title
+  if (citation.sourceType.startsWith("icj.") || citation.sourceType.startsWith("arbitral.") ||
+      citation.sourceType.startsWith("icc_tribunal.") || citation.sourceType.startsWith("supranational.") ||
+      citation.sourceType === "echr.decision" || citation.sourceType === "eu.court") {
+    const caseTitle = (data["caseTitle"] as string | undefined) ?? (data["title"] as string | undefined) ?? "";
+    if (caseTitle) return caseTitle.toLowerCase();
+  }
+
   const authors = data["authors"] as
     | Array<{ surname: string }>
     | undefined;
@@ -161,6 +176,10 @@ function getSortKey(citation: Citation): string {
   if (authors && authors.length > 0) {
     return authors[0].surname.toLowerCase();
   }
+
+  // Plain author string fallback (reports, speeches, etc.)
+  const author = data["author"] as string | undefined;
+  if (author) return author.toLowerCase();
 
   const title = (data["title"] as string | undefined) ?? "";
   return title.toLowerCase();
@@ -193,9 +212,35 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
     runs.push(...authorRuns);
   }
 
+  // Case name — cases use party1/party2 not title
+  const st = citation.sourceType;
+  if (st.startsWith("case.")) {
+    const party1 = data["party1"] as string | undefined;
+    const party2 = data["party2"] as string | undefined;
+    const caseName = party1 && party2 ? `${party1} v ${party2}`
+      : party1 ?? (data["caseTitle"] as string | undefined)
+        ?? (data["title"] as string | undefined) ?? "";
+    if (caseName) {
+      runs.push({ text: caseName, italic: true });
+    }
+  }
+
+  // ICJ/supranational/arbitral/ECHR — use caseTitle or title
+  if (st.startsWith("icj.") || st.startsWith("arbitral.") || st.startsWith("icc_tribunal.") ||
+      st.startsWith("supranational.") || st === "echr.decision" || st === "eu.court") {
+    const caseTitle = (data["caseTitle"] as string | undefined)
+      ?? (data["parties"] as string | undefined)
+      ?? (data["title"] as string | undefined)
+      ?? (data["accused"] as string | undefined) ?? "";
+    if (caseTitle && runs.length === 0) {
+      runs.push({ text: caseTitle, italic: true });
+    }
+  }
+
   // Title — formatting depends on source type.
   const title = data["title"] as string | undefined;
-  if (title) {
+  const hasTitle = title && !st.startsWith("case."); // cases already handled above
+  if (hasTitle) {
     if (runs.length > 0) {
       runs.push({ text: ", " });
     }
@@ -230,7 +275,6 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
   // ── Per-source-type publication details (AUDIT2-017, Rule 1.13) ─────────
 
-  const st = citation.sourceType;
   const year = data["year"] as number | string | undefined;
 
   if (st === "book" || st === "book.chapter" || st === "book.translated" || st === "book.audiobook") {
@@ -470,7 +514,11 @@ function getOscolaBibliographySection(
  */
 function citationToCaseEntry(citation: Citation): CaseEntry {
   const d = citation.data;
-  const caseName = (d["title"] as string | undefined) ?? "";
+  const party1 = d["party1"] as string | undefined;
+  const party2 = d["party2"] as string | undefined;
+  const caseName = party1 && party2 ? `${party1} v ${party2}`
+    : party1 ?? (d["caseTitle"] as string | undefined)
+      ?? (d["title"] as string | undefined) ?? "";
 
   // Build citation text from the formatted entry, stripping the case name prefix.
   const fullEntry = formatBibliographyEntry(citation);
