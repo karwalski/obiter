@@ -1,4 +1,4 @@
-# Obiter v1.9.2
+# Obiter v1.11.2
 
 **AGLC4, applied automatically.**
 
@@ -24,7 +24,7 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ### Citation Engine
 
-- **Full AGLC4 coverage** -- all 26 chapters, 84 source types across domestic, secondary, international, and foreign materials
+- **Full AGLC4 coverage** -- all 26 chapters, 87 source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
 - **Automatic ibid and subsequent references** -- Obiter detects repeated sources and applies ibid, short titles, and cross-reference note numbers following Rules 1.4.1--1.4.6
 - **Cross-references** -- `(n X)` fields that auto-renumber when footnotes are reordered
 - **Short titles** -- assigned on first citation and used throughout subsequent references

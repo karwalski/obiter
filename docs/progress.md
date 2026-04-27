@@ -1145,3 +1145,18 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | FIX-045 | LLM prompt: add foreign field mapping with examples | BUG | DONE |
 | FIX-046 | onParsed uses detectedSourceType to avoid React batch stale state | BUG | DONE |
 | AI-009 | Multi-turn AI parser: classify → schema → corpus context → extract | FEATURE | DONE |
+| FIX-047 | Defensive LLM response parsing (array/object normalisation) | BUG | DONE |
+| FIX-048 | Faster batched delete + loading state + double-click guard | BUG | DONE |
+| FIX-049 | toStr() prevents [object Object] in all dispatchers | BUG | DONE |
+| FIX-050 | onParsed coerces object/array fields to strings for forms | BUG | DONE |
+| NOTE-001 | Explanatory note source type (no ibid, no bibliography) | FEATURE | DONE |
+| NOTE-002 | Quick-action "Add Note" button in Layout actions bar | FEATURE | DONE |
+| NOTE-003 | Sentence separator (". ") for notes mixed with citations | FEATURE | DONE |
+| FIX-051 | Bibliography shows case names from party1/party2 | BUG | DONE |
+| FIX-052 | Edit Citation preview supports direct text editing | BUG | DONE |
+| LINK-001 | Linking phrases UI (citing, quoted in — Rule 1.3) | FEATURE | TODO |
+| EBOOK-001 | Distinct ebook source type with platform/URL fields (Rule 6.8) | FEATURE | TODO |
+| PERIODICAL-001 | Distinct periodical/magazine source type (Rule 7.11.3) | FEATURE | TODO |
+| TV-001 | Television series episode/season fields (Rule 7.14.3) | ENHANCEMENT | TODO |
+| MOU-001 | Distinct MOU source type (Rule 8.6) | FEATURE | TODO |
+| APPENDIX-A | Full report series abbreviation data (~500 entries) | DATA | TODO |
