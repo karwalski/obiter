@@ -10,10 +10,10 @@
  * are correctly prepended/appended to citation runs by the engine.
  */
 
-import { formatCitation, getFormattedPreview, applySignalAndCommentary } from "../../src/engine/engine";
+import { formatCitation, getFormattedPreview, applySignalAndCommentary, applyLinkingPhrase } from "../../src/engine/engine";
 import type { Citation } from "../../src/types/citation";
 import type { FormattedRun } from "../../src/types/formattedRun";
-import { INTRODUCTORY_SIGNALS } from "../../src/types/citation";
+import { INTRODUCTORY_SIGNALS, LINKING_PHRASES, LINKING_PHRASE_LABELS } from "../../src/types/citation";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -227,5 +227,141 @@ describe("getFormattedPreview with signals (Rule 1.2)", () => {
     const text = toPlainText(runs);
     expect(text).toMatch(/^For background See generally /);
     expect(text).toMatch(/which is instructive\.$/);
+  });
+});
+
+// ─── LINKING_PHRASES Constant (Rule 1.3) ──────────────────────────────────────
+
+describe("LINKING_PHRASES constant (Rule 1.3)", () => {
+  it("contains all nine linking phrases defined for AGLC4 Rule 1.3", () => {
+    expect(LINKING_PHRASES).toEqual([
+      "quoting",
+      "quoted_in",
+      "citing",
+      "cited_in",
+      "discussing",
+      "discussed_in",
+      "affirmed_by",
+      "reversed_by",
+      "varied_by",
+    ]);
+  });
+
+  it("has exactly nine entries", () => {
+    expect(LINKING_PHRASES).toHaveLength(9);
+  });
+
+  it("has a display label for every linking phrase", () => {
+    for (const lp of LINKING_PHRASES) {
+      expect(LINKING_PHRASE_LABELS[lp]).toBeDefined();
+      expect(typeof LINKING_PHRASE_LABELS[lp]).toBe("string");
+    }
+  });
+});
+
+// ─── applyLinkingPhrase (unit, Rule 1.3) ──────────────────────────────────────
+
+describe("applyLinkingPhrase (Rule 1.3)", () => {
+  const primaryRuns: FormattedRun[] = [
+    { text: "Kable", italic: true },
+    { text: " v " },
+    { text: "Director of Public Prosecutions", italic: true },
+    { text: " (1996) 189 CLR 51, 132" },
+  ];
+
+  const secondaryRuns: FormattedRun[] = [
+    { text: "Leeth", italic: true },
+    { text: " v " },
+    { text: "Commonwealth", italic: true },
+    { text: " (1992) 174 CLR 455, 486" },
+  ];
+
+  it("returns primary runs unchanged when no linking phrase is set", () => {
+    const result = applyLinkingPhrase([...primaryRuns], undefined, secondaryRuns);
+    expect(result).toEqual(primaryRuns);
+  });
+
+  it("returns primary runs unchanged when secondary runs are empty", () => {
+    const result = applyLinkingPhrase([...primaryRuns], "quoting", []);
+    expect(result).toEqual(primaryRuns);
+  });
+
+  it('appends ", quoting " and secondary citation (AGLC4 fn 46)', () => {
+    const result = applyLinkingPhrase([...primaryRuns], "quoting", secondaryRuns);
+    const text = toPlainText(result);
+    expect(text).toBe(
+      "Kable v Director of Public Prosecutions (1996) 189 CLR 51, 132, quoting Leeth v Commonwealth (1992) 174 CLR 455, 486"
+    );
+    // The linking phrase run should not be italic
+    const linkingRun = result[primaryRuns.length];
+    expect(linkingRun.text).toBe(", quoting ");
+    expect(linkingRun.italic).toBe(false);
+  });
+
+  it('appends ", cited in " linking phrase', () => {
+    const result = applyLinkingPhrase([...primaryRuns], "cited_in", secondaryRuns);
+    const text = toPlainText(result);
+    expect(text).toContain(", cited in ");
+  });
+
+  it('appends ", affirmed by " linking phrase', () => {
+    const result = applyLinkingPhrase([...primaryRuns], "affirmed_by", secondaryRuns);
+    const text = toPlainText(result);
+    expect(text).toContain(", affirmed by ");
+  });
+
+  it('appends ", reversed by " linking phrase', () => {
+    const result = applyLinkingPhrase([...primaryRuns], "reversed_by", secondaryRuns);
+    const text = toPlainText(result);
+    expect(text).toContain(", reversed by ");
+  });
+});
+
+// ─── getFormattedPreview with linking phrases (Rule 1.3) ─────────────────────
+
+describe("getFormattedPreview with linking phrases (Rule 1.3)", () => {
+  const linkedCitationRuns: FormattedRun[] = [
+    { text: "Leeth", italic: true },
+    { text: " v " },
+    { text: "Commonwealth", italic: true },
+    { text: " (1992) 174 CLR 455, 486." },
+  ];
+
+  it("includes linking phrase and linked citation in the preview", () => {
+    const citation = makeCitation({
+      linkingPhrase: "quoting",
+      linkedCitationId: "linked-test-1",
+    });
+    const runs = getFormattedPreview(citation, undefined, linkedCitationRuns);
+    const text = toPlainText(runs);
+    expect(text).toContain(", quoting ");
+    expect(text).toContain("Leeth v Commonwealth");
+  });
+
+  it("combines signal, commentary, and linking phrase correctly", () => {
+    const citation = makeCitation({
+      signal: "See",
+      commentaryBefore: "On this point",
+      linkingPhrase: "citing",
+      linkedCitationId: "linked-test-1",
+    });
+    const runs = getFormattedPreview(citation, undefined, linkedCitationRuns);
+    const text = toPlainText(runs);
+    // Signal and commentary come before the citation
+    expect(text).toMatch(/^On this point See /);
+    // Linking phrase comes after the primary citation
+    expect(text).toContain(", citing ");
+    expect(text).toContain("Leeth v Commonwealth");
+  });
+
+  it("renders without linked citation when no linkedCitationRuns provided", () => {
+    const citation = makeCitation({
+      linkingPhrase: "quoting",
+      linkedCitationId: "linked-test-1",
+    });
+    const runs = getFormattedPreview(citation);
+    const text = toPlainText(runs);
+    // Should not contain linking phrase when no linked runs
+    expect(text).not.toContain(", quoting ");
   });
 });

@@ -15,7 +15,7 @@
  */
 
 import { createContext, useContext, useState, useCallback } from "react";
-import type { SourceType, SourceData, IntroductorySignal } from "../../types/citation";
+import type { SourceType, SourceData, IntroductorySignal, LinkingPhrase } from "../../types/citation";
 import type { CitationStandardId } from "../../engine/standards";
 import type { ClassificationResult } from "../../llm/classifySource";
 import type { ParsedCitation } from "../../llm/parseCitation";
@@ -54,6 +54,12 @@ interface InsertCitationState {
   setCommentaryBefore: (v: string) => void;
   commentaryAfter: string;
   setCommentaryAfter: (v: string) => void;
+
+  // Linking phrase (Rule 1.3)
+  linkingPhrase: LinkingPhrase | "";
+  setLinkingPhrase: (v: LinkingPhrase | "") => void;
+  linkedCitationId: string;
+  setLinkedCitationId: (v: string) => void;
 
   // Footnote append
   appendToFootnote: boolean;
@@ -107,6 +113,9 @@ export function InsertCitationProvider({ children }: { children: React.ReactNode
   const [commentaryBefore, setCommentaryBefore] = useState("");
   const [commentaryAfter, setCommentaryAfter] = useState("");
 
+  const [linkingPhrase, setLinkingPhrase] = useState<LinkingPhrase | "">("");
+  const [linkedCitationId, setLinkedCitationId] = useState("");
+
   const [appendToFootnote, setAppendToFootnote] = useState(false);
   const [selectedFootnoteIndex, setSelectedFootnoteIndex] = useState<number>(0);
 
@@ -133,6 +142,8 @@ export function InsertCitationProvider({ children }: { children: React.ReactNode
     setSignal("");
     setCommentaryBefore("");
     setCommentaryAfter("");
+    setLinkingPhrase("");
+    setLinkedCitationId("");
     setAppendToFootnote(false);
     setSelectedFootnoteIndex(0);
     setClassifyDescription("");
@@ -154,6 +165,8 @@ export function InsertCitationProvider({ children }: { children: React.ReactNode
       signal, setSignal,
       commentaryBefore, setCommentaryBefore,
       commentaryAfter, setCommentaryAfter,
+      linkingPhrase, setLinkingPhrase,
+      linkedCitationId, setLinkedCitationId,
       appendToFootnote, setAppendToFootnote,
       selectedFootnoteIndex, setSelectedFootnoteIndex,
       classifyDescription, setClassifyDescription,

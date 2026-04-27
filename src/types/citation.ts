@@ -93,6 +93,37 @@ export const INTRODUCTORY_SIGNALS = [
 
 export type IntroductorySignal = (typeof INTRODUCTORY_SIGNALS)[number];
 
+/**
+ * AGLC4 Rule 1.3: Linking phrases connect a primary source to a
+ * secondary source that it refers to or that refers to it.
+ */
+export const LINKING_PHRASES = [
+  "quoting",
+  "quoted_in",
+  "citing",
+  "cited_in",
+  "discussing",
+  "discussed_in",
+  "affirmed_by",
+  "reversed_by",
+  "varied_by",
+] as const;
+
+export type LinkingPhrase = (typeof LINKING_PHRASES)[number];
+
+/** Maps linking phrase identifiers to their display labels. */
+export const LINKING_PHRASE_LABELS: Record<LinkingPhrase, string> = {
+  quoting: "quoting",
+  quoted_in: "quoted in",
+  citing: "citing",
+  cited_in: "cited in",
+  discussing: "discussing",
+  discussed_in: "discussed in",
+  affirmed_by: "affirmed by",
+  reversed_by: "reversed by",
+  varied_by: "varied by",
+};
+
 // ─── Source Type Discriminated Union ──────────────────────────────────────────
 
 export type SourceType =
@@ -121,6 +152,7 @@ export type SourceType =
   | "book.chapter" // Rule 6.6.1
   | "book.translated" // Rule 6.7
   | "book.audiobook" // Rule 6.9
+  | "book.ebook" // Rule 6.8
   | "report" // Rule 7.1
   | "report.parliamentary" // Rule 7.1.2
   | "report.royal_commission" // Rule 7.1.3
@@ -142,6 +174,7 @@ export type SourceType =
   | "looseleaf" // Rule 7.8
   | "ip_material" // Rule 7.9
   | "constitutive_document" // Rule 7.10
+  | "periodical" // Rule 7.11.3
   | "newspaper" // Rule 7.11
   | "correspondence" // Rule 7.12
   | "interview" // Rule 7.13
@@ -152,6 +185,7 @@ export type SourceType =
 
   // Part IV — International Materials
   | "treaty" // Rule 8
+  | "treaty.mou" // Rule 8.6
   | "un.document" // Rule 9.2
   | "un.communication" // Rule 9.3
   | "un.yearbook" // Rule 9.4
@@ -231,6 +265,19 @@ export interface Citation {
    * but before closing punctuation.
    */
   commentaryAfter?: string;
+
+  /**
+   * LINK-001 / Rule 1.3: Linking phrase connecting this citation to another
+   * source (e.g. "quoting", "cited in", "affirmed by").
+   */
+  linkingPhrase?: LinkingPhrase;
+
+  /**
+   * LINK-001 / Rule 1.3: ID of the linked citation from the library.
+   * When set with linkingPhrase, the linked citation is formatted and
+   * appended after the linking phrase.
+   */
+  linkedCitationId?: string;
 
   /**
    * LOA-002: Part A / Part B classification for List of Authorities.

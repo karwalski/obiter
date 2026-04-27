@@ -22,7 +22,7 @@ export interface ReportSeriesEntry {
 }
 
 /**
- * ~150 report series entries compiled from public domain sources.
+ * ~150+ report series entries compiled from public domain sources.
  *
  * Sources key:
  *   "Court website"  — Published on the issuing court's official website
@@ -150,6 +150,316 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
   },
 
   // =========================================================================
+  // AUSTRALIA — MEDIUM NEUTRAL CITATION COURT IDENTIFIERS
+  // =========================================================================
+
+  // --- High Court / Federal ---
+  {
+    abbreviation: "HCA",
+    fullName: "High Court of Australia",
+    jurisdiction: "CTH",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "FCA",
+    fullName: "Federal Court of Australia",
+    jurisdiction: "CTH",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "AATA",
+    fullName: "Administrative Appeals Tribunal of Australia",
+    jurisdiction: "CTH",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "FamCA",
+    fullName: "Family Court of Australia",
+    jurisdiction: "CTH",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "FedCFamC1A",
+    fullName: "Federal Circuit and Family Court of Australia (Appeal Division)",
+    jurisdiction: "CTH",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- New South Wales ---
+  {
+    abbreviation: "NSWCA",
+    fullName: "Supreme Court of New South Wales (Court of Appeal)",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWCCA",
+    fullName: "Supreme Court of New South Wales (Court of Criminal Appeal)",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWCIMC",
+    fullName: "Children's Court of New South Wales",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWDC",
+    fullName: "District Court of New South Wales",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWLEC",
+    fullName: "Land and Environment Court of New South Wales",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWSC",
+    fullName: "Supreme Court of New South Wales",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NSWWCC",
+    fullName: "Workers Compensation Commission of New South Wales",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Victoria ---
+  {
+    abbreviation: "VCAT",
+    fullName: "Victorian Civil and Administrative Tribunal",
+    jurisdiction: "VIC",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "VCC",
+    fullName: "County Court of Victoria",
+    jurisdiction: "VIC",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "VMC",
+    fullName: "Magistrates' Court of Victoria",
+    jurisdiction: "VIC",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "VSC",
+    fullName: "Supreme Court of Victoria",
+    jurisdiction: "VIC",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Queensland ---
+  {
+    abbreviation: "QCAT",
+    fullName: "Queensland Civil and Administrative Tribunal",
+    jurisdiction: "QLD",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "QDC",
+    fullName: "District Court of Queensland",
+    jurisdiction: "QLD",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "QMC",
+    fullName: "Magistrates Court of Queensland",
+    jurisdiction: "QLD",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "QSC",
+    fullName: "Supreme Court of Queensland",
+    jurisdiction: "QLD",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Western Australia ---
+  {
+    abbreviation: "WADC",
+    fullName: "District Court of Western Australia",
+    jurisdiction: "WA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "WASAT",
+    fullName: "State Administrative Tribunal of Western Australia",
+    jurisdiction: "WA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "WASC",
+    fullName: "Supreme Court of Western Australia",
+    jurisdiction: "WA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- South Australia ---
+  {
+    abbreviation: "SACAT",
+    fullName: "South Australian Civil and Administrative Tribunal",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "SADC",
+    fullName: "District Court of South Australia",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "SAET",
+    fullName: "South Australian Employment Tribunal",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "SASC",
+    fullName: "Supreme Court of South Australia",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "SASCFC",
+    fullName: "Supreme Court of South Australia (Full Court)",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Tasmania ---
+  {
+    abbreviation: "TASFC",
+    fullName: "Supreme Court of Tasmania (Full Court)",
+    jurisdiction: "TAS",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "TASMC",
+    fullName: "Magistrates Court of Tasmania",
+    jurisdiction: "TAS",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Australian Capital Territory ---
+  {
+    abbreviation: "ACAT",
+    fullName: "ACT Civil and Administrative Tribunal",
+    jurisdiction: "ACT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "ACTCA",
+    fullName: "Supreme Court of the Australian Capital Territory (Court of Appeal)",
+    jurisdiction: "ACT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "ACTMC",
+    fullName: "Magistrates Court of the Australian Capital Territory",
+    jurisdiction: "ACT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "ACTSC",
+    fullName: "Supreme Court of the Australian Capital Territory",
+    jurisdiction: "ACT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // --- Northern Territory ---
+  {
+    abbreviation: "NTCA",
+    fullName: "Supreme Court of the Northern Territory (Court of Appeal)",
+    jurisdiction: "NT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+  {
+    abbreviation: "NTMC",
+    fullName: "Local Court of the Northern Territory",
+    jurisdiction: "NT",
+    type: "authorised",
+    yearOrganised: true,
+    source: "Court website",
+  },
+
+  // =========================================================================
   // AUSTRALIA — UNAUTHORISED GENERALIST REPORTS
   // =========================================================================
   {
@@ -190,6 +500,22 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     jurisdiction: "CTH",
     type: "unauthorised_generalist",
     yearOrganised: true,
+    source: "Public domain",
+  },
+  {
+    abbreviation: "ALD",
+    fullName: "Administrative Law Decisions",
+    jurisdiction: "CTH",
+    type: "unauthorised_generalist",
+    yearOrganised: false,
+    source: "AustLII",
+  },
+  {
+    abbreviation: "ALMD",
+    fullName: "Australian Legal Monthly Digest",
+    jurisdiction: "CTH",
+    type: "unauthorised_generalist",
+    yearOrganised: false,
     source: "Public domain",
   },
   {
@@ -333,6 +659,38 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     source: "Public domain",
   },
   {
+    abbreviation: "BPR",
+    fullName: "Building and Property Reports",
+    jurisdiction: "CTH",
+    type: "unauthorised_subject",
+    yearOrganised: false,
+    source: "Public domain",
+  },
+  {
+    abbreviation: "Crim LJ",
+    fullName: "Criminal Law Journal",
+    jurisdiction: "CTH",
+    type: "unauthorised_subject",
+    yearOrganised: false,
+    source: "Public domain",
+  },
+  {
+    abbreviation: "FLC",
+    fullName: "Family Law Cases",
+    jurisdiction: "CTH",
+    type: "unauthorised_subject",
+    yearOrganised: false,
+    source: "Public domain",
+  },
+  {
+    abbreviation: "AGLR",
+    fullName: "Australian Gay and Lesbian Law Journal Reports",
+    jurisdiction: "CTH",
+    type: "unauthorised_subject",
+    yearOrganised: false,
+    source: "Public domain",
+  },
+  {
     abbreviation: "NSWCR",
     fullName: "New South Wales Criminal Reports",
     jurisdiction: "NSW",
@@ -462,6 +820,22 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     jurisdiction: "UK",
     type: "authorised",
     yearOrganised: true,
+    source: "Cardiff Index",
+  },
+  {
+    abbreviation: "ER",
+    fullName: "English Reports",
+    jurisdiction: "UK",
+    type: "authorised",
+    yearOrganised: false,
+    source: "Cardiff Index",
+  },
+  {
+    abbreviation: "PC",
+    fullName: "Privy Council",
+    jurisdiction: "UK",
+    type: "authorised",
+    yearOrganised: false,
     source: "Cardiff Index",
   },
   {
@@ -1261,46 +1635,6 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Federal Magistrates Court of Australia",
     jurisdiction: "CTH",
     type: "unauthorised_generalist",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "TASSC",
-    fullName: "Supreme Court of Tasmania",
-    jurisdiction: "TAS",
-    type: "authorised",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "NTSC",
-    fullName: "Supreme Court of the Northern Territory",
-    jurisdiction: "NT",
-    type: "authorised",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "WASCA",
-    fullName: "Western Australian Supreme Court of Appeal",
-    jurisdiction: "WA",
-    type: "authorised",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "QCA",
-    fullName: "Queensland Court of Appeal",
-    jurisdiction: "QLD",
-    type: "authorised",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "VSCA",
-    fullName: "Victorian Supreme Court of Appeal",
-    jurisdiction: "VIC",
-    type: "authorised",
     yearOrganised: true,
     source: "AustLII",
   },

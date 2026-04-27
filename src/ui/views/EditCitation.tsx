@@ -51,6 +51,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   "book.chapter": "Book Chapter",
   "book.translated": "Translated Book",
   "book.audiobook": "Audiobook",
+  "book.ebook": "Ebook",
   report: "Report",
   "report.parliamentary": "Parliamentary Report",
   "report.royal_commission": "Royal Commission Report",
@@ -72,6 +73,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   looseleaf: "Looseleaf Service",
   ip_material: "Intellectual Property Material",
   constitutive_document: "Constitutive Document",
+  periodical: "Periodical / Magazine",
   newspaper: "Newspaper Article",
   correspondence: "Correspondence",
   interview: "Interview",
@@ -80,6 +82,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   social_media: "Social Media",
   genai_output: "Generative AI Output",
   treaty: "Treaty",
+  "treaty.mou": "Memorandum of Understanding",
   "un.document": "UN Document",
   "un.communication": "UN Communication",
   "un.yearbook": "UN Yearbook",
@@ -211,6 +214,19 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
         { key: "startingPage", label: "Starting Page", required: true },
         { key: "pinpoint", label: "Pinpoint" },
       ];
+    case "film_tv_media":
+      return [
+        { key: "title", label: "Title", required: true },
+        { key: "director", label: "Director" },
+        { key: "productionCompany", label: "Production Company" },
+        { key: "year", label: "Year" },
+        { key: "medium", label: "Medium" },
+        { key: "episodeTitle", label: "Episode Title" },
+        { key: "seriesTitle", label: "Series Title" },
+        { key: "seasonNumber", label: "Season" },
+        { key: "episodeNumber", label: "Episode" },
+        { key: "pinpoint", label: "Pinpoint" },
+      ];
     case "internet_material":
       return [
         { key: "author", label: "Author" },
@@ -227,6 +243,36 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
         { key: "date", label: "Date", required: true },
         { key: "startingPage", label: "Starting Page" },
         { key: "pinpoint", label: "Pinpoint" },
+      ];
+    case "book.ebook":
+      return [
+        { key: "author", label: "Author", required: true },
+        { key: "title", label: "Title", required: true },
+        { key: "publisher", label: "Publisher", required: true },
+        { key: "edition", label: "Edition" },
+        { key: "year", label: "Year", required: true },
+        { key: "platform", label: "Platform", placeholder: "e.g. Kindle, Google Books" },
+        { key: "url", label: "URL" },
+        { key: "pinpoint", label: "Pinpoint" },
+      ];
+    case "periodical":
+      return [
+        { key: "author", label: "Author" },
+        { key: "title", label: "Article Title", required: true },
+        { key: "periodicalName", label: "Periodical Name", required: true },
+        { key: "datePeriod", label: "Date/Period", placeholder: "e.g. Spring 2024, March 2024" },
+        { key: "volume", label: "Volume" },
+        { key: "issue", label: "Issue" },
+        { key: "page", label: "Page" },
+        { key: "pinpoint", label: "Pinpoint" },
+      ];
+    case "treaty.mou":
+      return [
+        { key: "title", label: "Title", required: true },
+        { key: "parties", label: "Parties" },
+        { key: "signedDate", label: "Date Signed" },
+        { key: "pinpoint", label: "Pinpoint" },
+        { key: "url", label: "URL" },
       ];
     case "treaty":
       return [

@@ -59,6 +59,19 @@ export function serializeCitation(citation: Citation): string {
   if (citation.createdAt) attrs.push(`createdAt="${escapeXml(citation.createdAt)}"`);
   if (citation.modifiedAt) attrs.push(`modifiedAt="${escapeXml(citation.modifiedAt)}"`);
 
+  // SIGNAL-001: Signal and commentary attributes
+  if (citation.signal) attrs.push(`signal="${escapeXml(citation.signal)}"`);
+  if (citation.commentaryBefore) attrs.push(`commentaryBefore="${escapeXml(citation.commentaryBefore)}"`);
+  if (citation.commentaryAfter) attrs.push(`commentaryAfter="${escapeXml(citation.commentaryAfter)}"`);
+
+  // LINK-001: Linking phrase attributes (Rule 1.3)
+  if (citation.linkingPhrase) attrs.push(`linkingPhrase="${escapeXml(citation.linkingPhrase)}"`);
+  if (citation.linkedCitationId) attrs.push(`linkedCitationId="${escapeXml(citation.linkedCitationId)}"`);
+
+  // LOA fields
+  if (citation.loaPart) attrs.push(`loaPart="${escapeXml(citation.loaPart)}"`);
+  if (citation.isKeyAuthority) attrs.push(`isKeyAuthority="true"`);
+
   const lines = [`  <obiter:citation ${attrs.join(" ")}>`];
 
   // Data fields as <obiter:field name="...">value</obiter:field>
@@ -234,6 +247,20 @@ export function deserializeCitation(xml: string | Element): Citation {
     }
   }
 
+  // SIGNAL-001: Signal and commentary (v2 attributes)
+  const signal = root.getAttribute("signal") ?? undefined;
+  const commentaryBefore = root.getAttribute("commentaryBefore") ?? undefined;
+  const commentaryAfter = root.getAttribute("commentaryAfter") ?? undefined;
+
+  // LINK-001: Linking phrase attributes (Rule 1.3)
+  const linkingPhraseAttr = root.getAttribute("linkingPhrase") ?? undefined;
+  const linkedCitationIdAttr = root.getAttribute("linkedCitationId") ?? undefined;
+
+  // LOA fields
+  const loaPart = (root.getAttribute("loaPart") as "A" | "B" | null) ?? undefined;
+  const isKeyAuthorityAttr = root.getAttribute("isKeyAuthority");
+  const isKeyAuthority = isKeyAuthorityAttr === "true" ? true : undefined;
+
   return {
     id,
     sourceType,
@@ -244,6 +271,13 @@ export function deserializeCitation(xml: string | Element): Citation {
     tags,
     createdAt,
     modifiedAt,
+    ...(signal ? { signal: signal as Citation["signal"] } : {}),
+    ...(commentaryBefore ? { commentaryBefore } : {}),
+    ...(commentaryAfter ? { commentaryAfter } : {}),
+    ...(linkingPhraseAttr ? { linkingPhrase: linkingPhraseAttr as Citation["linkingPhrase"] } : {}),
+    ...(linkedCitationIdAttr ? { linkedCitationId: linkedCitationIdAttr } : {}),
+    ...(loaPart ? { loaPart } : {}),
+    ...(isKeyAuthority ? { isKeyAuthority } : {}),
   };
 }
 

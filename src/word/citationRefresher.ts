@@ -37,6 +37,8 @@ import { CitationStore } from "../store/citationStore";
 import {
   formatCitation,
   applySignalAndCommentary,
+  applyLinkingPhrase,
+  getFormattedPreview,
 } from "../engine/engine";
 import type { CitationContext } from "../engine/engine";
 import { resolveSubsequentReference } from "../engine/resolver";
@@ -116,6 +118,18 @@ interface RenderedCitation {
 /**
  * Applies formatting from a FormattedRun to a Word Range.
  */
+/**
+ * Strips trailing closing punctuation (., !, ?) from the last run.
+ * Used when embedding a linked citation — the parent CC handles closing punctuation.
+ */
+function stripClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) return runs;
+  const last = runs[runs.length - 1];
+  const trimmed = last.text.replace(/[.!?]\s*$/, "");
+  if (trimmed === last.text) return runs;
+  return [...runs.slice(0, -1), { ...last, text: trimmed }];
+}
+
 function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
   if (run.italic !== undefined) {
     range.font.italic = run.italic;
@@ -509,6 +523,16 @@ function renderFootnoteCitations(
 
     // Apply signal and commentary if present
     runs = applySignalAndCommentary(runs, citation);
+
+    // LINK-001: Apply linking phrase and linked citation (Rule 1.3)
+    if (citation.linkingPhrase && citation.linkedCitationId) {
+      const linkedCitation = store.getById(citation.linkedCitationId);
+      if (linkedCitation) {
+        const linkedRuns = getFormattedPreview(linkedCitation, config);
+        const strippedLinkedRuns = stripClosingPunctuation(linkedRuns);
+        runs = applyLinkingPhrase(runs, citation.linkingPhrase, strippedLinkedRuns);
+      }
+    }
 
     rendered.push({
       runs,

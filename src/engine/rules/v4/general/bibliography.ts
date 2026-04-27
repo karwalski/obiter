@@ -44,8 +44,9 @@ export function getBibliographyCategory(sourceType: SourceType): string {
   // Legislation
   if (sourceType.startsWith("legislation.")) return "C";
 
-  // Treaties
+  // Treaties (including MOUs — Rule 8.6)
   if (sourceType === "treaty") return "D";
+  if (sourceType === "treaty.mou") return "D";
 
   // Secondary sources (Part III)
   const secondarySources: SourceType[] = [
@@ -56,6 +57,7 @@ export function getBibliographyCategory(sourceType: SourceType): string {
     "book.chapter",
     "book.translated",
     "book.audiobook",
+    "book.ebook",
     "report",
     "report.parliamentary",
     "report.royal_commission",
@@ -77,6 +79,7 @@ export function getBibliographyCategory(sourceType: SourceType): string {
     "looseleaf",
     "ip_material",
     "constitutive_document",
+    "periodical",
     "newspaper",
     "correspondence",
     "interview",
@@ -277,7 +280,7 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
   const year = data["year"] as number | string | undefined;
 
-  if (st === "book" || st === "book.chapter" || st === "book.translated" || st === "book.audiobook") {
+  if (st === "book" || st === "book.chapter" || st === "book.translated" || st === "book.audiobook" || st === "book.ebook") {
     // Books: (Publisher, Edition ed, Year) — Rule 6 bibliography format
     const publisher = data["publisher"] as string | undefined;
     const edition = data["edition"] as number | string | undefined;

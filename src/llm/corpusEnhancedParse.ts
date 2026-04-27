@@ -79,6 +79,9 @@ const SOURCE_TYPES: SourceType[] = [
   "foreign.hong_kong", "foreign.malaysia", "foreign.new_zealand",
   "foreign.singapore", "foreign.south_africa", "foreign.uk",
   "foreign.usa", "foreign.other",
+  "book.ebook",
+  "periodical",
+  "treaty.mou",
   "custom",
   "explanatory_note",
 ];
@@ -451,6 +454,10 @@ export function getFieldSchemaForSourceType(
       { name: "productionCompany", description: "Production company" },
       { name: "year", description: "Year" },
       { name: "medium", description: "Medium (Film, Television, Podcast, etc.)" },
+      { name: "episodeTitle", description: "Episode title (TV series)" },
+      { name: "seriesTitle", description: "Series title (TV series)" },
+      { name: "seasonNumber", description: "Season number (TV series)" },
+      { name: "episodeNumber", description: "Episode number (TV series)" },
       { name: "pinpoint", description: "Pinpoint (timestamp, episode)" },
     ],
     "internet_material": [
@@ -615,6 +622,33 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
+    "book.ebook": [
+      { name: "authors", description: "Array of { givenNames, surname }" },
+      { name: "title", description: "Book title" },
+      { name: "publisher", description: "Publisher name" },
+      { name: "edition", description: "Edition" },
+      { name: "year", description: "Publication year" },
+      { name: "platform", description: "Ebook platform (e.g. Kindle, Google Books, Apple Books)" },
+      { name: "url", description: "URL if applicable" },
+      { name: "pinpoint", description: "Pinpoint page" },
+    ],
+    "periodical": [
+      { name: "author", description: "Author name" },
+      { name: "title", description: "Article title" },
+      { name: "periodicalName", description: "Periodical or magazine name" },
+      { name: "datePeriod", description: "Date, month, or season (e.g. Spring 2024, March 2024)" },
+      { name: "volume", description: "Volume number" },
+      { name: "issue", description: "Issue number" },
+      { name: "page", description: "Starting page" },
+      { name: "pinpoint", description: "Pinpoint reference" },
+    ],
+    "treaty.mou": [
+      { name: "title", description: "MOU title" },
+      { name: "parties", description: "Parties to the MOU" },
+      { name: "signedDate", description: "Date signed" },
+      { name: "pinpoint", description: "Pinpoint reference" },
+      { name: "url", description: "URL if applicable" },
+    ],
   };
 
   // All foreign.* types share the same schema
@@ -773,16 +807,16 @@ JOURNALS:
   journal.article, journal.online, journal.forthcoming
 
 BOOKS:
-  book, book.chapter, book.translated, book.audiobook
+  book, book.chapter, book.translated, book.audiobook, book.ebook
 
 REPORTS:
   report, report.parliamentary, report.royal_commission, report.law_reform, report.abs
 
 OTHER SECONDARY:
-  research_paper, research_paper.parliamentary, conference_paper, thesis, speech, press_release, hansard, submission.government, evidence.parliamentary, constitutional_convention, dictionary, legal_encyclopedia, looseleaf, ip_material, constitutive_document, newspaper, correspondence, interview, film_tv_media, internet_material, social_media, genai_output
+  research_paper, research_paper.parliamentary, conference_paper, thesis, speech, press_release, hansard, submission.government, evidence.parliamentary, constitutional_convention, dictionary, legal_encyclopedia, looseleaf, ip_material, constitutive_document, periodical, newspaper, correspondence, interview, film_tv_media, internet_material, social_media, genai_output
 
 INTERNATIONAL:
-  treaty, un.document, un.communication, un.yearbook, icj.decision, icj.pleading, arbitral.state_state, arbitral.individual_state, icc_tribunal.case, wto.document, wto.decision, gatt.document, eu.official_journal, eu.court, echr.decision, supranational.decision, supranational.document
+  treaty, treaty.mou, un.document, un.communication, un.yearbook, icj.decision, icj.pleading, arbitral.state_state, arbitral.individual_state, icc_tribunal.case, wto.document, wto.decision, gatt.document, eu.official_journal, eu.court, echr.decision, supranational.decision, supranational.document
 
 FOREIGN:
   foreign.canada, foreign.china, foreign.france, foreign.germany, foreign.hong_kong, foreign.malaysia, foreign.new_zealand, foreign.singapore, foreign.south_africa, foreign.uk, foreign.usa, foreign.other`;

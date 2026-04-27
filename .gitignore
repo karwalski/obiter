@@ -12,3 +12,4 @@ website/server/google-token.json
 client_secret*.json
 .claude/worktrees/
 /corpus/
+obiter-v*.zip

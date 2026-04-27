@@ -4,6 +4,8 @@
  */
 
 import { FormattedRun } from "../../../../types/formattedRun";
+import type { LinkingPhrase } from "../../../../types/citation";
+export type { LinkingPhrase };
 
 // ─── Introductory Signals (Rule 1.2) ─────────────────────────────────────────
 
@@ -63,26 +65,17 @@ export function isSignalChange(
 
 // ─── Linking Phrases (Rule 1.3) ──────────────────────────────────────────────
 
-/**
- * Linking phrase identifiers for sources referring to other sources,
- * per AGLC4 Rule 1.3.
- */
-export type LinkingPhrase =
-  | "quoting"
-  | "quoted_in"
-  | "citing"
-  | "cited_in"
-  | "discussing"
-  | "discussed_in";
-
 /** Maps linking phrase identifiers to their display text. */
-const LINKING_PHRASE_TEXT: Record<LinkingPhrase, string> = {
+export const LINKING_PHRASE_TEXT: Record<LinkingPhrase, string> = {
   quoting: "quoting",
   quoted_in: "quoted in",
   citing: "citing",
   cited_in: "cited in",
   discussing: "discussing",
   discussed_in: "discussed in",
+  affirmed_by: "affirmed by",
+  reversed_by: "reversed by",
+  varied_by: "varied by",
 };
 
 /**

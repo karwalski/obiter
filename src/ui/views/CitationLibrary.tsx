@@ -46,6 +46,8 @@ export function getSourceTypeBadge(sourceType: SourceType): string {
 
   const labelMap: Partial<Record<SourceType, string>> = {
     treaty: "Treaty",
+    "treaty.mou": "MOU",
+    periodical: "Periodical",
     thesis: "Thesis",
     speech: "Speech",
     hansard: "Hansard",

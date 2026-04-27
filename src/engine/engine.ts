@@ -76,6 +76,7 @@ import {
   formatCorrespondence,
   formatInterview,
   formatFilm,
+  formatTvSeries,
   formatInternetMaterial,
   formatSocialMedia,
 } from "./rules/v4/secondary/other-media";
@@ -103,6 +104,7 @@ import {
 } from "./rules/v4/general/italicisation";
 import type { CitationConfig } from "./standards/types";
 import { getStandardConfig } from "./standards";
+import { formatLinkingPhrase } from "./rules/v4/general/signals";
 
 // ─── OSCOLA Formatter Imports (OSC-ENH-001) ─────────────────────────────────
 
@@ -461,6 +463,54 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
     notYetInForce: d.notYetInForce as boolean | undefined,
     pinpoint: normalisePinpoint(d.pinpoint),
   });
+}
+
+/**
+ * Dispatches a Memorandum of Understanding citation (Rule 8.6).
+ *
+ * AGLC4 Rule 8.6: MOUs have a specific format:
+ * Title, Parties' Names, signed Date (Memorandum of Understanding) pinpoint
+ */
+function dispatchTreatyMou(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const runs: FormattedRun[] = [];
+
+  const title = (d.title as string) ?? "";
+  const signedDate = (d.signedDate as string) ?? "";
+  const pinpoint = normalisePinpoint(d.pinpoint);
+  const url = (d.url as string) ?? "";
+
+  // Parse parties
+  let partiesStr = "";
+  if (Array.isArray(d.parties)) {
+    partiesStr = (d.parties as string[]).join(" and ");
+  } else if (typeof d.parties === "string" && (d.parties as string).trim()) {
+    partiesStr = (d.parties as string).trim();
+  }
+
+  if (title) {
+    runs.push({ text: title, italic: true });
+  }
+
+  if (partiesStr) {
+    runs.push({ text: `, ${partiesStr}` });
+  }
+
+  if (signedDate) {
+    runs.push({ text: `, signed ${signedDate}` });
+  }
+
+  runs.push({ text: " (Memorandum of Understanding)" });
+
+  if (pinpoint) {
+    runs.push({ text: ` ${pinpoint.value}` });
+  }
+
+  if (url) {
+    runs.push({ text: ` <${url}>` });
+  }
+
+  return runs.length > 1 ? runs : [{ text: title || "Memorandum of Understanding" }];
 }
 
 /**
@@ -883,6 +933,38 @@ function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): For
   });
 }
 
+/**
+ * Dispatches an ebook citation (Rule 6.8).
+ *
+ * AGLC4 Rule 6.8: Ebooks are cited like printed books but with the ebook
+ * platform/format appended in square brackets after the pinpoint.
+ */
+function dispatchBookEbook(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const d = citation.data;
+  // Format like a regular book first
+  const runs = formatBook({
+    authors: (d.authors as Author[]) ?? [],
+    title: (d.title as string) ?? "",
+    publisher: (d.publisher as string) ?? "",
+    edition: toOptionalNumber(d.edition),
+    year: toNumber(d.year, 0),
+    pinpoint: normalisePinpoint(d.pinpoint),
+    editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+  });
+
+  // Append platform/format indicator
+  const platform = (d.platform as string) ?? "";
+  const url = (d.url as string) ?? "";
+  if (platform) {
+    runs.push({ text: ` [${platform}]` });
+  }
+  if (url) {
+    runs.push({ text: ` <${url}>` });
+  }
+
+  return runs;
+}
+
 // ─── Group 3: Reports ──────────────────────────────────────────────────────
 
 /**
@@ -1093,6 +1175,63 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * Dispatches a periodical/magazine citation (Rule 7.11.3).
+ *
+ * AGLC4 Rule 7.11.3: Periodicals, newsletters, and magazines use
+ * date/month/season instead of full date, and may have volume/issue.
+ * Format: Author, 'Title' PeriodicalName (DatePeriod) Page
+ */
+function dispatchPeriodical(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const runs: FormattedRun[] = [];
+
+  const author = (d.author as string) ?? "";
+  const title = (d.title as string) ?? "";
+  const periodicalName = (d.periodicalName as string) ?? "";
+  const datePeriod = (d.datePeriod as string) ?? "";
+  const volume = (d.volume as string) ?? "";
+  const issue = (d.issue as string) ?? "";
+  const page = (d.page as string) ?? "";
+  const pinpoint = normalisePinpoint(d.pinpoint);
+
+  if (author) {
+    runs.push({ text: author });
+    runs.push({ text: ", " });
+  }
+
+  if (title) {
+    runs.push({ text: `\u2018${title}\u2019` });
+    runs.push({ text: " " });
+  }
+
+  if (volume) {
+    runs.push({ text: volume });
+    if (issue) {
+      runs.push({ text: `(${issue})` });
+    }
+    runs.push({ text: " " });
+  }
+
+  if (periodicalName) {
+    runs.push({ text: periodicalName, italic: true });
+  }
+
+  if (datePeriod) {
+    runs.push({ text: ` (${datePeriod})` });
+  }
+
+  if (page) {
+    runs.push({ text: ` ${page}` });
+  }
+
+  if (pinpoint) {
+    runs.push({ text: `, ${pinpoint.value}` });
+  }
+
+  return runs.length > 0 ? runs : [{ text: title || periodicalName || "Periodical" }];
+}
+
+/**
  * Dispatches a correspondence citation (Rule 7.12).
  * Delegates to formatCorrespondence.
  */
@@ -1122,10 +1261,43 @@ function dispatchInterview(citation: Citation): FormattedRun[] {
 
 /**
  * Dispatches a film/TV/media citation (Rules 7.14.1-7.14.4).
- * Delegates to formatFilm.
+ *
+ * TV-001: When the medium is "Television" or "TV Series" and an episode
+ * title or series title is present, delegates to formatTvSeries for the
+ * TV series format: 'Episode Title', Series Title (Season X, Episode Y, Studio, Year).
+ * Otherwise delegates to formatFilm.
  */
 function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  const medium = (d.medium as string) ?? "";
+  const isTv = medium === "Television" || medium === "TV Series";
+  const episodeTitle = (d.episodeTitle as string) ?? "";
+  const seriesTitle = (d.seriesTitle as string) ?? "";
+
+  // TV series path: use formatTvSeries when medium indicates TV and
+  // episode/series metadata is available
+  if (isTv && (episodeTitle || seriesTitle)) {
+    const productionCompany = (d.productionCompany as string) ?? (d.director as string) ?? "";
+    const seasonNumber = (d.seasonNumber as string) ?? "";
+    const episodeNumber = (d.episodeNumber as string) ?? "";
+
+    // Build the network/details string: (Season X, Episode Y, Studio, Year)
+    const detailParts: string[] = [];
+    if (seasonNumber) detailParts.push(`Season ${seasonNumber}`);
+    if (episodeNumber) detailParts.push(`Episode ${episodeNumber}`);
+    if (productionCompany) detailParts.push(productionCompany);
+    const year = String(d.year ?? "");
+    if (year) detailParts.push(year);
+
+    return formatTvSeries({
+      episodeTitle: episodeTitle || ((d.title as string) ?? ""),
+      seriesTitle: seriesTitle || ((d.title as string) ?? ""),
+      network: detailParts.join(", "),
+      date: "",
+    });
+  }
+
+  // Default: film format
   return formatFilm({
     title: (d.title as string) ?? "",
     director: (d.director as string) ?? (d.author as string) ?? (d.producer as string) ?? "",
@@ -1708,6 +1880,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "book.chapter": dispatchBookChapter,
   "book.translated": dispatchBookTranslated,
   "book.audiobook": dispatchBookAudiobook,
+  "book.ebook": dispatchBookEbook,
 
   // ── Reports (Group 3) ─────────────────────────────────────────────────────
   report: dispatchReport,
@@ -1724,6 +1897,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   thesis: dispatchThesis,
   speech: dispatchSpeech,
   press_release: dispatchPressRelease,
+  periodical: dispatchPeriodical,
   newspaper: dispatchNewspaper,
   correspondence: dispatchCorrespondence,
   interview: dispatchInterview,
@@ -1776,6 +1950,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
 
   // ── Special ───────────────────────────────────────────────────────────────
   treaty: dispatchTreaty,
+  "treaty.mou": dispatchTreatyMou,
   genai_output: dispatchGenaiOutput,
   custom: dispatchCustom,
   explanatory_note: dispatchExplanatoryNote,
@@ -2899,6 +3074,21 @@ export function applySignalAndCommentary(
   return result;
 }
 
+/**
+ * AGLC4 Rule 1.3: Appends a linking phrase and secondary citation runs
+ * after the primary citation (e.g. ", quoting [secondary citation]").
+ */
+export function applyLinkingPhrase(
+  primaryRuns: FormattedRun[],
+  linkingPhrase: Citation["linkingPhrase"],
+  secondaryRuns: FormattedRun[],
+): FormattedRun[] {
+  if (!linkingPhrase || secondaryRuns.length === 0) {
+    return primaryRuns;
+  }
+  return [...primaryRuns, ...formatLinkingPhrase(linkingPhrase), ...secondaryRuns];
+}
+
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
 /**
@@ -3057,6 +3247,7 @@ function ensurePreviewClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
 export function getFormattedPreview(
   citation: Citation,
   config?: CitationConfig,
+  linkedCitationRuns?: FormattedRun[],
 ): FormattedRun[] {
   const standardConfig = config ?? getStandardConfig("aglc4");
 
@@ -3064,8 +3255,10 @@ export function getFormattedPreview(
   if (isOscolaStandard(standardConfig)) {
     const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
     if (oscolaFormatter) {
-      const runs = oscolaFormatter(citation, standardConfig);
-      return ensurePreviewClosingPunctuation(applySignalAndCommentary(runs, citation));
+      let runs = oscolaFormatter(citation, standardConfig);
+      runs = applySignalAndCommentary(runs, citation);
+      runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
+      return ensurePreviewClosingPunctuation(runs);
     }
   }
 
@@ -3073,14 +3266,18 @@ export function getFormattedPreview(
   if (isNzlsgStandard(standardConfig.standardId)) {
     const nzlsgRuns = dispatchNzlsg(citation);
     if (nzlsgRuns !== null) {
-      return ensurePreviewClosingPunctuation(applySignalAndCommentary(nzlsgRuns, citation));
+      let runs = applySignalAndCommentary(nzlsgRuns, citation);
+      runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
+      return ensurePreviewClosingPunctuation(runs);
     }
   }
 
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
-  const runs = dispatcher
+  let runs = dispatcher
     ? dispatcher(citation, standardConfig)
     : formatGenericCitation(citation);
 
-  return ensurePreviewClosingPunctuation(applySignalAndCommentary(runs, citation));
+  runs = applySignalAndCommentary(runs, citation);
+  runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
+  return ensurePreviewClosingPunctuation(runs);
 }

@@ -111,6 +111,7 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
           { value: "book.chapter", label: "Book Chapter" },
           { value: "book.translated", label: "Translated Book" },
           { value: "book.audiobook", label: "Audiobook" },
+          { value: "book.ebook", label: "Ebook" },
         ],
       },
       {
@@ -141,6 +142,7 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
           { value: "looseleaf", label: "Looseleaf" },
           { value: "ip_material", label: "IP Material" },
           { value: "constitutive_document", label: "Constitutive Document" },
+          { value: "periodical", label: "Periodical / Magazine" },
           { value: "newspaper", label: "Newspaper" },
           { value: "correspondence", label: "Correspondence" },
           { value: "interview", label: "Interview" },
@@ -169,7 +171,10 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
     groups: [
       {
         label: "Treaties",
-        types: [{ value: "treaty", label: "Treaty" }],
+        types: [
+          { value: "treaty", label: "Treaty" },
+          { value: "treaty.mou", label: "Memorandum of Understanding" },
+        ],
       },
       {
         label: "UN Materials",
@@ -361,6 +366,9 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "book.chapter",
   "book.translated",
   "book.audiobook",
+  "book.ebook",
+  "periodical",
+  "treaty.mou",
   "foreign.canada",
   "foreign.china",
   "foreign.france",
@@ -1434,6 +1442,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "book" &&
         renderBookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "treaty.mou" && renderMouForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "report" && renderReportForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "report.parliamentary" && renderReportParliamentaryForm(formData, updateField, isAglcStandard)}
@@ -1459,6 +1468,7 @@ export default function InsertCitation(): JSX.Element {
         renderLooseleafForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "ip_material" && renderIpMaterialForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "constitutive_document" && renderConstitutiveDocumentForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "periodical" && renderPeriodicalForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "newspaper" && renderNewspaperForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "correspondence" && renderCorrespondenceForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "interview" && renderInterviewForm(formData, updateField, isAglcStandard)}
@@ -1475,6 +1485,8 @@ export default function InsertCitation(): JSX.Element {
         renderBookTranslatedForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "book.audiobook" &&
         renderBookAudiobookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "book.ebook" &&
+        renderBookEbookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "un.document" && renderUnDocumentForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "un.communication" && renderUnCommunicationForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "un.yearbook" && renderUnYearbookForm(formData, updateField, isAglcStandard)}
@@ -6732,11 +6744,85 @@ function renderFilmTvMediaForm(
             <option value="">Select medium...</option>
             <option value="Film">Film</option>
             <option value="Television">Television</option>
+            <option value="TV Series">TV Series</option>
             <option value="Podcast">Podcast</option>
             <option value="Radio">Radio</option>
           </select>
         </div>
       </div>
+
+      {/* TV-001: Conditional episode/season fields for Television and TV Series */}
+      {((data.medium as string) === "Television" || (data.medium as string) === "TV Series") && (
+        <>
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-ftm-episodeTitle">
+              Episode Title
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "7.14.3" } : {})}
+                description="The title of the specific episode."
+                example="The One Where No One's Ready"
+              />
+            </label>
+            <input
+              id="ic-ftm-episodeTitle"
+              className="ic-input"
+              type="text"
+              value={(data.episodeTitle as string) || ""}
+              placeholder="e.g. The One Where No One's Ready"
+              onChange={(e) => updateField("episodeTitle", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-ftm-seriesTitle">
+              Series Title
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "7.14.3" } : {})}
+                description="The title of the TV series."
+                example="Friends"
+              />
+            </label>
+            <input
+              id="ic-ftm-seriesTitle"
+              className="ic-input"
+              type="text"
+              value={(data.seriesTitle as string) || ""}
+              placeholder="e.g. Friends"
+              onChange={(e) => updateField("seriesTitle", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field-row">
+            <div className="ic-field ic-field--grow">
+              <label className="ic-label" htmlFor="ic-ftm-seasonNumber">
+                Season
+              </label>
+              <input
+                id="ic-ftm-seasonNumber"
+                className="ic-input"
+                type="text"
+                value={(data.seasonNumber as string) || ""}
+                placeholder="e.g. 3"
+                onChange={(e) => updateField("seasonNumber", e.target.value)}
+              />
+            </div>
+
+            <div className="ic-field ic-field--grow">
+              <label className="ic-label" htmlFor="ic-ftm-episodeNumber">
+                Episode
+              </label>
+              <input
+                id="ic-ftm-episodeNumber"
+                className="ic-input"
+                type="text"
+                value={(data.episodeNumber as string) || ""}
+                placeholder="e.g. 2"
+                onChange={(e) => updateField("episodeNumber", e.target.value)}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-ftm-pinpoint">
@@ -9505,6 +9591,386 @@ function renderAuthorsFields(
       <button className="ic-add-btn" type="button" onClick={addAuthor}>
         + Add Author
       </button>
+    </div>
+  );
+}
+
+// ─── EBOOK-001: Ebook Form (Rule 6.8) ──────────────────────────────────────
+
+function renderBookEbookForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  authorsList: AuthorEntry[],
+  updateAuthor: (index: number, field: keyof AuthorEntry, value: string) => void,
+  addAuthor: () => void,
+  removeAuthor: (index: number) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      {renderAuthorsFields(authorsList, updateAuthor, addAuthor, removeAuthor, isAglcStandard ? "6.8" : undefined)}
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ebook-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.8" } : {})}
+            description="The title of the book. Italicised in the citation."
+            example="The Common Law"
+          />
+        </label>
+        <input
+          id="ic-ebook-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Common Law"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ebook-publisher">
+          Publisher
+        </label>
+        <input
+          id="ic-ebook-publisher"
+          className="ic-input"
+          type="text"
+          value={(data.publisher as string) || ""}
+          placeholder="e.g. Oxford University Press"
+          onChange={(e) => updateField("publisher", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ebook-edition">
+            Edition
+          </label>
+          <input
+            id="ic-ebook-edition"
+            className="ic-input"
+            type="text"
+            value={(data.edition as string) || ""}
+            placeholder="e.g. 3rd"
+            onChange={(e) => updateField("edition", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-ebook-year">
+            Year
+          </label>
+          <input
+            id="ic-ebook-year"
+            className="ic-input"
+            type="text"
+            value={(data.year as string) || ""}
+            placeholder="e.g. 2019"
+            onChange={(e) => updateField("year", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ebook-platform">
+          Ebook Platform
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.8" } : {})}
+            description="The ebook platform or format. Appended in square brackets."
+            example="Kindle"
+          />
+        </label>
+        <select
+          id="ic-ebook-platform"
+          className="ic-select"
+          value={(data.platform as string) || ""}
+          onChange={(e) => updateField("platform", e.target.value)}
+        >
+          <option value="">Select platform...</option>
+          <option value="Kindle">Kindle</option>
+          <option value="Google Books">Google Books</option>
+          <option value="Apple Books">Apple Books</option>
+          <option value="Kobo">Kobo</option>
+          <option value="PDF">PDF</option>
+          <option value="EPUB">EPUB</option>
+          <option value="ebook">ebook</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ebook-url">
+          URL
+        </label>
+        <input
+          id="ic-ebook-url"
+          className="ic-input"
+          type="text"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://books.google.com/..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-ebook-pinpoint">
+          Pinpoint
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "6.4" } : {})}
+            description="A specific page, paragraph, or chapter reference within the book."
+            example="42"
+          />
+        </label>
+        <input
+          id="ic-ebook-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. 42"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── PERIODICAL-001: Periodical Form (Rule 7.11.3) ─────────────────────────
+
+function renderPeriodicalForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-period-author">
+          Author
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.11.3" } : {})}
+            description="The author of the article (if attributed)."
+            example="Jane Smith"
+          />
+        </label>
+        <input
+          id="ic-period-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Jane Smith"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-period-title">
+          Article Title
+        </label>
+        <input
+          id="ic-period-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. The Rise of Legal Tech"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-period-name">
+          Periodical Name
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.11.3" } : {})}
+            description="The name of the periodical, magazine, or newsletter."
+            example="Law Society Journal"
+          />
+        </label>
+        <input
+          id="ic-period-name"
+          className="ic-input"
+          type="text"
+          value={(data.periodicalName as string) || ""}
+          placeholder="e.g. Law Society Journal"
+          onChange={(e) => updateField("periodicalName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-period-datePeriod">
+          Date / Period
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.11.3" } : {})}
+            description="The date, month, or season of publication."
+            example="Spring 2024"
+          />
+        </label>
+        <input
+          id="ic-period-datePeriod"
+          className="ic-input"
+          type="text"
+          value={(data.datePeriod as string) || ""}
+          placeholder="e.g. Spring 2024, March 2024"
+          onChange={(e) => updateField("datePeriod", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-period-volume">
+            Volume
+          </label>
+          <input
+            id="ic-period-volume"
+            className="ic-input"
+            type="text"
+            value={(data.volume as string) || ""}
+            placeholder="e.g. 12"
+            onChange={(e) => updateField("volume", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-period-issue">
+            Issue
+          </label>
+          <input
+            id="ic-period-issue"
+            className="ic-input"
+            type="text"
+            value={(data.issue as string) || ""}
+            placeholder="e.g. 3"
+            onChange={(e) => updateField("issue", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-period-page">
+            Page
+          </label>
+          <input
+            id="ic-period-page"
+            className="ic-input"
+            type="text"
+            value={(data.page as string) || ""}
+            placeholder="e.g. 42"
+            onChange={(e) => updateField("page", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-period-pinpoint">
+            Pinpoint
+          </label>
+          <input
+            id="ic-period-pinpoint"
+            className="ic-input"
+            type="text"
+            value={(data.pinpoint as string) || ""}
+            placeholder="e.g. 45"
+            onChange={(e) => updateField("pinpoint", e.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MOU-001: Memorandum of Understanding Form (Rule 8.6) ──────────────────
+
+function renderMouForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-mou-title">
+          Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "8.6" } : {})}
+            description="The title of the Memorandum of Understanding."
+            example="Memorandum of Understanding on Trans-Boundary Haze Pollution"
+          />
+        </label>
+        <input
+          id="ic-mou-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Memorandum of Understanding on Trans-Boundary Haze Pollution"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-mou-parties">
+          Parties
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "8.6" } : {})}
+            description="The parties to the MOU, separated by commas."
+            example="Australia, Indonesia"
+          />
+        </label>
+        <input
+          id="ic-mou-parties"
+          className="ic-input"
+          type="text"
+          value={(data.parties as string) || ""}
+          placeholder="e.g. Australia, Indonesia"
+          onChange={(e) => updateField("parties", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-mou-signedDate">
+          Date Signed
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "8.6" } : {})}
+            description="The date the MOU was signed."
+            example="12 June 2002"
+          />
+        </label>
+        <input
+          id="ic-mou-signedDate"
+          className="ic-input"
+          type="text"
+          value={(data.signedDate as string) || ""}
+          placeholder="e.g. 12 June 2002"
+          onChange={(e) => updateField("signedDate", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-mou-pinpoint">
+          Pinpoint
+        </label>
+        <input
+          id="ic-mou-pinpoint"
+          className="ic-input"
+          type="text"
+          value={(data.pinpoint as string) || ""}
+          placeholder="e.g. art 3"
+          onChange={(e) => updateField("pinpoint", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-mou-url">
+          URL
+        </label>
+        <input
+          id="ic-mou-url"
+          className="ic-input"
+          type="text"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
     </div>
   );
 }

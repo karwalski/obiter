@@ -1154,16 +1154,16 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | NOTE-003 | Sentence separator (". ") for notes mixed with citations | FEATURE | DONE |
 | FIX-051 | Bibliography shows case names from party1/party2 | BUG | DONE |
 | FIX-052 | Edit Citation preview supports direct text editing | BUG | DONE |
-| QUOTE-001 | Auto-format quotation (detect length → quotes or block quote, Rule 1.5.1) | FEATURE | TODO |
-| QUOTE-002 | Insert Ellipsis button (Rule 1.5.3) | FEATURE | TODO |
-| QUOTE-003 | Wrap selection in square brackets (Rule 1.5.4) | FEATURE | TODO |
-| QUOTE-004 | Insert [sic] at cursor (Rule 1.5.5) | FEATURE | TODO |
-| QUOTE-005 | Insert annotation: emphasis added, citations omitted (Rule 1.5.7) | FEATURE | TODO |
-| STYLE-001 | Italicise + append (emphasis added) in footnote (Rule 1.8.1) | FEATURE | TODO |
-| STYLE-002 | Expand Latin/foreign word dictionary for auto-italic (Rule 1.8.3) | DATA | TODO |
-| LINK-001 | Linking phrases UI (citing, quoted in — Rule 1.3) | FEATURE | TODO |
-| EBOOK-001 | Distinct ebook source type with platform/URL fields (Rule 6.8) | FEATURE | TODO |
-| PERIODICAL-001 | Distinct periodical/magazine source type (Rule 7.11.3) | FEATURE | TODO |
-| TV-001 | Television series episode/season fields (Rule 7.14.3) | ENHANCEMENT | TODO |
-| MOU-001 | Distinct MOU source type (Rule 8.6) | FEATURE | TODO |
-| APPENDIX-A | Full report series abbreviation data (~500 entries) | DATA | TODO |
+| QUOTE-001 | Auto-format quotation (detect length → quotes or block quote, Rule 1.5.1) | FEATURE | DONE |
+| QUOTE-002 | Insert Ellipsis button (Rule 1.5.3) | FEATURE | DONE |
+| QUOTE-003 | Wrap selection in square brackets (Rule 1.5.4) | FEATURE | DONE |
+| QUOTE-004 | Insert [sic] at cursor (Rule 1.5.5) | FEATURE | DONE |
+| QUOTE-005 | Insert annotation: emphasis added, citations omitted (Rule 1.5.7) | FEATURE | DONE |
+| STYLE-001 | Italicise + append (emphasis added) in footnote (Rule 1.8.1) | FEATURE | DONE |
+| STYLE-002 | Expand Latin/foreign word dictionary for auto-italic (78 terms, Rule 1.8.3) | DATA | DONE |
+| LINK-001 | Linking phrases UI (citing, quoted in — Rule 1.3) | FEATURE | DONE |
+| EBOOK-001 | Distinct ebook source type with platform/URL fields (Rule 6.8) | FEATURE | DONE |
+| PERIODICAL-001 | Distinct periodical/magazine source type (Rule 7.11.3) | FEATURE | DONE |
+| TV-001 | Television series episode/season fields (Rule 7.14.3) | ENHANCEMENT | DONE |
+| MOU-001 | Distinct MOU source type (Rule 8.6) | FEATURE | DONE |
+| APPENDIX-A | Full report series abbreviation data (151 entries) | DATA | DONE |
