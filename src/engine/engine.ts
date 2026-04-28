@@ -464,10 +464,10 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
   return formatTreaty({
     title: (d.title as string) ?? "",
     parties,
-    openedDate: d.openedDate as string | undefined,
+    openedDate: (d.openedDate as string) ?? (d.adoptedDate as string) ?? undefined,
     signedDate: d.signedDate as string | undefined,
-    treatySeries: (d.treatySeries as string) ?? "",
-    seriesVolume: toOptionalNumber(d.seriesVolume ?? d.volume),
+    treatySeries: toStr(d.treatySeries) || toStr(d.conventionSeries) || "",
+    seriesVolume: toOptionalNumber(d.seriesVolume ?? d.volume ?? d.seriesNumber),
     startingPage: toOptionalNumber(d.startingPage),
     entryIntoForceDate: (d.entryIntoForceDate as string) || undefined,
     notYetInForce: toBool(d.notYetInForce),
@@ -984,8 +984,8 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
 function dispatchReport(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatReport({
-    authors: d.authors as Author[] | undefined,
-    body: d.body as string | undefined,
+    authors: Array.isArray(d.authors) ? (d.authors as Author[]) : undefined,
+    body: toStr(d.body) || toStr(d.institutionalAuthor) || toStr(d.author) || undefined,
     bodyJurisdiction: d.bodyJurisdiction as string | undefined,
     bodySubdivision: d.bodySubdivision as string | undefined,
     title: (d.title as string) ?? "",
@@ -1506,15 +1506,15 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
   return formatUnDocument({
     author: d.author as string | undefined,
     title: (d.title as string) ?? "",
-    resolutionNumber: d.resolutionNumber as string | undefined,
+    resolutionNumber: (d.resolutionNumber as string) ?? (d.resolutionOrDocumentNumber as string) ?? (d.resolutionOrDecisionNumber as string) ?? undefined,
     officialRecords: d.officialRecords as string | undefined,
     session: d.session as string | undefined,
     meetingNumber: d.meetingNumber as string | undefined,
     agendaItem: d.agendaItem as string | undefined,
     supplement: d.supplement as string | undefined,
-    documentNumber: (d.documentNumber as string) ?? (d.documentSymbol as string) ?? "",
-    date: (d.date as string) ?? "",
-    annex: d.annex as string | undefined,
+    documentNumber: toStr(d.documentNumber) || toStr(d.documentSymbol) || toStr(d.docNumber),
+    date: toStr(d.date) || (d.year ? String(d.year) : ""),
+    annex: (d.annex as string) ?? undefined,
     pinpoint: d.pinpoint as string | undefined,
   });
 }
@@ -1534,7 +1534,7 @@ function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   // Form field: "docNumber" (e.g. "CCPR/C/95/D/1457/2006")
   const docNumber = toStr(d.docNumber) || toStr(d.documentNumber) || toStr(d.documentSymbol) || toStr(d.unDoc);
   // Build the title: "Views: Communication No X" or just "Communication No X"
-  const titlePrefix = toStr(d.decisionType) || toStr(d.views);
+  const titlePrefix = toStr(d.decisionType) || toStr(d.documentType) || toStr(d.views);
   const commLabel = commNo ? `Communication No ${commNo}` : "";
   const title = titlePrefix && commLabel ? `${titlePrefix}: ${commLabel}` : commLabel || titlePrefix;
   // If no author, committee acts as the author — don't repeat it
@@ -1580,7 +1580,7 @@ function dispatchIcjDecision(citation: Citation): FormattedRun[] {
     year: toNumber(d.year, 0),
     reportSeries: (d.reportSeries as string) ?? "ICJ Reports",
     seriesLetter: d.seriesLetter as string | undefined,
-    page: toOptionalNumber(d.icjReportsPage ?? d.page),
+    page: toOptionalNumber(d.icjReportsPage ?? d.page ?? d.startingPage),
     caseNumber: toOptionalNumber(d.caseNumber),
     pinpoint: (d.pinpoint as string) ?? undefined,
     judge: d.judge as string | undefined,
