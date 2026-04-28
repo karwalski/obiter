@@ -569,9 +569,11 @@ const PLAIN_STRING_FIELDS = [
   "party", "partyName", "entityName", "editors", "parties",
 ];
 
-function personToStr(p: Record<string, string>): string {
-  return p.givenNames ? `${p.givenNames} ${p.surname ?? ""}`.trim()
-    : p.surname ?? p.name ?? "";
+function personToStr(p: unknown): string {
+  if (!p || typeof p !== "object") return String(p ?? "");
+  const obj = p as Record<string, string>;
+  if (obj.givenNames) return `${obj.givenNames} ${obj.surname ?? ""}`.trim();
+  return obj.surname ?? obj.name ?? "";
 }
 
 /**
@@ -587,7 +589,7 @@ function coerceFormData(data: SourceData, sourceType?: string): SourceData {
     if (val !== undefined && typeof val !== "string") {
       if (Array.isArray(val)) {
         mapped[key] = val
-          .map((item: unknown) => typeof item === "string" ? item : personToStr(item as Record<string, string>))
+          .map((item: unknown) => typeof item === "string" ? item : personToStr(item))
           .filter(Boolean)
           .join(", ");
       } else if (typeof val === "object" && val !== null) {
@@ -604,9 +606,9 @@ function coerceFormData(data: SourceData, sourceType?: string): SourceData {
 
   // Map authors array to plain string fields for source types that use them
   if (mapped.authors && Array.isArray(mapped.authors)) {
-    const authorArr = mapped.authors as Array<Record<string, string>>;
+    const authorArr = mapped.authors as unknown[];
     const authorStr = authorArr
-      .map((a: Record<string, string>) => a.givenNames ? `${a.givenNames} ${a.surname ?? ""}`.trim() : a.surname ?? a.name ?? "")
+      .map((a) => personToStr(a))
       .filter(Boolean)
       .join(", ");
     const st = sourceType ?? "";
