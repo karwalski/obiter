@@ -459,8 +459,8 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
     treatySeries: (d.treatySeries as string) ?? "",
     seriesVolume: toOptionalNumber(d.seriesVolume ?? d.volume),
     startingPage: toOptionalNumber(d.startingPage),
-    entryIntoForceDate: d.entryIntoForceDate as string | undefined,
-    notYetInForce: d.notYetInForce as boolean | undefined,
+    entryIntoForceDate: (d.entryIntoForceDate as string) || undefined,
+    notYetInForce: d.notYetInForce === true || d.notYetInForce === "true",
     pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
@@ -2761,8 +2761,8 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
   return oscolaFormatTreaty({
     title: (d.title as string) ?? "",
     adoptedDate: (d.openedDate as string) ?? (d.adoptedDate as string) ?? undefined,
-    entryIntoForceDate: d.entryIntoForceDate as string | undefined,
-    notYetInForce: d.notYetInForce as boolean | undefined,
+    entryIntoForceDate: (d.entryIntoForceDate as string) || undefined,
+    notYetInForce: d.notYetInForce === true || d.notYetInForce === "true",
     treatySeries: d.treatySeries as string | undefined,
     seriesVolume: toOptionalNumber(d.seriesVolume),
     startingPage: toOptionalNumber(d.startingPage),
