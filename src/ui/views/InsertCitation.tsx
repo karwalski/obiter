@@ -1788,10 +1788,10 @@ export default function InsertCitation(): JSX.Element {
             runs={previewRuns}
             sourceType={selectedSourceType as SourceType}
             onParsed={(parsedData, _warnings, detectedSourceType) => {
-              // Map common AI field names to form-specific names
-              const mapped = { ...parsedData };
               // Use detected source type if available (selectedSourceType may be stale due to React batching)
               const st = detectedSourceType ?? selectedSourceType;
+              // Coerce objects/arrays to strings FIRST, before field mapping
+              const mapped = coerceFormData({ ...parsedData }, st ?? undefined);
               // International case/decision types: title/caseName/parties → caseTitle
               const isInternationalCase = st?.startsWith("icj.") || st?.startsWith("arbitral.") ||
                 st?.startsWith("icc_tribunal.") || st === "echr.decision" ||
@@ -1868,9 +1868,7 @@ export default function InsertCitation(): JSX.Element {
                   }
                 }
               }
-              // Coerce object/array values to strings for plain-string form fields
-              const coerced = coerceFormData(mapped, st);
-              setFormData((prev) => ({ ...prev, ...coerced }));
+              setFormData((prev) => ({ ...prev, ...mapped }));
             }}
             onOverride={(text) => {
               // Store override text for direct insertion

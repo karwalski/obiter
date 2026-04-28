@@ -1556,15 +1556,15 @@ function dispatchUnYearbook(citation: Citation): FormattedRun[] {
 function dispatchIcjDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatIcjDecision({
-    caseName: (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "",
-    parties: d.parties as string | undefined,
-    phase: d.phase as string | undefined,
+    caseName: toStr(d.caseTitle) || toStr(d.caseName) || toStr(d.title),
+    parties: toStr(d.parties) || undefined,
+    phase: (d.phase as string) ?? (d.decisionType as string) ?? undefined,
     year: toNumber(d.year, 0),
     reportSeries: (d.reportSeries as string) ?? "ICJ Reports",
     seriesLetter: d.seriesLetter as string | undefined,
-    page: toOptionalNumber(d.page),
+    page: toOptionalNumber(d.icjReportsPage ?? d.page),
     caseNumber: toOptionalNumber(d.caseNumber),
-    pinpoint: d.pinpoint as string | undefined,
+    pinpoint: (d.pinpoint as string) ?? undefined,
     judge: d.judge as string | undefined,
   });
 }
