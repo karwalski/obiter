@@ -2221,7 +2221,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       parties: d.parties as string | undefined,
       signingEvent: d.signingEvent as string | undefined,
       treatySeries: d.treatySeries as string | undefined,
-      entryIntoForce: d.entryIntoForce as string | undefined,
+      entryIntoForce: (d.entryIntoForceDate as string) ?? (d.entryIntoForce as string) ?? undefined,
       pinpoint: extractNzlsgPinpoint(d),
     });
   }

@@ -122,6 +122,7 @@ interface FieldDefinition {
   label: string;
   required?: boolean;
   placeholder?: string;
+  type?: "text" | "checkbox";
 }
 
 /**
@@ -277,9 +278,12 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
     case "treaty":
       return [
         { key: "title", label: "Title", required: true },
-        { key: "dateOpened", label: "Date Opened for Signature", required: true },
+        { key: "openedDate", label: "Date Opened for Signature", required: true },
         { key: "treatySeries", label: "Treaty Series", required: true },
-        { key: "entryIntoForce", label: "Entry into Force" },
+        { key: "seriesVolume", label: "Series Volume" },
+        { key: "startingPage", label: "Starting Page" },
+        { key: "entryIntoForceDate", label: "Entry into Force Date" },
+        { key: "notYetInForce", label: "Not yet in force", type: "checkbox" },
         { key: "pinpoint", label: "Pinpoint" },
       ];
     default:
@@ -590,7 +594,7 @@ export default function EditCitation(): JSX.Element {
 
   // ─── Field Change Handler ────────────────────────────────────────────────
 
-  const handleFieldChange = useCallback((key: string, value: string) => {
+  const handleFieldChange = useCallback((key: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     setSuccessMessage(null);
   }, []);
@@ -825,23 +829,35 @@ export default function EditCitation(): JSX.Element {
       </div>
 
       <div className="edit-form">
-        {fields.map((field) => (
-          <label key={field.key} className="edit-field">
-            <span className="edit-field-label">
-              {field.label}
-              {field.required && <span className="edit-field-required">*</span>}
-            </span>
-            <input
-              ref={field.key === "pinpoint" ? pinpointRef : undefined}
-              type="text"
-              className="edit-field-input"
-              value={(formData[field.key] as string) ?? ""}
-              placeholder={field.placeholder ?? ""}
-              onChange={(e) => handleFieldChange(field.key, e.target.value)}
-              disabled={loading}
-            />
-          </label>
-        ))}
+        {fields.map((field) =>
+          field.type === "checkbox" ? (
+            <label key={field.key} className="edit-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={!!formData[field.key]}
+                onChange={(e) => handleFieldChange(field.key, e.target.checked)}
+                disabled={loading}
+              />
+              <span className="edit-field-label" style={{ margin: 0 }}>{field.label}</span>
+            </label>
+          ) : (
+            <label key={field.key} className="edit-field">
+              <span className="edit-field-label">
+                {field.label}
+                {field.required && <span className="edit-field-required">*</span>}
+              </span>
+              <input
+                ref={field.key === "pinpoint" ? pinpointRef : undefined}
+                type="text"
+                className="edit-field-input"
+                value={(formData[field.key] as string) ?? ""}
+                placeholder={field.placeholder ?? ""}
+                onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                disabled={loading}
+              />
+            </label>
+          )
+        )}
 
         <label className="edit-field">
           <span className="edit-field-label">Short Title</span>
