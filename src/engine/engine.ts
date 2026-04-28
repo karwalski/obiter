@@ -298,6 +298,16 @@ function toStr(raw: unknown): string {
 }
 
 /**
+ * Safely coerce a data field to boolean. Handles XML round-trip where
+ * booleans become strings ("true"/"false"). The string "false" is truthy
+ * in JS which causes incorrect behaviour if used directly.
+ */
+function toBool(raw: unknown): boolean {
+  if (raw === true || raw === "true") return true;
+  return false;
+}
+
+/**
  * Dispatches a reported case citation (Rule 2.2).
  *
  * Extracts party names, year, volume, report series, starting page,
@@ -460,7 +470,7 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
     seriesVolume: toOptionalNumber(d.seriesVolume ?? d.volume),
     startingPage: toOptionalNumber(d.startingPage),
     entryIntoForceDate: (d.entryIntoForceDate as string) || undefined,
-    notYetInForce: d.notYetInForce === true || d.notYetInForce === "true",
+    notYetInForce: toBool(d.notYetInForce),
     pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
@@ -1169,7 +1179,7 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
     place: (d.place as string) ?? (d.location as string) ?? (d.city as string) ?? "",
     date: (d.date as string) ?? "",
     page: (d.page as string) ?? (d.startingPage as string) ?? undefined,
-    isElectronic: d.isElectronic as boolean | undefined,
+    isElectronic: toBool(d.isElectronic) || undefined,
     url: d.url as string | undefined,
   });
 }
@@ -2053,7 +2063,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       shortCourtAbbrev: d.shortCourtAbbrev as string | undefined,
       shortPage: toOptionalNumber(d.shortPage),
       pinpoint: extractNzlsgPinpoint(d),
-      isAppellateCourt: d.isAppellateCourt as boolean | undefined,
+      isAppellateCourt: toBool(d.isAppellateCourt) || undefined,
     });
   }
 
@@ -2074,7 +2084,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatTreatyOfWaitangi({
       language: (d.language as "english" | "maori") ?? "english",
       article: toOptionalNumber(d.article),
-      preamble: d.preamble as boolean | undefined,
+      preamble: toBool(d.preamble) || undefined,
     });
   }
 
@@ -2361,7 +2371,7 @@ function dispatchOscolaCase(citation: Citation): FormattedRun[] {
     caseName: buildOscolaCaseName(d),
     pinpoint: extractOscolaPinpoint(d),
     courtId: d.courtId as string | undefined,
-    bailiiRetrospective: d.bailiiRetrospective as boolean | undefined,
+    bailiiRetrospective: toBool(d.bailiiRetrospective) || undefined,
   };
 
   // Neutral citation
@@ -2417,7 +2427,7 @@ function dispatchOscolaScottishCase(citation: Citation): FormattedRun[] {
     startPage: toNumber(d.startingPage, 0),
     courtId: d.courtId as string | undefined,
     pinpoint: extractOscolaPinpoint(d),
-    historicalSeries: d.historicalSeries as boolean | undefined,
+    historicalSeries: toBool(d.historicalSeries) || undefined,
   };
 
   // Neutral citation
@@ -2711,7 +2721,7 @@ function dispatchOscolaEuCourt(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaEchrDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  const isAdmissibilityDecision = d.isDecision as boolean | undefined;
+  const isAdmissibilityDecision = toBool(d.isDecision) || undefined;
   if (isAdmissibilityDecision) {
     return oscolaFormatEcthrDecision({
       caseName: buildOscolaCaseName(d),
@@ -2762,7 +2772,7 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
     title: (d.title as string) ?? "",
     adoptedDate: (d.openedDate as string) ?? (d.adoptedDate as string) ?? undefined,
     entryIntoForceDate: (d.entryIntoForceDate as string) || undefined,
-    notYetInForce: d.notYetInForce === true || d.notYetInForce === "true",
+    notYetInForce: toBool(d.notYetInForce),
     treatySeries: d.treatySeries as string | undefined,
     seriesVolume: toOptionalNumber(d.seriesVolume),
     startingPage: toOptionalNumber(d.startingPage),

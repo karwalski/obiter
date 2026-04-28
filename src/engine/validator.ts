@@ -1662,7 +1662,7 @@ export function validateCourtMode(
       }
 
       const label = citation.shortTitle || citation.id;
-      const confirmed = citation.data.unreportedConfirmed as boolean | undefined;
+      const confirmed = citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
 
       if (!confirmed) {
         allIssues.push({
