@@ -1509,7 +1509,7 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
 function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   const d = citation.data;
   // Form field: "author" for the applicant/parties (e.g. "Ángela Poma Poma v Peru")
-  const author = toStr(d.author) || toStr(d.title);
+  const author = toStr(d.author);
   // Form field: "communicationNumber" (e.g. "1457/2006")
   const commNo = toStr(d.communicationNumber) || toStr(d.commNumber) || toStr(d.communicationNo);
   // Form field: "committee" (e.g. "Human Rights Committee")
@@ -1520,10 +1520,13 @@ function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   const titlePrefix = toStr(d.decisionType) || toStr(d.views);
   const commLabel = commNo ? `Communication No ${commNo}` : "";
   const title = titlePrefix && commLabel ? `${titlePrefix}: ${commLabel}` : commLabel || titlePrefix;
+  // If no author, committee acts as the author — don't repeat it
+  const effectiveAuthor = author || committee;
+  const effectiveCommittee = author ? committee : "";
   return formatUnCommunication({
-    author,
+    author: effectiveAuthor,
     title,
-    committee,
+    committee: effectiveCommittee,
     documentNumber: docNumber,
     date: (d.date as string) ?? undefined,
     pinpoint: (d.pinpoint as string) ?? undefined,
