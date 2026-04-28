@@ -262,9 +262,10 @@ function extractRetainedTitle(givenNames: string): [string | null, string] {
  * @returns Formatted name as `Given Names Surname` (e.g. `HLA Hart`, `Sir Anthony Mason`)
  */
 export function formatAuthorName(author: Author): string {
-  const [retainedTitle, restOfGiven] = extractRetainedTitle(author.givenNames);
+  const givenNames = author.givenNames ?? "";
+  const [retainedTitle, restOfGiven] = extractRetainedTitle(givenNames);
   const processedGiven = processGivenNames(restOfGiven);
-  const surname = stripPostNominals(author.surname.trim());
+  const surname = stripPostNominals((author.surname ?? "").trim());
 
   const parts: string[] = [];
   if (retainedTitle) {
@@ -287,9 +288,9 @@ export function formatAuthorName(author: Author): string {
  * @returns Inverted name (e.g. `Hart, HLA`)
  */
 export function invertAuthorName(author: Author): string {
-  const [retainedTitle, restOfGiven] = extractRetainedTitle(author.givenNames);
+  const [retainedTitle, restOfGiven] = extractRetainedTitle(author.givenNames ?? "");
   const processedGiven = processGivenNames(restOfGiven);
-  const surname = stripPostNominals(author.surname.trim());
+  const surname = stripPostNominals((author.surname ?? "").trim());
 
   const givenParts: string[] = [];
   if (retainedTitle) {
@@ -392,9 +393,9 @@ export function formatBodyAuthor(data: {
  * @returns FormattedRun[] — plain text
  */
 export function formatJudicialAuthor(author: Author): FormattedRun[] {
-  const [retainedTitle, restOfGiven] = extractRetainedTitle(author.givenNames);
+  const [retainedTitle, restOfGiven] = extractRetainedTitle(author.givenNames ?? "");
   const processedGiven = processGivenNames(restOfGiven);
-  const surname = stripPostNominals(author.surname.trim());
+  const surname = stripPostNominals((author.surname ?? "").trim());
 
   const parts: string[] = [];
 
