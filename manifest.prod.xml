@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>933c30ed-e129-4844-9880-c4009e3969a5</Id>
-  <Version>1.9.0.0</Version>
+  <Version>1.13.0.0</Version>
   <ProviderName>PLAN A DYNAMICS CO</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Obiter"/>
-  <Description DefaultValue="Full AGLC4 citation formatting, document validation, and bibliography generation for Microsoft Word."/>
-  <IconUrl DefaultValue="https://obiter.com.au/app/assets/icon-32.png?v=190"/>
-  <HighResolutionIconUrl DefaultValue="https://obiter.com.au/app/assets/icon-64.png?v=190"/>
+  <Description DefaultValue="AGLC4 citation engine for Microsoft Word. 90+ source types, automatic ibid and short references, bibliography generation, document validation, quotation tools, court submission mode (12+ jurisdictions), and optional AI-assisted parsing. Also supports OSCOLA and NZLSG standards."/>
+  <IconUrl DefaultValue="https://obiter.com.au/app/assets/icon-32.png?v=1130"/>
+  <HighResolutionIconUrl DefaultValue="https://obiter.com.au/app/assets/icon-64.png?v=1130"/>
   <SupportUrl DefaultValue="https://obiter.com.au"/>
   <AppDomains>
     <AppDomain>https://obiter.com.au</AppDomain>
@@ -235,9 +235,9 @@
                     <Description resid="Styling.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.Template.16x16"/>
-                    <bt:Image size="32" resid="Icon.Template.32x32"/>
-                    <bt:Image size="80" resid="Icon.Template.80x80"/>
+                    <bt:Image size="16" resid="Icon.Styling.16x16"/>
+                    <bt:Image size="32" resid="Icon.Styling.32x32"/>
+                    <bt:Image size="80" resid="Icon.Styling.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>ButtonId1</TaskpaneId>
@@ -272,36 +272,39 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-16.png?v=190"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-32.png?v=190"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-80.png?v=190"/>
-        <bt:Image id="Icon.Insert.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-insert-16.png?v=190"/>
-        <bt:Image id="Icon.Insert.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-insert-32.png?v=190"/>
-        <bt:Image id="Icon.Insert.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-insert-80.png?v=190"/>
-        <bt:Image id="Icon.Library.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-library-16.png?v=190"/>
-        <bt:Image id="Icon.Library.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-library-32.png?v=190"/>
-        <bt:Image id="Icon.Library.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-library-80.png?v=190"/>
-        <bt:Image id="Icon.Validate.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-validate-16.png?v=190"/>
-        <bt:Image id="Icon.Validate.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-validate-32.png?v=190"/>
-        <bt:Image id="Icon.Validate.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-validate-80.png?v=190"/>
-        <bt:Image id="Icon.Bibliography.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-16.png?v=190"/>
-        <bt:Image id="Icon.Bibliography.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-32.png?v=190"/>
-        <bt:Image id="Icon.Bibliography.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-80.png?v=190"/>
-        <bt:Image id="Icon.Guide.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-guide-16.png?v=190"/>
-        <bt:Image id="Icon.Guide.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-guide-32.png?v=190"/>
-        <bt:Image id="Icon.Guide.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-guide-80.png?v=190"/>
-        <bt:Image id="Icon.Refresh.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-16.png?v=190"/>
-        <bt:Image id="Icon.Refresh.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-32.png?v=190"/>
-        <bt:Image id="Icon.Refresh.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-80.png?v=190"/>
-        <bt:Image id="Icon.Template.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-template-16.png?v=190"/>
-        <bt:Image id="Icon.Template.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-template-32.png?v=190"/>
-        <bt:Image id="Icon.Template.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-template-80.png?v=190"/>
-        <bt:Image id="Icon.BlockQuote.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-16.png?v=190"/>
-        <bt:Image id="Icon.BlockQuote.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-32.png?v=190"/>
-        <bt:Image id="Icon.BlockQuote.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-80.png?v=190"/>
-        <bt:Image id="Icon.Settings.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-settings-16.png?v=190"/>
-        <bt:Image id="Icon.Settings.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-settings-32.png?v=190"/>
-        <bt:Image id="Icon.Settings.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-settings-80.png?v=190"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-16.png?v=1130"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-32.png?v=1130"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-80.png?v=1130"/>
+        <bt:Image id="Icon.Insert.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-insert-16.png?v=1130"/>
+        <bt:Image id="Icon.Insert.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-insert-32.png?v=1130"/>
+        <bt:Image id="Icon.Insert.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-insert-80.png?v=1130"/>
+        <bt:Image id="Icon.Library.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-library-16.png?v=1130"/>
+        <bt:Image id="Icon.Library.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-library-32.png?v=1130"/>
+        <bt:Image id="Icon.Library.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-library-80.png?v=1130"/>
+        <bt:Image id="Icon.Validate.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-validate-16.png?v=1130"/>
+        <bt:Image id="Icon.Validate.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-validate-32.png?v=1130"/>
+        <bt:Image id="Icon.Validate.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-validate-80.png?v=1130"/>
+        <bt:Image id="Icon.Bibliography.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-16.png?v=1130"/>
+        <bt:Image id="Icon.Bibliography.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-32.png?v=1130"/>
+        <bt:Image id="Icon.Bibliography.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-bibliography-80.png?v=1130"/>
+        <bt:Image id="Icon.Guide.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-guide-16.png?v=1130"/>
+        <bt:Image id="Icon.Guide.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-guide-32.png?v=1130"/>
+        <bt:Image id="Icon.Guide.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-guide-80.png?v=1130"/>
+        <bt:Image id="Icon.Refresh.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-16.png?v=1130"/>
+        <bt:Image id="Icon.Refresh.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-32.png?v=1130"/>
+        <bt:Image id="Icon.Refresh.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-refresh-80.png?v=1130"/>
+        <bt:Image id="Icon.Template.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-template-16.png?v=1130"/>
+        <bt:Image id="Icon.Template.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-template-32.png?v=1130"/>
+        <bt:Image id="Icon.Template.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-template-80.png?v=1130"/>
+        <bt:Image id="Icon.BlockQuote.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-16.png?v=1130"/>
+        <bt:Image id="Icon.BlockQuote.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-32.png?v=1130"/>
+        <bt:Image id="Icon.BlockQuote.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-blockquote-80.png?v=1130"/>
+        <bt:Image id="Icon.Styling.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-settings-16.png?v=1130"/>
+        <bt:Image id="Icon.Styling.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-settings-32.png?v=1130"/>
+        <bt:Image id="Icon.Styling.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-settings-80.png?v=1130"/>
+        <bt:Image id="Icon.Settings.16x16" DefaultValue="https://obiter.com.au/app/assets/icon-settings-16.png?v=1130"/>
+        <bt:Image id="Icon.Settings.32x32" DefaultValue="https://obiter.com.au/app/assets/icon-settings-32.png?v=1130"/>
+        <bt:Image id="Icon.Settings.80x80" DefaultValue="https://obiter.com.au/app/assets/icon-settings-80.png?v=1130"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://obiter.com.au"/>
@@ -332,14 +335,9 @@
         <bt:String id="RefreshAll.Label" DefaultValue="Refresh All"/>
         <bt:String id="ApplyTemplate.Label" DefaultValue="Apply Template"/>
         <bt:String id="BlockQuote.Label" DefaultValue="Block Quote"/>
-        <bt:String id="HeadingI.Label" DefaultValue="Level I"/>
-        <bt:String id="HeadingII.Label" DefaultValue="Level II"/>
-        <bt:String id="HeadingIII.Label" DefaultValue="Level III"/>
-        <bt:String id="HeadingIV.Label" DefaultValue="Level IV"/>
-        <bt:String id="HeadingV.Label" DefaultValue="Level V"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Description" DefaultValue="Obiter loaded successfully. Go to the AGLC4 tab to insert citations, validate formatting, and generate bibliographies."/>
+        <bt:String id="GetStarted.Description" DefaultValue="Obiter loaded successfully. Use the Obiter tab to insert citations, validate formatting, generate bibliographies, and apply AGLC4 document styles."/>
         <bt:String id="ShowPane.Tooltip" DefaultValue="Show the Obiter task pane"/>
         <bt:String id="InsertCitation.Tooltip" DefaultValue="Insert a new AGLC4 citation as a footnote"/>
         <bt:String id="Library.Tooltip" DefaultValue="View and manage all citations in this document"/>
@@ -351,11 +349,6 @@
         <bt:String id="RefreshAll.Tooltip" DefaultValue="Rebuild all citations, headings, and inline formatting"/>
         <bt:String id="ApplyTemplate.Tooltip" DefaultValue="Apply the AGLC4 document template styles"/>
         <bt:String id="BlockQuote.Tooltip" DefaultValue="Format selected paragraphs as an AGLC4 block quote"/>
-        <bt:String id="HeadingI.Tooltip" DefaultValue="Apply AGLC4 Level I heading style to selection"/>
-        <bt:String id="HeadingII.Tooltip" DefaultValue="Apply AGLC4 Level II heading style to selection"/>
-        <bt:String id="HeadingIII.Tooltip" DefaultValue="Apply AGLC4 Level III heading style to selection"/>
-        <bt:String id="HeadingIV.Tooltip" DefaultValue="Apply AGLC4 Level IV heading style to selection"/>
-        <bt:String id="HeadingV.Tooltip" DefaultValue="Apply AGLC4 Level V heading style to selection"/>
       </bt:LongStrings>
     </Resources>
     <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides/1.1" xsi:type="VersionOverridesV1_1">

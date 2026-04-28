@@ -90,6 +90,13 @@
         "default": "Ctrl+Shift+R",
         "mac": "Cmd+Shift+R"
       }
+    },
+    {
+      "action": "applyTemplate",
+      "key": {
+        "default": "Ctrl+Shift+T",
+        "mac": "Cmd+Shift+T"
+      }
     }
   ]
 }

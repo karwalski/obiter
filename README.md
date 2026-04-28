@@ -1,4 +1,4 @@
-# Obiter v1.11.2
+# Obiter v1.13.0
 
 **AGLC4, applied automatically.**
 
@@ -24,10 +24,12 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ### Citation Engine
 
-- **Full AGLC4 coverage** -- all 26 chapters, 87 source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
+- **Full AGLC4 coverage** -- all 26 chapters, 90+ source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
 - **Automatic ibid and subsequent references** -- Obiter detects repeated sources and applies ibid, short titles, and cross-reference note numbers following Rules 1.4.1--1.4.6
 - **Cross-references** -- `(n X)` fields that auto-renumber when footnotes are reordered
 - **Short titles** -- assigned on first citation and used throughout subsequent references
+- **Linking phrases** -- quoting, cited in, affirmed by, and other connecting phrases (Rule 1.3)
+- **Explanatory footnotes** -- mixed citation and commentary within a single footnote
 - **Live citation preview** -- see the formatted output before inserting
 - **Click-to-edit** -- click any citation in a footnote to edit it in the task pane
 
@@ -36,7 +38,9 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 - **Bibliography generation** -- one-click bibliography with correct AGLC4 section ordering (Rule 1.13)
 - **Document validation** -- scan for formatting issues, broken references, and missing fields
 - **AGLC4 document template** -- margins, fonts, spacing, and five heading levels applied in one step
+- **Quotation formatting** -- auto block quote, ellipsis insertion, [sic], editorial brackets, emphasis annotation
 - **Inline body-text formatting** -- automatic italicisation of case names on subsequent mention
+- **Latin term auto-italicisation** -- automatic italicisation of common Latin legal terms
 - **Live refresh** -- ibid, short references, and cross-reference numbers recalculate when footnotes change
 - **Citation find panel** -- search and navigate to any citation in the document
 
@@ -59,9 +63,10 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ### AI-Assisted Citation (Optional)
 
-- **Parse with AI** -- paste a raw citation string and extract fields automatically
+- **Parse with AI** -- paste a raw citation string and extract fields automatically via multi-turn conversation
 - **Help Me Choose** -- describe your source and get a source type recommendation
 - **Check Reference** -- verify citation details against known legal databases
+- **Error reporting** -- AI-assisted explanation of validation errors with suggested fixes
 - BYO API key. No data is sent without explicit user action. Works fully without AI enabled.
 
 ### Other
