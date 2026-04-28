@@ -560,6 +560,74 @@ async function getStore(): Promise<CitationStore> {
   return getSharedStore();
 }
 
+// ─── Coerce object/array data fields to strings ─────────────────────────────
+
+const PLAIN_STRING_FIELDS = [
+  "speaker", "author", "witness", "interviewee", "interviewer",
+  "body", "issuingBody", "applicant", "commissioner", "narrator",
+  "translator", "director", "recipient", "sender", "accused",
+  "party", "partyName", "entityName", "editors", "parties",
+];
+
+function personToStr(p: Record<string, string>): string {
+  return p.givenNames ? `${p.givenNames} ${p.surname ?? ""}`.trim()
+    : p.surname ?? p.name ?? "";
+}
+
+/**
+ * Coerces object/array values to strings for form fields that expect plain text.
+ * The AI parser may return structured objects (e.g. editors as [{givenNames, surname}])
+ * but the form inputs render them as [object Object] if not coerced.
+ */
+function coerceFormData(data: SourceData, sourceType?: string): SourceData {
+  const mapped = { ...data };
+
+  for (const key of PLAIN_STRING_FIELDS) {
+    const val = mapped[key];
+    if (val !== undefined && typeof val !== "string") {
+      if (Array.isArray(val)) {
+        mapped[key] = val
+          .map((item: unknown) => typeof item === "string" ? item : personToStr(item as Record<string, string>))
+          .filter(Boolean)
+          .join(", ");
+      } else if (typeof val === "object" && val !== null) {
+        const obj = val as Record<string, string>;
+        if (obj.applicant || obj.claimant) {
+          const p1 = obj.applicant ?? obj.claimant ?? "";
+          mapped[key] = obj.respondent ? `${p1} v ${obj.respondent}` : p1;
+        } else {
+          mapped[key] = personToStr(obj);
+        }
+      }
+    }
+  }
+
+  // Map authors array to plain string fields for source types that use them
+  if (mapped.authors && Array.isArray(mapped.authors)) {
+    const authorArr = mapped.authors as Array<Record<string, string>>;
+    const authorStr = authorArr
+      .map((a: Record<string, string>) => a.givenNames ? `${a.givenNames} ${a.surname ?? ""}`.trim() : a.surname ?? a.name ?? "")
+      .filter(Boolean)
+      .join(", ");
+    const st = sourceType ?? "";
+    if (!mapped.speaker && (st === "speech" || st === "constitutional_convention")) {
+      mapped.speaker = authorStr;
+    }
+    if (!mapped.author && ["report", "newspaper", "internet_material", "thesis",
+      "submission.government", "correspondence", "social_media"].includes(st)) {
+      mapped.author = authorStr;
+    }
+    if (!mapped.witness && st === "evidence.parliamentary") {
+      mapped.witness = authorStr;
+    }
+    if (!mapped.interviewee && st === "interview") {
+      mapped.interviewee = authorStr;
+    }
+  }
+
+  return mapped;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function InsertCitation(): JSX.Element {
@@ -972,8 +1040,8 @@ export default function InsertCitation(): JSX.Element {
         setSelectedSourceType(result.sourceType);
       }
 
-      // Populate form data with extracted fields
-      const newFormData: SourceData = { ...result.data };
+      // Populate form data with extracted fields (coerce objects to strings)
+      const newFormData: SourceData = coerceFormData(result.data, result.sourceType);
 
       // Extract authors array if present and populate the authors state
       const extractedAuthors = result.data.authors as
@@ -1800,62 +1868,9 @@ export default function InsertCitation(): JSX.Element {
                   }
                 }
               }
-              // Coerce any object/array values to strings for plain-string form fields.
-              // The AI may return authors as [{givenNames, surname}] but forms like
-              // speech, report, newspaper expect a plain string in speaker/author/etc.
-              const plainStringFields = [
-                "speaker", "author", "witness", "interviewee", "interviewer",
-                "body", "issuingBody", "applicant", "commissioner", "narrator",
-                "translator", "director", "recipient", "sender", "accused",
-                "party", "partyName", "entityName", "editors", "parties",
-              ];
-              const personToStr = (p: Record<string, string>): string =>
-                p.givenNames ? `${p.givenNames} ${p.surname ?? ""}`.trim()
-                  : p.surname ?? p.name ?? "";
-              for (const key of plainStringFields) {
-                const val = mapped[key];
-                if (val !== undefined && typeof val !== "string") {
-                  if (Array.isArray(val)) {
-                    // Join all names (editors, parties list, etc.)
-                    mapped[key] = val
-                      .map((item) => typeof item === "string" ? item : personToStr(item as Record<string, string>))
-                      .filter(Boolean)
-                      .join(", ");
-                  } else if (typeof val === "object" && val !== null) {
-                    const obj = val as Record<string, string>;
-                    // Handle {applicant, respondent} for parties
-                    if (obj.applicant || obj.claimant) {
-                      const p1 = obj.applicant ?? obj.claimant ?? "";
-                      mapped[key] = obj.respondent ? `${p1} v ${obj.respondent}` : p1;
-                    } else {
-                      mapped[key] = personToStr(obj);
-                    }
-                  }
-                }
-              }
-              // If AI returned authors array but form expects speaker/author as string
-              if (mapped.authors && Array.isArray(mapped.authors)) {
-                const authorArr = mapped.authors as Array<Record<string, string>>;
-                const authorStr = authorArr
-                  .map((a) => a.givenNames ? `${a.givenNames} ${a.surname ?? ""}`.trim() : a.surname ?? a.name ?? "")
-                  .filter(Boolean)
-                  .join(", ");
-                // Map to the appropriate plain-string field if it's empty
-                if (!mapped.speaker && (st === "speech" || st === "constitutional_convention")) {
-                  mapped.speaker = authorStr;
-                }
-                if (!mapped.author && ["report", "newspaper", "internet_material", "thesis",
-                  "submission.government", "correspondence", "social_media"].includes(st ?? "")) {
-                  mapped.author = authorStr;
-                }
-                if (!mapped.witness && st === "evidence.parliamentary") {
-                  mapped.witness = authorStr;
-                }
-                if (!mapped.interviewee && st === "interview") {
-                  mapped.interviewee = authorStr;
-                }
-              }
-              setFormData((prev) => ({ ...prev, ...mapped }));
+              // Coerce object/array values to strings for plain-string form fields
+              const coerced = coerceFormData(mapped, st);
+              setFormData((prev) => ({ ...prev, ...coerced }));
             }}
             onOverride={(text) => {
               // Store override text for direct insertion
