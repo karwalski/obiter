@@ -1321,12 +1321,19 @@ function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
  */
 function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // Author: may be a plain string (form) or authors array (AI parser)
+  let authors: Author[] | undefined;
+  if (Array.isArray(d.authors) && d.authors.length > 0) {
+    authors = d.authors as Author[];
+  } else if (d.author && typeof d.author === "string") {
+    authors = [{ givenNames: "", surname: d.author as string }];
+  }
   return formatInternetMaterial({
-    authors: d.authors as Author[] | undefined,
-    title: (d.title as string) ?? "",
-    website: (d.website as string) ?? (d.siteName as string) ?? "",
-    date: (d.date as string) ?? "",
-    url: (d.url as string) ?? "",
+    authors,
+    title: toStr(d.title),
+    website: toStr(d.websiteName) || toStr(d.website) || toStr(d.siteName),
+    date: toStr(d.date),
+    url: toStr(d.url),
   });
 }
 

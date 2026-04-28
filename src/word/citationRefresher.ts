@@ -36,7 +36,6 @@
 import { CitationStore } from "../store/citationStore";
 import {
   formatCitation,
-  applySignalAndCommentary,
   applyLinkingPhrase,
   getFormattedPreview,
 } from "../engine/engine";
@@ -521,8 +520,7 @@ function renderFootnoteCitations(
     // formatCitation returns runs WITHOUT closing punctuation
     let runs = formatCitation(citation, citationContext, config);
 
-    // Apply signal and commentary if present
-    runs = applySignalAndCommentary(runs, citation);
+    // Signal and commentary are already applied by formatCitation() — do not re-apply
 
     // LINK-001: Apply linking phrase and linked citation (Rule 1.3)
     if (citation.linkingPhrase && citation.linkedCitationId) {

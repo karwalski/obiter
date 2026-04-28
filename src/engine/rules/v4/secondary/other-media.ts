@@ -665,11 +665,19 @@ export function formatInternetMaterial(
     runs.push({ text: ", " });
   }
 
-  runs.push({ text: "\u2018" + data.title + "\u2019" });
-  runs.push({ text: ", " });
-  runs.push({ text: data.website, italic: true });
-  runs.push({ text: " (" + data.date + ")" });
-  runs.push({ text: " <" + data.url + ">" });
+  if (data.title) {
+    runs.push({ text: `\u2018${data.title}\u2019` });
+  }
+  if (data.website) {
+    if (runs.length > 0) runs.push({ text: ", " });
+    runs.push({ text: data.website, italic: true });
+  }
+  if (data.date) {
+    runs.push({ text: ` (${data.date})` });
+  }
+  if (data.url) {
+    runs.push({ text: ` <${data.url}>` });
+  }
 
   return runs;
 }
