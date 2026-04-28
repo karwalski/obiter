@@ -1509,26 +1509,24 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
 function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   const d = citation.data;
   // Form field: "author" for the applicant/parties (e.g. "Ángela Poma Poma v Peru")
-  // AI may put the case name in "title" instead of "author"
-  const author = (d.author as string) ?? (d.title as string) ?? "";
+  const author = toStr(d.author) || toStr(d.title);
   // Form field: "communicationNumber" (e.g. "1457/2006")
-  const commNo = (d.communicationNumber as string) ?? (d.commNumber as string) ?? (d.communicationNo as string) ?? "";
+  const commNo = toStr(d.communicationNumber) || toStr(d.commNumber) || toStr(d.communicationNo);
   // Form field: "committee" (e.g. "Human Rights Committee")
-  const committee = (d.committee as string) ?? (d.body as string) ?? (d.commission as string) ?? (d.organ as string) ?? "";
+  const committee = toStr(d.committee) || toStr(d.body) || toStr(d.commission) || toStr(d.organ);
   // Form field: "docNumber" (e.g. "CCPR/C/95/D/1457/2006")
-  const docNumber = (d.docNumber as string) ?? (d.documentNumber as string) ?? (d.documentSymbol as string) ?? (d.unDoc as string) ?? "";
-  // Build the title: "Author, Committee, Communication No X"
-  const titleParts: string[] = [];
-  if (committee) titleParts.push(committee);
-  if (commNo) titleParts.push(`Communication No ${commNo}`);
-  const title = titleParts.join(", ");
+  const docNumber = toStr(d.docNumber) || toStr(d.documentNumber) || toStr(d.documentSymbol) || toStr(d.unDoc);
+  // Build the title: "Views: Communication No X" or just "Communication No X"
+  const titlePrefix = toStr(d.decisionType) || toStr(d.views);
+  const commLabel = commNo ? `Communication No ${commNo}` : "";
+  const title = titlePrefix && commLabel ? `${titlePrefix}: ${commLabel}` : commLabel || titlePrefix;
   return formatUnCommunication({
     author,
     title,
     committee,
     documentNumber: docNumber,
-    date: d.date as string | undefined,
-    pinpoint: d.pinpoint as string | undefined,
+    date: (d.date as string) ?? undefined,
+    pinpoint: (d.pinpoint as string) ?? undefined,
   });
 }
 

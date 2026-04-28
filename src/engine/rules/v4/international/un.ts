@@ -225,18 +225,27 @@ export function formatUnCommunication(data: {
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Author
-  runs.push({ text: data.author });
-  runs.push({ text: ", " });
+  // Author (may be empty for committee-authored communications)
+  if (data.author) {
+    runs.push({ text: data.author });
+  }
 
   // Title — italicised
-  runs.push({ text: data.title, italic: true });
+  if (data.title) {
+    if (runs.length > 0) runs.push({ text: ", " });
+    runs.push({ text: data.title, italic: true });
+  }
 
   // Committee
-  runs.push({ text: `, ${data.committee}` });
+  if (data.committee) {
+    if (runs.length > 0) runs.push({ text: ", " });
+    runs.push({ text: data.committee });
+  }
 
   // UN document number
-  runs.push({ text: `, UN Doc ${data.documentNumber}` });
+  if (data.documentNumber) {
+    runs.push({ text: `, UN Doc ${data.documentNumber}` });
+  }
 
   // Date
   if (data.date) {
