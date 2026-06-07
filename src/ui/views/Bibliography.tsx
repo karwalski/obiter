@@ -61,21 +61,25 @@ async function insertBibliographyIntoDocument(
   await Word.run(async (context) => {
     const selection = context.document.getSelection();
 
+    // Each paragraph is inserted AFTER the previously inserted one so the
+    // document grows forward. Anchoring every insert against `selection`
+    // stacks paragraphs in reverse order at the cursor.
+    let anchor: Word.Paragraph | null = null;
+
+    function insertAfter(text: string): Word.Paragraph {
+      return anchor
+        ? anchor.insertParagraph(text, Word.InsertLocation.after)
+        : selection.insertParagraph(text, Word.InsertLocation.after);
+    }
+
     for (const section of sections) {
-      // Insert section heading
-      const headingParagraph = selection.insertParagraph(
-        section.heading,
-        Word.InsertLocation.after
-      );
+      const headingParagraph = insertAfter(section.heading);
       headingParagraph.style = "AGLC4 Bibliography Heading";
       headingParagraph.alignment = Word.Alignment.centered;
+      anchor = headingParagraph;
 
-      // Insert each entry
       for (const entry of section.entries) {
-        const entryParagraph = selection.insertParagraph(
-          "",
-          Word.InsertLocation.after
-        );
+        const entryParagraph = insertAfter("");
 
         // Build the paragraph content run-by-run
         for (const run of entry) {
@@ -90,6 +94,7 @@ async function insertBibliographyIntoDocument(
           if (run.font) range.font.name = run.font;
           if (run.size) range.font.size = run.size;
         }
+        anchor = entryParagraph;
       }
     }
 
