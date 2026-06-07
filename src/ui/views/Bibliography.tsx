@@ -76,6 +76,10 @@ async function insertBibliographyIntoDocument(
       const headingParagraph = insertAfter(section.heading);
       headingParagraph.style = "AGLC4 Bibliography Heading";
       headingParagraph.alignment = Word.Alignment.centered;
+      // Apply spacing directly so the visual separation works even when
+      // the user has not installed the AGLC4 paragraph styles yet.
+      headingParagraph.spaceBefore = 18;
+      headingParagraph.spaceAfter = 6;
       anchor = headingParagraph;
 
       for (const entry of section.entries) {

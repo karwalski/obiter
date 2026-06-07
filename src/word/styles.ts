@@ -164,7 +164,9 @@ export async function applyAglc4Styles(
   }
 
   // ── AGLC4 Bibliography Heading (Rule 1.13) ──────────────────────────────
-  // Bibliography section headings are centred and in italic.
+  // Bibliography section headings are centred and in italic. Add visible
+  // breathing room before/after each heading so sections are visually
+  // separated from the entries above and below.
   const bibHeading = getOrCreateStyle(
     "AGLC4 Bibliography Heading",
     "Paragraph" as Word.StyleType
@@ -172,6 +174,8 @@ export async function applyAglc4Styles(
   if (bibHeading) {
     bibHeading.font.italic = true;
     bibHeading.paragraphFormat.alignment = "Centered" as Word.Alignment;
+    bibHeading.paragraphFormat.spaceBefore = 18;
+    bibHeading.paragraphFormat.spaceAfter = 6;
   }
 
   // ── Modify built-in Heading 1–5 for AGLC4 (Rule 1.12.2) ────────────────
