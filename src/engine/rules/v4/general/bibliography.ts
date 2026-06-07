@@ -413,17 +413,20 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
 // ─── Full Bibliography Generation (Rule 1.13) ───────────────────────────────
 
-/** Display headings for each bibliography section. */
-const SECTION_HEADINGS: Record<string, string> = {
-  A: "A Articles/Books/Reports",
-  B: "B Cases",
-  C: "C Legislation",
-  D: "D Treaties",
-  E: "E Other",
+/** Display titles for each bibliography section (in canonical order). */
+const SECTION_TITLES: Record<string, string> = {
+  A: "Articles/Books/Reports",
+  B: "Cases",
+  C: "Legislation",
+  D: "Treaties",
+  E: "Other",
 };
 
 /** Canonical ordering of bibliography sections. */
 const SECTION_ORDER = ["A", "B", "C", "D", "E"];
+
+/** Letters used for renumbering after empty sections are dropped. */
+const RENUMBERED_LETTERS = ["A", "B", "C", "D", "E"];
 
 /**
  * Generates a full AGLC4 bibliography from a list of citations.
@@ -451,8 +454,11 @@ export function generateBibliography(
     groups[category].push(citation);
   }
 
-  // Build sections, omitting empty ones.
+  // Build sections, omitting empty ones. Per AGLC4 Rule 1.13, retained
+  // sections are renumbered A, B, C, ... — the canonical letter does NOT
+  // stay attached to a category when earlier categories are absent.
   const sections: BibliographySection[] = [];
+  let nextLetterIdx = 0;
 
   for (const category of SECTION_ORDER) {
     const citationsInGroup = groups[category];
@@ -476,9 +482,10 @@ export function generateBibliography(
     }
 
     const entries = uniqueCitations.map((c) => formatBibliographyEntry(c));
+    const letter = RENUMBERED_LETTERS[nextLetterIdx++];
 
     sections.push({
-      heading: SECTION_HEADINGS[category],
+      heading: `${letter} ${SECTION_TITLES[category]}`,
       entries,
     });
   }
