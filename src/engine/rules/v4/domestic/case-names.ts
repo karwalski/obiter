@@ -177,6 +177,16 @@ export function formatCaseName(
   p1 = abbreviateCorporateNames(p1);
   p2 = abbreviateCorporateNames(p2);
 
+  // Single-party cases (e.g. "Re Microsoft Corporation", ex parte
+  // applications, statutory references). When only one party is
+  // populated, render it alone — do not emit a stray " v " or " and ".
+  if (!p2.trim() && p1.trim()) {
+    return [{ text: p1, italic: true }];
+  }
+  if (!p1.trim() && p2.trim()) {
+    return [{ text: p2, italic: true }];
+  }
+
   return [
     { text: p1, italic: true },
     { text: ` ${separator} `, italic: false },

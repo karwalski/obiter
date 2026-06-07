@@ -331,6 +331,9 @@ export default function EditCitation(): JSX.Element {
   const [commentaryBefore, setCommentaryBefore] = useState("");
   const [commentaryAfter, setCommentaryAfter] = useState("");
 
+  // Manual override text (bypasses structured formatting)
+  const [overrideText, setOverrideText] = useState("");
+
   // UX-004: Occurrences — footnotes where this citation appears
   const [occurrences, setOccurrences] = useState<CitationFootnoteEntry[]>([]);
   const [occurrencesOpen, setOccurrencesOpen] = useState(false);
@@ -370,11 +373,12 @@ export default function EditCitation(): JSX.Element {
       signal: signal || undefined,
       commentaryBefore: commentaryBefore || undefined,
       commentaryAfter: commentaryAfter || undefined,
+      overrideText: overrideText || undefined,
     };
     const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
     const courtConfig = buildCourtConfig(standardConfig, courtToggles);
     return getFormattedPreview(previewCitation, courtConfig);
-  }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, standardConfig]);
+  }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
 
   // UX-002: Re-initialise the store and reload all citations from the document.
   const refreshCitations = useCallback(async () => {
@@ -429,6 +433,7 @@ export default function EditCitation(): JSX.Element {
       setSignal("");
       setCommentaryBefore("");
       setCommentaryAfter("");
+      setOverrideText("");
       setError(null);
       setLoadError(null);
       setSuccessMessage(null);
@@ -466,6 +471,7 @@ export default function EditCitation(): JSX.Element {
         setSignal(found.signal ?? "");
         setCommentaryBefore(found.commentaryBefore ?? "");
         setCommentaryAfter(found.commentaryAfter ?? "");
+        setOverrideText(found.overrideText ?? "");
         // Restore format preference from data if previously saved
         const savedPref = found.data._formatPreference;
         if (
@@ -685,6 +691,7 @@ export default function EditCitation(): JSX.Element {
         signal: signal || undefined,
         commentaryBefore: commentaryBefore || undefined,
         commentaryAfter: commentaryAfter || undefined,
+        overrideText: overrideText || undefined,
         modifiedAt: new Date().toISOString(),
       };
 
@@ -704,7 +711,7 @@ export default function EditCitation(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [citation, formData, shortTitle, formatPreference, signal, commentaryBefore, commentaryAfter]);
+  }, [citation, formData, shortTitle, formatPreference, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
 
   // ─── Delete Citation ──────────────────────────────────────────────────────
 
@@ -977,6 +984,43 @@ export default function EditCitation(): JSX.Element {
           />
         </label>
       </div>
+
+      {/* Manual override — bypasses structured formatting */}
+      <fieldset className="settings-section">
+        <legend className="settings-section-title">Manual override</legend>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 4px" }}>
+          When set, the citation renders verbatim instead of being built from
+          the fields above. Clear to re-enable structured formatting.
+        </p>
+        <label className="edit-field">
+          <span className="edit-field-label">Override text</span>
+          <textarea
+            className="edit-field-input"
+            rows={3}
+            value={overrideText}
+            placeholder="Leave blank to use the structured citation."
+            onChange={(e) => {
+              setOverrideText(e.target.value);
+              setSuccessMessage(null);
+            }}
+            disabled={loading}
+          />
+        </label>
+        {overrideText && (
+          <button
+            type="button"
+            className="edit-btn edit-btn-secondary edit-btn-small"
+            onClick={() => {
+              setOverrideText("");
+              setSuccessMessage(null);
+            }}
+            disabled={loading}
+            style={{ fontSize: 10 }}
+          >
+            Clear override
+          </button>
+        )}
+      </fieldset>
 
       {/* Format Preference */}
       <fieldset ref={formatSectionRef} className="edit-format-section settings-section">

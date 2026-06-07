@@ -3134,6 +3134,14 @@ export function formatCitation(
   context?: CitationContext,
   config?: CitationConfig,
 ): FormattedRun[] {
+  // Manual override: when the user chose "Use as-is" in the Preview editor,
+  // the override text is rendered verbatim and structured formatting is
+  // bypassed. Subsequent references still get auto-resolved unless the
+  // override path was applied at insert time.
+  if (citation.overrideText) {
+    return [{ text: citation.overrideText }];
+  }
+
   // Resolve standard config — default to AGLC4 for backward compatibility
   const standardConfig = config ?? getStandardConfig("aglc4");
 
@@ -3273,6 +3281,13 @@ export function getFormattedPreview(
   config?: CitationConfig,
   linkedCitationRuns?: FormattedRun[],
 ): FormattedRun[] {
+  // Manual override: render verbatim and skip every formatter / signal /
+  // linking phrase path. The user has explicitly told us their text is
+  // already correct.
+  if (citation.overrideText) {
+    return [{ text: citation.overrideText }];
+  }
+
   const standardConfig = config ?? getStandardConfig("aglc4");
 
   // OSC-ENH-001: Try OSCOLA-specific formatters first when standard is OSCOLA

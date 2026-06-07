@@ -299,6 +299,15 @@ export interface Citation {
    * convention limits key authorities to a maximum of 5.
    */
   isKeyAuthority?: boolean;
+
+  /**
+   * Manual override text. When set, the engine bypasses structured
+   * formatting and renders this string verbatim. Set via the
+   * Preview's "Use as-is (override formatting)" path when the parser
+   * cannot interpret the user's pasted citation. Clearing this field
+   * re-enables structured formatting.
+   */
+  overrideText?: string;
 }
 
 // ─── Store Metadata ───────────────────────────────────────────────────────────

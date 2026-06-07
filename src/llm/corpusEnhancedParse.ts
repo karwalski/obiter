@@ -717,6 +717,12 @@ function mapDeterministicToSourceData(
       if (vMatch) {
         data.party1 = vMatch[1].trim();
         data.party2 = vMatch[2].trim();
+      } else if (partiesStr.length > 0) {
+        // Single-party form: "Re X", "Ex parte X", or any unmatched
+        // pre-MNC text. Store the whole thing as party1 so the user
+        // can edit either part; the formatter renders single-party
+        // names without injecting " v ".
+        data.party1 = partiesStr;
       }
     }
   } else if (parsed.type === "report") {

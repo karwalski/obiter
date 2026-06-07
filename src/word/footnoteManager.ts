@@ -567,12 +567,35 @@ export async function insertCitationFootnote(
       await context.sync();
     });
   } catch (err: unknown) {
-    const original = err instanceof Error ? err.message : String(err);
     throw new Error(
-      `Failed to insert citation footnote. This may be caused by limited API support in Word for Web. ` +
-        `Details: ${original}`,
+      `Failed to insert citation footnote. ${describeOfficeError(err)}`,
     );
   }
+}
+
+/**
+ * Builds a diagnostic string from a thrown error, unwrapping Office.js
+ * OfficeExtension.Error properties (code, message, debugInfo.errorLocation)
+ * so wrappers do not collapse the underlying cause to "GeneralException".
+ */
+function describeOfficeError(err: unknown): string {
+  if (err && typeof err === "object") {
+    const e = err as {
+      code?: string;
+      message?: string;
+      debugInfo?: { errorLocation?: string; code?: string; message?: string };
+    };
+    const code = e.code ?? e.debugInfo?.code;
+    const message = e.message ?? e.debugInfo?.message;
+    const location = e.debugInfo?.errorLocation;
+    const parts: string[] = [];
+    if (code && code !== "GeneralException") parts.push(`code=${code}`);
+    if (location) parts.push(`at=${location}`);
+    if (message) parts.push(message);
+    if (parts.length > 0) return `Details: ${parts.join(" | ")}`;
+  }
+  const fallback = err instanceof Error ? err.message : String(err);
+  return `Details: ${fallback}`;
 }
 
 // ─── Update Citation Content ────────────────────────────────────────────────

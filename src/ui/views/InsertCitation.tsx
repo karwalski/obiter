@@ -1228,6 +1228,9 @@ export default function InsertCitation(): JSX.Element {
         signal: signal || undefined,
         commentaryBefore: commentaryBefore || undefined,
         commentaryAfter: commentaryAfter || undefined,
+        // Persist the manual override on the Citation itself so the refresher
+        // does not overwrite the footnote with auto-formatted text.
+        overrideText: overrideText || undefined,
         tags: [],
         createdAt: now,
         modifiedAt: now,
