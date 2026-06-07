@@ -49,8 +49,10 @@ export interface CitationFootnoteEntry {
   citationId: string;
   /** Human-readable label from the child CC title. */
   title: string;
-  /** The rendered format of this occurrence (full/short/ibid), parsed from the CC title. */
-  renderedFormat?: "full" | "short" | "ibid";
+  /** User format preference for this occurrence (auto/full/short/ibid). */
+  formatPreference?: "auto" | "full" | "short" | "ibid";
+  /** Per-occurrence pinpoint encoded in the CC title. */
+  pinpoint?: string;
 }
 
 /** Result returned when cursor is next to a footnote. */
@@ -239,6 +241,68 @@ export async function getFootnoteCitations(
     }
   }
   return citationIds;
+}
+
+// ─── Occurrence Title Encoding ──────────────────────────────────────────────
+
+/**
+ * Builds the CC title encoding the user's format preference and optional pinpoint.
+ * Format: `Citation:<pref>[:<pinpoint>]`.
+ */
+export function buildOccurrenceTitle(
+  formatPreference: "auto" | "full" | "short" | "ibid",
+  pinpoint?: string,
+): string {
+  return pinpoint
+    ? `Citation:${formatPreference}:${pinpoint}`
+    : `Citation:${formatPreference}`;
+}
+
+/**
+ * Parses a CC title into format preference and pinpoint.
+ * Returns "auto" preference and undefined pinpoint for unrecognised titles.
+ */
+export function parseOccurrenceTitle(title: string | undefined): {
+  formatPreference: "auto" | "full" | "short" | "ibid";
+  pinpoint?: string;
+} {
+  if (!title) return { formatPreference: "auto" };
+  const match = title.match(/^Citation:(auto|full|short|ibid)(?::(.*))?$/);
+  if (!match) return { formatPreference: "auto" };
+  const pref = match[1] as "auto" | "full" | "short" | "ibid";
+  const pinpoint = match[2] && match[2].length > 0 ? match[2] : undefined;
+  return { formatPreference: pref, pinpoint };
+}
+
+/**
+ * Updates a single occurrence's format preference and/or pinpoint by
+ * rewriting the child CC title. Does not touch the rendered text — the
+ * caller should trigger a refresh afterwards to re-render with the new
+ * preference.
+ */
+export async function updateOccurrenceMetadata(
+  citationId: string,
+  footnoteIndex: number,
+  formatPreference: "auto" | "full" | "short" | "ibid",
+  pinpoint?: string,
+): Promise<void> {
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const noteItem = (footnotes.items ?? [])[footnoteIndex - 1];
+    if (!noteItem) return;
+
+    const parentCC = await findParentCC(noteItem, context);
+    if (!parentCC) return;
+
+    const childCC = await findChildCC(parentCC, citationId, context);
+    if (!childCC) return;
+
+    childCC.title = buildOccurrenceTitle(formatPreference, pinpoint);
+    await context.sync();
+  });
 }
 
 // ─── Adjacent Footnote Detection ────────────────────────────────────────────
@@ -574,19 +638,17 @@ export async function getAllCitationFootnotes(): Promise<
         // Skip parent CCs and other internal obiter tags; only collect
         // child CCs which have citation UUIDs as tags.
         if (cc.tag && !cc.tag.startsWith("obiter-")) {
-          // Parse rendered format from the CC title (e.g. "Citation:short")
-          let renderedFormat: "full" | "short" | "ibid" | undefined;
-          if (cc.title) {
-            const match = cc.title.match(/^Citation:(full|short|ibid)(?::|$)/);
-            if (match) {
-              renderedFormat = match[1] as "full" | "short" | "ibid";
-            }
-          }
+          // Parse format preference and pinpoint from the CC title.
+          // Title format: "Citation:<pref>[:<pinpoint>]" where <pref> is
+          // auto/full/short/ibid. Legacy titles with rendered formats
+          // (e.g. "Citation:short:42") are treated as explicit preferences.
+          const parsed = parseOccurrenceTitle(cc.title);
           results.push({
             footnoteIndex: i + 1, // 1-based footnote numbering
             citationId: cc.tag,
             title: cc.title,
-            renderedFormat,
+            formatPreference: parsed.formatPreference,
+            pinpoint: parsed.pinpoint,
           });
         }
       }

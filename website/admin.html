@@ -292,6 +292,7 @@
         <button class="admin-tab is-active" data-tab="signatures">Signatures</button>
         <button class="admin-tab" data-tab="contacts">Contacts</button>
         <button class="admin-tab" data-tab="errors">Error Reports</button>
+        <button class="admin-tab" data-tab="analytics">Analytics</button>
         <button class="admin-tab" data-tab="settings">Settings</button>
       </div>
 
@@ -369,6 +370,30 @@
         <div class="admin-empty" id="error-empty" style="display: none;">No error reports found.</div>
       </div>
 
+      <!-- Analytics Panel -->
+      <div class="admin-panel" id="panel-analytics">
+        <div class="admin-toolbar">
+          <select class="admin-filter" id="analytics-granularity">
+            <option value="day">Day</option>
+            <option value="week" selected>Week</option>
+            <option value="month">Month</option>
+          </select>
+          <button class="admin-filter" id="analytics-prev" style="cursor:pointer;">&larr; Previous</button>
+          <span class="admin-count" id="analytics-range"></span>
+          <button class="admin-filter" id="analytics-next" style="cursor:pointer;">Next &rarr;</button>
+        </div>
+        <div style="position:relative; width:100%; max-width:960px;">
+          <canvas id="analytics-chart" width="960" height="360" style="width:100%; height:auto; border:1px solid var(--colour-border); border-radius:var(--radius-md);"></canvas>
+        </div>
+        <div style="margin-top:var(--space-md); font-size:0.8125rem; color:var(--colour-text-secondary);">
+          <span style="display:inline-block; width:12px; height:12px; background:#2AA198; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Loads
+          <span style="display:inline-block; width:12px; height:12px; background:#6C71C4; border-radius:2px; vertical-align:middle; margin-left:16px; margin-right:4px;"></span> Unique loads
+          <span style="display:inline-block; width:12px; height:2px; background:#CB4B16; vertical-align:middle; margin-left:16px; margin-right:4px; border-top:2px dashed #CB4B16;"></span> Crash reports
+          <span style="display:inline-block; width:12px; height:12px; border-left:2px dashed #859900; vertical-align:middle; margin-left:16px; margin-right:4px;"></span> Version change
+        </div>
+        <div class="admin-empty" id="analytics-empty" style="display: none;">No load data for this period.</div>
+      </div>
+
       <!-- Settings Panel -->
       <div class="admin-panel" id="panel-settings">
         <h3>Notification Settings</h3>
@@ -436,6 +461,7 @@
       loadSignatures();
       loadContacts();
       loadErrors();
+      loadAnalytics();
     }
 
     function showLogin() {
@@ -697,6 +723,238 @@
         })
         .catch(function (err) { console.error("Failed to load error reports:", err); });
     }
+
+    // -------------------------------------------------------
+    // Analytics
+    // -------------------------------------------------------
+
+    var analyticsGranularity = document.getElementById("analytics-granularity");
+    var analyticsPrev = document.getElementById("analytics-prev");
+    var analyticsNext = document.getElementById("analytics-next");
+    var analyticsRange = document.getElementById("analytics-range");
+    var analyticsEmpty = document.getElementById("analytics-empty");
+    var analyticsCanvas = document.getElementById("analytics-chart");
+
+    // Current analytics window — offset from "now" in granularity units
+    var analyticsOffset = 0;
+
+    function getAnalyticsDateRange() {
+      var gran = analyticsGranularity.value;
+      var now = new Date();
+      var start = new Date(now);
+      var end = new Date(now);
+
+      if (gran === "day") {
+        start.setDate(now.getDate() + analyticsOffset);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setDate(start.getDate() + 1);
+      } else if (gran === "week") {
+        var dayOfWeek = now.getDay();
+        var mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        start.setDate(now.getDate() + mondayOffset + (analyticsOffset * 7));
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setDate(start.getDate() + 7);
+      } else {
+        // month
+        start = new Date(now.getFullYear(), now.getMonth() + analyticsOffset, 1);
+        end = new Date(now.getFullYear(), now.getMonth() + analyticsOffset + 1, 1);
+      }
+
+      return {
+        start: start.toISOString().split("T")[0],
+        end: end.toISOString().split("T")[0]
+      };
+    }
+
+    function loadAnalytics() {
+      var range = getAnalyticsDateRange();
+      analyticsRange.textContent = range.start + " to " + range.end;
+
+      fetch(API_BASE + "/admin/analytics?start=" + range.start + "&end=" + range.end, { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          renderAnalyticsChart(data, range);
+        })
+        .catch(function (err) { console.error("Failed to load analytics:", err); });
+    }
+
+    function renderAnalyticsChart(data, range) {
+      var canvas = analyticsCanvas;
+      var ctx = canvas.getContext("2d");
+      var W = canvas.width;
+      var H = canvas.height;
+      var pad = { top: 40, right: 20, bottom: 60, left: 50 };
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, W, H);
+
+      var loads = data.loads || [];
+      var crashes = data.crashes || [];
+      var versionChanges = data.versionChanges || [];
+
+      // Build day-indexed lookup
+      var startDate = new Date(range.start);
+      var endDate = new Date(range.end);
+      var days = [];
+      var d = new Date(startDate);
+      while (d < endDate) {
+        days.push(d.toISOString().split("T")[0]);
+        d.setDate(d.getDate() + 1);
+      }
+
+      if (days.length === 0) {
+        analyticsEmpty.style.display = "";
+        return;
+      }
+      analyticsEmpty.style.display = "none";
+
+      var loadMap = {};
+      var uniqueMap = {};
+      loads.forEach(function (l) { loadMap[l.day] = (loadMap[l.day] || 0) + l.loads; uniqueMap[l.day] = (uniqueMap[l.day] || 0) + l.unique_loads; });
+
+      var crashMap = {};
+      crashes.forEach(function (c) { crashMap[c.day] = c.count; });
+
+      var loadVals = days.map(function (d) { return loadMap[d] || 0; });
+      var uniqueVals = days.map(function (d) { return uniqueMap[d] || 0; });
+      var crashVals = days.map(function (d) { return crashMap[d] || 0; });
+
+      var maxVal = Math.max(1, Math.max.apply(null, loadVals.concat(crashVals)));
+
+      var plotW = W - pad.left - pad.right;
+      var plotH = H - pad.top - pad.bottom;
+      var barW = plotW / days.length;
+
+      // Y-axis gridlines
+      ctx.strokeStyle = "#E5E7EB";
+      ctx.lineWidth = 1;
+      ctx.font = "11px -apple-system, sans-serif";
+      ctx.fillStyle = "#6B7280";
+      ctx.textAlign = "right";
+
+      var ySteps = 5;
+      for (var yi = 0; yi <= ySteps; yi++) {
+        var yVal = Math.round(maxVal * yi / ySteps);
+        var yPos = pad.top + plotH - (plotH * yi / ySteps);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, yPos);
+        ctx.lineTo(W - pad.right, yPos);
+        ctx.stroke();
+        ctx.fillText(String(yVal), pad.left - 6, yPos + 4);
+      }
+
+      // Version change vertical markers
+      // SQLite CURRENT_TIMESTAMP returns "YYYY-MM-DD HH:MM:SS" (space, not T),
+      // while ISO timestamps use "YYYY-MM-DDTHH:MM:SSZ". Take the first 10
+      // chars so both formats yield a clean "YYYY-MM-DD" day key.
+      var versionDayMap = {};
+      versionChanges.forEach(function (v) {
+        var vDay = v.first_seen ? String(v.first_seen).slice(0, 10) : "";
+        if (vDay) versionDayMap[vDay] = v.obiter_version;
+      });
+
+      days.forEach(function (day, i) {
+        if (versionDayMap[day]) {
+          var x = pad.left + i * barW + barW / 2;
+          ctx.save();
+          ctx.strokeStyle = "#859900";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.moveTo(x, pad.top);
+          ctx.lineTo(x, pad.top + plotH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#859900";
+          ctx.font = "bold 10px -apple-system, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("v" + versionDayMap[day], x, pad.top - 6);
+          ctx.restore();
+        }
+      });
+
+      // Draw line helper
+      function drawLine(vals, colour, dashed) {
+        if (vals.length === 0) return;
+        ctx.save();
+        ctx.strokeStyle = colour;
+        ctx.lineWidth = 2;
+        if (dashed) ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        vals.forEach(function (v, i) {
+          var x = pad.left + i * barW + barW / 2;
+          var y = pad.top + plotH - (plotH * v / maxVal);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Dots
+        ctx.fillStyle = colour;
+        vals.forEach(function (v, i) {
+          var x = pad.left + i * barW + barW / 2;
+          var y = pad.top + plotH - (plotH * v / maxVal);
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      drawLine(loadVals, "#2AA198", false);
+      drawLine(uniqueVals, "#6C71C4", false);
+      drawLine(crashVals, "#CB4B16", true);
+
+      // Crash report count labels
+      crashVals.forEach(function (v, i) {
+        if (v > 0) {
+          var x = pad.left + i * barW + barW / 2;
+          var y = pad.top + plotH - (plotH * v / maxVal);
+          ctx.save();
+          ctx.fillStyle = "#CB4B16";
+          ctx.font = "bold 10px -apple-system, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(String(v) + " crash" + (v !== 1 ? "es" : ""), x, y - 10);
+          ctx.restore();
+        }
+      });
+
+      // X-axis labels
+      ctx.fillStyle = "#6B7280";
+      ctx.font = "11px -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      var labelStep = Math.max(1, Math.floor(days.length / 14));
+      days.forEach(function (day, i) {
+        if (i % labelStep === 0) {
+          var x = pad.left + i * barW + barW / 2;
+          var label = day.substring(5); // MM-DD
+          ctx.save();
+          ctx.translate(x, pad.top + plotH + 16);
+          ctx.rotate(-0.5);
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        }
+      });
+    }
+
+    analyticsGranularity.addEventListener("change", function () {
+      analyticsOffset = 0;
+      loadAnalytics();
+    });
+
+    analyticsPrev.addEventListener("click", function () {
+      analyticsOffset--;
+      loadAnalytics();
+    });
+
+    analyticsNext.addEventListener("click", function () {
+      analyticsOffset++;
+      loadAnalytics();
+    });
 
     // -------------------------------------------------------
     // Helpers

@@ -698,7 +698,14 @@ function mapDeterministicToSourceData(
 
   if (parsed.type === "mnc") {
     data.year = parsed.year;
+    // Engine field names vary by source type: case.reported expects
+    // `courtId`, case.unreported.mnc expects `court` + `caseNumber`. Set
+    // every alias so whichever dispatcher consumes the data finds the
+    // value (and the formatter no longer renders "0" for a missing case
+    // number).
+    data.court = parsed.court;
     data.courtId = parsed.court;
+    data.caseNumber = String(parsed.number);
     data.mnc = String(parsed.number);
     data.yearType = "square";
 
@@ -770,11 +777,23 @@ function mapCorpusEntryToSourceData(
       data.party2 = extractParty2(entry.parties);
     }
     data.year = entry.year;
-    data.courtId = entry.courtOrRegister;
+    // The engine reads different keys per case sub-type:
+    //   case.reported       → `courtId`
+    //   case.unreported.mnc → `court` (+ `caseNumber` instead of `mnc`)
+    // Populate both keys so either dispatcher finds the value, and put the
+    // MNC number under the right key for case.unreported.mnc.
+    if (entry.courtOrRegister) {
+      data.courtId = entry.courtOrRegister;
+      data.court = entry.courtOrRegister;
+    }
 
     const mnc = tokeniseMNC(entry.citation);
     if (mnc) {
-      data.mnc = String(mnc.number);
+      if (sourceType === "case.unreported.mnc") {
+        data.caseNumber = String(mnc.number);
+      } else {
+        data.mnc = String(mnc.number);
+      }
       data.yearType = "square";
     }
   } else if (

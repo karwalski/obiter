@@ -10,7 +10,7 @@ import { getSharedStore, resetSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
 import { refreshAllCitations } from "../../word/citationRefresher";
-import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences } from "../../word/footnoteManager";
+import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences, buildOccurrenceTitle } from "../../word/footnoteManager";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
 import type { RefreshResult } from "../../word/citationRefresher";
@@ -375,6 +375,10 @@ export default function CitationLibrary(): JSX.Element {
   const [bibtexImporting, setBibtexImporting] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
+  // Clear-all / clear-unused state
+  const [clearMode, setClearMode] = useState<"all" | "unused" | null>(null);
+  const [clearing, setClearing] = useState(false);
+
   const standardConfig = getStandardConfig(standardId);
 
   // Load citations on mount and when refreshCounter changes.
@@ -505,12 +509,9 @@ export default function CitationLibrary(): JSX.Element {
           runs = result ?? getFormattedPreview(citation, courtConfig);
         }
 
-        // Encode format and pinpoint in the CC title so the refresher
-        // can preserve them across rebuild cycles.
-        const resolvedMode = (mode === "full" || (mode === "auto" && isFirst)) ? "full" : mode === "ibid" ? "ibid" : "short";
-        const ccTitle = pinpointInput
-          ? `Citation:${resolvedMode}:${pinpointInput}`
-          : `Citation:${resolvedMode}`;
+        // Encode the user's format preference and pinpoint in the CC title so
+        // the refresher can preserve them across rebuild cycles.
+        const ccTitle = buildOccurrenceTitle(mode, pinpointInput || undefined);
         await insertCitationFootnote(citation.id, ccTitle, runs);
 
         // Update store with firstFootnoteNumber if this is the first citation
@@ -561,6 +562,48 @@ export default function CitationLibrary(): JSX.Element {
       }
     },
     [deleteLoading],
+  );
+
+  const handleClearLibrary = useCallback(
+    async (mode: "all" | "unused") => {
+      setClearing(true);
+      setImportStatus(null);
+      try {
+        const allEntries = await getAllCitationFootnotes();
+        const usedIds = new Set(allEntries.map((e) => e.citationId));
+
+        const targets = store.getAll().filter((c) => {
+          if (mode === "all") return true;
+          return !usedIds.has(c.id);
+        });
+
+        for (const citation of targets) {
+          const matchingIndices = allEntries
+            .filter((e) => e.citationId === citation.id)
+            .map((e) => e.footnoteIndex);
+          if (matchingIndices.length > 0) {
+            await deleteAllOccurrences(citation.id, matchingIndices);
+          }
+          await store.remove(citation.id);
+        }
+
+        setCitations(store.getAll());
+        setClearMode(null);
+        const noun = targets.length === 1 ? "citation" : "citations";
+        setImportStatus(
+          mode === "all"
+            ? `Cleared ${targets.length} ${noun} from the library.`
+            : `Cleared ${targets.length} unused ${noun} from the library.`,
+        );
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to clear citations";
+        setImportStatus(`Clear failed: ${message}`);
+      } finally {
+        setClearing(false);
+      }
+    },
+    [],
   );
 
   const handleImportFromWord = useCallback(async () => {
@@ -704,7 +747,55 @@ export default function CitationLibrary(): JSX.Element {
         >
           Import BibTeX
         </button>
+        {citations.length > 0 && (
+          <>
+            <button
+              className="library-btn library-btn--delete"
+              onClick={() => setClearMode("unused")}
+              disabled={clearing}
+            >
+              Clear unused
+            </button>
+            <button
+              className="library-btn library-btn--danger"
+              onClick={() => setClearMode("all")}
+              disabled={clearing}
+            >
+              Clear all
+            </button>
+          </>
+        )}
       </div>
+
+      {/* Clear-library confirmation */}
+      {clearMode !== null && (
+        <div className="library-toast" role="alertdialog" aria-modal="true">
+          <span>
+            {clearMode === "all"
+              ? `Remove all ${citations.length} citation${citations.length !== 1 ? "s" : ""} from the library and document?`
+              : (() => {
+                  // Count of unused citations is computed when the user confirms,
+                  // but show an approximate prompt here.
+                  return "Remove all citations not currently used in any footnote?";
+                })()}
+          </span>
+          <button
+            className="library-btn library-btn--danger"
+            onClick={() => void handleClearLibrary(clearMode)}
+            disabled={clearing}
+            style={{ marginLeft: 8 }}
+          >
+            {clearing ? "Clearing..." : "Yes, clear"}
+          </button>
+          <button
+            className="library-btn"
+            onClick={() => setClearMode(null)}
+            disabled={clearing}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* BibTeX import modal */}
       {bibtexModalOpen && (

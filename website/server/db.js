@@ -65,6 +65,20 @@ db.exec(`
     is_read INTEGER DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS analytics_loads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    obiter_version TEXT NOT NULL,
+    word_version TEXT,
+    platform TEXT,
+    device_hash TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS version_releases (
+    obiter_version TEXT PRIMARY KEY,
+    released_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // -------------------------------------------------------
@@ -146,6 +160,50 @@ const markErrorRead = db.prepare(`
 `);
 
 // -------------------------------------------------------
+// Prepared statements — analytics
+// -------------------------------------------------------
+
+const insertLoad = db.prepare(`
+  INSERT INTO analytics_loads (obiter_version, word_version, platform, device_hash)
+  VALUES (@obiterVersion, @wordVersion, @platform, @deviceHash)
+`);
+
+const getLoadsByDay = db.prepare(`
+  SELECT date(created_at) AS day,
+         COUNT(*) AS loads,
+         COUNT(DISTINCT device_hash) AS unique_loads,
+         obiter_version
+  FROM analytics_loads
+  WHERE created_at >= @start AND created_at < @end
+  GROUP BY day
+  ORDER BY day ASC
+`);
+
+// Prefer the explicit release date when recorded, falling back to the
+// earliest analytics_loads timestamp (i.e. when the version was first
+// observed in the wild). This ensures release markers appear on the chart
+// at deploy time rather than only after the first installed user opens
+// the new version.
+const getVersionChanges = db.prepare(`
+  SELECT v.obiter_version AS obiter_version,
+         COALESCE(r.released_at, MIN(v.created_at)) AS first_seen
+  FROM analytics_loads v
+  LEFT JOIN version_releases r ON r.obiter_version = v.obiter_version
+  GROUP BY v.obiter_version
+  UNION
+  SELECT obiter_version, released_at AS first_seen
+  FROM version_releases
+  WHERE obiter_version NOT IN (SELECT obiter_version FROM analytics_loads)
+  ORDER BY first_seen ASC
+`);
+
+const recordVersionRelease = db.prepare(`
+  INSERT INTO version_releases (obiter_version, released_at)
+  VALUES (@obiterVersion, @releasedAt)
+  ON CONFLICT(obiter_version) DO NOTHING
+`);
+
+// -------------------------------------------------------
 // Prepared statements — admin settings
 // -------------------------------------------------------
 
@@ -179,6 +237,10 @@ module.exports = {
   insertError,
   getAllErrors,
   markErrorRead,
+  insertLoad,
+  getLoadsByDay,
+  getVersionChanges,
+  recordVersionRelease,
   getSetting,
   upsertSetting
 };

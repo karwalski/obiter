@@ -11,9 +11,10 @@ import { getDevicePref } from "../../store/devicePreferences";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
-import { insertCitationFootnote, getAllCitationFootnotes } from "../../word/footnoteManager";
+import { insertCitationFootnote, getAllCitationFootnotes, buildOccurrenceTitle } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
-import { getFormattedPreview } from "../../engine/engine";
+import { getFormattedPreview, formatCitation } from "../../engine/engine";
+import type { CitationContext as CitationFormatContext } from "../../engine/engine";
 import CitationPreview from "../components/CitationPreview";
 import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
@@ -690,6 +691,9 @@ export default function InsertCitation(): JSX.Element {
 
   // RIBBON-002: Recent citations state (loaded from store on mount)
   const [recentCitations, setRecentCitations] = useState<Citation[]>([]);
+  const [reinsertMenuId, setReinsertMenuId] = useState<string | null>(null);
+  const [reinsertPinpoint, setReinsertPinpoint] = useState("");
+  const [reinsertingId, setReinsertingId] = useState<string | null>(null);
 
   // Load LLM config on mount to determine if AI suggest is available
   useEffect(() => {
@@ -810,25 +814,62 @@ export default function InsertCitation(): JSX.Element {
     return () => { cancelled = true; };
   }, [refreshCounter]);
 
-  // RIBBON-002: Re-insert a recent citation (auto mode — same logic as Library)
-  const handleReinsert = useCallback(async (citation: Citation) => {
-    try {
-      // BUGS-011: Always insert as full citation — refreshAllCitations will
-      // rescan footnotes in document order and assign the correct format
-      // (full for earliest, short/ibid for subsequent) regardless of where
-      // the cursor is positioned relative to existing occurrences.
-      const runs = getFormattedPreview(citation, courtConfig);
+  // RIBBON-002: Re-insert a recent citation with explicit format choice
+  // (mirrors the CitationLibrary Insert ▾ dropdown).
+  const handleReinsertAs = useCallback(
+    async (citation: Citation, mode: "auto" | "full" | "short" | "ibid") => {
+      setReinsertingId(citation.id);
+      try {
+        const existing = await getAllCitationFootnotes();
+        const firstFn = existing.find((e) => e.citationId === citation.id);
+        const lastFootnoteNumber = existing.length > 0
+          ? Math.max(...existing.map((e) => e.footnoteIndex))
+          : 0;
+        const precedingCitations = existing.filter(
+          (e) => e.footnoteIndex === lastFootnoteNumber
+        );
+        const isFirst = !firstFn;
+        const isSameAsPreceding =
+          precedingCitations.length === 1 &&
+          precedingCitations[0].citationId === citation.id;
 
-      const title = citation.shortTitle || getCitationLabel(citation);
-      await insertCitationFootnote(citation.id, title, runs);
+        let runs;
+        if (mode === "full" || (mode === "auto" && isFirst)) {
+          runs = getFormattedPreview(citation, courtConfig);
+        } else {
+          const ctx: CitationFormatContext = {
+            footnoteNumber: lastFootnoteNumber + 1,
+            isFirstCitation: false,
+            isSameAsPreceding: mode === "ibid" ? true : isSameAsPreceding,
+            precedingFootnoteCitationCount: precedingCitations.length,
+            currentPinpoint: reinsertPinpoint
+              ? { type: "page", value: reinsertPinpoint }
+              : undefined,
+            firstFootnoteNumber: firstFn?.footnoteIndex ?? citation.firstFootnoteNumber ?? 1,
+            isWithinSameFootnote: false,
+            formatPreference: mode,
+          };
+          const result = formatCitation(citation, ctx, courtConfig);
+          runs = result ?? getFormattedPreview(citation, courtConfig);
+        }
 
-      triggerRefresh();
-      setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to re-insert citation";
-      setFeedback({ type: "error", message });
-    }
-  }, [triggerRefresh, courtConfig]);
+        const ccTitle = buildOccurrenceTitle(mode, reinsertPinpoint || undefined);
+        await insertCitationFootnote(citation.id, ccTitle, runs);
+
+        setReinsertMenuId(null);
+        setReinsertPinpoint("");
+        triggerRefresh();
+        setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to re-insert citation";
+        setFeedback({ type: "error", message });
+        setReinsertMenuId(null);
+      } finally {
+        setReinsertingId(null);
+      }
+    },
+    [triggerRefresh, courtConfig, reinsertPinpoint],
+  );
 
   // ─── Field Updater ──────────────────────────────────────────────────────
 
@@ -1313,19 +1354,67 @@ export default function InsertCitation(): JSX.Element {
             <div className="ic-recent-list">
               {recentCitations.map((citation) => (
                 <div key={citation.id} className="ic-recent-card">
-                  <span className="ic-recent-badge">
-                    {getSourceTypeBadge(citation.sourceType)}
-                  </span>
-                  <span className="ic-recent-label">
-                    {getCitationLabel(citation)}
-                  </span>
-                  <button
-                    type="button"
-                    className="ic-recent-insert-btn"
-                    onClick={() => void handleReinsert(citation)}
-                  >
-                    Re-insert
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+                    <span className="ic-recent-badge">
+                      {getSourceTypeBadge(citation.sourceType)}
+                    </span>
+                    <span className="ic-recent-label" style={{ flex: 1 }}>
+                      {getCitationLabel(citation)}
+                    </span>
+                    <button
+                      type="button"
+                      className="ic-recent-insert-btn"
+                      onClick={() =>
+                        setReinsertMenuId(reinsertMenuId === citation.id ? null : citation.id)
+                      }
+                    >
+                      Re-insert ▾
+                    </button>
+                  </div>
+                  {reinsertMenuId === citation.id && (
+                    <div className="library-insert-menu" style={{ marginTop: 6, width: "100%" }}>
+                      <div className="library-insert-pinpoint">
+                        <input
+                          type="text"
+                          placeholder="Pinpoint (eg 42, [23])"
+                          value={reinsertPinpoint}
+                          onChange={(e) => setReinsertPinpoint(e.target.value)}
+                          className="library-insert-pinpoint-input"
+                          aria-label="Pinpoint reference"
+                        />
+                      </div>
+                      <button
+                        className="library-insert-option"
+                        disabled={reinsertingId !== null}
+                        onClick={() => void handleReinsertAs(citation, "auto")}
+                      >
+                        {reinsertingId === citation.id ? "Inserting..." : "Auto (full or short)"}
+                      </button>
+                      <button
+                        className="library-insert-option"
+                        disabled={reinsertingId !== null}
+                        onClick={() => void handleReinsertAs(citation, "full")}
+                      >
+                        Full citation
+                      </button>
+                      <button
+                        className="library-insert-option"
+                        disabled={reinsertingId !== null}
+                        onClick={() => void handleReinsertAs(citation, "short")}
+                      >
+                        Short reference
+                      </button>
+                      {standardConfig.ibidEnabled && (
+                        <button
+                          className="library-insert-option"
+                          disabled={reinsertingId !== null}
+                          onClick={() => void handleReinsertAs(citation, "ibid")}
+                        >
+                          Ibid
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

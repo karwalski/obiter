@@ -390,6 +390,39 @@ app.get("/api/signatures", function (req, res) {
 });
 
 // -------------------------------------------------------
+// Analytics
+// -------------------------------------------------------
+
+/**
+ * POST /api/analytics/load
+ *
+ * Records an anonymous load event from the add-in.
+ * No authentication required. No personal data collected.
+ * Device hash is a random UUID generated client-side (not derived from user data).
+ */
+app.post("/api/analytics/load", function (req, res) {
+  try {
+    var { obiterVersion, wordVersion, platform, deviceHash } = req.body;
+
+    if (!obiterVersion) {
+      return res.status(400).json({ error: "obiterVersion is required." });
+    }
+
+    db.insertLoad.run({
+      obiterVersion: String(obiterVersion).substring(0, 50),
+      wordVersion: wordVersion ? String(wordVersion).substring(0, 100) : null,
+      platform: platform ? String(platform).substring(0, 100) : null,
+      deviceHash: deviceHash ? String(deviceHash).substring(0, 64) : null,
+    });
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error("POST /api/analytics/load error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// -------------------------------------------------------
 // Admin routes (all require authentication)
 // -------------------------------------------------------
 
@@ -557,6 +590,89 @@ app.get("/api/admin/contacts", requireAdmin, function (req, res) {
     res.json({ contacts: contacts });
   } catch (err) {
     console.error("GET /api/admin/contacts error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /api/admin/analytics
+ *
+ * Returns aggregated analytics data for the dashboard.
+ * Query params: start (ISO date), end (ISO date).
+ * Defaults to current week if not provided.
+ */
+app.get("/api/admin/analytics", requireAdmin, function (req, res) {
+  try {
+    var now = new Date();
+    var startParam = req.query.start;
+    var endParam = req.query.end;
+
+    // Default to current week (Monday to Sunday)
+    var start, end;
+    if (startParam && endParam) {
+      start = String(startParam);
+      end = String(endParam);
+    } else {
+      var dayOfWeek = now.getDay(); // 0 = Sunday
+      var mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      var monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      var nextMonday = new Date(monday);
+      nextMonday.setDate(monday.getDate() + 7);
+      start = monday.toISOString().split("T")[0];
+      end = nextMonday.toISOString().split("T")[0];
+    }
+
+    // Load data grouped by day
+    var loads = db.getLoadsByDay.all({ start: start, end: end });
+
+    // Version first-seen markers
+    var versionChanges = db.getVersionChanges.all();
+
+    // Crash reports grouped by day in the same range
+    var crashesByDay = db.db.prepare(`
+      SELECT date(created_at) AS day, COUNT(*) AS count
+      FROM error_reports
+      WHERE created_at >= ? AND created_at < ?
+      GROUP BY day
+      ORDER BY day ASC
+    `).all(start, end);
+
+    res.json({
+      start: start,
+      end: end,
+      loads: loads,
+      versionChanges: versionChanges,
+      crashes: crashesByDay,
+    });
+  } catch (err) {
+    console.error("GET /api/admin/analytics error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * POST /api/admin/version-release
+ *
+ * Records a deploy event so the chart can mark the release date even before
+ * any installed user has loaded the new version. Idempotent — duplicate
+ * versions are ignored. Body: { obiterVersion, releasedAt? (ISO) }.
+ */
+app.post("/api/admin/version-release", requireAdmin, function (req, res) {
+  try {
+    var obiterVersion = req.body && req.body.obiterVersion;
+    if (!obiterVersion) {
+      return res.status(400).json({ error: "obiterVersion is required." });
+    }
+    var releasedAt = (req.body && req.body.releasedAt) || new Date().toISOString();
+    db.recordVersionRelease.run({
+      obiterVersion: String(obiterVersion).substring(0, 50),
+      releasedAt: String(releasedAt).substring(0, 50),
+    });
+    res.json({ recorded: true, obiterVersion: obiterVersion, releasedAt: releasedAt });
+  } catch (err) {
+    console.error("POST /api/admin/version-release error:", err);
     res.status(500).json({ error: "Internal server error." });
   }
 });

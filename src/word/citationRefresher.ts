@@ -51,6 +51,7 @@ import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
+import { parseOccurrenceTitle, buildOccurrenceTitle } from "./footnoteManager";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -75,6 +76,8 @@ interface ChildEntry {
   footnoteNumber: number;
   /** Per-occurrence pinpoint encoded in the CC title (e.g. "4-5"). */
   pinpoint?: string;
+  /** Per-occurrence format preference encoded in the CC title. */
+  formatPreference: "auto" | "full" | "short" | "ibid";
   /** The CC title string (e.g. "Citation:short:4-5"). */
   ccTitle?: string;
 }
@@ -110,6 +113,8 @@ interface RenderedCitation {
   renderedFormat: RenderedFormat;
   /** Per-occurrence pinpoint to preserve across rebuild cycles. */
   pinpoint?: string;
+  /** User format preference to preserve across rebuild cycles. */
+  formatPreference: "auto" | "full" | "short" | "ibid";
   /** Whether this is an explanatory note (uses sentence separator). */
   isNote?: boolean;
 }
@@ -308,18 +313,13 @@ async function scanFootnotes(
     const children: ChildEntry[] = [];
     for (const childCC of (childCCs.items ?? [])) {
       if (childCC.tag && !childCC.tag.startsWith("obiter-")) {
-        // Extract per-occurrence pinpoint from CC title.
-        // Format: "Citation:format" or "Citation:format:pinpoint"
-        let pinpoint: string | undefined;
         const ccTitle = childCC.title ?? "";
-        const titleParts = ccTitle.split(":");
-        if (titleParts.length >= 3) {
-          pinpoint = titleParts.slice(2).join(":"); // rejoin in case pinpoint has colons
-        }
+        const parsed = parseOccurrenceTitle(ccTitle);
         children.push({
           citationId: childCC.tag,
           footnoteNumber,
-          pinpoint,
+          pinpoint: parsed.pinpoint,
+          formatPreference: parsed.formatPreference,
           ccTitle,
         });
       }
@@ -491,7 +491,7 @@ function renderFootnoteCitations(
       currentPinpoint,
       firstFootnoteNumber,
       isWithinSameFootnote,
-      formatPreference: "auto",
+      formatPreference: child.formatPreference,
     };
 
     // Determine the rendered format by checking what the resolver returns.
@@ -506,7 +506,7 @@ function renderFootnoteCitations(
         currentPinpoint,
         firstFootnoteNumber,
         isWithinSameFootnote,
-        formatPreference: "auto",
+        formatPreference: child.formatPreference,
         config,
       };
       const subRuns = resolveSubsequentReference(citation, resolverCtx);
@@ -538,6 +538,7 @@ function renderFootnoteCitations(
       signal: citation.signal,
       renderedFormat,
       pinpoint: child.pinpoint,
+      formatPreference: child.formatPreference,
       isNote: citation.sourceType === "explanatory_note",
     });
 
@@ -613,18 +614,15 @@ async function rebuildParentCC(
   await context.sync();
 
   for (let j = 0; j < rendered.length; j++) {
-    const { runs, citationId, signal, renderedFormat, pinpoint } = rendered[j];
+    const { runs, citationId, signal, formatPreference, pinpoint } = rendered[j];
 
     // Create a child CC at the end of the parent CC
     const endRange = parentCC.getRange("End");
     const childCC = endRange.insertContentControl("RichText");
     childCC.tag = citationId;
-    // Encode the rendered format and pinpoint in the title so the refresher
-    // can preserve per-occurrence pinpoints across rebuild cycles.
-    // Format: "Citation:format" or "Citation:format:pinpoint"
-    childCC.title = pinpoint
-      ? `Citation:${renderedFormat}:${pinpoint}`
-      : `Citation:${renderedFormat}`;
+    // Preserve the user's format preference (and any pinpoint) in the title.
+    // The rendered format is recomputed from preference + context each refresh.
+    childCC.title = buildOccurrenceTitle(formatPreference, pinpoint);
     childCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
     // Write the citation runs into the child CC

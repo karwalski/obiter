@@ -52,7 +52,7 @@
       <div class="explainer">
 
         <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
-          Last updated: 25 April 2026
+          Last updated: 27 April 2026
         </p>
 
         <h2>Who We Are</h2>
@@ -93,11 +93,24 @@
           servers.
         </p>
 
-        <h2>No Telemetry, No Analytics</h2>
+        <h2>Anonymous Load Counting</h2>
         <p>
-          Obiter does not collect usage data, analytics, crash reports, or any
-          telemetry. No data is sent to obiter.com.au or any other server during
-          normal add-in operation.
+          When you open Obiter, the add-in sends a single anonymous load event
+          to obiter.com.au. This event contains only:
+        </p>
+        <ul class="explainer__list">
+          <li>Obiter version number</li>
+          <li>Microsoft Word version</li>
+          <li>Operating system / platform</li>
+          <li>A randomly generated device identifier (a UUID stored in your
+            browser &mdash; it is not derived from any personal data)</li>
+        </ul>
+        <p>
+          This data is used solely to understand how many people use Obiter and
+          on which platforms. No personal data, document content, IP addresses,
+          or user identifiers are collected. The load event is sent once per
+          session (each time you open the task pane). You cannot be identified
+          from this data.
         </p>
 
         <h2>Third-Party LLM Integration (Optional, User-Controlled)</h2>

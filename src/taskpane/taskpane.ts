@@ -97,6 +97,40 @@ Office.onReady((info) => {
       try { await setDocumentMetadata(context); } catch { /* non-critical */ }
     });
 
+    // Anonymous load ping — once per session, no PII
+    void (async () => {
+      try {
+        // Generate or retrieve a random device ID (not derived from user data)
+        let deviceHash = localStorage.getItem("obiter-deviceHash");
+        if (!deviceHash) {
+          deviceHash = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+          localStorage.setItem("obiter-deviceHash", deviceHash);
+        }
+
+        // Only ping once per session
+        if (sessionStorage.getItem("obiter-loadPinged")) return;
+        sessionStorage.setItem("obiter-loadPinged", "1");
+
+        let wordVersion: string | undefined;
+        let platform: string | undefined;
+        try {
+          wordVersion = Office?.context?.diagnostics?.version;
+          platform = Office?.context?.diagnostics?.platform?.toString();
+        } catch { /* ignore */ }
+
+        await fetch("https://obiter.com.au/api/analytics/load", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            obiterVersion: APP_VERSION,
+            wordVersion,
+            platform,
+            deviceHash,
+          }),
+        });
+      } catch { /* non-critical — analytics failure must never affect UX */ }
+    })();
+
     // INFRA-008 Layer 1: Write document properties on startup
     void (async () => {
       try {

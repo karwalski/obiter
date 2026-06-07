@@ -15,6 +15,7 @@ import {
   deleteCitationFootnote,
   getAllCitationFootnotes,
   appendToFootnoteByIndex,
+  updateOccurrenceMetadata,
 } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getCitationLabel } from "./CitationLibrary";
@@ -144,11 +145,13 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
       ];
     case "case.unreported.mnc":
       return [
-        { key: "caseName", label: "Case Name", required: true },
-        { key: "year", label: "Year", required: true },
-        { key: "court", label: "Court", required: true },
-        { key: "judgmentNumber", label: "Judgment Number", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
+        { key: "party1", label: "Party 1", required: true, placeholder: "e.g. Mabo" },
+        { key: "party2", label: "Party 2", required: true, placeholder: "e.g. Queensland" },
+        { key: "year", label: "Year", required: true, placeholder: "2022" },
+        { key: "court", label: "Court", required: true, placeholder: "e.g. FCA, HCA" },
+        { key: "caseNumber", label: "Case Number", required: true, placeholder: "e.g. 1136" },
+        { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [42]" },
+        { key: "judicialOfficer", label: "Judicial Officer", placeholder: "e.g. Crennan J" },
       ];
     case "case.unreported.no_mnc":
       return [
@@ -336,6 +339,13 @@ export default function EditCitation(): JSX.Element {
   const [addToFootnoteOpen, setAddToFootnoteOpen] = useState(false);
   const [allFootnoteEntries, setAllFootnoteEntries] = useState<CitationFootnoteEntry[]>([]);
 
+  // Per-occurrence edit drafts keyed by footnote index. Tracks unsaved
+  // pinpoint and format-preference changes for each occurrence row.
+  const [occurrenceDrafts, setOccurrenceDrafts] = useState<
+    Record<number, { pinpoint: string; formatPreference: "auto" | "full" | "short" | "ibid" }>
+  >({});
+  const [savingOccurrence, setSavingOccurrence] = useState<number | null>(null);
+
   // Load the active standard on mount
   useEffect(() => {
     void (async () => {
@@ -516,9 +526,19 @@ export default function EditCitation(): JSX.Element {
       setAllFootnoteEntries(allEntries);
       const matching = allEntries.filter((e) => e.citationId === citationId);
       setOccurrences(matching);
+      // Seed draft state from each occurrence's current title metadata
+      const drafts: Record<number, { pinpoint: string; formatPreference: "auto" | "full" | "short" | "ibid" }> = {};
+      for (const entry of matching) {
+        drafts[entry.footnoteIndex] = {
+          pinpoint: entry.pinpoint ?? "",
+          formatPreference: entry.formatPreference ?? "auto",
+        };
+      }
+      setOccurrenceDrafts(drafts);
     } catch {
       // Non-critical — the list will simply be empty.
       setOccurrences([]);
+      setOccurrenceDrafts({});
     } finally {
       setOccurrencesLoading(false);
     }
@@ -536,6 +556,36 @@ export default function EditCitation(): JSX.Element {
   }, [selectedCitationId, citation, loadOccurrences]);
 
   // ─── UX-004: Remove Single Occurrence ───────────────────────────────────
+
+  const handleSaveOccurrence = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+    const draft = occurrenceDrafts[footnoteIndex];
+    if (!draft) return;
+
+    setSavingOccurrence(footnoteIndex);
+    setError(null);
+
+    try {
+      await updateOccurrenceMetadata(
+        citation.id,
+        footnoteIndex,
+        draft.formatPreference,
+        draft.pinpoint || undefined,
+      );
+      // Re-render this footnote (and others, for ibid/short chains downstream)
+      const store = await getSharedStore();
+      await Word.run(async (ctx) => {
+        const { refreshAllCitations } = await import("../../word/citationRefresher");
+        await refreshAllCitations(ctx, store);
+      });
+      await loadOccurrences(citation.id);
+      setSuccessMessage(`Footnote ${footnoteIndex} updated.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update occurrence.");
+    } finally {
+      setSavingOccurrence(null);
+    }
+  }, [citation, occurrenceDrafts, loadOccurrences]);
 
   const handleRemoveOccurrence = useCallback(async (footnoteIndex: number) => {
     if (!citation) return;
@@ -982,24 +1032,82 @@ export default function EditCitation(): JSX.Element {
             {!occurrencesLoading && occurrences.length > 0 && (
               <ul className="edit-occurrences-list">
                 {occurrences.map((entry) => {
-                  const formatLabel = entry.renderedFormat
-                    ? entry.renderedFormat.charAt(0).toUpperCase() + entry.renderedFormat.slice(1)
-                    : "Full";
+                  const draft = occurrenceDrafts[entry.footnoteIndex] ?? {
+                    pinpoint: entry.pinpoint ?? "",
+                    formatPreference: entry.formatPreference ?? "auto",
+                  };
+                  const original = {
+                    pinpoint: entry.pinpoint ?? "",
+                    formatPreference: entry.formatPreference ?? "auto",
+                  };
+                  const dirty =
+                    draft.pinpoint !== original.pinpoint ||
+                    draft.formatPreference !== original.formatPreference;
+                  const isSaving = savingOccurrence === entry.footnoteIndex;
+                  const isRemoving = removingFootnote === entry.footnoteIndex;
                   return (
-                    <li key={entry.footnoteIndex} className="edit-occurrences-item" style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                      <span className="edit-occurrences-label" style={{ flex: "1 1 auto", minWidth: 80 }}>
-                        <strong>n {entry.footnoteIndex}</strong>
-                        <span className="edit-occurrences-format" style={{ marginLeft: 4 }}>({formatLabel})</span>
-                      </span>
-                      <button
-                        type="button"
-                        className="edit-btn edit-btn-danger edit-btn-small"
-                        onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
-                        disabled={removingFootnote === entry.footnoteIndex || loading}
-                        style={{ fontSize: 10 }}
-                      >
-                        {removingFootnote === entry.footnoteIndex ? "..." : "Remove"}
-                      </button>
+                    <li
+                      key={entry.footnoteIndex}
+                      className="edit-occurrences-item"
+                      style={{ display: "flex", flexDirection: "column", gap: 4, padding: "6px 0", borderBottom: "1px solid var(--colour-border)" }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <strong style={{ minWidth: 36 }}>n {entry.footnoteIndex}</strong>
+                        <select
+                          className="edit-field-input"
+                          value={draft.formatPreference}
+                          onChange={(e) => {
+                            const value = e.target.value as "auto" | "full" | "short" | "ibid";
+                            setOccurrenceDrafts((prev) => ({
+                              ...prev,
+                              [entry.footnoteIndex]: { ...draft, formatPreference: value },
+                            }));
+                          }}
+                          disabled={isSaving || isRemoving}
+                          style={{ flex: "0 0 auto", fontSize: 11, padding: "2px 4px" }}
+                          aria-label={`Format for footnote ${entry.footnoteIndex}`}
+                        >
+                          <option value="auto">Auto</option>
+                          <option value="full">Full</option>
+                          <option value="short">Short</option>
+                          {standardConfig.ibidEnabled && <option value="ibid">Ibid</option>}
+                        </select>
+                        <input
+                          type="text"
+                          className="edit-field-input"
+                          value={draft.pinpoint}
+                          placeholder="Pinpoint"
+                          onChange={(e) => {
+                            setOccurrenceDrafts((prev) => ({
+                              ...prev,
+                              [entry.footnoteIndex]: { ...draft, pinpoint: e.target.value },
+                            }));
+                          }}
+                          disabled={isSaving || isRemoving}
+                          style={{ flex: "1 1 60px", minWidth: 60, fontSize: 11, padding: "2px 4px" }}
+                          aria-label={`Pinpoint for footnote ${entry.footnoteIndex}`}
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                        <button
+                          type="button"
+                          className="edit-btn edit-btn-primary edit-btn-small"
+                          onClick={() => void handleSaveOccurrence(entry.footnoteIndex)}
+                          disabled={!dirty || isSaving || isRemoving || loading}
+                          style={{ fontSize: 10 }}
+                        >
+                          {isSaving ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          className="edit-btn edit-btn-danger edit-btn-small"
+                          onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
+                          disabled={isRemoving || isSaving || loading}
+                          style={{ fontSize: 10 }}
+                        >
+                          {isRemoving ? "..." : "Remove"}
+                        </button>
+                      </div>
                     </li>
                   );
                 })}

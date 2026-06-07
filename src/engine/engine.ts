@@ -530,15 +530,21 @@ function dispatchTreatyMou(citation: Citation): FormattedRun[] {
 function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const caseName = formatCaseName(
-    (d.party1 as string) ?? "",
+    (d.party1 as string) ?? (d.caseName as string) ?? "",
     (d.party2 as string) ?? "",
     d.separator as string | undefined,
   );
   return formatUnreportedMnc({
     caseName,
     year: toNumber(d.year, 0),
-    courtIdentifier: (d.court as string) ?? (d.courtIdentifier as string) ?? "",
-    caseNumber: toNumber(d.caseNumber, 0),
+    // Accept any of the aliases that callers (parser, corpus, edit form,
+    // older docs) may have stored.
+    courtIdentifier:
+      (d.court as string) ??
+      (d.courtIdentifier as string) ??
+      (d.courtId as string) ??
+      "",
+    caseNumber: toNumber(d.caseNumber ?? d.mnc ?? d.judgmentNumber, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     judicialOfficer: d.judicialOfficer as string | undefined,
   });
