@@ -84,17 +84,25 @@ async function insertBibliographyIntoDocument(
 
       for (const entry of section.entries) {
         const entryParagraph = insertAfter("");
+        // Entries are inserted after the heading paragraph and would
+        // otherwise inherit its centred + italic style. Reset to Normal
+        // and left-align so each entry renders as flowing body text.
+        entryParagraph.style = "Normal";
+        entryParagraph.alignment = Word.Alignment.left;
 
-        // Build the paragraph content run-by-run
+        // Build the paragraph content run-by-run. Explicitly set italic
+        // (and bold / superscript / smallCaps) to the run's value rather
+        // than only setting them when truthy — otherwise inherited
+        // formatting from the prior paragraph leaks through.
         for (const run of entry) {
           const range = entryParagraph.insertText(
             run.text,
             Word.InsertLocation.end
           );
-          if (run.italic) range.font.italic = true;
-          if (run.bold) range.font.bold = true;
-          if (run.superscript) range.font.superscript = true;
-          if (run.smallCaps) range.font.smallCaps = true;
+          range.font.italic = run.italic === true;
+          range.font.bold = run.bold === true;
+          range.font.superscript = run.superscript === true;
+          range.font.smallCaps = run.smallCaps === true;
           if (run.font) range.font.name = run.font;
           if (run.size) range.font.size = run.size;
         }
