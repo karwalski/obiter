@@ -36,10 +36,42 @@ export interface BibliographySection {
  * @param sourceType - The source type to categorise.
  * @returns The bibliography section letter.
  */
-export function getBibliographyCategory(sourceType: SourceType): string {
+export function getBibliographyCategory(
+  sourceType: SourceType,
+  data?: Record<string, unknown>,
+): string {
   // Cases (Part II domestic cases, Part IV international court decisions,
-  // Part V foreign cases)
+  // Part V foreign cases). Per AGLC4 Rule 1.13 the Cases section includes
+  // ICJ/ECHR/EU court decisions, arbitrations, and any foreign source
+  // marked as a case via foreignSubType.
   if (sourceType.startsWith("case.")) return "B";
+  if (sourceType === "icj.decision") return "B";
+  if (sourceType === "icj.pleading") return "B";
+  if (sourceType === "echr.decision") return "B";
+  if (sourceType === "eu.court") return "B";
+  if (sourceType === "icc_tribunal.case") return "B";
+  if (sourceType.startsWith("arbitral.")) return "B";
+  if (sourceType === "supranational.decision") return "B";
+  if (sourceType === "wto.decision") return "B";
+  if (sourceType.startsWith("foreign.")) {
+    const subType = typeof data?.foreignSubType === "string"
+      ? (data.foreignSubType as string).toLowerCase()
+      : undefined;
+    if (subType === "case") return "B";
+    if (subType === "legislation") return "C";
+    if (subType === "secondary") return "A";
+    // Fall back to inferring from the data: party-style fields or a
+    // "title" that reads like a case name (contains " v ") mean we're
+    // looking at a foreign case even if foreignSubType wasn't set.
+    const title = typeof data?.title === "string" ? (data.title as string) : "";
+    const looksLikeCase =
+      Boolean(data?.party1) ||
+      Boolean(data?.party2) ||
+      Boolean(data?.caseName) ||
+      / v /i.test(title);
+    if (looksLikeCase) return "B";
+    // Unclassified foreign source — fall through to "Other".
+  }
 
   // Legislation
   if (sourceType.startsWith("legislation.")) return "C";
@@ -248,7 +280,7 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
       runs.push({ text: ", " });
     }
 
-    const category = getBibliographyCategory(citation.sourceType);
+    const category = getBibliographyCategory(citation.sourceType, citation.data);
 
     if (category === "A") {
       // Secondary sources: books get italic titles; articles get single-quoted.
@@ -450,7 +482,7 @@ export function generateBibliography(
   }
 
   for (const citation of citations) {
-    const category = getBibliographyCategory(citation.sourceType);
+    const category = getBibliographyCategory(citation.sourceType, citation.data);
     groups[category].push(citation);
   }
 
