@@ -286,8 +286,14 @@ export default function CitationPreview({
   }, [formattedText]);
 
   const handleDoneClick = useCallback(() => {
+    // If the user is in override mode, push the latest textarea contents up
+    // so the parent's overrideText reflects any edits made after clicking
+    // "Use as-is" (otherwise the preview reverts to the structured output).
+    if (overrideMode && onOverride) {
+      onOverride(manualText);
+    }
     setEditing(false);
-  }, []);
+  }, [overrideMode, manualText, onOverride]);
 
   const handleOverride = useCallback(() => {
     setOverrideMode(true);

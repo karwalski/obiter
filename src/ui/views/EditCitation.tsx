@@ -1234,6 +1234,10 @@ export default function EditCitation(): JSX.Element {
             setFormData((prev) => ({ ...prev, ...parsedData }));
             setSuccessMessage(null);
           }}
+          onOverride={(text) => {
+            setOverrideText(text);
+            setSuccessMessage(null);
+          }}
         />
       </fieldset>
 

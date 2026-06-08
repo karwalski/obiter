@@ -189,15 +189,37 @@ export function formatAdministrativeDecision(data: {
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  runs.push({ text: "Re ", italic: true });
-  runs.push({ text: data.party, italic: true });
-  runs.push({ text: " and ", italic: true });
-  runs.push({ text: data.department, italic: true });
+  const party = (data.party ?? "").trim();
+  const department = (data.department ?? "").trim();
+  // Avoid emitting "Re Re ..." when the user already typed the "Re " prefix.
+  const hasRePrefix = /^re\s/i.test(party);
+  if (!hasRePrefix) {
+    runs.push({ text: "Re ", italic: true });
+  }
+  runs.push({ text: party, italic: true });
+  // Only emit " and Department" when there actually IS a department —
+  // otherwise we render the broken "X and  (0)  0" trail for matters
+  // with no opposing party.
+  if (department) {
+    runs.push({ text: " and ", italic: true });
+    runs.push({ text: department, italic: true });
+  }
 
-  const volumePart = data.volume !== undefined ? ` ${data.volume}` : "";
-  runs.push({
-    text: ` (${data.year})${volumePart} ${data.reportSeries} ${data.startingPage}`,
-  });
+  // The (Year) Volume Series Page tail is only meaningful when at least
+  // one of those values is populated. Skip entirely otherwise so the
+  // citation does not render "(0) 0".
+  const hasYear = data.year > 0;
+  const hasVolume = data.volume !== undefined && data.volume > 0;
+  const hasSeries = (data.reportSeries ?? "").trim().length > 0;
+  const hasPage = data.startingPage > 0;
+  if (hasYear || hasVolume || hasSeries || hasPage) {
+    const segments: string[] = [];
+    if (hasYear) segments.push(`(${data.year})`);
+    if (hasVolume) segments.push(String(data.volume));
+    if (hasSeries) segments.push(data.reportSeries.trim());
+    if (hasPage) segments.push(String(data.startingPage));
+    runs.push({ text: ` ${segments.join(" ")}` });
+  }
 
   return runs;
 }
