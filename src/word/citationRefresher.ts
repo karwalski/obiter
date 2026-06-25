@@ -264,6 +264,24 @@ export async function refreshAllCitations(
 }
 
 /**
+ * Runs a full citation refresh in its own Word context, synchronously.
+ *
+ * Use this immediately after an insert or append. The append path defers `; `
+ * separators and the closing `.` to the refresher (see footnoteManager), so a
+ * second citation added to a footnote is raw-concatenated until a refresh runs.
+ * The debounced auto-refresh (triggerRefresh) can be delayed by its timer or
+ * skipped while another refresh is in flight, which left a stale full stop
+ * between two citations in the same footnote (e.g. "A.B"). Calling this after
+ * the insert makes the normalisation deterministic. No-op in Manual Citations
+ * Mode, which `refreshAllCitations` gates on.
+ */
+export async function refreshAllCitationsNow(
+  store: CitationStore,
+): Promise<RefreshResult> {
+  return Word.run((context) => refreshAllCitations(context, store));
+}
+
+/**
  * Scans all footnotes in the document and collects parent-child CC
  * structures into an ordered list of FootnoteEntry objects.
  *

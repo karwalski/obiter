@@ -163,6 +163,7 @@ export function validateDocument(
     allIssues.push(...checkCitationCompleteness(citation));
     allIssues.push(...checkCitationCapitalisation(citation));
     allIssues.push(...checkTitlePresence(citation));
+    allIssues.push(...checkLegislativeHistoryHint(citation));
   }
 
   // Heading format checks (VALID-011, Rule 1.12.2)
@@ -1039,6 +1040,56 @@ export function checkTitlePresence(citation: Citation): ValidationIssue[] {
         length: 0,
       });
     }
+  }
+
+  return issues;
+}
+
+/**
+ * Nudge toward the principal-Act default for amending legislation.
+ *
+ * @remarks AGLC4 Note to Rule 3.1.2 (p 68): a citation to an Act "refer[s] to
+ * the Act as amended (and consolidated)", and "[g]enerally, a principal Act
+ * rather than an amending Act should be cited (but see rule 3.8)". When a
+ * legislation citation carries an opt-in Rule 3.8 hybrid with a passive
+ * amendment connector, the principal Act alone already imports "as amended" —
+ * so the hybrid should be reserved for footnotes where the amendment itself is
+ * the point. Info severity only: the hybrid is a legitimate Rule 3.8 form, not
+ * an error. See docs/decisions.md DECISION-008.
+ */
+export function checkLegislativeHistoryHint(
+  citation: Citation,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!citation.sourceType.startsWith("legislation.")) {
+    return issues;
+  }
+
+  const history = citation.data.legislativeHistory as
+    | { connector?: string }
+    | undefined;
+  const connector = history?.connector;
+  const PASSIVE_AMENDMENT = new Set([
+    "as amended by",
+    "amended by",
+    "later amended by",
+  ]);
+
+  if (connector && PASSIVE_AMENDMENT.has(connector)) {
+    const label = citation.shortTitle || citation.id;
+    issues.push({
+      ruleNumber: "3.1.2",
+      message:
+        `Legislation '${label}': citing the principal Act already refers to ` +
+        `it as amended and consolidated (Note to Rule 3.1.2). Use the ` +
+        `'${connector}' form only where the amendment itself is the point ` +
+        `(Rule 3.8).`,
+      severity: "info",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    });
   }
 
   return issues;

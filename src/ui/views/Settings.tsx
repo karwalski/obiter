@@ -71,7 +71,8 @@ const LLM_MODELS: Record<string, ModelOption[]> = {
     { value: "gpt-4o-mini", label: "GPT-4o Mini" },
   ],
   anthropic: [
-    { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
+    { value: "claude-opus-4-8", label: "Claude Opus 4.8" },
+    { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
     { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
     { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
   ],
@@ -175,7 +176,7 @@ export default function Settings(): JSX.Element {
   // LLM configuration state
   const [llmProvider, setLlmProvider] = useState<LLMConfig["provider"]>("openai");
   const [llmApiKey, setLlmApiKey] = useState("");
-  const [llmModel, setLlmModel] = useState("gpt-4o");
+  const [llmModel, setLlmModel] = useState(LLM_MODELS.openai[0].value);
   const [llmEndpoint, setLlmEndpoint] = useState("");
   const [llmMaxTokens, setLlmMaxTokens] = useState(1024);
   const [llmEnabled, setLlmEnabled] = useState(false);

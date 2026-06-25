@@ -239,3 +239,149 @@ export function findAllCitations(text: string): ParsedCitation[] {
   hits.sort((a, b) => a.index - b.index);
   return hits.map((h) => h.citation);
 }
+
+// ---------------------------------------------------------------------------
+// Legislative history (AGLC4 Rule 3.8) — opt-in hybrid detection
+// ---------------------------------------------------------------------------
+
+/**
+ * A single statute reference within a legislative-history relationship: title,
+ * year, jurisdiction, optional `(No N)` number, and a raw pinpoint string.
+ */
+export interface StatuteRef {
+  title: string;
+  year: number;
+  jurisdiction: string;
+  number?: string;
+  /** Raw pinpoint text as written, e.g. "s 7", "ss 7(2)–(4)", "sch 6 item 11". */
+  pinpoint?: string;
+}
+
+/**
+ * A parsed AGLC4 Rule 3.8 hybrid: a lead statute linked to a related statute
+ * by a directional connector (or a solo "as enacted" / "as at" tail).
+ */
+export interface LegislativeHistoryCitation {
+  type: "legislative-history";
+  connector: string;
+  lead: StatuteRef;
+  /** Omitted for the solo connectors "as enacted" and "as at". */
+  related?: StatuteRef;
+  /** Full date captured for the "as at" connector, e.g. "28 June 1994". */
+  asAtDate?: string;
+  raw: string;
+}
+
+/**
+ * The closed Rule 3.8 connector set, ordered longest-first so the combined
+ * matcher prefers the more specific phrase (e.g. "later amended by" over
+ * "amended by", "as amended by" over "amended by").
+ */
+const LEG_HISTORY_CONNECTORS = [
+  "later amended by",
+  "as amended by",
+  "as repealed by",
+  "as inserted by",
+  "as enacted",
+  "amended by",
+  "repealed by",
+  "amending",
+  "repealing",
+  "inserting",
+  "as at",
+] as const;
+
+/** Connectors that stand alone with no related Act (Rule 3.8). */
+const SOLO_CONNECTORS = new Set(["as enacted", "as at"]);
+
+/**
+ * Connector matcher. AGLC4 requires the connector to be "preceded by a comma",
+ * which also disambiguates "amended by" from "later amended by" / "as amended
+ * by" (only the intended phrase immediately follows the comma).
+ */
+const LEG_HISTORY_CONNECTOR_RE = new RegExp(
+  `,\\s*(${LEG_HISTORY_CONNECTORS.join("|")})\\b`,
+  "i",
+);
+
+/** Single statute reference: Title [ (No N) ] YYYY (Jurisdiction) [pinpoint]. */
+const STATUTE_REF_RE = new RegExp(
+  `^\\s*(.+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)\\s*(.*?)\\s*$`,
+);
+
+/**
+ * Parse a single statute reference into its structured parts.
+ *
+ * The jurisdiction is anchored to the parenthetical that follows the year, so a
+ * title containing its own parentheses — `(Raising the Bar)`, `(No 2)` — is not
+ * mistaken for the jurisdiction. A leading article ("the") on the title is
+ * stripped (AGLC4 omits it), and a trailing `(No N)` is lifted into `number`.
+ *
+ * @returns A `StatuteRef`, or `null` if the text is not a statute reference.
+ */
+export function parseStatuteRef(text: string): StatuteRef | null {
+  const m = STATUTE_REF_RE.exec(text.trim());
+  if (!m) return null;
+
+  let title = m[1].trim().replace(/^the\s+/i, "");
+  let number: string | undefined;
+
+  // Lift a trailing "(No N)" out of the title into its own field.
+  const numMatch = title.match(/\s*\((No\s+\d+)\)$/i);
+  if (numMatch) {
+    number = `(${numMatch[1]})`;
+    title = title.slice(0, numMatch.index).trim();
+  }
+
+  const pinpoint = m[4].trim() || undefined;
+
+  return {
+    title,
+    year: parseInt(m[2], 10),
+    jurisdiction: m[3],
+    ...(number ? { number } : {}),
+    ...(pinpoint ? { pinpoint } : {}),
+  };
+}
+
+/**
+ * Detect and parse an AGLC4 Rule 3.8 legislative-history hybrid.
+ *
+ * Returns `null` when the text contains no Rule 3.8 connector — i.e. a plain
+ * single-Act citation, which is the default form (DECISION-008). A connector is
+ * never synthesised; only an explicit "…, as amended by …" / "…, amending …"
+ * (etc.) is recognised as a hybrid.
+ *
+ * @returns A `LegislativeHistoryCitation`, or `null`.
+ */
+export function parseLegislativeHistory(
+  text: string,
+): LegislativeHistoryCitation | null {
+  // Drop a single trailing sentence full stop (AGLC4 uses none in citations).
+  const raw = text.trim().replace(/\.$/, "");
+
+  const m = LEG_HISTORY_CONNECTOR_RE.exec(raw);
+  if (!m) return null;
+
+  const connector = m[1].toLowerCase();
+  const leadText = raw.slice(0, m.index);
+  const tail = raw.slice(m.index + m[0].length).trim();
+
+  const lead = parseStatuteRef(leadText);
+  if (!lead) return null;
+
+  if (SOLO_CONNECTORS.has(connector)) {
+    return {
+      type: "legislative-history",
+      connector,
+      lead,
+      ...(connector === "as at" && tail ? { asAtDate: tail } : {}),
+      raw,
+    };
+  }
+
+  const related = parseStatuteRef(tail);
+  if (!related) return null;
+
+  return { type: "legislative-history", connector, lead, related, raw };
+}

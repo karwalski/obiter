@@ -272,6 +272,21 @@ function toOptionalNumber(raw: unknown): number | undefined {
 }
 
 /**
+ * Returns the first candidate that is a non-empty string, or "".
+ *
+ * Unlike the `??` operator, this treats an empty or whitespace-only string as
+ * absent, so a stale "" left in `formData` (e.g. when switching source types)
+ * does not defeat a fallback to the next candidate field. Use for author/body
+ * fields that accept several alternative data keys.
+ */
+function pickString(...candidates: unknown[]): string {
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) return c;
+  }
+  return "";
+}
+
+/**
  * Safely coerce a data field to a string. Prevents [object Object] in output
  * when the AI parser returns an array or structured object instead of a string.
  * For author arrays, extracts the first author's name.
@@ -1025,7 +1040,7 @@ function dispatchParliamentaryReport(citation: Citation): FormattedRun[] {
 function dispatchRoyalCommission(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatRoyalCommissionReport({
-    commissionName: (d.commissionName as string) ?? (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    commissionName: pickString(d.commissionName, d.body, d.institutionalAuthor, d.author),
     title: (d.title as string) ?? "",
     year: toNumber(d.year, 0),
     volume: toOptionalNumber(d.volume),
@@ -1039,7 +1054,7 @@ function dispatchRoyalCommission(citation: Citation): FormattedRun[] {
 function dispatchLawReformReport(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatLawReformReport({
-    commissionName: (d.commissionName as string) ?? (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    commissionName: pickString(d.commissionName, d.body, d.institutionalAuthor, d.author),
     title: (d.title as string) ?? "",
     documentType: (d.documentType as string) ?? "Report",
     number: (d.number as string) ?? (d.reportNumber as string) ?? "",
@@ -1101,7 +1116,7 @@ function dispatchResearchPaper(citation: Citation): FormattedRun[] {
 function dispatchParliamentaryResearchPaper(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatParliamentaryResearchPaper({
-    body: (d.body as string) ?? (d.institutionalAuthor as string) ?? "",
+    body: pickString(d.body, d.institutionalAuthor),
     jurisdiction: d.jurisdiction as string | undefined,
     title: (d.title as string) ?? "",
     documentType: (d.documentType as string) ?? "Research Paper",
@@ -1166,7 +1181,7 @@ function dispatchPressRelease(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatPressRelease({
     authors: d.authors as Author[] | undefined,
-    body: (d.body as string) ?? (d.issuingBody as string) ?? (d.author as string) ?? undefined,
+    body: pickString(d.body, d.issuingBody, d.author) || undefined,
     title: (d.title as string) ?? "",
     date: (d.date as string) ?? "",
   });
@@ -1255,7 +1270,7 @@ function dispatchCorrespondence(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatCorrespondence({
     type: (d.type as string) ?? (d.correspondenceType as string) ?? "Letter",
-    sender: (d.sender as string) ?? (d.author as string) ?? "",
+    sender: pickString(d.sender, d.author),
     recipient: (d.recipient as string) ?? "",
     date: (d.date as string) ?? "",
   });
@@ -1268,7 +1283,7 @@ function dispatchCorrespondence(citation: Citation): FormattedRun[] {
 function dispatchInterview(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatInterview({
-    interviewee: (d.interviewee as string) ?? (d.author as string) ?? (d.name as string) ?? "",
+    interviewee: pickString(d.interviewee, d.author, d.name),
     interviewer: (d.interviewer as string) ?? (d.host as string) ?? undefined,
     location: (d.location as string) ?? (d.program as string) ?? (d.publication as string) ?? undefined,
     date: (d.date as string) ?? "",
@@ -1316,7 +1331,7 @@ function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
   // Default: film format
   return formatFilm({
     title: (d.title as string) ?? "",
-    director: (d.director as string) ?? (d.author as string) ?? (d.producer as string) ?? "",
+    director: pickString(d.director, d.author, d.producer),
     year: String(d.year ?? ""),
   });
 }
@@ -1773,12 +1788,14 @@ function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
     caseName = d.respondent ? `${d.applicant} v ${d.respondent}` : (d.applicant as string);
   }
   // Court/body
-  const court = (d.court as string) ?? (d.tribunal as string) ?? (d.courtTribunal as string)
-    ?? (d.body as string) ?? (d.commission as string) ?? (d.committee as string) ?? "";
+  const court = pickString(
+    d.court, d.tribunal, d.courtTribunal, d.body, d.commission, d.committee,
+  );
   // Case/communication number
-  const caseNumber = (d.caseNumber as string) ?? (d.communicationNumber as string)
-    ?? (d.communicationNo as string) ?? (d.number as string)
-    ?? (d.applicationNumber as string) ?? "";
+  const caseNumber = pickString(
+    d.caseNumber, d.communicationNumber, d.communicationNo, d.number,
+    d.applicationNumber,
+  );
   const seriesNo = (d.seriesNumber as string) ?? (d.series as string) ?? "";
   const date = (d.date as string) ?? "";
   const pinpoint = d.pinpoint as string | undefined;

@@ -14,7 +14,11 @@
 import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatPinpoint } from "../general/pinpoints";
-import { formatLegislationPinpoint } from "./legislation";
+import {
+  formatLegislationPinpoint,
+  formatStatute,
+  formatBill,
+} from "./legislation";
 
 // ─── LEG-005: Order of Parallel Australian Statutes (Rule 3.3) — PLACEHOLDER ─
 
@@ -256,14 +260,141 @@ export function formatExplanatoryMemorandum(data: {
   return runs;
 }
 
-// ─── LEG-010: Legislative History (Rule 3.8) — PLACEHOLDER ──────────────────
+// ─── LEG-010: Legislative History (Rule 3.8) ────────────────────────────────
 
 /**
  * AGLC4 Rule 3.8: Legislative history references indicate how a provision
  * has been amended, inserted, or repealed by subsequent legislation.
+ *
+ * Authoring guidance only. The default citation form is a single principal Act
+ * — the Note to Rule 3.1.2 (AGLC4 p 68) states that a citation to an Act
+ * "refer[s] to the Act as amended (and consolidated)", and that "[g]enerally,
+ * a principal Act rather than an amending Act should be cited (but see rule
+ * 3.8)". The hybrid form below is the opt-in exception for the narrow case
+ * where a single footnote needs a provision together with its history-source.
+ * See docs/decisions.md DECISION-008.
  */
 export const LEGISLATIVE_HISTORY_GUIDANCE =
   "Use 'as amended by', 'as inserted by', 'as repealed by' to indicate legislative changes. Cite the amending act in full.";
+
+/**
+ * The closed set of connector expressions that link a provision to its
+ * legislative history under AGLC4 Rule 3.8 (p 78). The expressions are
+ * directional and NOT interchangeable:
+ *
+ * - Passive forms lead with the affected Act ("…s 7, as amended by …").
+ * - Active (gerund) forms lead with the amending instrument ("…, amending …").
+ *
+ * Where the amending instrument is a Bill, AGLC4 uses the "as"-less passive
+ * forms ("amended by", "repealed by"). "inserted by" is deliberately omitted:
+ * the Bill sentence in Rule 3.8 attests only "amended by/repealed by", so an
+ * "as"-less inserting form is not added here without researcher confirmation.
+ */
+export type LegislativeHistoryConnector =
+  | "as enacted"
+  | "as at"
+  | "as amended by"
+  | "amended by"
+  | "later amended by"
+  | "amending"
+  | "as repealed by"
+  | "repealed by"
+  | "repealing"
+  | "as inserted by"
+  | "inserting";
+
+/**
+ * The other Act or Bill in a Rule 3.8 legislative-history relationship. It
+ * carries its own complete citation (title, year, jurisdiction, optional
+ * number and pinpoint), per the worked examples at AGLC4 fns 61–68.
+ */
+export interface RelatedLegislation {
+  title: string;
+  year: number;
+  jurisdiction: string;
+  number?: string;
+  pinpoint?: Pinpoint;
+  /** When true, the related instrument is a Bill: not italicised (Rule 3.2). */
+  isBill?: boolean;
+}
+
+/**
+ * A Rule 3.8 legislative-history link applied to a lead citation. The
+ * `connector` fixes both the relationship and which instrument leads;
+ * `relatedAct` is omitted for the solo connectors ("as enacted" / "as at").
+ */
+export interface LegislativeHistory {
+  connector: LegislativeHistoryConnector;
+  /** Full date for the "as at" connector, e.g. "28 June 1994" (Rule 3.8). */
+  asAtDate?: string;
+  relatedAct?: RelatedLegislation;
+}
+
+/**
+ * Append a Rule 3.8 legislative-history tail to an already-formatted lead
+ * citation.
+ *
+ * @remarks AGLC4 Rule 3.8 (p 78): the two instruments are linked by a comma
+ * followed by a connector expression in roman type; each instrument keeps its
+ * own complete citation and pinpoint. This is the opt-in hybrid mode — callers
+ * pass it only when the legislative history is itself the point of the
+ * footnote (DECISION-008). The formatter never synthesises a connector: if a
+ * non-solo connector is supplied without a `relatedAct` (or "as at" without a
+ * date), the lead is returned unchanged rather than emitting a dangling tail.
+ *
+ * @example
+ * // Patents Act 1990 (Cth) s 7, as amended by
+ * //   Intellectual Property Laws Amendment (Raising the Bar) Act 2012 (Cth)
+ *
+ * @param lead - The lead citation, already formatted (statute or bill + pinpoint)
+ * @param history - The Rule 3.8 connector and related instrument
+ * @returns The lead runs with the legislative-history tail appended
+ */
+export function formatLegislativeHistory(
+  lead: FormattedRun[],
+  history: LegislativeHistory,
+): FormattedRun[] {
+  const runs: FormattedRun[] = [...lead];
+
+  // "as at <Full Date>" — solo connector; no related Act (Rule 3.8).
+  if (history.connector === "as at") {
+    if (history.asAtDate) {
+      runs.push({ text: `, as at ${history.asAtDate}` });
+    }
+    return runs;
+  }
+
+  // "as enacted" — solo connector; no related Act (Rule 3.8 fn 67).
+  if (history.connector === "as enacted") {
+    runs.push({ text: ", as enacted" });
+    return runs;
+  }
+
+  // All remaining connectors require a related instrument. Without one, emit no
+  // dangling connector — the validator flags the omission; the formatter does
+  // no harm (DECISION-008: never synthesise a hybrid).
+  if (!history.relatedAct) {
+    return runs;
+  }
+
+  runs.push({ text: `, ${history.connector} ` });
+
+  const rel = history.relatedAct;
+  const relData = {
+    title: rel.title,
+    year: rel.year,
+    jurisdiction: rel.jurisdiction,
+    number: rel.number,
+  };
+  runs.push(...(rel.isBill ? formatBill(relData) : formatStatute(relData)));
+
+  if (rel.pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatLegislationPinpoint(rel.pinpoint));
+  }
+
+  return runs;
+}
 
 // ─── LEG-011: Quasi-Legislative Materials (Rules 3.9.1–3.9.4) ───────────────
 

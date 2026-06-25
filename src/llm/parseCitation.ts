@@ -140,6 +140,11 @@ Books (book):
   Example: "Mark Leeming, Authority to Decide (Federation Press, 2nd ed, 2020) 42" ->
     { authors: [{ givenNames: "Mark", surname: "Leeming" }], title: "Authority to Decide", publisher: "Federation Press", edition: "2nd", year: "2020", pinpoint: "42" }
 
+Law reform & commission reports (report.law_reform, report.royal_commission):
+  body (the issuing commission or body, e.g. "Australian Law Reform Commission"), title, reportNumber, year, pinpoint
+  Example: "Australian Law Reform Commission, Genes and Ingenuity: Gene Patenting and Human Health (Report No 99, 2004)" ->
+    { body: "Australian Law Reform Commission", title: "Genes and Ingenuity: Gene Patenting and Human Health", reportNumber: "99", year: "2004" }
+
 Treaties (treaty):
   title, parties, openedDate, treatySeries, volume (as seriesVolume), startingPage, entryIntoForceDate, notYetInForce
   Example: "Convention on the Rights of the Child, opened for signature 20 November 1989, 1577 UNTS 3 (entered into force 2 September 1990)" ->

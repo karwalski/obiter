@@ -188,12 +188,16 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
         { key: "pinpoint", label: "Pinpoint", required: true, placeholder: "s 51(i)" },
       ];
     case "journal.article":
+      // Keys must match what the insert form / parser / engine use:
+      // `journal` (not journalName) and `issue`. Mismatched keys made the
+      // Journal Name field load empty and silently dropped edits to it.
       return [
         { key: "author", label: "Author", required: true, placeholder: "Jane Smith" },
         { key: "title", label: "Article Title", required: true },
         { key: "year", label: "Year", required: true },
         { key: "volume", label: "Volume", required: true },
-        { key: "journalName", label: "Journal Name", required: true },
+        { key: "issue", label: "Issue" },
+        { key: "journal", label: "Journal Name", required: true },
         { key: "startingPage", label: "Starting Page", required: true },
         { key: "pinpoint", label: "Pinpoint" },
       ];

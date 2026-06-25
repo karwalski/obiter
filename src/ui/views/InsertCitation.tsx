@@ -12,6 +12,7 @@ import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore } from "../../store/singleton";
 import { insertCitationFootnote, getAllCitationFootnotes, buildOccurrenceTitle } from "../../word/footnoteManager";
+import { refreshAllCitationsNow } from "../../word/citationRefresher";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getFormattedPreview, formatCitation } from "../../engine/engine";
 import type { CitationContext as CitationFormatContext } from "../../engine/engine";
@@ -858,6 +859,7 @@ export default function InsertCitation(): JSX.Element {
 
         setReinsertMenuId(null);
         setReinsertPinpoint("");
+        await refreshAllCitationsNow(await getStore());
         triggerRefresh();
         setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
       } catch (err: unknown) {
@@ -1249,6 +1251,7 @@ export default function InsertCitation(): JSX.Element {
         await store.add(citation);
         const title = shortTitle || citation.sourceType;
         await insertCitationFootnote(id, title, overrideRuns, appendIndex);
+        await refreshAllCitationsNow(store);
         triggerRefresh();
         setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
         setFormData({});
@@ -1287,6 +1290,11 @@ export default function InsertCitation(): JSX.Element {
         const title = shortTitle || citation.sourceType;
         await insertCitationFootnote(id, title, runsToInsert, appendIndex);
       }
+
+      // Normalise separators and closing punctuation immediately so a second
+      // citation appended to the same footnote reads "A; B." rather than the
+      // raw "A.B" left until the debounced auto-refresh happens to run.
+      await refreshAllCitationsNow(store);
 
       // BUG-003: Signal the Citation Library to refresh
       triggerRefresh();
