@@ -670,18 +670,29 @@ async function rebuildParentCC(
       applyRunFormatting(range, run);
     }
 
-    // Insert separator after this child (if not the last)
+    // Insert separator after this child (if not the last). The separator is
+    // inserted into the parent CC, so it inherits the formatting of the
+    // preceding character — reset it to roman so a citation ending in an italic
+    // run (e.g. a short-form case name) can't bleed italics into the separator
+    // or the following citation.
     if (j < rendered.length - 1) {
       const separator = getSeparator(signal, rendered[j + 1].signal, rendered[j].isNote, rendered[j + 1].isNote);
-      parentCC.insertText(separator, "End");
+      const sepRange = parentCC.insertText(separator, "End");
+      sepRange.font.italic = false;
+      sepRange.font.bold = false;
+      sepRange.font.superscript = false;
     }
   }
 
-  // Append closing punctuation after the last child CC (Rule 1.1.4)
+  // Append closing punctuation after the last child CC (Rule 1.1.4). Reset its
+  // formatting too — otherwise a final italic run would italicise the full stop.
   const lastCitationText = runsToPlainText(rendered[rendered.length - 1].runs);
   const closingPunct = getClosingPunctuation(lastCitationText);
   if (closingPunct) {
-    parentCC.insertText(closingPunct, "End");
+    const closeRange = parentCC.insertText(closingPunct, "End");
+    closeRange.font.italic = false;
+    closeRange.font.bold = false;
+    closeRange.font.superscript = false;
   }
 
   await context.sync();

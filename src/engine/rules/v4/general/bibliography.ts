@@ -405,9 +405,10 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
       }
     }
   } else if (st.startsWith("legislation.")) {
-    // Legislation: Year and jurisdiction
+    // Legislation: the year is part of the italicised title (Rule 3.1.1), so it
+    // is italic like the title; the jurisdiction in parentheses is roman.
     if (year !== undefined) {
-      runs.push({ text: ` ${year}` });
+      runs.push({ text: ` ${year}`, italic: true });
     }
     const jurisdiction = data["jurisdiction"] as string | undefined;
     if (jurisdiction) {
