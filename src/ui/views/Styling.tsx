@@ -554,7 +554,11 @@ export default function Styling(): JSX.Element {
 
           <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
             Place your cursor where the lines should go (usually the top of the
-            document), then add the title and the author.
+            document), then add the title and the author. The author renders in
+            small capitals with a full-size initial (Albert Author) — type the
+            name in normal case; all-caps entries are converted automatically.
+            The cursor moves below each line, so adding the title then the author
+            stacks them in order.
           </p>
         </fieldset>
       )}

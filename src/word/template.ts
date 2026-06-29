@@ -125,6 +125,22 @@ export async function applyAglc4Template(
 }
 
 /**
+ * Word draws small capitals by rendering uppercase letters at full height and
+ * lowercase letters as small caps. Text entered in ALL CAPS therefore shows as
+ * full-height caps with no small-caps effect (the reported "ALBERT AUTHOR"
+ * bug). When the input is entirely uppercase, convert it to title case so the
+ * small-caps styling produces the intended large-initial-plus-small-caps look.
+ * Mixed-case input is trusted as typed, preserving names like McDonald or
+ * O'Brien.
+ */
+export function normalizeForSmallCaps(text: string): string {
+  if (text !== text.toUpperCase()) return text;
+  return text
+    .toLowerCase()
+    .replace(/(^|[\s'’-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+}
+
+/**
  * Insert a single title paragraph at the cursor, formatted per AGLC4 Rule
  * 1.12.1 (bold, capitalised, centred). When `smallCaps` is true, the title is
  * rendered in small capitals instead of bold — this is NOT standard AGLC4 and
@@ -152,7 +168,7 @@ export async function insertTitleParagraph(
   // styling produces its effect.
   const para = context.document
     .getSelection()
-    .insertParagraph(smallCaps ? text : text.toUpperCase(), Word.InsertLocation.before);
+    .insertParagraph(smallCaps ? normalizeForSmallCaps(text) : text.toUpperCase(), Word.InsertLocation.before);
   try { para.style = "AGLC4 Title"; } catch { /* style may not exist */ }
   // Direct formatting after the style so it holds even if the style is missing
   // or stripped (e.g. on Word for Web, which ignores small caps).
@@ -161,6 +177,10 @@ export async function insertTitleParagraph(
   para.font.smallCaps = smallCaps;
   para.font.size = prefs.fontSize;
   if (prefs.fontName) para.font.name = prefs.fontName; // "" throws InvalidArgument
+  // Move the cursor below the inserted line so a following Add Author lands
+  // after the title (not above it, which happens when the caret stays at the
+  // top of the document after a "Before" insert).
+  para.getRange(Word.RangeLocation.after).select(Word.SelectionMode.start);
   await context.sync();
 }
 
@@ -180,11 +200,13 @@ export async function insertAuthorParagraph(
 
   const para = context.document
     .getSelection()
-    .insertParagraph(text, Word.InsertLocation.before);
+    .insertParagraph(normalizeForSmallCaps(text), Word.InsertLocation.before);
   try { para.style = "AGLC4 Author"; } catch { /* style may not exist */ }
   para.alignment = Word.Alignment.centered;
   para.font.smallCaps = true;
   para.font.size = prefs.fontSize;
   if (prefs.fontName) para.font.name = prefs.fontName;
+  // Advance the cursor below the author line, ready for the body text.
+  para.getRange(Word.RangeLocation.after).select(Word.SelectionMode.start);
   await context.sync();
 }
