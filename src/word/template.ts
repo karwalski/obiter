@@ -103,11 +103,15 @@ export async function applyAglc4Template(
 
     if (prefs.includeTitle) {
       const titlePara = body.insertParagraph(
-        "[Title]",
+        "[TITLE]",
         Word.InsertLocation.start,
       );
       try { titlePara.style = "AGLC4 Title"; } catch { /* style may not exist */ }
       titlePara.font.bold = true;
+      // Rule 1.12.1: the title is capitalised. allCaps renders whatever the
+      // author types into this placeholder in capitals, so the title stays
+      // capitalised even after they replace "[TITLE]" with their own text.
+      titlePara.font.allCaps = true;
       titlePara.alignment = Word.Alignment.centered;
       titlePara.font.size = prefs.fontSize;
       if (prefs.fontName) titlePara.font.name = prefs.fontName;
