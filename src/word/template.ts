@@ -145,9 +145,14 @@ export async function insertTitleParagraph(
   try { await applyAglc4Styles(context); } catch { /* may already exist */ }
   const prefs = loadTemplatePreferences();
 
+  // Rule 1.12.1: the title is "capitalised" — i.e. upper case (the AGLC4
+  // example title is fully capitalised). Uppercase the literal text so it
+  // displays in caps on every platform (Word for Web ignores caps font
+  // attributes). The small-caps variant keeps the typed case so the small-caps
+  // styling produces its effect.
   const para = context.document
     .getSelection()
-    .insertParagraph(text, Word.InsertLocation.before);
+    .insertParagraph(smallCaps ? text : text.toUpperCase(), Word.InsertLocation.before);
   try { para.style = "AGLC4 Title"; } catch { /* style may not exist */ }
   // Direct formatting after the style so it holds even if the style is missing
   // or stripped (e.g. on Word for Web, which ignores small caps).

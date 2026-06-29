@@ -1059,6 +1059,13 @@ export default function InsertCitation(): JSX.Element {
         setShortTitle("");
         setShortTitleTouched(false);
       }
+      // Hand the identified citation to the Paste Citation parser: drop the
+      // clean citation into the box and open it so the user can review it and
+      // click Parse to fill the fields.
+      if (result.citation && result.citation.trim()) {
+        setPasteCitationText(result.citation.trim());
+        setPasteCitationExpanded(true);
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to classify source type.";
       setClassifyError(message);
@@ -1467,6 +1474,11 @@ export default function InsertCitation(): JSX.Element {
               {Math.round(classifyResult.confidence * 100)}% confidence.
               {" "}
               {classifyResult.explanation}
+              {classifyResult.citation && classifyResult.citation.trim() && (
+                <div style={{ marginTop: 6, fontStyle: "italic" }}>
+                  Added the citation to Paste Citation below — review it and click Parse to fill the fields.
+                </div>
+              )}
             </div>
           )}
           {classifyError && (

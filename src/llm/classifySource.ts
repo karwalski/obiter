@@ -106,13 +106,16 @@ Respond with ONLY valid JSON in this exact shape (no markdown fencing):
 {
   "sourceType": "<one of the source type strings above>",
   "confidence": <number between 0 and 1>,
-  "explanation": "<brief explanation of why this source type was chosen>"
+  "explanation": "<brief explanation of why this source type was chosen>",
+  "citation": "<the full citation in standard form as best you can determine from the description (e.g. 'Mabo v Queensland (No 2) (1992) 175 CLR 1'); empty string if it cannot be determined>"
 }`;
 
 export interface ClassificationResult {
   sourceType: SourceType;
   confidence: number;
   explanation: string;
+  /** Best-effort full citation string, for handing off to the parser. */
+  citation: string;
 }
 
 /**
@@ -139,6 +142,9 @@ export async function classifySourceType(
 
   // Clamp confidence to [0, 1].
   result.confidence = Math.max(0, Math.min(1, Number(result.confidence) || 0));
+
+  // Best-effort citation string for the parse hand-off; default to empty.
+  result.citation = typeof result.citation === "string" ? result.citation : "";
 
   return result;
 }

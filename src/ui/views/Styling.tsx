@@ -507,7 +507,7 @@ export default function Styling(): JSX.Element {
           <legend className="settings-section-title">Title &amp; Author</legend>
           <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
             Add a paper title and author line at your cursor, formatted per AGLC4
-            Rule 1.12.1 — title in bold, author in small capitals, both centred.
+            Rule 1.12.1 — title in bold capitals, author in small capitals, both centred.
           </p>
 
           <label htmlFor="sty-title" style={{ display: "block", fontSize: 11, fontWeight: 600, margin: "0 0 2px" }}>Title</label>
