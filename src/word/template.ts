@@ -130,18 +130,23 @@ export async function applyAglc4Template(
 
 /**
  * Word draws small capitals by rendering uppercase letters at full height and
- * lowercase letters as small caps. Text entered in ALL CAPS therefore shows as
- * full-height caps with no small-caps effect (the reported "ALBERT AUTHOR"
- * bug). When the input is entirely uppercase, convert it to title case so the
- * small-caps styling produces the intended large-initial-plus-small-caps look.
- * Mixed-case input is trusted as typed, preserving names like McDonald or
- * O'Brien.
+ * lowercase letters as small caps. So the first letter of each name component
+ * must be a capital (for the full-height initial) and the rest lower case (so
+ * they render as small caps). This normalises each component:
+ *
+ * - "matt watt"  -> "Matt Watt"  (lower case gains a capital initial)
+ * - "MATT WATT"  -> "Matt Watt"  (all caps would otherwise show no small caps)
+ * - "McDonald"   -> "McDonald"   (deliberate internal caps preserved)
+ * - "O'Brien"    -> "O'Brien", "Mary-Jane" -> "Mary-Jane"
+ *
+ * A component's remainder is only lower-cased when the whole component is
+ * upper case; mixed-case components keep their internal capitals.
  */
 export function normalizeForSmallCaps(text: string): string {
-  if (text !== text.toUpperCase()) return text;
-  return text
-    .toLowerCase()
-    .replace(/(^|[\s'’-])([a-z])/g, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+  return text.replace(/[^\s'’-]+/g, (word) => {
+    const rest = word.slice(1);
+    return word.charAt(0).toUpperCase() + (word === word.toUpperCase() ? rest.toLowerCase() : rest);
+  });
 }
 
 /**

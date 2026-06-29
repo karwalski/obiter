@@ -16,6 +16,11 @@ describe("normalizeForSmallCaps", () => {
     expect(normalizeForSmallCaps("ALBERT AUTHOR")).toBe("Albert Author");
   });
 
+  it("title-cases lower-case input so small caps show a large initial", () => {
+    expect(normalizeForSmallCaps("matt watt")).toBe("Matt Watt");
+    expect(normalizeForSmallCaps("jane smith")).toBe("Jane Smith");
+  });
+
   it("leaves correctly mixed-case names as typed", () => {
     expect(normalizeForSmallCaps("Albert Author")).toBe("Albert Author");
     expect(normalizeForSmallCaps("Jane McDonald")).toBe("Jane McDonald");
