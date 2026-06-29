@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { applyHeadingLevel, findExistingHeadingListId, renumberAllHeadings } from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
-import { applyAglc4Template } from "../../word/template";
+import { applyAglc4Template, insertTitleParagraph, insertAuthorParagraph } from "../../word/template";
 import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
@@ -107,6 +107,10 @@ export default function Styling(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+  // Title & Author manual entry.
+  const [titleText, setTitleText] = useState("");
+  const [authorText, setAuthorText] = useState("");
+  const [smallCapsTitle, setSmallCapsTitle] = useState(false);
 
   // Load the active standard and heading list ID on mount
   useEffect(() => {
@@ -217,6 +221,44 @@ export default function Styling(): JSX.Element {
       setApplying(false);
     }
   }, [isAglc]);
+
+  const handleAddTitle = useCallback(async () => {
+    const text = titleText.trim();
+    if (!text) return;
+    setApplying(true);
+    try {
+      setStatus(null);
+      setError(null);
+      await Word.run(async (context) => {
+        await insertTitleParagraph(context, text, smallCapsTitle);
+      });
+      setStatus(smallCapsTitle
+        ? "Inserted title in small caps (note: not standard AGLC4)."
+        : "Inserted title.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to add title.");
+    } finally {
+      setApplying(false);
+    }
+  }, [titleText, smallCapsTitle]);
+
+  const handleAddAuthor = useCallback(async () => {
+    const text = authorText.trim();
+    if (!text) return;
+    setApplying(true);
+    try {
+      setStatus(null);
+      setError(null);
+      await Word.run(async (context) => {
+        await insertAuthorParagraph(context, text);
+      });
+      setStatus("Inserted author.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to add author.");
+    } finally {
+      setApplying(false);
+    }
+  }, [authorText]);
 
   /* ── Annotation dropdown state ── */
   const [annotationOpen, setAnnotationOpen] = useState(false);
@@ -459,6 +501,63 @@ export default function Styling(): JSX.Element {
           {applying ? "Applying..." : isAglc ? "Set Up Document (Styles + Template)" : "Set Up Document (Template)"}
         </button>
       </fieldset>
+
+      {isAglc && (
+        <fieldset className="settings-section" style={{ marginTop: 12 }}>
+          <legend className="settings-section-title">Title &amp; Author</legend>
+          <p style={{ fontSize: 12, margin: "4px 0 8px" }}>
+            Add a paper title and author line at your cursor, formatted per AGLC4
+            Rule 1.12.1 — title in bold, author in small capitals, both centred.
+          </p>
+
+          <label htmlFor="sty-title" style={{ display: "block", fontSize: 11, fontWeight: 600, margin: "0 0 2px" }}>Title</label>
+          <input
+            id="sty-title"
+            type="text"
+            value={titleText}
+            placeholder="e.g. The Doctrine of Precedent"
+            onChange={(e) => setTitleText(e.target.value)}
+            disabled={applying}
+            style={{ width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px", border: "1px solid var(--colour-border)", borderRadius: "var(--radius-md)" }}
+          />
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--colour-text-secondary)", margin: "6px 0" }}>
+            <input type="checkbox" checked={smallCapsTitle} onChange={(e) => setSmallCapsTitle(e.target.checked)} disabled={applying} />
+            Small caps title (not standard AGLC4 — AGLC4 uses bold)
+          </label>
+          <button
+            className="bib-insert-btn"
+            style={{ width: "100%" }}
+            onClick={() => void handleAddTitle()}
+            disabled={applying || !titleText.trim()}
+          >
+            {applying ? "Adding..." : "Add Title"}
+          </button>
+
+          <label htmlFor="sty-author" style={{ display: "block", fontSize: 11, fontWeight: 600, margin: "10px 0 2px" }}>Author</label>
+          <input
+            id="sty-author"
+            type="text"
+            value={authorText}
+            placeholder="e.g. Jane Smith"
+            onChange={(e) => setAuthorText(e.target.value)}
+            disabled={applying}
+            style={{ width: "100%", boxSizing: "border-box", fontSize: 12, padding: "6px 8px", border: "1px solid var(--colour-border)", borderRadius: "var(--radius-md)" }}
+          />
+          <button
+            className="bib-insert-btn"
+            style={{ width: "100%", marginTop: 6 }}
+            onClick={() => void handleAddAuthor()}
+            disabled={applying || !authorText.trim()}
+          >
+            {applying ? "Adding..." : "Add Author"}
+          </button>
+
+          <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
+            Place your cursor where the lines should go (usually the top of the
+            document), then add the title and the author.
+          </p>
+        </fieldset>
+      )}
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Heading Levels</legend>

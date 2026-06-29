@@ -90,11 +90,15 @@ export async function applyAglc4Template(
         "[Author Name]",
         Word.InsertLocation.start,
       );
-      authorPara.font.smallCaps = true;
-      authorPara.font.name = prefs.fontName;
-      authorPara.font.size = prefs.fontSize;
-      authorPara.alignment = Word.Alignment.centered;
+      // Apply the named style first, then direct formatting, so the centring
+      // and small caps win even if the style is missing or stripped (Word Web).
       try { authorPara.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+      authorPara.font.smallCaps = true;
+      authorPara.alignment = Word.Alignment.centered;
+      authorPara.font.size = prefs.fontSize;
+      // Only set the font name if the user chose one — `font.name = ""` throws
+      // 'InvalidArgument' and aborts the rest of the setup.
+      if (prefs.fontName) authorPara.font.name = prefs.fontName;
     }
 
     if (prefs.includeTitle) {
@@ -102,11 +106,11 @@ export async function applyAglc4Template(
         "[Title]",
         Word.InsertLocation.start,
       );
-      titlePara.font.bold = true;
-      titlePara.font.name = prefs.fontName;
-      titlePara.font.size = prefs.fontSize;
-      titlePara.alignment = Word.Alignment.centered;
       try { titlePara.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+      titlePara.font.bold = true;
+      titlePara.alignment = Word.Alignment.centered;
+      titlePara.font.size = prefs.fontSize;
+      if (prefs.fontName) titlePara.font.name = prefs.fontName;
     }
 
     await context.sync();
@@ -118,4 +122,64 @@ export async function applyAglc4Template(
   // to avoid showing it to the author during editing.
   // The document's custom properties (Obiter.ManagedDocument) serve as the
   // machine-readable signal that this document uses Obiter.
+}
+
+/**
+ * Insert a single title paragraph at the cursor, formatted per AGLC4 Rule
+ * 1.12.1 (bold, capitalised, centred). When `smallCaps` is true, the title is
+ * rendered in small capitals instead of bold — this is NOT standard AGLC4 and
+ * the caller should label it as such.
+ *
+ * Inserting "Before" the selection means consecutive Add Title → Add Author
+ * calls stack in order (title, then author) above the cursor.
+ *
+ * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @param text - The title text.
+ * @param smallCaps - Use the non-standard small-caps variant instead of bold.
+ */
+export async function insertTitleParagraph(
+  context: Word.RequestContext,
+  text: string,
+  smallCaps = false,
+): Promise<void> {
+  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+  const prefs = loadTemplatePreferences();
+
+  const para = context.document
+    .getSelection()
+    .insertParagraph(text, Word.InsertLocation.before);
+  try { para.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+  // Direct formatting after the style so it holds even if the style is missing
+  // or stripped (e.g. on Word for Web, which ignores small caps).
+  para.alignment = Word.Alignment.centered;
+  para.font.bold = !smallCaps;
+  para.font.smallCaps = smallCaps;
+  para.font.size = prefs.fontSize;
+  if (prefs.fontName) para.font.name = prefs.fontName; // "" throws InvalidArgument
+  await context.sync();
+}
+
+/**
+ * Insert a single author paragraph at the cursor, formatted per AGLC4 Rule
+ * 1.12.1 (small capitals, centred).
+ *
+ * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @param text - The author name(s).
+ */
+export async function insertAuthorParagraph(
+  context: Word.RequestContext,
+  text: string,
+): Promise<void> {
+  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+  const prefs = loadTemplatePreferences();
+
+  const para = context.document
+    .getSelection()
+    .insertParagraph(text, Word.InsertLocation.before);
+  try { para.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+  para.alignment = Word.Alignment.centered;
+  para.font.smallCaps = true;
+  para.font.size = prefs.fontSize;
+  if (prefs.fontName) para.font.name = prefs.fontName;
+  await context.sync();
 }
