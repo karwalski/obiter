@@ -51,7 +51,11 @@ import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
-import { parseOccurrenceTitle, buildOccurrenceTitle } from "./footnoteManager";
+import {
+  parseOccurrenceTitle,
+  buildOccurrenceTitle,
+  isFootnoteLocked,
+} from "./footnoteManager";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -93,6 +97,8 @@ interface FootnoteEntry {
   footnoteNumber: number;
   /** Ordered list of child citation IDs within this footnote. */
   children: ChildEntry[];
+  /** Whether this footnote is locked (frozen) — rebuild is skipped. */
+  isLocked: boolean;
 }
 
 /** The rendered format of a citation within a footnote. */
@@ -135,15 +141,14 @@ function stripClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
 }
 
 function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
-  if (run.italic !== undefined) {
-    range.font.italic = run.italic;
-  }
-  if (run.bold !== undefined) {
-    range.font.bold = run.bold;
-  }
-  if (run.superscript !== undefined) {
-    range.font.superscript = run.superscript;
-  }
+  // Set toggle attributes explicitly (default false). An omitted attribute on
+  // a FormattedRun means "off", not "inherit the previous run". Without this,
+  // the citation runs after an italic case name inherited that italic and the
+  // whole citation rendered italic (AGLC4 Rule 2 italicises the case name only)
+  // — and the refresher re-applied it over any manual correction.
+  range.font.italic = run.italic ?? false;
+  range.font.bold = run.bold ?? false;
+  range.font.superscript = run.superscript ?? false;
   if (run.font !== undefined) {
     range.font.name = run.font;
   }
@@ -348,6 +353,9 @@ async function scanFootnotes(
         parentCC,
         footnoteNumber,
         children,
+        // Lock state lives on the parent CC title (loaded above via
+        // items/tag,items/title). A locked footnote is frozen — see below.
+        isLocked: isFootnoteLocked(parentCC.title),
       });
     }
   }
@@ -408,6 +416,19 @@ async function renderAndRebuild(
     if (rendered.length === 0) {
       prevFootnoteNumber = fnEntry.footnoteNumber;
       prevFootnoteCitationIds = [...currentFootnoteCitationIds];
+      continue;
+    }
+
+    // Locked (frozen) footnote: keep ibid/numbering tracking current (rendered
+    // above, pure — no Word writes) but do NOT touch the parent CC, so its text
+    // — including any manual edits — is preserved exactly.
+    if (fnEntry.isLocked) {
+      prevFootnoteNumber = fnEntry.footnoteNumber;
+      prevFootnoteCitationIds = [...currentFootnoteCitationIds];
+      const lastCitationId = rendered[rendered.length - 1].citationId;
+      prevFootnotePinpoint = store.getById(lastCitationId)?.data
+        .pinpoint as Pinpoint | undefined;
+      unchanged += rendered.length;
       continue;
     }
 

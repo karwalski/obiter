@@ -1449,6 +1449,17 @@ body {
   border-color: #f1bbbc;
 }
 
+.edit-lock-badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--colour-warning-text, #92400e);
+  background-color: var(--colour-warning-surface, #fff8e1);
+  border: 1px solid var(--colour-warning, #f59e0b);
+  padding: 0 5px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
 .edit-confirm-text {
   font-size: var(--text-base);
   font-weight: 600;

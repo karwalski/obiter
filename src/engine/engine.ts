@@ -1385,7 +1385,10 @@ function dispatchDictionary(citation: Citation): FormattedRun[] {
     publisher: d.publisher as string | undefined,
     edition: d.edition as string | undefined,
     year: String(d.year ?? ""),
-    entry: (d.entry as string) ?? "",
+    // The dictionary form writes the defined word to `entryTerm`; read both
+    // so the term renders (previously read only `entry` → empty '' that the
+    // refresher then re-enforced over any manual fix).
+    entry: pickString(d.entry, d.entryTerm),
     definitionNumber: d.definitionNumber as string | undefined,
   });
 }

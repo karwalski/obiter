@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getSharedStore } from "../../store/singleton";
+import { lockAllObiterFootnotes } from "../../word/footnoteManager";
 import { AVAILABLE_STANDARDS, type CitationStandardId, type WritingMode } from "../../engine/standards";
 import {
   COURT_PRESETS,
@@ -152,6 +153,9 @@ export default function Settings(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [formatStatus, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
+  // Confirmation shown when leaving Manual Citations Mode (resuming auto would
+  // re-apply formatting and could overwrite manual edits).
+  const [manualExitConfirm, setManualExitConfirm] = useState(false);
   const [writingMode, setWritingMode] = useState<WritingMode>("academic");
   const [courtJurisdiction, setCourtJurisdiction] = useState<CourtJurisdiction | "">("");
   const [courtToggles, setCourtToggles] = useState<{
@@ -453,6 +457,32 @@ export default function Settings(): JSX.Element {
     }
   }, [triggerRefresh]);
 
+  // Leave Manual Citations Mode and resume automatic formatting. When
+  // `lockFirst` is true, every existing footnote is frozen first so manual
+  // edits survive the resumed refresh (auto then applies only to new citations).
+  const resumeAutoFormatting = useCallback(async (lockFirst: boolean) => {
+    setManualExitConfirm(false);
+    try {
+      if (lockFirst) {
+        await lockAllObiterFootnotes();
+      }
+      setDevicePref("manualCitationMode", undefined);
+      setAutoRefreshCitations(true);
+      setAutoRefreshEnabled(true);
+      setDocSetting("obiter-autoRefresh", true);
+      // Explicit refresh (not the debounced trigger) so it runs deterministically
+      // now that manual mode is cleared. Locked footnotes are skipped.
+      const store = await getSharedStore();
+      await Word.run(async (ctx) => {
+        const { refreshAllCitations } = await import("../../word/citationRefresher");
+        await refreshAllCitations(ctx, store);
+      });
+      triggerRefresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to resume automatic formatting");
+    }
+  }, [setAutoRefreshEnabled, triggerRefresh]);
+
   const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
     try {
       const store = await getSharedStore();
@@ -599,14 +629,18 @@ export default function Settings(): JSX.Element {
             type="checkbox"
             checked={getDevicePref("manualCitationMode") === true}
             onChange={(e) => {
-              setDevicePref("manualCitationMode", e.target.checked || undefined);
-              // Disable auto-refresh when manual mode is on, re-enable when off
               if (e.target.checked) {
+                // Turn Manual Mode ON — pause auto-formatting.
+                setDevicePref("manualCitationMode", true);
                 setAutoRefreshCitations(false);
                 setAutoRefreshEnabled(false);
                 setDocSetting("obiter-autoRefresh", false);
+                triggerRefresh();
+              } else {
+                // Turning OFF resumes auto-formatting and can overwrite manual
+                // edits — confirm first and offer to lock current footnotes.
+                setManualExitConfirm(true);
               }
-              triggerRefresh();
             }}
           />
           <span className="settings-toggle-label">
@@ -618,7 +652,49 @@ export default function Settings(): JSX.Element {
           text is not automatically reformatted — you can edit citation text
           directly in the document. Re-enable to resume automatic formatting.
         </p>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "6px 0 0", fontStyle: "italic" }}>
+          Tip: to protect specific corrections, lock individual footnotes
+          (open a citation in Edit → Occurrences → Lock) instead of Manual Mode.
+          Auto-formatting keeps working everywhere else.
+        </p>
       </fieldset>
+
+      {manualExitConfirm && (
+        <div className="error-reporter-overlay" role="dialog" aria-modal="true">
+          <div className="error-reporter-modal">
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Resume automatic formatting?</h3>
+            <p style={{ fontSize: 12, color: "var(--colour-text-secondary)" }}>
+              Obiter will re-apply its formatting to every footnote, which can
+              overwrite manual edits you made in Manual Mode. You can keep your
+              current footnotes frozen instead — auto-formatting will then apply
+              only to new citations.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                className="error-reporter-btn-primary"
+                onClick={() => void resumeAutoFormatting(true)}
+              >
+                Lock current footnotes &amp; resume
+              </button>
+              <button
+                type="button"
+                className="error-reporter-btn"
+                onClick={() => void resumeAutoFormatting(false)}
+              >
+                Resume &amp; overwrite
+              </button>
+              <button
+                type="button"
+                className="error-reporter-btn"
+                onClick={() => setManualExitConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Citation Standard</legend>

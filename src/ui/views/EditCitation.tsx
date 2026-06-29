@@ -16,6 +16,7 @@ import {
   getAllCitationFootnotes,
   appendToFootnoteByIndex,
   updateOccurrenceMetadata,
+  setFootnoteLock,
 } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getCitationLabel } from "./CitationLibrary";
@@ -352,6 +353,10 @@ export default function EditCitation(): JSX.Element {
     Record<number, { pinpoint: string; formatPreference: "auto" | "full" | "short" | "ibid" }>
   >({});
   const [savingOccurrence, setSavingOccurrence] = useState<number | null>(null);
+  // Lock (freeze) state: which footnote is mid-toggle, and which is awaiting
+  // an unlock confirmation (unlocking discards manual edits on next refresh).
+  const [lockingFootnote, setLockingFootnote] = useState<number | null>(null);
+  const [unlockConfirm, setUnlockConfirm] = useState<number | null>(null);
 
   // Load the active standard on mount
   useEffect(() => {
@@ -620,6 +625,62 @@ export default function EditCitation(): JSX.Element {
       setRemovingFootnote(null);
     }
   }, [citation, loadOccurrences]);
+
+  // Lock a footnote (freeze as-is). No refresh needed — locking changes no text.
+  const handleLock = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+    setLockingFootnote(footnoteIndex);
+    setError(null);
+    try {
+      await setFootnoteLock(footnoteIndex, true);
+      await loadOccurrences(citation.id);
+      setSuccessMessage(`Footnote ${footnoteIndex} locked — Obiter won't reformat it.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to lock footnote.");
+    } finally {
+      setLockingFootnote(null);
+    }
+  }, [citation, loadOccurrences]);
+
+  // Unlock a footnote and restore structured formatting (discards manual edits).
+  const handleUnlock = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+    setLockingFootnote(footnoteIndex);
+    setUnlockConfirm(null);
+    setError(null);
+    try {
+      await setFootnoteLock(footnoteIndex, false);
+      const store = await getSharedStore();
+      await Word.run(async (ctx) => {
+        const { refreshAllCitations } = await import("../../word/citationRefresher");
+        await refreshAllCitations(ctx, store);
+      });
+      await loadOccurrences(citation.id);
+      setSuccessMessage(`Footnote ${footnoteIndex} unlocked and reformatted.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to unlock footnote.");
+    } finally {
+      setLockingFootnote(null);
+    }
+  }, [citation, loadOccurrences]);
+
+  // Lock every footnote that cites this citation (the confirmed convenience).
+  const handleLockAll = useCallback(async () => {
+    if (!citation) return;
+    setLockingFootnote(-1);
+    setError(null);
+    try {
+      for (const occ of occurrences) {
+        if (!occ.isLocked) await setFootnoteLock(occ.footnoteIndex, true);
+      }
+      await loadOccurrences(citation.id);
+      setSuccessMessage("Locked every footnote using this citation.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to lock occurrences.");
+    } finally {
+      setLockingFootnote(null);
+    }
+  }, [citation, occurrences, loadOccurrences]);
 
   // ─── UX-004: Add to Existing Footnote ──────────────────────────────────
 
@@ -1093,6 +1154,7 @@ export default function EditCitation(): JSX.Element {
                     draft.formatPreference !== original.formatPreference;
                   const isSaving = savingOccurrence === entry.footnoteIndex;
                   const isRemoving = removingFootnote === entry.footnoteIndex;
+                  const isLockBusy = lockingFootnote === entry.footnoteIndex;
                   return (
                     <li
                       key={entry.footnoteIndex}
@@ -1101,6 +1163,14 @@ export default function EditCitation(): JSX.Element {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <strong style={{ minWidth: 36 }}>n {entry.footnoteIndex}</strong>
+                        {entry.isLocked && (
+                          <span
+                            className="edit-lock-badge"
+                            title="Frozen — Obiter will not reformat this footnote"
+                          >
+                            Locked
+                          </span>
+                        )}
                         <select
                           className="edit-field-input"
                           value={draft.formatPreference}
@@ -1111,7 +1181,7 @@ export default function EditCitation(): JSX.Element {
                               [entry.footnoteIndex]: { ...draft, formatPreference: value },
                             }));
                           }}
-                          disabled={isSaving || isRemoving}
+                          disabled={isSaving || isRemoving || entry.isLocked}
                           style={{ flex: "0 0 auto", fontSize: 11, padding: "2px 4px" }}
                           aria-label={`Format for footnote ${entry.footnoteIndex}`}
                         >
@@ -1131,35 +1201,98 @@ export default function EditCitation(): JSX.Element {
                               [entry.footnoteIndex]: { ...draft, pinpoint: e.target.value },
                             }));
                           }}
-                          disabled={isSaving || isRemoving}
+                          disabled={isSaving || isRemoving || entry.isLocked}
                           style={{ flex: "1 1 60px", minWidth: 60, fontSize: 11, padding: "2px 4px" }}
                           aria-label={`Pinpoint for footnote ${entry.footnoteIndex}`}
                         />
                       </div>
-                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                        <button
-                          type="button"
-                          className="edit-btn edit-btn-primary edit-btn-small"
-                          onClick={() => void handleSaveOccurrence(entry.footnoteIndex)}
-                          disabled={!dirty || isSaving || isRemoving || loading}
-                          style={{ fontSize: 10 }}
-                        >
-                          {isSaving ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          type="button"
-                          className="edit-btn edit-btn-danger edit-btn-small"
-                          onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
-                          disabled={isRemoving || isSaving || loading}
-                          style={{ fontSize: 10 }}
-                        >
-                          {isRemoving ? "..." : "Remove"}
-                        </button>
-                      </div>
+                      {unlockConfirm === entry.footnoteIndex ? (
+                        <div className="edit-confirm-delete" style={{ padding: 8 }}>
+                          <p className="edit-confirm-text" style={{ fontSize: 11 }}>
+                            Unlock footnote {entry.footnoteIndex}? Obiter will reformat it on the next refresh, discarding any manual edits.
+                          </p>
+                          <div className="edit-confirm-actions">
+                            <button
+                              type="button"
+                              className="edit-btn edit-btn-danger edit-btn-small"
+                              onClick={() => void handleUnlock(entry.footnoteIndex)}
+                              disabled={isLockBusy}
+                              style={{ fontSize: 10 }}
+                            >
+                              {isLockBusy ? "Unlocking..." : "Unlock & reformat"}
+                            </button>
+                            <button
+                              type="button"
+                              className="edit-btn edit-btn-secondary edit-btn-small"
+                              onClick={() => setUnlockConfirm(null)}
+                              disabled={isLockBusy}
+                              style={{ fontSize: 10 }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                          {entry.isLocked ? (
+                            <button
+                              type="button"
+                              className="edit-btn edit-btn-secondary edit-btn-small"
+                              onClick={() => setUnlockConfirm(entry.footnoteIndex)}
+                              disabled={isLockBusy || loading}
+                              style={{ fontSize: 10 }}
+                            >
+                              Unlock
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="edit-btn edit-btn-secondary edit-btn-small"
+                              onClick={() => void handleLock(entry.footnoteIndex)}
+                              disabled={isLockBusy || isSaving || isRemoving || loading}
+                              title="Freeze this footnote exactly as it reads — Obiter won't reformat it"
+                              style={{ fontSize: 10 }}
+                            >
+                              {isLockBusy ? "Locking..." : "Lock"}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="edit-btn edit-btn-primary edit-btn-small"
+                            onClick={() => void handleSaveOccurrence(entry.footnoteIndex)}
+                            disabled={!dirty || isSaving || isRemoving || loading || entry.isLocked}
+                            style={{ fontSize: 10 }}
+                          >
+                            {isSaving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            className="edit-btn edit-btn-danger edit-btn-small"
+                            onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
+                            disabled={isRemoving || isSaving || loading}
+                            style={{ fontSize: 10 }}
+                          >
+                            {isRemoving ? "..." : "Remove"}
+                          </button>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
               </ul>
+            )}
+
+            {occurrences.length > 1 && occurrences.some((o) => !o.isLocked) && (
+              <button
+                type="button"
+                className="edit-btn edit-btn-secondary edit-btn-small"
+                onClick={() => void handleLockAll()}
+                disabled={lockingFootnote !== null || loading}
+                style={{ fontSize: 10, marginTop: 4 }}
+                title="Freeze every footnote that uses this citation"
+              >
+                {lockingFootnote === -1 ? "Locking all..." : "Lock all occurrences"}
+              </button>
             )}
 
             {/* Add to footnote */}

@@ -39,6 +39,27 @@ import { FormattedRun } from "../types/formattedRun";
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 export const PARENT_CC_TAG = "obiter-fn";
 
+/** Title set on the parent CC of a normal (auto-formatted) footnote. */
+export const PARENT_CC_TITLE = "Obiter Footnote";
+
+/**
+ * Title set on the parent CC of a LOCKED footnote.
+ *
+ * A locked footnote is frozen exactly as it reads in the document — the
+ * refresher still scans it (for ibid resolution and numbering) but never
+ * rebuilds it, so manual edits survive. The lock flag lives on the parent CC
+ * *title* (the parent is located by tag, so its title is otherwise unused), so
+ * it travels with the footnote as footnotes are inserted or removed. The
+ * child-CC title encoding (`buildOccurrenceTitle`) is a separate channel and is
+ * untouched.
+ */
+export const LOCKED_PARENT_CC_TITLE = "Obiter Footnote (locked)";
+
+/** Whether a footnote's parent-CC title marks it as locked (frozen). */
+export function isFootnoteLocked(parentTitle: string | undefined | null): boolean {
+  return parentTitle === LOCKED_PARENT_CC_TITLE;
+}
+
 // ─── Public Interfaces ──────────────────────────────────────────────────────
 
 /** Summary of a citation content control found in a footnote. */
@@ -53,6 +74,8 @@ export interface CitationFootnoteEntry {
   formatPreference?: "auto" | "full" | "short" | "ibid";
   /** Per-occurrence pinpoint encoded in the CC title. */
   pinpoint?: string;
+  /** Whether this footnote is locked (frozen — the refresher skips its rebuild). */
+  isLocked?: boolean;
 }
 
 /** Result returned when cursor is next to a footnote. */
@@ -72,15 +95,15 @@ export interface AdjacentFootnoteResult {
  * are left unchanged (inherit from the content control default).
  */
 export function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
-  if (run.italic !== undefined) {
-    range.font.italic = run.italic;
-  }
-  if (run.bold !== undefined) {
-    range.font.bold = run.bold;
-  }
-  if (run.superscript !== undefined) {
-    range.font.superscript = run.superscript;
-  }
+  // Set toggle attributes explicitly (default false) rather than only when
+  // present. A FormattedRun fully specifies its own formatting, so an omitted
+  // attribute means "off", not "inherit". Without this, a run with italic
+  // unset inherited the previous run's italic — the case formatters mark only
+  // the case name italic and leave the citation runs unset, so the whole
+  // citation rendered italic (AGLC4 Rule 2 italicises the case name only).
+  range.font.italic = run.italic ?? false;
+  range.font.bold = run.bold ?? false;
+  range.font.superscript = run.superscript ?? false;
   if (run.font !== undefined) {
     range.font.name = run.font;
   }
@@ -396,6 +419,16 @@ async function appendCitationToParent(
     );
   }
 
+  // A new citation needs separators and closing punctuation that only the
+  // refresher's rebuild adds — which it skips for a locked footnote. So if the
+  // target footnote is locked, unlock it first; the post-insert refresh then
+  // formats the whole footnote (the user can re-lock afterwards).
+  parentCC.load("title");
+  await context.sync();
+  if (isFootnoteLocked(parentCC.title)) {
+    parentCC.title = PARENT_CC_TITLE;
+  }
+
   insertChildCitation(parentCC, citationId, title, formattedRuns);
   await context.sync();
 }
@@ -533,7 +566,7 @@ export async function insertCitationFootnote(
       const paraEndRange = firstPara.getRange("End");
       const parentCC = paraEndRange.insertContentControl("RichText");
       parentCC.tag = PARENT_CC_TAG;
-      parentCC.title = "Obiter Footnote";
+      parentCC.title = PARENT_CC_TITLE;
       parentCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
       // Insert child CC inside the parent CC with the citation content.
@@ -657,7 +690,12 @@ export async function getAllCitationFootnotes(): Promise<
       contentControls.load("items/tag,items/title");
       await context.sync();
 
-      for (const cc of contentControls.items ?? []) {
+      const ccs = contentControls.items ?? [];
+      // Lock state lives on the parent CC title and applies to the whole footnote.
+      const parentCC = ccs.find((cc) => cc.tag === PARENT_CC_TAG);
+      const locked = isFootnoteLocked(parentCC?.title);
+
+      for (const cc of ccs) {
         // Skip parent CCs and other internal obiter tags; only collect
         // child CCs which have citation UUIDs as tags.
         if (cc.tag && !cc.tag.startsWith("obiter-")) {
@@ -672,6 +710,7 @@ export async function getAllCitationFootnotes(): Promise<
             title: cc.title,
             formatPreference: parsed.formatPreference,
             pinpoint: parsed.pinpoint,
+            isLocked: locked,
           });
         }
       }
@@ -679,6 +718,66 @@ export async function getAllCitationFootnotes(): Promise<
   });
 
   return results;
+}
+
+// ─── Footnote Lock (freeze / unfreeze) ──────────────────────────────────────
+
+/**
+ * Lock or unlock a single footnote by its 1-based index.
+ *
+ * Locking sets the parent CC title to the locked marker; the refresher then
+ * skips rebuilding that footnote, so its current text (including any manual
+ * edits) is preserved. Locking changes no content — no refresh is required.
+ * Unlocking should be followed by a refresh to restore structured formatting.
+ */
+export async function setFootnoteLock(
+  footnoteIndex: number,
+  locked: boolean,
+): Promise<void> {
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const noteItem = (footnotes.items ?? [])[footnoteIndex - 1];
+    if (!noteItem) {
+      throw new Error(`Footnote ${footnoteIndex} not found.`);
+    }
+    const parentCC = await findParentCC(noteItem, context);
+    if (!parentCC) {
+      throw new Error(
+        `Footnote ${footnoteIndex} has no Obiter content control to lock.`,
+      );
+    }
+    parentCC.title = locked ? LOCKED_PARENT_CC_TITLE : PARENT_CC_TITLE;
+    await context.sync();
+  });
+}
+
+/**
+ * Lock every Obiter footnote in the document, freezing each as it currently
+ * reads. Used when leaving Manual Citations Mode with "keep my edits" so the
+ * resumed auto-refresh does not overwrite manual corrections.
+ *
+ * @returns The number of footnotes locked.
+ */
+export async function lockAllObiterFootnotes(): Promise<number> {
+  let count = 0;
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    for (const noteItem of footnotes.items ?? []) {
+      const parentCC = await findParentCC(noteItem, context);
+      if (parentCC) {
+        parentCC.title = LOCKED_PARENT_CC_TITLE;
+        count++;
+      }
+    }
+    await context.sync();
+  });
+  return count;
 }
 
 // ─── Footnote Index ─────────────────────────────────────────────────────────
