@@ -657,6 +657,11 @@ export default function Settings(): JSX.Element {
           (open a citation in Edit → Occurrences → Lock) instead of Manual Mode.
           Auto-formatting keeps working everywhere else.
         </p>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
+          Before submitting an assignment, official or court document, review the
+          final version and <strong>export a PDF</strong> — citations can update
+          automatically, and a PDF preserves exactly what you reviewed.
+        </p>
       </fieldset>
 
       {manualExitConfirm && (

@@ -780,6 +780,72 @@ export async function lockAllObiterFootnotes(): Promise<number> {
   return count;
 }
 
+/** Read the full text of a footnote's Obiter content (its parent CC). */
+export async function getFootnoteText(footnoteIndex: number): Promise<string> {
+  let text = "";
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const noteItem = (footnotes.items ?? [])[footnoteIndex - 1];
+    if (!noteItem) return;
+    const parentCC = await findParentCC(noteItem, context);
+    if (!parentCC) return;
+    parentCC.load("text");
+    await context.sync();
+    text = parentCC.text ?? "";
+  });
+  return text;
+}
+
+/**
+ * Replace a footnote's content with verbatim text and keep it locked.
+ *
+ * The text is stored in a single child CC tagged with the citation id, so the
+ * occurrence is still discoverable (and can be unlocked back to structured
+ * formatting later). This is a per-occurrence override — only the named
+ * footnote is affected, not other occurrences of the citation. Plain text only:
+ * any rich formatting (e.g. case-name italics) should be applied by editing the
+ * footnote directly in Word, which is preserved while the footnote is locked.
+ *
+ * Intended for single-citation footnotes; callers should not use it on a
+ * footnote containing multiple citations (it collapses the content to one CC).
+ */
+export async function setOccurrenceText(
+  footnoteIndex: number,
+  citationId: string,
+  text: string,
+): Promise<void> {
+  await Word.run(async (context) => {
+    const footnotes = context.document.body.footnotes;
+    footnotes.load("items");
+    await context.sync();
+
+    const noteItem = (footnotes.items ?? [])[footnoteIndex - 1];
+    if (!noteItem) {
+      throw new Error(`Footnote ${footnoteIndex} not found.`);
+    }
+    const parentCC = await findParentCC(noteItem, context);
+    if (!parentCC) {
+      throw new Error(`Footnote ${footnoteIndex} has no Obiter content control.`);
+    }
+
+    parentCC.clear();
+    await context.sync();
+
+    const childCC = parentCC.getRange("End").insertContentControl("RichText");
+    childCC.tag = citationId;
+    childCC.title = buildOccurrenceTitle("auto");
+    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+    childCC.insertText(text, "End");
+
+    // Keep the footnote frozen so the refresher leaves the override in place.
+    parentCC.title = LOCKED_PARENT_CC_TITLE;
+    await context.sync();
+  });
+}
+
 // ─── Footnote Index ─────────────────────────────────────────────────────────
 
 /**

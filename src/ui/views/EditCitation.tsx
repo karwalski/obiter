@@ -17,6 +17,8 @@ import {
   appendToFootnoteByIndex,
   updateOccurrenceMetadata,
   setFootnoteLock,
+  getFootnoteText,
+  setOccurrenceText,
 } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getCitationLabel } from "./CitationLibrary";
@@ -358,6 +360,12 @@ export default function EditCitation(): JSX.Element {
   const [lockingFootnote, setLockingFootnote] = useState<number | null>(null);
   const [unlockConfirm, setUnlockConfirm] = useState<number | null>(null);
 
+  // Locked-text editing: which footnote's real text is open for viewing/editing,
+  // the lazily-loaded draft text, and whether a load/save is in flight.
+  const [textEditFootnote, setTextEditFootnote] = useState<number | null>(null);
+  const [lockedTextDraft, setLockedTextDraft] = useState("");
+  const [lockedTextBusy, setLockedTextBusy] = useState(false);
+
   // Load the active standard on mount
   useEffect(() => {
     void (async () => {
@@ -681,6 +689,48 @@ export default function EditCitation(): JSX.Element {
       setLockingFootnote(null);
     }
   }, [citation, occurrences, loadOccurrences]);
+
+  // ─── Story 22: per-occurrence locked text ──────────────────────────────
+  // Open a locked footnote's actual text for viewing (multi-citation) or
+  // editing (single-citation). Text is read lazily from the document.
+  const handleOpenLockedText = useCallback(async (footnoteIndex: number) => {
+    setTextEditFootnote(footnoteIndex);
+    setLockedTextDraft("");
+    setLockedTextBusy(true);
+    setError(null);
+    try {
+      const text = await getFootnoteText(footnoteIndex);
+      setLockedTextDraft(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to read footnote text.");
+      setTextEditFootnote(null);
+    } finally {
+      setLockedTextBusy(false);
+    }
+  }, []);
+
+  const handleCloseLockedText = useCallback(() => {
+    setTextEditFootnote(null);
+    setLockedTextDraft("");
+  }, []);
+
+  // Save edited verbatim text back to a single-citation locked footnote.
+  const handleSaveLockedText = useCallback(async (footnoteIndex: number) => {
+    if (!citation) return;
+    setLockedTextBusy(true);
+    setError(null);
+    try {
+      await setOccurrenceText(footnoteIndex, citation.id, lockedTextDraft);
+      await loadOccurrences(citation.id);
+      setTextEditFootnote(null);
+      setLockedTextDraft("");
+      setSuccessMessage(`Footnote ${footnoteIndex} updated and kept locked.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save footnote text.");
+    } finally {
+      setLockedTextBusy(false);
+    }
+  }, [citation, lockedTextDraft, loadOccurrences]);
 
   // ─── UX-004: Add to Existing Footnote ──────────────────────────────────
 
@@ -1155,6 +1205,12 @@ export default function EditCitation(): JSX.Element {
                   const isSaving = savingOccurrence === entry.footnoteIndex;
                   const isRemoving = removingFootnote === entry.footnoteIndex;
                   const isLockBusy = lockingFootnote === entry.footnoteIndex;
+                  // A footnote is single-citation when it is the only Obiter
+                  // citation in that note — panel text-editing is scoped to
+                  // these (multi-citation notes are view-only here).
+                  const isSingleCitation =
+                    allFootnoteEntries.filter((e) => e.footnoteIndex === entry.footnoteIndex).length <= 1;
+                  const isTextOpen = textEditFootnote === entry.footnoteIndex;
                   return (
                     <li
                       key={entry.footnoteIndex}
@@ -1235,15 +1291,35 @@ export default function EditCitation(): JSX.Element {
                       ) : (
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                           {entry.isLocked ? (
-                            <button
-                              type="button"
-                              className="edit-btn edit-btn-secondary edit-btn-small"
-                              onClick={() => setUnlockConfirm(entry.footnoteIndex)}
-                              disabled={isLockBusy || loading}
-                              style={{ fontSize: 10 }}
-                            >
-                              Unlock
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="edit-btn edit-btn-secondary edit-btn-small"
+                                onClick={() =>
+                                  isTextOpen
+                                    ? handleCloseLockedText()
+                                    : void handleOpenLockedText(entry.footnoteIndex)
+                                }
+                                disabled={isLockBusy || loading}
+                                title={
+                                  isSingleCitation
+                                    ? "View and edit this footnote's exact text"
+                                    : "View this footnote's text (multiple citations — edit in Word)"
+                                }
+                                style={{ fontSize: 10 }}
+                              >
+                                {isTextOpen ? "Close text" : isSingleCitation ? "Edit text" : "View text"}
+                              </button>
+                              <button
+                                type="button"
+                                className="edit-btn edit-btn-secondary edit-btn-small"
+                                onClick={() => setUnlockConfirm(entry.footnoteIndex)}
+                                disabled={isLockBusy || loading}
+                                style={{ fontSize: 10 }}
+                              >
+                                Unlock
+                              </button>
+                            </>
                           ) : (
                             <button
                               type="button"
@@ -1274,6 +1350,77 @@ export default function EditCitation(): JSX.Element {
                           >
                             {isRemoving ? "..." : "Remove"}
                           </button>
+                        </div>
+                      )}
+                      {isTextOpen && (
+                        <div
+                          className="edit-locked-text"
+                          style={{
+                            padding: 8,
+                            marginTop: 4,
+                            background: "var(--colour-surface-alt, var(--colour-surface))",
+                            border: "1px solid var(--colour-border)",
+                            borderRadius: 4,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                          }}
+                        >
+                          {lockedTextBusy && !lockedTextDraft ? (
+                            <p className="edit-occurrences-note" style={{ margin: 0 }}>
+                              Reading footnote text...
+                            </p>
+                          ) : isSingleCitation ? (
+                            <>
+                              <textarea
+                                className="edit-field-input"
+                                value={lockedTextDraft}
+                                onChange={(e) => setLockedTextDraft(e.target.value)}
+                                rows={3}
+                                disabled={lockedTextBusy}
+                                style={{ width: "100%", fontSize: 11, resize: "vertical" }}
+                                aria-label={`Locked text for footnote ${entry.footnoteIndex}`}
+                              />
+                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: 10 }}>
+                                Saved as plain text. Rich formatting (such as case-name
+                                italics) is not styled here — to keep formatting, edit the
+                                footnote directly in Word while it stays locked.
+                              </p>
+                              <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                                <button
+                                  type="button"
+                                  className="edit-btn edit-btn-primary edit-btn-small"
+                                  onClick={() => void handleSaveLockedText(entry.footnoteIndex)}
+                                  disabled={lockedTextBusy}
+                                  style={{ fontSize: 10 }}
+                                >
+                                  {lockedTextBusy ? "Saving..." : "Save text"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="edit-btn edit-btn-secondary edit-btn-small"
+                                  onClick={handleCloseLockedText}
+                                  disabled={lockedTextBusy}
+                                  style={{ fontSize: 10 }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p
+                                className="edit-occurrences-note"
+                                style={{ margin: 0, fontSize: 11, whiteSpace: "pre-wrap" }}
+                              >
+                                {lockedTextDraft || "(empty)"}
+                              </p>
+                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: 10 }}>
+                                This footnote contains more than one citation. Edit its text
+                                directly in Word — it stays locked, so your changes are preserved.
+                              </p>
+                            </>
+                          )}
                         </div>
                       )}
                     </li>
