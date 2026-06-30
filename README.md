@@ -1,4 +1,4 @@
-# Obiter v1.13.0
+# Obiter v1.13.18
 
 **AGLC4, applied automatically.**
 
@@ -16,7 +16,7 @@ From *obiter dictum* -- a remark in passing. Citations are the remarks that supp
 
 ## Install
 
-Install Obiter from [Microsoft AppSource](https://marketplace.microsoft.com/en-au/product/office/WA200010629). Click **Get it now**, confirm your details, and open in Word. Obiter appears in the Home tab of the Word ribbon, ready to use.
+Install Obiter from [Microsoft AppSource](https://marketplace.microsoft.com/en-au/product/office/WA200010629). Click **Get it now**, confirm your details, and open in Word. Obiter appears in its own **Obiter** tab in the Word ribbon, ready to use.
 
 Automatic updates are handled by AppSource. No manual steps required after installation.
 
@@ -24,7 +24,7 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ### Citation Engine
 
-- **Full AGLC4 coverage** -- all 26 chapters, 90+ source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
+- **Full AGLC4 coverage** -- all 26 chapters, 80+ source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
 - **Automatic ibid and subsequent references** -- Obiter detects repeated sources and applies ibid, short titles, and cross-reference note numbers following Rules 1.4.1--1.4.6
 - **Cross-references** -- `(n X)` fields that auto-renumber when footnotes are reordered
 - **Short titles** -- assigned on first citation and used throughout subsequent references
@@ -59,7 +59,7 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 ### International and Foreign Coverage
 
 - **International materials** -- treaties, UN documents, ICJ, PCIJ, ICC, international arbitration, WTO, GATT, EU, ECHR, and other supranational courts (Chapters 8--14)
-- **15+ foreign jurisdictions** -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, United Kingdom, United States, and others (Chapters 15--26)
+- **12 foreign jurisdictions** -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, United Kingdom, United States, and others (Chapters 15--26)
 
 ### AI-Assisted Citation (Optional)
 
@@ -122,7 +122,7 @@ src/
   store/              Custom XML Part persistence (citation data in .docx)
   word/               Office.js adapter layer (footnotes, content controls, styles)
   ui/                 React 18 task pane
-  llm/                Optional LLM integration (OpenAI, Anthropic)
+  llm/                Optional LLM integration (OpenAI, Anthropic, Gemini, Grok, DeepSeek, custom)
   api/                External API clients (AustLII, Jade.io, legislation.gov.au)
 tests/
   engine/             Unit tests per chapter
@@ -132,16 +132,14 @@ The document is the database. All citation metadata persists in a Custom XML Par
 
 ### Testing
 
-Comprehensive test suites covering all AGLC4 chapters, each testing against the guide's own examples:
+Comprehensive test suites covering all AGLC4 chapters, the engine, the Word
+integration layer, the API adapters, and the UI — each chapter tested against the
+guide's own examples. **2,000+ tests** in total:
 
 ```
-PASS tests/engine/chapter1.test.ts      (95 tests -- General Rules)
-PASS tests/engine/chapter2.test.ts      (81 tests -- Cases)
-PASS tests/engine/chapter3.test.ts      (85 tests -- Legislation)
-PASS tests/engine/chapter4-6.test.ts    (69 tests -- Secondary Sources)
-PASS tests/engine/chapter7.test.ts      (19 tests -- Other Sources)
-PASS tests/engine/chapter8-14.test.ts   (39 tests -- International)
-PASS tests/engine/chapter15-26.test.ts  (73 tests -- Foreign Jurisdictions)
+npm test
+# Test Suites: all passed
+# Tests:       2,000+ passed
 ```
 
 ## Contributing

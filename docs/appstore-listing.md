@@ -1,11 +1,11 @@
-# AppSource Listing — Obiter v1.13.0
+# AppSource Listing — Obiter v1.13.18
 
 ## Short Description (100 chars)
-AGLC4 citation engine with 90+ source types, ibid resolution, bibliography, validation, and court mode.
+AGLC4 citation engine with 80+ source types, ibid resolution, bibliography, validation, and court mode.
 
 ## Long Description
 
-Obiter is a free, open-source Microsoft Word add-in that implements the full Australian Guide to Legal Citation, 4th Edition (AGLC4). It covers 90+ source types across all 26 chapters — including international materials and foreign jurisdictions that no existing tool supports.
+Obiter is a free, open-source Microsoft Word add-in that implements the full Australian Guide to Legal Citation, 4th Edition (AGLC4). It covers 80+ source types across all 26 chapters — including international materials and foreign jurisdictions that no existing tool supports.
 
 CITATION ENGINE:
 
@@ -71,4 +71,4 @@ Australian law students, legal academics, practitioners, and anyone who needs to
 
 PRIVACY:
 
-Obiter does not collect any usage data, analytics, or telemetry. All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.
+Obiter collects no personal data and no document content. When it opens, it sends a single anonymous load count (the app version, your Word version, and your operating system — no identifying information). All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.

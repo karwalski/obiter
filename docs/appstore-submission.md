@@ -80,7 +80,8 @@ thesis writers, journal editors, and researchers working with international
 and foreign legal materials that existing tools cannot handle.
 
 PRIVACY:
-Obiter does not collect any usage data, analytics, or telemetry. All
+Obiter collects no personal data and no document content. On open it sends
+a single anonymous load count (app version, Word version, OS). All
 citation data remains in your document. Optional AI features require
 user-provided API keys and only process text that users explicitly select.
 See our full privacy policy at https://obiter.com.au/privacy.html.
@@ -202,7 +203,7 @@ This copies `manifest.prod.xml` into `dist/manifest.xml` with the correct URLs.
 | Reason | Mitigation |
 |--------|-----------|
 | Missing privacy policy | Created at obiter.com.au/privacy.html |
-| Broken functionality | Run `npm test` (464 tests) + manual QA on all platforms |
+| Broken functionality | Run `npm test` (2,000+ tests) + manual QA on all platforms |
 | External script loading | Only Office.js from Microsoft CDN |
 | Missing screenshots | Capture all 7 listed in Section 7 |
 | Description too vague | Use the specific text from Section 3 |

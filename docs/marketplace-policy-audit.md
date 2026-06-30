@@ -18,7 +18,7 @@
 **Evidence:**
 - Title: "Obiter -- AGLC4 Citation Engine" -- accurate and descriptive (`manifest.prod.xml` line 7)
 - Short description in `docs/appstore-submission.md`: 95 characters (under 100-char limit)
-- Long description identifies audience (Australian law students, legal academics, practitioners), explains unique value (all ~80 AGLC4 source types, international materials), and identifies supported products (Microsoft Word)
+- Long description identifies audience (Australian law students, legal academics, practitioners), explains unique value (80+ AGLC4 source types, international materials), and identifies supported products (Microsoft Word)
 - Description does not repeat the summary
 - No comparative marketing or competitor references
 
@@ -294,7 +294,7 @@
   - Who the developer is (lines 58-65)
   - Data stored in the document (lines 68-78)
   - Data stored locally in localStorage (lines 80-94)
-  - No telemetry or analytics (lines 96-101)
+  - Anonymous load count only — no personal data or document content ("Anonymous Load Counting", lines 96-101)
   - Third-party LLM integration details (lines 103-149)
   - External API search proxy (lines 151-163)
   - Website contact forms (lines 165-176)
@@ -315,7 +315,7 @@
 **Status:** COMPLIANT
 
 **Evidence:**
-- Privacy policy explicitly states no data collection, no analytics, no telemetry
+- Privacy policy discloses the only automatic transmission: a single anonymous load count (app version, Word version, OS — no personal data or document content) sent on open; no other analytics or tracking
 - Citation data stored in Custom XML Parts within the `.docx` file (never transmitted)
 - Preferences stored in `localStorage` (never transmitted to Obiter servers)
 - All external communications use HTTPS:

@@ -93,10 +93,13 @@
 
         <h3>The Obiter ribbon tab</h3>
         <p>
-          Once installed, Obiter adds a dedicated tab to the Word ribbon. This
-          tab contains button groups for inserting citations, managing your
-          library, formatting your document, running validation, and accessing
-          settings. Every feature is accessible from this ribbon tab.
+          Once installed, Obiter adds a dedicated <strong>Obiter</strong> tab to
+          the Word ribbon. It contains buttons for <strong>Insert Citation</strong>,
+          <strong>Library</strong>, <strong>Validate</strong>,
+          <strong>Bibliography</strong>, <strong>Guide</strong>,
+          <strong>Refresh All</strong>, <strong>Apply Template</strong>,
+          <strong>Block Quote</strong>, <strong>Styling</strong>, and
+          <strong>Settings</strong>. Every feature is accessible from this tab.
         </p>
 
         <figure class="docs-figure">
@@ -139,6 +142,42 @@
           level button. The formatting is applied instantly.
         </p>
 
+        <h3>Adding a title and author</h3>
+        <p>
+          The <strong>Styling</strong> view has a <strong>Title &amp; Author</strong>
+          section for adding a paper&rsquo;s title and author line, formatted per
+          AGLC4 Rule 1.12.1. Place your cursor where the lines should go (usually
+          the top of the document), type the title and the author, and click
+          <strong>Add Title</strong> then <strong>Add Author</strong>. The cursor
+          moves below each line, so the two stack in order.
+        </p>
+        <ul class="docs-list">
+          <li>
+            <strong>Title</strong> is rendered bold and capitalised (Rule 1.12.1),
+            both centred.
+          </li>
+          <li>
+            <strong>Author</strong> is rendered in small capitals with a full-size
+            initial &mdash; type the name in any case (for example
+            &ldquo;matt watt&rdquo; or &ldquo;MATT WATT&rdquo;) and Obiter shows it
+            as a large initial with small capitals for the rest.
+          </li>
+          <li>
+            A <strong>small-caps title</strong> option is also offered for a
+            non-standard variant; it is clearly marked as not standard AGLC4
+            (AGLC4 uses bold for the title).
+          </li>
+        </ul>
+        <div class="docs-note">
+          <p>
+            <strong>Word for the web:</strong> the browser version of Word does not
+            render the small-capitals font attribute, so the author line (and any
+            small-caps heading or title) will display in ordinary capitals there.
+            The formatting is stored correctly and appears as small capitals when
+            the document is opened in Word for Windows, Mac, or iPad.
+          </p>
+        </div>
+
         <figure class="docs-figure">
           <img src="screenshots/document-setup.png" alt="A document with AGLC4 template applied, showing heading levels and formatting">
           <figcaption>
@@ -162,16 +201,18 @@
         <p>
           Click <strong>Insert Citation</strong> in the ribbon to open the task
           pane. Start by selecting the type of source you are citing. Obiter
-          supports 87 source types across all 26 AGLC4 chapters, including
+          supports 80+ source types across all 26 AGLC4 chapters, including
           cases, legislation, journal articles, books, treaties, and
           international materials.
         </p>
         <p>
           Source types are organised by category. Use the search field or browse
           the list to find the one you need. If you are unsure which type to
-          choose, the <strong>Help Me Choose</strong> button (available when AI
-          is enabled) can suggest the correct type based on a description of
-          your source.
+          choose, the <strong>Help Me Choose</strong> button (also labelled
+          <strong>Identify</strong>, available when AI is enabled) can suggest the
+          correct type based on a description of your source. When it identifies a
+          source, it hands the text straight to <strong>Paste Citation</strong> so
+          the fields can be parsed and filled in one step.
         </p>
 
         <h3>Filling in the citation form</h3>
@@ -257,8 +298,8 @@
         <h3>Viewing all citations</h3>
         <p>
           The Citation Library shows every citation in your document. Open it
-          from the ribbon by clicking <strong>Citation Library</strong>. Each
-          entry displays the formatted citation, source type, and short title.
+          from the ribbon by clicking <strong>Library</strong> in the Obiter tab.
+          Each entry displays the formatted citation, source type, and short title.
         </p>
 
         <h3>Search and filter</h3>
@@ -407,6 +448,51 @@
           <strong>Delete</strong>. This removes the citation from the document
           and the library. After deleting, run <strong>Refresh All</strong> to
           update any subsequent references that may have been affected.
+        </p>
+
+        <h3>Occurrences &mdash; every footnote a citation appears in</h3>
+        <p>
+          A single source is often cited in several footnotes. The
+          <strong>Occurrences</strong> panel in the Edit Citation view lists
+          every footnote where the citation appears, with the footnote number,
+          its current format (Auto / Full / Short / Ibid), and any pinpoint. From
+          here you can change an individual occurrence&rsquo;s format or pinpoint,
+          remove a single occurrence, or jump to where it appears &mdash; without
+          affecting the other occurrences.
+        </p>
+
+        <h3>Locking a footnote</h3>
+        <p>
+          Obiter re-formats citations automatically as your document changes. If
+          you have hand-corrected a footnote at proof-reading and want to make
+          sure Obiter does not overwrite it, <strong>Lock</strong> it. In the
+          Edit Citation view, open <strong>Occurrences</strong> and click
+          <strong>Lock</strong> on the footnote you want to freeze. A locked
+          footnote is kept exactly as it reads and is skipped by every refresh; a
+          <strong>Locked</strong> badge marks it.
+        </p>
+        <ul class="docs-list">
+          <li>
+            <strong>Edit text while locked.</strong> A locked single-citation
+            footnote shows its actual text, which you can edit in the panel and
+            save &mdash; it stays locked. (Edited text is stored as plain text, so
+            rich formatting such as case-name italics is best applied by editing
+            the footnote directly in Word, which a lock preserves.)
+          </li>
+          <li>
+            <strong>Lock all occurrences.</strong> Use <strong>Lock all</strong>
+            to freeze every footnote that cites the source at once.
+          </li>
+          <li>
+            <strong>Unlock</strong> returns the footnote to automatic formatting
+            on the next refresh, discarding the manual edits (you are warned
+            first).
+          </li>
+        </ul>
+        <p>
+          Locking is the safe way to hold a specific correction. For a document
+          you are about to submit, also see Manual Citations Mode (Settings) and
+          the recommendation to export a PDF of the final version.
         </p>
 
         <figure class="docs-figure">
@@ -676,6 +762,25 @@
           you must click <strong>Refresh All</strong> manually.
         </p>
 
+        <h3>Manual Citations Mode</h3>
+        <p>
+          <strong>Manual Citations Mode</strong> pauses all automatic
+          re-formatting across the whole document, so nothing Obiter has inserted
+          is changed until you turn it back on. Use it when you want to make
+          extensive manual edits at proof-reading. While it is on, a banner at the
+          top of the task pane reminds you, and the <strong>Refresh All</strong>
+          button is replaced by a Manual Mode indicator.
+        </p>
+        <p>
+          Turning it back off resumes automatic formatting, which can overwrite
+          manual edits &mdash; so when you exit, Obiter offers to
+          <strong>lock the current footnotes first</strong>, preserving your edits
+          while letting new citations format normally. For protecting a single
+          correction rather than the whole document, prefer the per-footnote
+          <strong>Lock</strong> (see Editing Citations &rarr; Locking a footnote),
+          which leaves automatic formatting working everywhere else.
+        </p>
+
         <h3>Document formatting</h3>
         <p>
           The <strong>Document Formatting</strong> section controls how Obiter
@@ -693,16 +798,30 @@
           Changes here affect only the current document.
         </p>
 
-        <h3>Source Lookup (Optional)</h3>
+        <h3>Source Registry (Optional)</h3>
         <p>
-          Obiter can search external legal databases as you type in citation
-          fields. This feature is disabled by default. To enable it, go to
-          <strong>Settings &gt; Source Lookup</strong> and toggle
-          <strong>Enable source lookup</strong>. You can select which providers
-          to search individually: AustLII (cases and legislation), Jade.io
-          (Australian cases), and the Federal Register of Legislation. Search
-          queries are sent only when you type &mdash; no background searches
-          are performed.
+          Obiter can look up sources from external legal databases as you type in
+          citation fields. The <strong>Source Registry</strong> in Settings lists
+          the available data sources, each grouped by tier and shown with a live
+          health indicator. There is a master <strong>Enable source lookup</strong>
+          toggle, plus a checkbox per source so you can choose exactly which to
+          use. Only open, free sources are enabled by default; queries are sent
+          only when you type &mdash; there are no background searches.
+        </p>
+        <p>
+          Default sources include the Open Australian Legal Corpus, AustLII and
+          Jade.io deep links, and scholarship indexes (Crossref, OpenAlex, DOAJ),
+          alongside court RSS feeds. Premium providers can be added with your own
+          credentials.
+        </p>
+
+        <h3>Offline corpus download</h3>
+        <p>
+          The <strong>Corpus</strong> section lets you download a local index of
+          the Open Australian Legal Corpus (hundreds of thousands of entries) for
+          fast, offline case and legislation lookup. A banner prompts you when a
+          download or refresh is available. The corpus is metadata only and lives
+          on your device.
         </p>
 
         <h3>Acknowledgment</h3>
@@ -848,8 +967,29 @@
         <h3>List of Authorities</h3>
         <p>
           Court filings require a List of Authorities rather than a
-          bibliography. Court mode generates a List of Authorities from your
-          citations, formatted according to court requirements.
+          bibliography. Court mode generates one from your citations, formatted
+          according to court requirements. Open the <strong>Bibliography</strong>
+          view in court mode, choose the List of Authorities format, then insert
+          it at the cursor. Three formats are available:
+        </p>
+        <ul class="docs-list">
+          <li>
+            <strong>Simple</strong> &mdash; a single alphabetised list of all
+            authorities.
+          </li>
+          <li>
+            <strong>Part A / Part B</strong> &mdash; authorities split into a key
+            authorities part and the remainder, with the key authorities marked
+            (as several appellate courts require).
+          </li>
+          <li>
+            <strong>HCA Joint Book format</strong> &mdash; the grouping used for a
+            High Court joint book of authorities.
+          </li>
+        </ul>
+        <p>
+          The active format is set by the <strong>List of Authorities type</strong>
+          toggle (below).
         </p>
 
         <h3>Ibid suppression</h3>

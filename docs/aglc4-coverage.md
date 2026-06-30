@@ -1,6 +1,6 @@
 # AGLC4 Feature Coverage
 
-**Obiter v1.12.0** | Last audited: 2026-04-27
+**Obiter v1.13.18** | Last audited: 2026-06-30
 
 Coverage audit of the Australian Guide to Legal Citation, 4th Edition. Each rule is marked as **Full**, **Partial**, or **Manual** (user responsibility, not automatable).
 
