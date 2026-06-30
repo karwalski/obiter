@@ -4,7 +4,7 @@
 # rebuild the add-in without waiting for a push to main.
 #
 # Required repository secrets:
-#   LIGHTSAIL_SSH_KEY  — SSH private key for bitnami@3.106.204.98 (Lightsail instance)
+#   LIGHTSAIL_SSH_KEY  — SSH private key for the deploy host
 #   DEPLOY_KEY         — GitHub deploy key for pushing
 
 name: Deploy
@@ -68,7 +68,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 3.106.204.98 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy website files
         if: ${{ inputs.deploy_website }}
@@ -77,7 +77,7 @@ jobs:
           rsync -avz --delete --exclude='server/' \
             -e "ssh -i ~/.ssh/deploy_key" \
             website/ \
-            bitnami@3.106.204.98:/opt/bitnami/nginx/html/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/
 
       - name: Deploy server files
         if: ${{ inputs.deploy_website }}
@@ -86,16 +86,16 @@ jobs:
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
             website/server/ \
-            bitnami@3.106.204.98:/var/www/obiter/server/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/obiter/server/
 
           # Install dependencies on remote
-          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             'cd /var/www/obiter/server && npm ci --production'
 
       - name: Restart server
         if: ${{ inputs.deploy_website || inputs.restart_server }}
         run: |
-          ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98 \
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
             'pkill -f "node.*index.js" 2>/dev/null; sleep 1; source /etc/obiter/env.sh && cd /var/www/obiter/server && screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"'
 
       - name: Clean up SSH key
@@ -122,7 +122,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 3.106.204.98 >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Build and deploy add-in
         run: |
@@ -132,7 +132,7 @@ jobs:
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
-            bitnami@3.106.204.98:/opt/bitnami/nginx/html/app/
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
 
       - name: Clean up SSH key
         if: always()

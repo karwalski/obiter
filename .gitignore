@@ -6,6 +6,9 @@ lib-amd/
 .DS_Store
 .env
 .env.local
+scripts/deploy.env
+*.pem
+*.key
 website/server/node_modules/
 website/server/obiter.db
 website/server/google-token.json

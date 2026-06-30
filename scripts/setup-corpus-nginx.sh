@@ -12,8 +12,10 @@
 
 set -euo pipefail
 
-SERVER="bitnami@3.106.204.98"
-SSH_KEY="$HOME/.ssh/obiter.pem"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_deploy-env.sh
+source "$SCRIPT_DIR/_deploy-env.sh"
+SERVER="$SSH_TARGET"
 CORPUS_DIR="/opt/bitnami/nginx/html/corpus"
 NGINX_CONF="/opt/bitnami/nginx/conf/server_blocks/corpus.conf"
 

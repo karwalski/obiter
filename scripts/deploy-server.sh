@@ -1,6 +1,9 @@
 #!/bin/bash
-# Deploy backend server to Lightsail
+# Deploy backend server to the server
 set -e
-scp -i ~/.ssh/obiter.pem website/server/*.js website/server/package.json bitnami@3.106.204.98:/var/www/obiter/server/
-ssh -i ~/.ssh/obiter.pem bitnami@3.106.204.98 'cd /var/www/obiter/server && npm install --production'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_deploy-env.sh"
+
+scp -i "$SSH_KEY" website/server/*.js website/server/package.json "$SSH_TARGET:/var/www/obiter/server/"
+ssh -i "$SSH_KEY" "$SSH_TARGET" 'cd /var/www/obiter/server && npm install --production'
 echo "Server files deployed. Restart with: npm run restart:server"

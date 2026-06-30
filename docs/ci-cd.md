@@ -67,7 +67,7 @@ Two repository secrets must be configured under **Settings > Secrets and variabl
 
 | Secret | Purpose |
 |---|---|
-| `LIGHTSAIL_SSH_KEY` | SSH private key for `bitnami@3.106.204.98`. Used by rsync and ssh commands to deploy to the Lightsail instance. |
+| `LIGHTSAIL_SSH_KEY` | SSH private key for `<user>@<server-host>`. Used by rsync and ssh commands to deploy to the Lightsail instance. |
 | `DEPLOY_KEY` | GitHub deploy key. Used for operations that require pushing back to the repository (e.g., tagging). |
 
 ### Setting up LIGHTSAIL_SSH_KEY
@@ -144,7 +144,7 @@ This creates an auditable trail and triggers the normal deploy flow.
 SSH into the instance and restore files manually:
 
 ```bash
-ssh -i ~/.ssh/deploy_key bitnami@3.106.204.98
+ssh -i ~/.ssh/deploy_key <user>@<server-host>
 # Restore website from a backup or previous artifact
 # Restart the server
 pkill -f "node.*index.js" 2>/dev/null

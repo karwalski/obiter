@@ -70,7 +70,7 @@ For a ~100 MB index file, this is effectively free for any realistic user count.
 
 ## Alternative: Lightsail Direct Serving
 
-If Cloudflare R2 is not yet configured, the Lightsail instance at `3.106.204.98`
+If Cloudflare R2 is not yet configured, the Lightsail instance at `<server-host>`
 can serve corpus files directly via nginx.
 
 ### Setup

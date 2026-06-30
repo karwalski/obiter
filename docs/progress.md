@@ -457,7 +457,7 @@ Audit results: 464 tests across 7 test suites. See `docs/aglc4-audit.md` for ful
 | WEB-003 | Contact forms — enquiry, feedback, report issue, request enhancement (Google API email) | FEATURE | DONE |
 | WEB-004 | Tip jar integration (Buy Me a Coffee / Ko-fi / GitHub Sponsors) | FEATURE | DONE |
 | WEB-005 | GitHub + AppSource links in footer and nav | FEATURE | DONE |
-| WEB-006 | Deploy to Lightsail (3.106.204.98) with nginx + SSL | FEATURE | DONE |
+| WEB-006 | Deploy to Lightsail (<server-host>) with nginx + SSL | FEATURE | DONE |
 | WEB-007 | CI/CD — auto-deploy website on push to main | FEATURE | DONE |
 
 ---

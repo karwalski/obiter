@@ -7,7 +7,7 @@ Complete documentation for the Obiter production server on AWS Lightsail.
 | Property       | Value                          |
 |----------------|--------------------------------|
 | Provider       | AWS Lightsail                  |
-| Static IP      | 3.106.204.98                   |
+| Static IP      | <server-host>                   |
 | OS             | Bitnami Debian 12              |
 | SSH User       | bitnami                        |
 | Domain         | obiter.com.au                  |
@@ -16,10 +16,10 @@ Complete documentation for the Obiter production server on AWS Lightsail.
 ## SSH Access
 
 ```bash
-ssh -i ~/.ssh/obiter.pem bitnami@3.106.204.98
+ssh -i ~/.ssh/<deploy-key>.pem <user>@<server-host>
 ```
 
-The private key `obiter.pem` must be stored at `~/.ssh/obiter.pem` with permissions `chmod 400`.
+The private key `<deploy-key>.pem` must be stored at `~/.ssh/<deploy-key>.pem` with permissions `chmod 400`.
 
 ## Web Server (Nginx)
 
@@ -61,7 +61,7 @@ npm run restart:server
 Or manually via SSH:
 
 ```bash
-ssh -i ~/.ssh/obiter.pem bitnami@3.106.204.98
+ssh -i ~/.ssh/<deploy-key>.pem <user>@<server-host>
 pkill -f "node.*index.js"
 source /etc/obiter/env.sh
 cd /var/www/obiter/server
