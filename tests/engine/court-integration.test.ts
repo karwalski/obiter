@@ -385,7 +385,7 @@ describe("Practice Directions — data completeness", () => {
     // Other states
     expect(jurisdictionsCovered.has("WASC")).toBe(true);
     expect(jurisdictionsCovered.has("SASC")).toBe(true);
-    expect(jurisdictionsCovered.has("TASCSC")).toBe(true);
+    expect(jurisdictionsCovered.has("TASSC")).toBe(true);
     expect(jurisdictionsCovered.has("ACTSC")).toBe(true);
     expect(jurisdictionsCovered.has("NTSC")).toBe(true);
     // Tribunals
@@ -401,7 +401,7 @@ describe("Preset Helper Sets — UNREPORTED_GATE_JURISDICTIONS", () => {
     const expected: CourtJurisdiction[] = [
       "NSWCA", "NSWSC", "NSW_DISTRICT_LOCAL",
       "QCA", "QSC", "QLD_DISTRICT_MAG",
-      "TASCSC",
+      "TASSC",
     ];
     for (const j of expected) {
       expect(UNREPORTED_GATE_JURISDICTIONS.has(j)).toBe(true);

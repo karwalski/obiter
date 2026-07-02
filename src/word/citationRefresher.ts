@@ -449,6 +449,31 @@ async function renderAndRebuild(
 }
 
 /**
+ * Returns true when the immediately preceding citation in the current
+ * footnote refers to the same source, making the `at «pinpoint»` form
+ * available for this occurrence.
+ *
+ * AGLC4 Rule 1.4.6 (PARITY-102c): within a footnote, 'at' may only refer to
+ * the immediately preceding source. A later pinpoint to an earlier,
+ * non-adjacent source in the footnote must not use 'at' — it is cited via
+ * the Rule 1.4.1 `(n X)` short form instead (the guide's own example
+ * cross-references the footnote's own number: 'Brennan Jr (n 94) 430').
+ *
+ * @param citationId - The citation ID of the occurrence being rendered.
+ * @param currentFootnoteCitationIds - Citation IDs already rendered in this
+ *   footnote, in document order.
+ */
+export function isImmediatelyPrecedingInFootnote(
+  citationId: string,
+  currentFootnoteCitationIds: readonly string[]
+): boolean {
+  return (
+    currentFootnoteCitationIds.length > 0 &&
+    currentFootnoteCitationIds[currentFootnoteCitationIds.length - 1] === citationId
+  );
+}
+
+/**
  * Renders all citations within a single footnote, building CitationContext
  * for each and applying signal/commentary.
  *
@@ -483,7 +508,10 @@ function renderFootnoteCitations(
     }
 
     const isFirstCitation = !seenCitationIds.has(child.citationId);
-    const isWithinSameFootnote = currentFootnoteCitationIds.includes(child.citationId);
+    const isWithinSameFootnote = isImmediatelyPrecedingInFootnote(
+      child.citationId,
+      currentFootnoteCitationIds
+    );
 
     // Ibid eligibility: citation must appear in the preceding footnote
     const isSameAsPreceding =

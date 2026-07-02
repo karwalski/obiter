@@ -21,6 +21,7 @@ import {
   QLD_JURISDICTIONS,
   isCourtJurisdiction as isCourtJurisdictionPreset,
 } from "./court/presets";
+import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -66,7 +67,7 @@ export type CourtJurisdiction =
   | "QLD_DISTRICT"
   | "WASC"
   | "SASC"
-  | "TASCSC"
+  | "TASSC"
   | "ACTSC"
   | "NTSC"
   | "ART"
@@ -183,6 +184,10 @@ export function validateDocument(
     allIssues.push(...checkTitlePresence(citation));
     allIssues.push(...checkLegislativeHistoryHint(citation));
   }
+
+  // Rule 2.3.1: medium neutral citations must not predate the year the
+  // court began allocating its own judgment numbers.
+  allIssues.push(...checkMncYearValidity(citations));
 
   // Heading format checks (VALID-011, Rule 1.12.2)
   if (headings && headings.length > 0) {
@@ -1632,6 +1637,62 @@ export function checkParallelCitationEnforcement(
   return issues;
 }
 
+// ─── Rule 2.3.1: Medium neutral citation adoption-year check ────────────────
+
+/**
+ * Checks that medium neutral citations do not predate the year the court
+ * began allocating its own judgment numbers.
+ *
+ * Rule 2.3.1 (PDF pp 79–81) tables the year each court adopted medium
+ * neutral citation (eg HCA 1998, NSWSC 1999). The rule's note directs that
+ * decisions before that year should not be given a medium neutral citation
+ * — they are cited as unreported decisions under rule 2.3.2.
+ *
+ * Identifiers without a tabled adoption year (Appendix B entries) are not
+ * checked.
+ */
+export function checkMncYearValidity(citations: Citation[]): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.unreported.mnc") {
+      continue;
+    }
+
+    const d = citation.data;
+    // Accept the same court-identifier aliases as the engine dispatcher.
+    const code =
+      (d.court as string) ?? (d.courtIdentifier as string) ?? (d.courtId as string) ?? "";
+    const year = Number(d.year);
+
+    if (code === "" || !Number.isInteger(year) || year <= 0) {
+      continue;
+    }
+
+    const identifier = getCourtIdentifierByCode(code);
+    if (identifier?.mncFrom === undefined || year >= identifier.mncFrom) {
+      continue;
+    }
+
+    const label = citation.shortTitle || citation.id;
+    const num = d.caseNumber ?? d.mnc ?? d.judgmentNumber;
+    const mnc = `[${year}] ${code}${num !== undefined && num !== "" ? ` ${num}` : ""}`;
+    issues.push({
+      ruleNumber: "2.3.1",
+      message:
+        `Case '${label}': '${mnc}' — the ${identifier.fullName} did not ` +
+        `allocate medium neutral citations before ${identifier.mncFrom} ` +
+        `(rule 2.3.1 table); cite the decision as unreported per rule 2.3.2`,
+      severity: "warning",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    });
+  }
+
+  return issues;
+}
+
 // ─── COURT-VALID-001 / COURT-VALID-003: Court mode validation ──────────────
 
 /**
@@ -1646,7 +1707,7 @@ const _UNREPORTED_GATE_JURISDICTIONS_DEPRECATED: ReadonlySet<CourtJurisdiction> 
   "QCA",
   "QSC",
   "QLD_DISTRICT",
-  "TASCSC",
+  "TASSC",
 ]);
 
 /**
@@ -1687,7 +1748,7 @@ function getPracticeDirectionSource(jurisdiction: CourtJurisdiction): string {
       return "WASC Practice Direction";
     case "SASC":
       return "SASC Practice Direction";
-    case "TASCSC":
+    case "TASSC":
       return "Tas SC PD 3/2014";
     case "ACTSC":
       return "ACTSC Practice Direction";

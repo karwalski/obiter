@@ -15,6 +15,8 @@ import type { Citation, Pinpoint, SourceType } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import type { CitationConfig } from "./standards/types";
 import { formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
+import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
+import { formatSecondaryShortTitle } from "./rules/v4/secondary/general";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
 
@@ -127,11 +129,28 @@ function getAuthorSurname(citation: Citation): string {
   if (typeof data.authorSurname === "string") {
     return data.authorSurname;
   }
-  // Fall back to short title (for body-authored sources like "Centre for Road Safety")
-  if (citation.shortTitle) {
-    return citation.shortTitle;
-  }
   return "";
+}
+
+/**
+ * Formats the leading element of a short reference to a secondary source:
+ * the author surname, or — for authorless/body-authored sources — the short
+ * title styled per Rule 1.4.1.
+ *
+ * AGLC4 Rule 1.4.1 (guide ex 55): a report short title standing in for a
+ * body author is italicised: *Traditional Rights and Freedoms* (n 52).
+ */
+function formatSecondaryLead(citation: Citation): FormattedRun[] {
+  const surname = getAuthorSurname(citation);
+  if (surname) {
+    return [{ text: surname }];
+  }
+  // Fall back to the (styled) short title for body-authored sources
+  const title = getTitle(citation);
+  if (title) {
+    return formatStyledShortTitle(title, citation.sourceType);
+  }
+  return [];
 }
 
 /**
@@ -144,6 +163,28 @@ function getTitle(citation: Citation): string {
   if (typeof citation.data.title === "string") return citation.data.title;
   if (typeof citation.data.name === "string") return citation.data.name;
   return "";
+}
+
+/**
+ * Styles a title or short title used in a subsequent reference the same way
+ * the title appeared in the first citation.
+ *
+ * AGLC4 Rule 1.4.1: the disambiguating title/short title is "styled the same
+ * way" as in the first citation — italics for italic-titled sources (books,
+ * reports, cases, Acts; guide ex 61: Rubenstein, *Australian Citizenship Law
+ * in Context* (n 59)), single inverted commas for articles/chapters.
+ *
+ * AGLC4 Rules 3.2/3.5: Bill titles are not italicised, so a Bill short title
+ * is roman in subsequent references.
+ */
+function formatStyledShortTitle(title: string, sourceType: SourceType): FormattedRun[] {
+  if (sourceType === "legislation.bill") {
+    return [{ text: title }];
+  }
+  if (shouldItaliciseTitle(sourceType)) {
+    return [{ text: title, italic: true }];
+  }
+  return [{ text: `‘${title}’` }];
 }
 
 // ─── GEN-007: Short References (Rule 1.4.1) ─────────────────────────────────
@@ -203,16 +244,16 @@ export function formatShortReference(
   if (isSecondarySource(citation.sourceType)) {
     // Secondary sources: Author Surname (n X) pinpoint.
     const surname = getAuthorSurname(citation);
-    if (surname) {
-      runs.push({ text: surname });
-    }
+    runs.push(...formatSecondaryLead(citation));
 
-    if (disambiguate) {
+    // Rule 1.4.1: multiple works by the same author — append the title,
+    // styled the same way it appeared in the first citation (guide ex 61:
+    // Rubenstein, *Australian Citizenship Law in Context* (n 59)).
+    if (disambiguate && surname) {
       const title = getTitle(citation);
       if (title) {
-        // Include short title in single quotes after surname
         runs.push({ text: ", " });
-        runs.push({ text: `'${title}'` });
+        runs.push(...formatStyledShortTitle(title, citation.sourceType));
       }
     }
 
@@ -225,10 +266,11 @@ export function formatShortReference(
     }
     runs.push({ text: ` (n ${firstFootnoteNumber})` });
   } else if (isLegislation(citation.sourceType)) {
-    // Legislation: Short Title (n X) pinpoint.
+    // Legislation: Short Title (n X) pinpoint. Rules 3.2/3.5: italic for
+    // Acts/delegated legislation, roman for Bills.
     const title = getTitle(citation);
     if (title) {
-      runs.push({ text: title, italic: true });
+      runs.push(...formatStyledShortTitle(title, citation.sourceType));
     }
     runs.push({ text: ` (n ${firstFootnoteNumber})` });
   }
@@ -268,15 +310,13 @@ function formatAboveNReference(
 
   if (isSecondarySource(citation.sourceType)) {
     const surname = getAuthorSurname(citation);
-    if (surname) {
-      runs.push({ text: surname });
-    }
+    runs.push(...formatSecondaryLead(citation));
 
-    if (disambiguate) {
+    if (disambiguate && surname) {
       const title = getTitle(citation);
       if (title) {
         runs.push({ text: ", " });
-        runs.push({ text: `'${title}'` });
+        runs.push(...formatStyledShortTitle(title, citation.sourceType));
       }
     }
   } else if (isCase(citation.sourceType)) {
@@ -285,9 +325,10 @@ function formatAboveNReference(
       runs.push({ text: title, italic: true });
     }
   } else if (isLegislation(citation.sourceType)) {
+    // Rules 3.2/3.5: italic for Acts/delegated legislation, roman for Bills.
     const title = getTitle(citation);
     if (title) {
-      runs.push({ text: title, italic: true });
+      runs.push(...formatStyledShortTitle(title, citation.sourceType));
     }
   }
 
@@ -323,21 +364,20 @@ function formatCourtShortReference(
 
   if (isSecondarySource(citation.sourceType)) {
     const surname = getAuthorSurname(citation);
-    if (surname) {
-      runs.push({ text: surname });
-    }
-    if (disambiguate) {
+    runs.push(...formatSecondaryLead(citation));
+    if (disambiguate && surname) {
       const title = getTitle(citation);
       if (title) {
         runs.push({ text: ", " });
-        runs.push({ text: `'${title}'` });
+        runs.push(...formatStyledShortTitle(title, citation.sourceType));
       }
     }
   } else {
-    // Cases and legislation: use short title (italic)
+    // Cases and legislation: use short title, italic per Rule 1.8.2
+    // (roman for Bills per Rules 3.2/3.5)
     const title = getTitle(citation);
     if (title) {
-      runs.push({ text: title, italic: true });
+      runs.push(...formatStyledShortTitle(title, citation.sourceType));
     }
   }
 
@@ -393,8 +433,10 @@ export function resolveIbid(
  *
  * - Cases: `('short title')` — short title in italics inside single quotes,
  *   parentheses not italic
- * - Legislation: `('short title')` — short title in italics
- * - Secondary sources: `('short title')` — single quotes, not italic
+ * - Legislation: `('short title')` — short title in italics for Acts and
+ *   delegated legislation; roman for Bills (Rules 3.2/3.5)
+ * - Secondary sources: `('short title')` — italic iff the source's title is
+ *   italic (Rule 4.3: books/reports italic, articles/chapters roman)
  *
  * @param shortTitle - The short title to introduce
  * @param sourceType - The source type (determines formatting)
@@ -409,12 +451,18 @@ export function formatShortTitleIntroduction(
   }
 
   if (isLegislation(sourceType)) {
-    // Legislation: ('Short Title') — title italic
+    // Rule 3.5: Bill short titles are roman (Rule 3.2); Acts and delegated
+    // legislation short titles are italic
+    if (sourceType === "legislation.bill") {
+      return [{ text: `(\u2018${shortTitle}\u2019)` }];
+    }
     return [{ text: "(\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019)" }];
   }
 
-  // Secondary sources: ('Short Title') — not italic
-  return [{ text: `(\u2018${shortTitle}\u2019)` }];
+  // Secondary sources: Rule 4.3 (via Rule 1.4.4) — the short title is italic
+  // iff the source's title is italic (AGLC4 ch 4 ex 27: ('ISDS 2016 Review'
+  // with the title italic, for a report); articles/chapters stay roman
+  return formatSecondaryShortTitle(shortTitle, sourceType);
 }
 
 // ─── GEN-010: Within-Footnote Subsequent References (Rule 1.4.6) ─────────────
@@ -508,7 +556,12 @@ export interface SubsequentReferenceContext {
   currentPinpoint?: Pinpoint;
   /** The footnote number where this source was first cited. */
   firstFootnoteNumber: number;
-  /** Whether this is a second (or later) reference within the same footnote. */
+  /**
+   * Whether the IMMEDIATELY preceding citation in the same footnote is the
+   * same source (Rule 1.4.6: 'at' may only refer to the immediately
+   * preceding source — an earlier, non-adjacent source in the footnote is
+   * cited via the Rule 1.4.1 `(n X)` form instead).
+   */
   isWithinSameFootnote: boolean;
   /** Explicit format preference. `"auto"` uses the priority logic. */
   formatPreference: "full" | "short" | "ibid" | "auto";
@@ -598,7 +651,13 @@ export function resolveSubsequentReference(
     }
   }
 
-  // 2. Within same footnote — use `at` format (Rule 1.4.6)
+  // 2. Immediately preceding source in the same footnote — use `at` format
+  //    (Rule 1.4.6). The caller sets isWithinSameFootnote only when the
+  //    immediately preceding citation in the footnote is the same source;
+  //    a pinpoint to an earlier, non-adjacent source falls through to the
+  //    Rule 1.4.1 short form below (eg 'Brennan Jr (n 94) 430').
+  //    Repeating `at` for an identical consecutive pinpoint is permitted:
+  //    Rule 1.4.6 says the repetition "is not necessary", not prohibited.
   if (context.isWithinSameFootnote && context.currentPinpoint) {
     return formatWithinFootnoteReference(context.currentPinpoint);
   }

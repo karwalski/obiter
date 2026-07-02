@@ -4,7 +4,7 @@
  */
 
 /**
- * AGLC4 Part IV — Foreign Cases and Legislation: Malaysia (Rules 20.1–20.2)
+ * AGLC4 Part V — Foreign Domestic Materials: Malaysia (Rules 20.1–20.2)
  *
  * Pure formatting functions for Malaysian case citations, legislation,
  * and Federal Constitution provisions.
@@ -15,17 +15,27 @@ import { FormattedRun } from "../../../../types/formattedRun";
 // ─── FRGN-006: Malaysian Cases (Rule 20.1) ──────────────────────────────────
 
 /**
- * Formats a Malaysian case citation per AGLC4 Rule 20.1.
+ * Formats a Malaysian case citation per AGLC4 Rules 20.1–20.1.1.
  *
- * @remarks AGLC4 Rule 20.1: Malaysian cases are cited with the case name
- * in italics, followed by the year in square brackets, volume (if any),
- * report series abbreviation (e.g. MLJ, CLJ), and starting page.
- * The court abbreviation is included in parentheses unless apparent
- * from the report series.
+ * @remarks AGLC4 Rule 20.1: Malaysian cases are cited in accordance
+ * with chapter 2, except that individuals' names are generally given in
+ * full, 'Sendirian Berhad' is abbreviated 'Sdn Bhd', and 'Datuk' and
+ * 'Haji' are omitted from party names. Adding the court's name can be
+ * helpful, per rule 2.2.6.
+ *
+ * @remarks AGLC4 Rule 20.1.1: cite the Malayan Law Journal ('MLJ')
+ * where possible; otherwise the Current Law Journal ('CLJ').
+ * Rule 20.1.2: Malaysian courts do not allocate medium neutral
+ * citations — unreported decisions use the rule 2.3.2 format.
  *
  * @example
- *   // Adorna Properties Sdn Bhd v Boonsom Boonyanit [2001] 1 MLJ 241
- *   formatCase({ caseName: "Adorna Properties Sdn Bhd v Boonsom Boonyanit", year: 2001, reportSeries: "MLJ", volume: 1, startingPage: 241 })
+ *   // Ratna Ammal v Tan Chow Soo [1964] 1 MLJ 399  — AGLC4 ex 1
+ *   formatCase({ caseName: "Ratna Ammal v Tan Chow Soo", year: 1964, reportSeries: "MLJ", volume: 1, startingPage: 399 })
+ *
+ * @example
+ *   // Polygram Records Sdn Bhd v The Search [1994] 3 MLJ 127, 140
+ *   //   (Sinnadurai J) (High Court of Malaya)  — AGLC4 ex 3
+ *   formatCase({ caseName: "Polygram Records Sdn Bhd v The Search", year: 1994, volume: 3, reportSeries: "MLJ", startingPage: 127, pinpoint: "140 (Sinnadurai J)", court: "High Court of Malaya" })
  *
  * @param data - Malaysian case citation data
  * @returns An array of FormattedRun representing the formatted citation
@@ -37,6 +47,8 @@ export function formatCase(data: {
   volume?: number;
   startingPage: number;
   court?: string;
+  /** Pinpoint reference (follows the starting page after a comma). */
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -54,7 +66,12 @@ export function formatCase(data: {
   // Report series and starting page
   runs.push({ text: ` ${data.reportSeries} ${data.startingPage}` });
 
-  // Court identifier (if not apparent from series)
+  // Pinpoint
+  if (data.pinpoint) {
+    runs.push({ text: `, ${data.pinpoint}` });
+  }
+
+  // Court name in parentheses where not otherwise apparent (rule 2.2.6)
   if (data.court) {
     runs.push({ text: ` (${data.court})` });
   }
@@ -65,16 +82,15 @@ export function formatCase(data: {
 // ─── FRGN-006: Malaysian Legislation (Rule 20.2) ────────────────────────────
 
 /**
- * Formats a Malaysian legislative citation per AGLC4 Rule 20.2.
+ * Formats a Malaysian legislative citation per AGLC4 Rule 20.2.1.
  *
- * @remarks AGLC4 Rule 20.2: Malaysian legislation is cited with the
- * title in italics, followed by the year in italics, and the
- * jurisdiction 'Malaysia' in parentheses. Pinpoint references use
- * section abbreviations.
+ * @remarks AGLC4 Rule 20.2.1: Malaysian statutes and delegated
+ * legislation follow chapter 3, with the jurisdiction written
+ * '(Malaysia)'.
  *
  * @example
- *   // Federal Constitution (Malaysia) art 5
- *   formatLegislation({ title: "Penal Code", jurisdiction: "Malaysia", pinpoint: "s 302" })
+ *   // Copyright Act 1987 (Malaysia) s 7  — AGLC4 ex 7
+ *   formatLegislation({ title: "Copyright Act", year: 1987, jurisdiction: "Malaysia", pinpoint: "s 7" })
  *
  * @param data - Malaysian legislation citation data
  * @returns An array of FormattedRun representing the formatted citation
@@ -110,15 +126,15 @@ export function formatLegislation(data: {
 // ─── FRGN-006: Malaysian Federal Constitution ───────────────────────────────
 
 /**
- * Formats a citation to the Malaysian Federal Constitution per AGLC4 Rule 20.2.
+ * Formats a citation to the Malaysian Federal Constitution per AGLC4
+ * Rule 20.2.2.
  *
- * @remarks AGLC4 Rule 20.2: The Federal Constitution of Malaysia is cited
- * with the title in italics, followed by article pinpoint references.
- * The jurisdiction 'Malaysia' appears in parentheses.
+ * @remarks AGLC4 Rule 20.2.2 template: *Federal Constitution*
+ * (Malaysia) Pinpoint.
  *
  * @example
- *   // Federal Constitution (Malaysia) art 8
- *   formatConstitution({ title: "Federal Constitution", pinpoint: "art 8" })
+ *   // Federal Constitution (Malaysia) art 5  — AGLC4 ex 9
+ *   formatConstitution({ title: "Federal Constitution", pinpoint: "art 5" })
  *
  * @param data - Malaysian constitutional citation data
  * @returns An array of FormattedRun representing the formatted citation

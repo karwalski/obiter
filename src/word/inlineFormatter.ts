@@ -169,6 +169,9 @@ export async function scanAndFormatInlineReferences(
     await context.sync();
 
     for (const range of results.items ?? []) {
+      // Rule 1.8.2: source titles are italicised even inside quotations
+      // ("however the title appeared in the source"), so — unlike the Latin
+      // terms pass below — no quotation-mark skip applies here.
       // Check whether this range is already italic.
       if (range.font.italic) {
         skipped++;

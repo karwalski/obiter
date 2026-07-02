@@ -86,7 +86,7 @@ export type CourtJurisdiction =
   // Other States/Territories
   | "WASC"
   | "SASC"
-  | "TASCSC"
+  | "TASSC"
   | "ACTSC"
   | "NTSC"
   // Tribunals
@@ -275,7 +275,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     ibidSuppression: "on",
     loaType: "simple",
   },
-  TASCSC: {
+  TASSC: {
     label: "Tas Supreme Court",
     group: "Other States/Territories",
     parallelCitations: "preferred",

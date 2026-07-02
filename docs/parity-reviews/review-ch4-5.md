@@ -38,7 +38,7 @@ Prior-audit spot-check: `docs/aglc4-audit.md` marks CH5-001…CH5-011 all PASS a
 ## Detail blocks
 
 ### 5.3 Year — GAP (High)
-**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — `yearOrganised` + `[Year]`/span support, derived from missing volume) · dispatch/UI passthrough HANDOFF (engine wiring — handoff/secondary.md §2)
+**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — `yearOrganised` + `[Year]`/span support, derived from missing volume) · dispatch passthrough FIXED (engine wiring wave 2 — dispatchJournalArticle string years + yearOrganised; optional UI checkbox wave 3)
 - **Rule (PDF p.117):** Year-organised journals take the year in square brackets `[Year]`; a year-organised volume spanning years takes `[1992–93]`. A journal is year-organised exactly when it lacks a volume number.
 - **Engine:** `journals.ts:95` — `runs.push({ text: ` (${data.year})` })` unconditionally round-brackets the year in every journal formatter (also `:156`, `:276`). No `yearOrganised` concept exists anywhere in the engine, dispatch (`engine.ts:465–477`), types, or UI (grep for yearOrganised/square-bracket year: no hits). The chapter-5 template's second form (`[«Year»] («Issue») …`, eg Lord Woolf, 'Droit Public: English Style' [1995] (Spring) *Public Law* 57) is unproducible.
 - **Fix:** Add `yearOrganised: boolean` (derive as `volume === undefined` per the Note band) to the journal data model; emit `[Year]` and, per 5.4, ` (Issue)` with a space. Support `[Year–Year]` spans per 1.11.4.
@@ -52,7 +52,7 @@ Prior-audit spot-check: `docs/aglc4-audit.md` marks CH5-001…CH5-011 all PASS a
 - **Severity:** Medium — wrong output for month/season-issued journals; test locks in the error.
 
 ### 5.8 Articles published in parts — MISMATCH + GAP (High)
-**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — `(Pt N)`, in-title part stripping; exact-match tests exx 15, 17) · dispatch routing HANDOFF (engine wiring — handoff/secondary.md §3)
+**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — `(Pt N)`, in-title part stripping; exact-match tests exx 15, 17) · dispatch routing FIXED (engine wiring wave 2 — dispatchJournalArticle routes partNumber → formatJournalArticlePart; UI field wave 3)
 - **Rule (PDF pp.119–20):** Insert `(Pt «Number»)` between title and year; strip part references from within the title.
 - **Engine:** `journals.ts:153` — `runs.push({ text: ` (Part ${data.partNumber})` })` emits `(Part 1)`, not `(Pt 1)`. Test `chapter4-6.test.ts:511` is titled "should insert (Pt N)…" yet asserts `toContain("(Part 1)")` (line 525) — the test name and assertion contradict each other. No title-stripping of '— Part I' suffixes.
 - **Also GAP:** `formatJournalArticlePart` is unreachable: no source type in the dispatch map (`engine.ts:1966–68` registers only `journal.article`, `journal.online`, `journal.forthcoming`) and no other src/ call site invokes it (grep confirms). Users cannot produce a parts citation at all.
@@ -68,14 +68,14 @@ Prior-audit spot-check: `docs/aglc4-audit.md` marks CH5-001…CH5-011 all PASS a
 - **Severity:** High as encoded behaviour (misdocumented rule + wrong test), practically mitigated by unreachability.
 
 ### 5.10 Online journal articles — MISMATCH (Medium)
-**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — pinpoint + startingPage added, URL optional; exact-match tests exx 22, 24) · dispatch passthrough HANDOFF (engine wiring — handoff/secondary.md §4)
+**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — pinpoint + startingPage added, URL optional; exact-match tests exx 22, 24) · dispatch passthrough FIXED (engine wiring wave 2 — dispatchJournalOnline pinpoint/startingPage/url/yearOrganised)
 - **Rule (PDF p.121):** Cite like a printed article as far as possible; an article number/identifier replaces the starting page; pinpoints follow after a comma (`416:1–19, 8`); a URL is not an element of this rule (URLs are optional under 4.4).
 - **Engine:** `journals.ts:254–294` `formatOnlineJournalArticle` (a) has **no pinpoint parameter** — pinpoints per 1.1.6–1.1.7 after the identifier are unproducible for `journal.online` (`engine.ts:912–924` passes none); (b) makes `url` a required field and always appends it — harmless when supplied but the citation cannot be produced without one; (c) the PDF-version form `Identifier:PageRange` works only if the user hand-types the whole string into `articleNumber` (test at `chapter4-6.test.ts:572–585` does exactly that).
 - **Fix:** Add `pinpoint` to the data shape and emit `, «pinpoint»` after the identifier; make `url` optional.
 - **Severity:** Medium — pinpointing an online article, a routine need, is impossible.
 
 ### 5.11 Forthcoming and advance articles — MISMATCH + GAP (High)
-**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — year/volume/issue retained, `advance` flag; exact-match tests exx 26, 27) · dispatch passthrough HANDOFF (engine wiring — handoff/secondary.md §5)
+**Status:** FIXED (src/engine/rules/v4/secondary/journals.ts — year/volume/issue retained, `advance` flag; exact-match tests exx 26, 27) · dispatch passthrough FIXED (engine wiring wave 2 — dispatchJournalForthcoming year/volume/issue/advance; UI fields wave 3)
 - **Rule (PDF p.122):** `(forthcoming)` or `(advance)` replaces the starting page; include as much of the remaining citation data as is available — example 26 is `… 'European Consumer Protection …' (2017) 23 *Columbia Journal of European Law* (forthcoming)` with year and volume present.
 - **Engine:** `journals.ts:310–334` `formatForthcomingArticle` accepts only `authors`, `title`, `journal` — year, volume and issue are dropped even when known (`engine.ts:930–937` passes none), so example 26's output is unproducible (engine yields `… 'Title' *Journal* (forthcoming)`). `(advance)` is entirely unsupported — no formatter, no source type. The JSDoc invents "No volume, issue, or page numbers are included", contradicting the rule's "include as much as is available" and its own cited example. Test `chapter4-6.test.ts:591–606` cites example 26 but only asserts `toContain`, never the full string, so the missing `(2017) 23` goes untested.
 - **Fix:** Add optional `year`/`volume`/`issue` to the formatter, emitting them per 5.3–5.4; add an `advance` status flag (`(advance)` vs `(forthcoming)`); assert example 26 verbatim.
@@ -110,7 +110,7 @@ Prior-audit spot-check: `docs/aglc4-audit.md` marks CH5-001…CH5-011 all PASS a
 - **Severity:** Medium — mostly input-side today, but the single-run title model makes some correct citations (example 2, ch 5) impossible to render.
 
 ### 4.3 Short titles — MISMATCH (Medium)
-**Status:** HANDOFF (engine wiring — resolver.ts `formatShortTitleIntroduction` must delegate to the already-correct `formatSecondaryShortTitle`; handoff/secondary.md §1)
+**Status:** FIXED (src/engine/resolver.ts — `formatShortTitleIntroduction` secondary branch now delegates to `formatSecondaryShortTitle` (italic iff `shouldItaliciseTitle`); AGLC4 ch 4 ex 27 ('*ISDS 2016 Review*') asserted exactly in tests/engine/chapter1.test.ts)
 - **Rule (PDF p.114, via 1.4.4):** The short title is "italicised according to this Guide's rules" — so a report/book short title is italic (example 27: `('*ISDS 2016 Review*')`); an article short title is roman in quotes.
 - **Engine:** Two implementations exist. `general.ts:61–76` `formatSecondaryShortTitle` gets it right (italic iff `shouldItaliciseTitle(sourceType)`), but it has **no call site in composition**; the engine actually uses `resolver.ts:402–418` `formatShortTitleIntroduction` (`engine.ts:3270`), which italicises cases and legislation but renders **all secondary sources non-italic** (line 417). Book/report short-title introductions therefore lose their mandated italics; journal articles happen to be correct.
 - **Fix:** In `formatShortTitleIntroduction`, delegate the secondary-source branch to `shouldItaliciseTitle` (as `formatSecondaryShortTitle` already does), or call the latter from `engine.ts:3270`.

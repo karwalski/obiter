@@ -391,16 +391,82 @@ describe("Rule 1.4.1 — Subsequent references", () => {
     expect(isRunItalic(result, 0)).toBe(true);
   });
 
-  test("disambiguation: surname + title (AGLC4 fns 61\u201362)", () => {
-    // Rubenstein, Australian Citizenship Law in Context (n 59) 48, 65\u201374.
+  test("disambiguation: surname + italic book title per AGLC4 ex 61 (rule 1.4.1)", () => {
+    // 61. Rubenstein, Australian Citizenship Law in Context (n 59) 48, 65\u201374.
+    // The disambiguating title is styled the same way it appeared in the
+    // first citation \u2014 italic for a book, no quotation marks.
     const citation = makeBookCitation("Rubenstein", "Australian Citizenship Law in Context");
     const pin: Pinpoint = { type: "page", value: "48" };
     const result = formatShortReference(citation, 59, pin, true);
-    const text = runsToText(result);
-    expect(text).toContain("Rubenstein");
-    expect(text).toContain("Australian Citizenship Law in Context");
-    expect(text).toContain("(n 59)");
-    expect(text).toContain("48");
+    expect(runsToText(result)).toBe("Rubenstein, Australian Citizenship Law in Context (n 59) 48");
+    // The book title run is italic (runs: surname, ", ", title, " (n 59)", " ", "48")
+    expect(isRunItalic(result, 2)).toBe(true);
+    expect(isRunItalic(result, 0)).toBe(false);
+  });
+
+  test("disambiguation: surname + quoted article title per AGLC4 ex 62 (rule 1.4.1)", () => {
+    // 62. Rubenstein, 'Meanings of Membership' (n 58) 307\u201311.
+    const citation: Citation = {
+      id: "c6",
+      aglcVersion: "4",
+      sourceType: "journal.article",
+      data: {
+        authors: [{ givenNames: "Kim", surname: "Rubenstein" }],
+        title: "Meanings of Membership",
+      },
+      shortTitle: "Meanings of Membership",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const pin: Pinpoint = { type: "page", value: "307\u201311" };
+    const result = formatShortReference(citation, 58, pin, true);
+    expect(runsToText(result)).toBe(
+      "Rubenstein, \u2018Meanings of Membership\u2019 (n 58) 307\u201311"
+    );
+    // Article title stays roman, in single inverted commas
+    expect(isRunItalic(result, 2)).toBe(false);
+  });
+
+  test("authorless report: italic short title stands in for the author per AGLC4 ex 55 (rule 1.4.1)", () => {
+    // 55. Traditional Rights and Freedoms (n 52) 209 [7.111].
+    // A report short title standing in for a body author is italicised.
+    const citation: Citation = {
+      id: "c7",
+      aglcVersion: "4",
+      sourceType: "report",
+      data: { title: "Traditional Rights and Freedoms\u2014Encroachments by Commonwealth Laws" },
+      shortTitle: "Traditional Rights and Freedoms",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const pin: Pinpoint = {
+      type: "page",
+      value: "209",
+      subPinpoint: { type: "paragraph", value: "[7.111]" },
+    };
+    const result = formatShortReference(citation, 52, pin);
+    expect(runsToText(result)).toBe("Traditional Rights and Freedoms (n 52) 209 [7.111]");
+    expect(isRunItalic(result, 0)).toBe(true);
+  });
+
+  test("Bill short title is roman in subsequent references (rules 3.2/3.5)", () => {
+    // Rule 3.5: the short title is italicised per ch 3's rules \u2014 Bills roman.
+    const citation: Citation = {
+      id: "c8",
+      aglcVersion: "4",
+      sourceType: "legislation.bill",
+      data: { title: "Human Rights (Parliamentary Scrutiny) Bill 2010" },
+      shortTitle: "Human Rights Bill",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const pin: Pinpoint = { type: "clause", value: "7" };
+    const result = formatShortReference(citation, 12, pin);
+    expect(runsToText(result)).toBe("Human Rights Bill (n 12) cl 7");
+    expect(isRunItalic(result, 0)).toBe(false);
   });
 
   test("legislation short title in subsequent reference (AGLC4 fn 65)", () => {
@@ -617,6 +683,41 @@ describe("Rule 1.4.4 — Short titles", () => {
     const result = formatShortTitleIntroduction("ADJR Act", "legislation.statute");
     expect(runsToText(result)).toBe("(\u2018ADJR Act\u2019)");
     expect(isRunItalic(result, 1)).toBe(true);
+  });
+
+  test("Bill short title introduction: roman (rules 3.2/3.5)", () => {
+    // Rule 3.5: short titles are italicised per ch 3's rules \u2014 Bills roman.
+    const result = formatShortTitleIntroduction("Human Rights Bill", "legislation.bill");
+    expect(runsToText(result)).toBe("(\u2018Human Rights Bill\u2019)");
+    expect(result.every((r) => r.italic !== true)).toBe(true);
+  });
+
+  test("report short title introduction: italic per AGLC4 ch 4 ex 27 (rule 4.3)", () => {
+    // 27. \u2026 (IIA Issues Note No 1, 19 May 2017) 2 ('ISDS 2016 Review') \u2014
+    // the report short title is italic; quotes and parens stay roman.
+    const result = formatShortTitleIntroduction("ISDS 2016 Review", "report");
+    expect(runsToText(result)).toBe("(\u2018ISDS 2016 Review\u2019)");
+    // Runs: "(", "\u2018", title (italic), "\u2019", ")"
+    expect(isRunItalic(result, 2)).toBe(true);
+    expect(isRunItalic(result, 0)).toBe(false);
+    expect(isRunItalic(result, 4)).toBe(false);
+  });
+
+  test("subsequent reference uses the introduced report short title per AGLC4 ch 4 ex 29 (rule 4.3)", () => {
+    // 29. ISDS 2016 Review (n 27) 4.
+    const citation: Citation = {
+      id: "c9",
+      aglcVersion: "4",
+      sourceType: "report",
+      data: { title: "Investor\u2013State Dispute Settlement: Review of Developments in 2016" },
+      shortTitle: "ISDS 2016 Review",
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const result = formatShortReference(citation, 27, { type: "page", value: "4" });
+    expect(runsToText(result)).toBe("ISDS 2016 Review (n 27) 4");
+    expect(isRunItalic(result, 0)).toBe(true);
   });
 });
 

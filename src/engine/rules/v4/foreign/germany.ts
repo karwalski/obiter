@@ -4,39 +4,122 @@
  */
 
 /**
- * AGLC4 Part IV — Foreign Cases and Legislation: Germany (Rules 18.1–18.2)
+ * AGLC4 Part V — Foreign Domestic Materials: Germany (Rules 18.1–18.2)
  *
- * Pure formatting functions for German case citations, legislation
- * (BGB, StGB, GG, etc.), and Grundgesetz (Basic Law) provisions.
+ * Pure formatting functions for German-language cases, individual laws,
+ * codes and the Grundgesetz (Basic Law). German-language elements take
+ * a square-bracketed English translation immediately after the element,
+ * in roman type (rule 26.1.1).
  */
 
 import { FormattedRun } from "../../../../types/formattedRun";
 
-// ─── German Court Abbreviations ─────────────────────────────────────────────
+// ─── German Case Data (Rule 18.1) ────────────────────────────────────────────
 
-/**
- * Standard abbreviations for German courts.
- *
- * AGLC4 Rule 18.1: German courts are abbreviated as follows:
- * - BVerfG: Bundesverfassungsgericht (Federal Constitutional Court)
- * - BGH: Bundesgerichtshof (Federal Court of Justice)
- * - BAG: Bundesarbeitsgericht (Federal Labour Court)
- * - BVerwG: Bundesverwaltungsgericht (Federal Administrative Court)
- */
+interface GermanCaseData {
+  /**
+   * Popular or commonly used case name (italicised), where one exists;
+   * it precedes the court name and takes a roman comma (rule 18.1).
+   */
+  popularName?: string;
+  /**
+   * Court name, in roman type (e.g. 'Bundesgerichtshof',
+   * 'Oberlandesgericht München'). The leading element of the citation.
+   */
+  court: string;
+  /** English translation of the court name (e.g. 'German Federal Court of Justice'). */
+  translation?: string;
+  /** Docket/case number (e.g. 'VII ZR 110/83'). */
+  caseNumber?: string;
+  /** European Case Law Identifier, inserted directly after the case number. */
+  ecli?: string;
+  /** Full date of the decision (e.g. '19 January 1984'). */
+  date: string;
+  /**
+   * Report citation, emitted after the connector 'reported in'
+   * (e.g. '(1984) 89 BGHZ 376, 378'). Omit for unreported decisions —
+   * the connector is dropped with it (rule 18.1).
+   */
+  reportedIn?: string;
+}
+
 // ─── FRGN-004: German Cases (Rule 18.1) ─────────────────────────────────────
 
 /**
- * Formats a German case citation per AGLC4 Rule 18.1.
+ * Formats a German case per AGLC4 Rule 18.1.
  *
- * @remarks AGLC4 Rule 18.1: German case citations include the case name
- * (if any) in italics, followed by the court abbreviation (e.g. BVerfG, BGH),
- * the report series (e.g. BVerfGE, BGHZ, NJW), volume, and starting page.
- * Many German cases are identified by report series and page number
- * rather than party names.
+ * AGLC4 Rule 18.1 template: Court Name, Case Number, Full Date reported
+ * in (Year of Decision) Volume Number Abbreviation of Report Series
+ * Starting Page, Pinpoint. The court name leads in roman type (never
+ * suppressed); a popular case name may precede it in italics with a
+ * roman comma; an ECLI follows the case number with a comma on each
+ * side; 'reported in' and the report citation appear only when a report
+ * exists.
  *
  * @example
- *   // Luth (1958) 7 BVerfGE 198
- *   formatCase({ caseName: "Luth", year: 1958, reportSeries: "BVerfGE", volume: 7, startingPage: 198 })
+ *   // Bundesgerichtshof [German Federal Court of Justice],
+ *   //   VII ZR 110/83, 19 January 1984 reported in (1984) 89 BGHZ 376,
+ *   //   378  — AGLC4 ex 2
+ *   formatCourtDecision({
+ *     court: "Bundesgerichtshof",
+ *     translation: "German Federal Court of Justice",
+ *     caseNumber: "VII ZR 110/83", date: "19 January 1984",
+ *     reportedIn: "(1984) 89 BGHZ 376, 378",
+ *   })
+ *
+ * @example
+ *   // Pumuckl, Oberlandesgericht München [Munich Court of Appeal],
+ *   //   29 U 4743/02, 4 September 2003  — AGLC4 ex 4 (unreported)
+ *   formatCourtDecision({
+ *     popularName: "Pumuckl",
+ *     court: "Oberlandesgericht München",
+ *     translation: "Munich Court of Appeal",
+ *     caseNumber: "29 U 4743/02", date: "4 September 2003",
+ *   })
+ */
+export function formatCourtDecision(data: GermanCaseData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Popular case name in italics, followed by a roman comma (rule 18.1)
+  if (data.popularName) {
+    runs.push({ text: data.popularName, italic: true });
+    runs.push({ text: ", " });
+  }
+
+  // Court name in roman type, with bracketed translation (rule 26.1.1)
+  runs.push({ text: data.court });
+  if (data.translation) {
+    runs.push({ text: ` [${data.translation}]` });
+  }
+
+  // Case number, then ECLI with a comma on each side (rule 18.1)
+  if (data.caseNumber) {
+    runs.push({ text: `, ${data.caseNumber}` });
+  }
+  if (data.ecli) {
+    runs.push({ text: `, ${data.ecli}` });
+  }
+
+  // Full date of decision
+  runs.push({ text: `, ${data.date}` });
+
+  // Report citation — connector dropped when unreported (rule 18.1)
+  if (data.reportedIn) {
+    runs.push({ text: ` reported in ${data.reportedIn}` });
+  }
+
+  return runs;
+}
+
+/**
+ * Formats a German case in the legacy reported-case shape.
+ *
+ * @deprecated This shape (*Case Name* (Year) Volume Series Page) is not
+ * the AGLC4 rule 18.1 pattern. Rule 18.1 places the court name first in
+ * roman type — it is a mandatory leading element, never suppressed —
+ * followed by the docket number, the full date and, where a report
+ * exists, 'reported in' plus the report citation. Use
+ * {@link formatCourtDecision} instead.
  *
  * @param data - German case citation data
  * @returns An array of FormattedRun representing the formatted citation
@@ -74,38 +157,74 @@ export function formatCase(data: {
   return runs;
 }
 
-// ─── FRGN-004: German Legislation (Rule 18.2) ───────────────────────────────
+// ─── FRGN-004: German Legislation — Individual Laws and Codes (Rule 18.2) ───
 
 /**
- * Formats a German legislative citation per AGLC4 Rule 18.2.
+ * Formats a German legislative citation per AGLC4 Rules 18.2.1–18.2.2.
  *
- * @remarks AGLC4 Rule 18.2: German legislation is cited using
- * the standard abbreviation (e.g. BGB, StGB, HGB, GG) in italics.
- * Pinpoint references use the paragraph symbol for sections.
- * Full titles may be provided in parentheses after the abbreviation
- * on first citation.
+ * AGLC4 Rule 18.2.1 (individual laws): *Title of Law* [Translation]
+ * (Germany) Full Date of Enactment, Abbreviated Gazette Name, Year,
+ * Starting Page, Pinpoint. The translation is roman (rule 26.1.1).
+ *
+ * AGLC4 Rule 18.2.2 (codes): *Title of Code* [Translation] (Germany)
+ * Pinpoint — no date or gazette reference. A commonly used abbreviation
+ * may be given in the first citation as a short title per rule 3.5
+ * (e.g. "('BGB')") and used in subsequent references.
  *
  * @example
- *   // Burgerliches Gesetzbuch [German Civil Code] (Germany) s 823
- *   formatLegislation({ title: "Burgerliches Gesetzbuch", jurisdiction: "Germany", pinpoint: "s 823" })
+ *   // Sozialversicherungs-Rechnungsverordnung [Social Security
+ *   //   Calculation Regulation] (Germany) 27 April 2009, BGBl I, 2009,
+ *   //   951  — AGLC4 ex 5 (rule 18.2.1)
+ *   formatLegislation({
+ *     title: "Sozialversicherungs-Rechnungsverordnung",
+ *     translation: "Social Security Calculation Regulation",
+ *     jurisdiction: "Germany",
+ *     enactmentDate: "27 April 2009",
+ *     gazette: "BGBl I, 2009, 951",
+ *   })
  *
- * @param data - German legislation citation data
- * @returns An array of FormattedRun representing the formatted citation
+ * @example
+ *   // Bürgerliches Gesetzbuch [Civil Code] (Germany) § 823(1) ('BGB')
+ *   //   — AGLC4 ex 6 (rule 18.2.2)
+ *   formatLegislation({
+ *     title: "Bürgerliches Gesetzbuch", translation: "Civil Code",
+ *     jurisdiction: "Germany", pinpoint: "§ 823(1)", shortTitle: "BGB",
+ *   })
  */
 export function formatLegislation(data: {
   title: string;
+  /**
+   * @deprecated Rule 18.2.1 has no separate year element — the full
+   * date of enactment (`enactmentDate`) identifies the law. When
+   * provided, the year is folded into the italicised title.
+   */
   year?: number;
   jurisdiction?: string;
   pinpoint?: string;
+  /** English translation of the title, in roman type (rule 26.1.1). */
+  translation?: string;
+  /** Full date of enactment (e.g. '27 April 2009') — rule 18.2.1. */
+  enactmentDate?: string;
+  /**
+   * Gazette reference: abbreviated gazette name, year and starting page
+   * (e.g. 'BGBl I, 2009, 951') — rule 18.2.1.
+   */
+  gazette?: string;
+  /**
+   * Commonly used abbreviation, given as an italicised short title in
+   * the first citation per rules 18.2.2 and 3.5 (e.g. 'BGB').
+   */
+  shortTitle?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Title in italics
-  runs.push({ text: data.title, italic: true });
+  // Title in italics (legacy year folded into the title)
+  const titleText = data.year !== undefined ? `${data.title} ${data.year}` : data.title;
+  runs.push({ text: titleText, italic: true });
 
-  // Year (if applicable)
-  if (data.year !== undefined) {
-    runs.push({ text: ` ${data.year}` });
+  // Translation of the title (roman — rule 26.1.1)
+  if (data.translation) {
+    runs.push({ text: ` [${data.translation}]` });
   }
 
   // Jurisdiction in parentheses
@@ -113,35 +232,67 @@ export function formatLegislation(data: {
     runs.push({ text: ` (${data.jurisdiction})` });
   }
 
-  // Pinpoint (section/paragraph, etc.)
+  // Enactment date and gazette reference (rule 18.2.1)
+  const tail: string[] = [];
+  if (data.enactmentDate) {
+    tail.push(data.enactmentDate);
+  }
+  if (data.gazette) {
+    tail.push(data.gazette);
+  }
+  if (tail.length > 0) {
+    runs.push({ text: ` ${tail.join(", ")}` });
+  }
+
+  // Pinpoint (comma-separated after date/gazette elements)
   if (data.pinpoint) {
-    runs.push({ text: ` ${data.pinpoint}` });
+    runs.push({ text: tail.length > 0 ? `, ${data.pinpoint}` : ` ${data.pinpoint}` });
+  }
+
+  // Short title per rules 18.2.2 and 3.5 (italicised, in quotes)
+  if (data.shortTitle) {
+    runs.push({ text: " ('" });
+    runs.push({ text: data.shortTitle, italic: true });
+    runs.push({ text: "')" });
   }
 
   return runs;
 }
 
-// ─── FRGN-004: Grundgesetz (Basic Law) ──────────────────────────────────────
+// ─── FRGN-004: Grundgesetz (Basic Law) (Rule 18.2.3) ────────────────────────
 
 /**
- * Formats a citation to the German Grundgesetz (Basic Law) per AGLC4 Rule 18.2.
+ * Formats a citation to the German Grundgesetz per AGLC4 Rule 18.2.3.
  *
- * @remarks AGLC4 Rule 18.2: The Grundgesetz (Basic Law) is cited
- * in italics with article pinpoint references. The abbreviation GG
- * may be used after the first full citation.
+ * AGLC4 Rule 18.2.3 fixed form: *Grundgesetz für die Bundesrepublik
+ * Deutschland* [Basic Law for the Federal Republic of Germany]
+ * Pinpoint. The German title is italicised; the bracketed translation
+ * is roman (rule 26.1.1).
  *
  * @example
- *   // Grundgesetz fur die Bundesrepublik Deutschland [Basic Law of the Federal Republic of Germany] art 1
- *   formatConstitution({ title: "Grundgesetz fur die Bundesrepublik Deutschland", pinpoint: "art 1" })
- *
- * @param data - German constitutional citation data
- * @returns An array of FormattedRun representing the formatted citation
+ *   // Grundgesetz für die Bundesrepublik Deutschland [Basic Law for
+ *   //   the Federal Republic of Germany] art 8(1)  — AGLC4 ex 9
+ *   formatConstitution({
+ *     title: "Grundgesetz für die Bundesrepublik Deutschland",
+ *     translation: "Basic Law for the Federal Republic of Germany",
+ *     pinpoint: "art 8(1)",
+ *   })
  */
-export function formatConstitution(data: { title: string; pinpoint?: string }): FormattedRun[] {
+export function formatConstitution(data: {
+  title: string;
+  /** English translation of the title, in roman type (rule 26.1.1). */
+  translation?: string;
+  pinpoint?: string;
+}): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title in italics
   runs.push({ text: data.title, italic: true });
+
+  // Translation of the title (roman — rule 26.1.1)
+  if (data.translation) {
+    runs.push({ text: ` [${data.translation}]` });
+  }
 
   // Pinpoint (article, etc.)
   if (data.pinpoint) {

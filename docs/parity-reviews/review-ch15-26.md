@@ -16,9 +16,13 @@ Verdict key: MATCH (engine output can reproduce the AGLC4 form when called corre
 - Everything else (report series, JO/BGBl gazettes, cap numbers, regnal years) is a raw `citationDetails` string typed by the user.
 The coverage doc does disclose the passthrough design ("The user enters the citation in the format of the foreign jurisdiction; Obiter wraps it") but still labels all 12 chapters "Full", and the wrapper itself is wrong for legislation. Fix: either wire the `foreign/*` modules into `SOURCE_DISPATCH`, or fix `dispatchForeign` italics/pinpoint logic and downgrade the coverage doc.
 
+**Status (X-2):** HANDOFF (the underlying formatter mismatches (16.x, 17.1, 18.1, 24.1.3, 24.1.4, 25.3, 25.7, 26.1.1, 26.2) are FIXED this wave in src/engine/rules/v4/foreign/*; docs/aglc4-audit.md and docs/aglc4-coverage.md are outside this wave's file scope — refresh them when engine wiring lands; noted in scratchpad handoff/foreign.md §3).
+
 **X-2 (MEDIUM) — Prior audit overstates.** `docs/aglc4-audit.md` marks PASS for rules that demonstrably fail: 16.1/16.2 (China), 17.1 (France cases), 18.1 (Germany cases), 24.1.3 (nominate parallel ER), 24.1.4 (Scottish bare year), 25.3 (session-law year omission), 25.7 (Restatements), 26.1.1 (translation marker), 26.2 (decisions). `docs/aglc4-coverage.md` claims "Full" for all 12 chapters. Rows marked AUDIT/FIX/IMPL in aglc4-audit.md (15.4, 15.5, 16.3, 16.4, 21.1.4, 21.3, 23.x FIX, 24.1.6, 24.4.3, 25.1.7, 25.1.8, 25.4 FIX, 25.6, 26.1.2, 26.4) are acknowledged gaps — noted per-rule below.
 
 **X-3 — No anomaly leakage found (good).** Greps across `src/engine` for the Guide's own printed errors: `"DP"` (24.1.6 'Lord Hope DP' vs DPSC), `Assistant Justice` (25.1.8), `NY Stat` (25.3.5 ex 66), `Ji Cheng`/`Zhengrong` (16.2.1 pinyin errors), `Pa Con Stat` (25.2.2), and the 17.2.x wrong cross-ref `25.1.1` — all clean. Largely because the relevant tables (UK/US judicial titles, session-laws table, Chinese pinyin) are not implemented at all; if they are implemented later, use DPSC, 'Associate Justice', 'NY Laws', 'Ji Ceng', 'Shi Zhongrong', and cross-ref 26.1.1.
+
+**Status (X-4):** FIXED (canada.ts/china.ts/france.ts/germany.ts/hong-kong.ts/malaysia.ts headers now 'Part V — Foreign Domestic Materials'; usa.ts JSDoc renumbered to 25.2/25.3/25.4/25.5.1/25.6.1/25.7; canada.ts to 15.2/15.3/15.4; china.ts '16.4 PRC abbreviation' invention removed).
 
 **X-4 (LOW) — Systematic rule-number mislabels in JSDoc.** canada.ts/china.ts/france.ts/germany.ts/hong-kong.ts headers say "Part IV — Foreign Cases and Legislation" (should be Part V — ironically mirroring the Guide's own wrong running header at PDF p.255). usa.ts labels USC as "Rule 25.4", session laws "25.5", Constitution "25.6", CFR/Cong Rec "25.7", Restatements "25.8" (actual: 25.2, 25.3, 25.4, 25.5/25.6, 25.7). canada.ts labels statutes "Rule 15.4" and constitution "15.5" (actual 15.2, 15.3). china.ts invents a "Rule 16.4: PRC abbreviation" (16.4 is secondary sources). Violates the project rule that JSDoc quotes the actual AGLC4 rule.
 
@@ -119,18 +123,24 @@ Counts: MATCH 31 · MISMATCH 13 · GAP 19 · ANOMALY-RISK 8 · MANUAL-OK 8 · UN
 - **Severity:** high.
 
 ### 15.1.2 Canadian volume-organised series get square-bracket years (MEDIUM)
+
+**Status:** FIXED (src/engine/rules/v4/foreign/canada.ts — optional `yearType: "round" | "square"` added, default square; test now asserts the exact ex 5 string. Superscript ordinal '4ᵗʰ' per 1.10.1 remains unsupported — low.)
 - **Rule:** 15.1.2 (PDF p.236) via 2.2.3–2.2.4; example 5: `Bangoura v Washington Post (2005) 258 DLR (4th) 341 (Ontario Court of Appeal)`.
 - **Engine:** `foreign/canada.ts:49` hardcodes `[${data.year}]`. Test (chapter15-26.test.ts:86–96) masks with `toContain("(Ontario Court of Appeal)")` — the actual output is `... [2005] 258 DLR (4th) 341 ...`.
 - **Fix:** add `yearType: "round" | "square"` as in nz/singapore/uk modules. (Superscript ordinal `4ᵗʰ` per 1.10.1 also unsupported — low.)
 - **Severity:** medium.
 
 ### 15.3.1 / 15.4 Canadian constitution fixed forms and regulations (MEDIUM)
+
+**Status:** FIXED (canada.ts — new `formatFederalConstitution` emits the three rule 15.3.1 fixed forms with italic/roman short-title mix; new `formatRegulation` covers CRC (15.4.1, incl consolidation year), SOR (15.4.2) and provincial designations (15.4.3); `formatLegislation` now prints the jurisdiction without requiring a year and gained `sessionOrSupplement` for rule 15.2.3.)
 - **Rule:** 15.3.1 (PDF p.240) mandates exact forms `*Canada Act 1982* (UK) c 11, sch B ('*Constitution Act 1982*')` incl. mandatory italic short title; 15.4.1–15.4.3 (PDF pp.241–242) CRC / `SOR/98-580` / provincial table.
 - **Engine:** `canada.ts:134` formatConstitution is generic italic-title+pinpoint (cannot emit roman/italic short-title mix). No regulations function; `formatLegislation` cannot emit `Title, CRC, c 289` because jurisdiction prints only when `year` is also present (canada.ts:101).
 - **Coverage doc:** says "Full" — not acknowledged there; audit marks 15.4 AUDIT (acknowledged).
 - **Severity:** medium.
 
 ### Chapter 16 China — wholesale divergence (HIGH)
+
+**Status:** FIXED (china.ts rewritten around rule 16.1: Chinese-script elements in guillemets « », never italicised; bracketed roman translations; `[year]` per 16.2.1; formatLegislation emits the 16.3.1 body/order-no/full-date form (legacy `year` deprecated+ignored); new `formatUnreportedCase` (16.2.3) and `formatConstitution` (16.3.2). Exact-string tests for exs 3, 6, 7, 8, 11, 13. 16.2.2 series preference remains caller guidance — manual.)
 - **Rule:** 16.1–16.3 (PDF pp.245–249). Chinese characters between guillemets « », never italicised; translations in square brackets after each element; reported case template `«Case Name» [Year] Issue Series Page, Pinpoint`; legislative acts `«Title» [translation] (Jurisdiction) Body, Order No X, Full Date, Pinpoint`.
 - **Engine:** `foreign/china.ts:42–77` italicises the case name, uses round `(year)` instead of `[year]`, has no guillemet/translation support; `formatLegislation` (china.ts:98) emits `(jurisdiction, year)` parenthetical — a form appearing nowhere in ch 16. 16.2.3 unreported and 16.3.2 constitutions unimplemented.
 - **Prior claims:** audit CH16-001/002 PASS — wrong; coverage "Full" — wrong.
@@ -138,28 +148,38 @@ Counts: MATCH 31 · MISMATCH 13 · GAP 19 · ANOMALY-RISK 8 · MANUAL-OK 8 · UN
 - **Severity:** high.
 
 ### 17.1 French cases (HIGH)
+
+**Status:** FIXED (france.ts — new exported `formatCourtDecision` with {popularName?, court, translation?, caseNumber?, ecli?, date, reportedIn?}: court-first roman pattern, italic popular name + roman comma, 'reported in' dropped when unreported; exact-string tests for exs 1–4. Legacy `formatCase` retained for signature stability, marked @deprecated — dispatch must route to formatCourtDecision (handoff/foreign.md §1).)
 - **Rule:** 17.1 (PDF pp.253–255): court-name-first patterns, eg `Cour de cassation [French Court of Cassation], 06-81968, 5 December 2006 reported in (2006) Bull crim nº 304, 1095`; court name roman, translation bracketed, 'reported in' dropped when unreported; ECLI after case number.
 - **Engine:** `foreign/france.ts:42–72`: italic case name, court in parens after the name, `[year]`, series+page. No date, no 'reported in', no translations, no ECLI. Test (chapter15-26.test.ts:223 analogue for Germany; France cases untested) — audit CH17-001 PASS is wrong.
 - **Fix:** new data shape `{ court, translation, caseNumber, ecli, date, reportedIn? }`; popular case name as optional italic prefix w/ roman comma.
 - **Severity:** high.
 
 ### 17.2.1 French individual laws (MEDIUM)
+
+**Status:** FIXED (france.ts formatLegislation — new `translation` (roman) and `gazetteDate` (' JO, «date»') params; pinpoint comma-joined after the gazette reference; legacy `year` deprecated and folded into the italic title; JSDoc cites 26.1.1 and flags the guide's '25.1.1' misprint. Exact test for ex 5.)
 - **Rule:** 17.2.1 (PDF pp.254–255): `*Loi nº 91-662 du 13 juillet 1991* [Law No 91-662 ...] (France) JO, 19 July 1991, 9521` — translation roman, JO + full date mandatory. (NB the Guide's own text miscites '25.1.1' here; correct cross-ref is 26.1.1 — do not copy '25.1.1' into JSDoc.)
 - **Engine:** `france.ts:91–118`: `title year (France) pinpoint` — year between title and jurisdiction is not an AGLC4 element; no translation slot (a bracketed translation passed inside `title` becomes italic, violating 26.1.1); JO/date only via pinpoint hack.
 - **Severity:** medium.
 
 ### 17.2.3 / 18.2.3 constitution translations italicised (MEDIUM)
+
+**Status:** FIXED (france.ts/germany.ts formatConstitution — roman `translation` param added; tests pass the translation separately and assert italicText excludes it; france.ts JSDoc now teaches the correct fixed title 'La Constitution du 4 octobre 1958'.)
 - **Rule:** 26.1.1 (PDF p.315): translated titles never italicised. 17.2.3/18.2.3 fixed forms pair italic French/German title + roman bracketed translation.
 - **Engine:** formatConstitution in france.ts:136/germany.ts:140 has a single italic `title` param; test chapter15-26.test.ts:204–208 passes the translation inside it → whole string italic. france.ts JSDoc also teaches a wrong title ("Constitution of the French Republic").
 - **Fix:** add `translation` param emitted as roman ` [${translation}]`.
 - **Severity:** medium.
 
 ### 18.1 German cases (HIGH)
+
+**Status:** FIXED (germany.ts — new exported `formatCourtDecision` (court roman + translation + docket + full date + 'reported in'); court never suppressed; the old test that stuffed court/docket/date into the italic caseName rewritten to exact-string assertions for exs 2 and 4; legacy `formatCase` @deprecated. 18.2.1 also FIXED: formatLegislation gained `translation`/`enactmentDate`/`gazette` (+ `shortTitle` for 18.2.2), exact tests for exs 5, 6, 9.)
 - **Rule:** 18.1 (PDF pp.256–257): `Bundesgerichtshof [German Federal Court of Justice], VII ZR 110/83, 19 January 1984 reported in (1984) 89 BGHZ 376, 378` — court roman + translation, docket number, full date, 'reported in'.
 - **Engine:** `foreign/germany.ts:44–75`: italic case name + `(year) vol series page`; court suppressed when series ∈ {BVerfGE, BGHZ, BGHSt} — but in 18.1 the court name is the mandatory leading element, never suppressed. Test (chapter15-26.test.ts:223–234) stuffs court+docket+date+"reported in" into `caseName`, silently italicising all of it, and asserts only `toContain`.
 - **Severity:** high. (18.2.1 individual laws share France's 17.2.1 problem — engine emits `title year (Germany)`, cannot emit `(Germany) 27 April 2009, BGBl I, 2009, 951` except via pinpoint hack — medium.)
 
 ### 19.2.1 Hong Kong jurisdiction string (MEDIUM)
+
+**Status:** FIXED (hong-kong.ts — formatLegislation now defaults jurisdiction to "Hong Kong" and documents that form; new `capNumber` param emits ' cap 8' with a comma before any pinpoint (exact tests exs 7, 9); series-implying-court set corrected to {HKCFAR, HKCFA, HKCA}; formatCase gained `yearType`/`pinpoint` (exact test ex 2).)
 - **Rule:** 19.2.1 (PDF p.260): jurisdiction written `(Hong Kong)`; eg `*Evidence Ordinance* (Hong Kong) cap 8, s 4`.
 - **Engine:** `foreign/hong-kong.ts:73–78` JSDoc prescribes `jurisdiction: "HK"` → output `(HK)`. Mechanically correct if callers pass "Hong Kong" (tests do), but the documented API contract teaches the wrong form. Also `hong-kong.ts:58` series set contains "HKCA"/"HKCFA", which are court identifiers not report series (authorised series are HKLRD, HKCFAR, HKLR; unauthorised HKC).
 - **Fix:** default jurisdiction to "Hong Kong"; correct the series set to {HKLRD, HKCFAR, HKLR, HKC}.
@@ -174,24 +194,32 @@ Counts: MATCH 31 · MISMATCH 13 · GAP 19 · ANOMALY-RISK 8 · MANUAL-OK 8 · UN
 - **Severity:** medium.
 
 ### 21.1.4 Māori Land Court unimplemented but interface pretends (MEDIUM)
+
+**Status:** FIXED (new-zealand.ts — new exported `formatMaoriLandCourt` (parties, optional '— Block' em-dash name, (year) caseNo registry MB/ACMB/CJMB page, pinpoint, judicial officer); exact tests for exs 13, 14; the invented 'NZ Maori LR' JSDoc removed; `specialCourt` field kept for signature stability but documented as routing to the dedicated formatters.)
 - **Rule:** 21.1.4 (PDF pp.265–266): `*O'Rorke v Hohaia — Pukekohatu 7B Block* (2006) 173 Aotea MB 114, 117 [12]–[13] (Judge Harvey)` — em-dash block name, registry + MB/ACMB/CJMB minute-book abbreviations.
 - **Engine:** `foreign/new-zealand.ts:40` declares `specialCourt?: "MaoriLandCourt" | "WaitangiTribunal"` on NZCaseData but `formatCase` never reads it; JSDoc (l.60–61) invents an abbreviation "NZ Maori LR" that appears nowhere in AGLC4. Audit marks 21.1.4 AUDIT (acknowledged); coverage says "Full" (not acknowledged).
 - **Fix:** implement a `formatMaoriLandCourt` (parties, optional `— Block`, `(year) caseNo registry MB page`) or delete the dead field and JSDoc claim.
 - **Severity:** medium.
 
 ### 22.2.1 / 22.2.2 Singapore capitalisation and constitutional parenthetical (MEDIUM)
+
+**Status:** FIXED (singapore.ts — JSDoc/params now teach lowercase 'cap 4' / '1985 rev ed'; `isConstitution` no longer suppresses the parenthetical: constitutional documents emit '(Singapore, «rev ed / reprint»)' via `revisedEdition` or the new `reprint` param. Exact tests for exs 9, 13, 14, 15.)
 - **Rule:** 22.2.1 (PDF p.270): `(Singapore, cap 4, 1985 rev ed)` — lowercase 'cap', 'rev ed'. 22.2.2 (PDF p.271): constitutional documents follow 22.2.1 with revision/reprint info in place of a chapter number: `*Constitution of the Republic of Singapore* (Singapore, 1999 reprint) ss 9–16`.
 - **Engine:** `foreign/singapore.ts:119–121` JSDoc/params teach `capNumber: "Cap 224"`, `revisedEdition: "2008 Rev Ed"` (wrong case — tests at chapter15-26.test.ts:523 use the correct lowercase, so only the API docs mislead). `singapore.ts:158–176`: `isConstitution` suppresses the entire parenthetical, so example 14's `(Singapore, 1999 reprint)` is unreachable in that mode (workaround: don't set `isConstitution`).
 - **Fix:** normalise or document lowercase; make `isConstitution` accept reprint/revision info instead of suppressing the parenthetical.
 - **Severity:** medium.
 
 ### 23.1.1 / 23.2.1 South Africa native-style leakage (MEDIUM)
+
+**Status:** FIXED (south-africa.ts — `division` deprecated and no longer emitted (courtId with a 23.1.1 table name is the documented path); `actNumber` deprecated and ignored so the 'Act 4 of 2000' style can never be emitted; JSDoc examples replaced with the AGLC4 forms (ex 6 'S v Manamela [2000] 3 SA 1 (Constitutional Court)'). Exact tests for exs 1, 6, 7, 9, 10.)
 - **Rule:** 23.1.1 (PDF pp.272–273): AGLC4 form is `*S v Manamela* [2000] 3 SA 1 (Constitutional Court)`; geographic locations must be omitted from division names ('Local Division', not 'Witwatersrand Local Division'). 23.2.1 (PDF p.274): ch 3 style — `*Local Government Transition Act 1993* (South Africa)`.
 - **Engine:** `foreign/south-africa.ts:101–107` JSDoc example is the SA-native `S v Makwanyane 1995 (3) SA 391 (CC)` — the function cannot even produce that shape (round yearType yields `(1995) 3 SA 391`), and '(CC)' contradicts the 23.1.1 court-name table. The `division` param (south-africa.ts:46, 140–141) invites 'A'/'T' letters, ie geographic division codes AGLC4 bans. `formatLegislation` (south-africa.ts:201–205) emits `*Title Act 4 of 2000*` when `actNumber` is set — an 'Act No of Year' style foreign to ch 3/23.2.1. Audit already marks 23.1.1/23.2.1/23.2.2 FIX (acknowledged). Tests use the correct square form, so MATCH is achievable; the risk is the API steering users to SA-native output.
 - **Fix:** drop `division` and `actNumber` (or map actNumber → validation warning), correct JSDoc examples.
 - **Severity:** medium.
 
 ### 23.3 TRC reports (LOW)
+
+**Status:** FIXED (south-africa.ts — new exported `formatTRCReport` emitting the ch 6 book form (roman author, italic title, '(1998–2003) vol 3, 155'); exact test for ex 11; the legacy isTRC branch of formatCase now renders its first field roman and is documented as deprecated.)
 - **Rule:** 23.3 (PDF p.275): cite as a chapter 6 book — `Truth and Reconciliation Commission of South Africa, *Report* (1998–2003) vol 3, 155` (author roman, title italic).
 - **Engine:** `south-africa.ts:113–117` isTRC branch of formatCase italicises the first field (the author) and appends `trcDetails` raw.
 - **Fix:** route TRC to the ch 6 book formatter.
@@ -199,18 +227,22 @@ Counts: MATCH 31 · MISMATCH 13 · GAP 19 · ANOMALY-RISK 8 · MANUAL-OK 8 · UN
 
 ### 24.1.2 Law Reports data gaps (MEDIUM)
 
-**Status:** FIXED (data: src/engine/data/uk-report-series.ts — Ex D added alongside flagged 'Ex'; Ch D/QBD/PD and all 12 LR-prefixed series + LR RP added) / HANDOFF ('LR «vol» QB' volume-placement rule is formatter work in uk.ts — handoff §6).
+**Status:** FIXED (data: src/engine/data/uk-report-series.ts — Ex D added alongside flagged 'Ex'; Ch D/QBD/PD and all 12 LR-prefixed series + LR RP added; formatter: uk.ts formatCase now places the volume inside 'LR '-prefixed abbreviations ('LR 4 PC 60'), exact test for ex 5.)
 - **Rule:** 24.1.2 (PDF pp.276–277): table includes App Cas, Ch D, QBD, PD, Ex D and eleven 'LR'-prefixed 1865–75 series; volume goes inside 'LR x QB'.
 - **Engine:** `src/engine/data/uk-report-series.ts` has AC/QB/KB/Ch/Fam/P/App Cas but 'Ex' instead of 'Ex D' (l.81) and none of Ch D, QBD, PD, CPD-era LR-prefixed series (LR QB, LR Ch App, LR Eq, LR HL, LR PC, LR CP, LR CCR, LR Ex, LR P&D, LR Adm & Eccl, LR RP, LR Sc & Div). No code implements the 'LR «vol» QB' volume-placement rule. Data feeds only the AbbreviationLookup UI (`src/ui/views/AbbreviationLookup.tsx`), so impact is lookup completeness, not formatting.
 - **Severity:** medium.
 
 ### 24.1.3 Nominate reports — no parallel ER/RR (MEDIUM)
+
+**Status:** FIXED (uk.ts formatCase — optional `parallel: { volume, series: "ER" | "RR", page, pinpoint? }` emitting '; 83 ER 310' after the nominate citation, pinpoints in the parallel citation; exact tests for exs 8 and 10.)
 - **Rule:** 24.1.3 (PDF p.278): parallel citation mandatory: `*Russel v Lee* (1661) 1 Lev 86; 83 ER 310`.
 - **Engine:** `foreign/uk.ts` formatCase has no parallel-citation support; test chapter15-26.test.ts:684–698 openly tests "the base nominate report portion" only. Audit CH24-003 PASS overstates.
 - **Fix:** add `parallel?: { volume, series: "ER"|"RR", page, pinpoint? }` emitting `; 83 ER 310, 315`.
 - **Severity:** medium.
 
 ### 24.1.4 Scottish bare-year unsupported (HIGH)
+
+**Status:** FIXED (uk.ts — `yearType` union gained "none", emitting a bare year; 'SC (HL)' added to the series-implied-court set; the "simplified" toContain test rewritten to exact-string assertions for exs 11 and 15 plus West v Secretary of State for Scotland.)
 - **Rule:** 24.1.4 (PDF p.278): year-organised Scottish series take a bare year — `*Logan v Harrower* 2008 SLT 1049`, `*Brown v Hamilton District Council* 1983 SC (HL) 1`.
 - **Engine:** `foreign/uk.ts:123–125` supports only `"round" | "square"` — output is `(1992) SC 385`, never `1992 SC 385`. Test chapter15-26.test.ts:701–718 admits it matches "in a simplified way" and asserts only `toContain("1992")`. Audit CH24-004 PASS is wrong.
 - **Fix:** add `yearType: "none"` (or `scottish: true`) emitting ` ${year}`.
@@ -218,53 +250,69 @@ Counts: MATCH 31 · MISMATCH 13 · GAP 19 · ANOMALY-RISK 8 · MANUAL-OK 8 · UN
 
 ### 24.1.6 UK judicial titles table (MEDIUM, anomaly-sensitive)
 
-**Status:** FIXED (dataset: new src/engine/data/judicial-titles.ts UK_JUDICIAL_TITLES — 21 rows, DPSC per the table (DECISION-012; 'DP' misprint not copied), before-name asterisked titles, LJ→LJJ) / HANDOFF (uk.ts wiring — handoff §1).
+**Status:** FIXED (dataset: new src/engine/data/judicial-titles.ts UK_JUDICIAL_TITLES — 21 rows, DPSC per the table (DECISION-012; 'DP' misprint not copied), before-name asterisked titles, LJ→LJJ; formatter: uk.ts now exports `formatJudicialOfficers` consuming the dataset — before-name titles, LJJ grouping, per-name titles where no plural is tabulated; tests incl 'James, Baggallay and Bramwell LJJ' and 'Lord Hope DPSC'.)
 - **Rule:** 24.1.6 (PDF pp.281–282): DPSC/PSC/JSC/LJ/MR/V-C etc; asterisked titles precede the name. Guide's own example band misprints 'Lord Hope DP' (catalogue entry) — DPSC is correct.
 - **Engine:** not implemented anywhere (`grep DPSC src/engine` → only NZ/Irish data files, unrelated). GAP acknowledged (audit CH24-006 AUDIT). When implementing, use DPSC — do not copy the 'DP' example.
 - **Severity:** medium.
 
 ### 24.2.3 regnal JSDoc example wrong (MEDIUM, doc-level)
+
+**Status:** FIXED (uk.ts — the '12 & 13 Will III' JSDoc example removed; docs now teach '2 & 3 Wm 4' Arabic forms; new exported `UK_MONARCH_ABBREVIATIONS` (full 24.2.3 table incl 'Ph & M', 'Wm & M') and `formatRegnalYear` helper with 'sess' support; tests for '2 & 3 Wm 4', '28 & 29 Vict' and ex 38 '24 Geo 3 sess 2'.)
 - **Rule:** 24.2.3 (PDF pp.283–284): monarch abbreviations table — William → 'Wm'; regnal numbers in Arabic ('2 & 3 Wm 4').
 - **Engine:** `foreign/uk.ts:164,191–196` example: `regnalYear: "12 & 13 Will III"` — 'Will' and Roman 'III' both contradict the table. Output is caller-supplied so tests (which use correct 'Edw 7', 'Eliz 2', 'Vict', 'Hen 6') pass; the JSDoc misleads integrators. No monarch-abbreviation data/validation exists (latent GAP).
 - **Severity:** medium (documentation), low (behaviour).
 
 ### 24.3 SR & O / NI SR instrument types unreachable (MEDIUM)
+
+**Status:** FIXED (uk.ts formatStatutoryInstrument — optional `instrumentType: "SI" | "SR" | "SR & O"` defaulted from jurisdiction/year per the 24.3 table (NI→SR, UK 1890–1947→SR & O); pinpoint now comma-prefixed after the instrument number; exact tests for exs 39, 40, 42, 44.)
 - **Rule:** 24.3 (PDF pp.285–286) table: UK 1890–1947 → 'SR & O'; NI → 'SR'; example 42 `*Work at Height Regulations (Northern Ireland) 2005* (NI) SR 2005/279`.
 - **Engine:** `foreign/uk.ts:274` hardcodes `SI ${year}/${number}`.
 - **Fix:** add `instrumentType?: "SI" | "SR" | "SR & O"` defaulting by jurisdiction/date.
 - **Severity:** medium.
 
 ### 25.3 Session laws year logic (MEDIUM)
+
+**Status:** FIXED (usa.ts formatSessionLaw — closing year suppressed when it appears in the title or a state year-volume is used (25.3.7); new `numberType` ('Priv L No' / 'ch'), `originalPinpoint`, `statPinpoint`, `sessionLawsName` (default 'Stat'; 'NY Laws' documented — ex-66 'NY Stat' misprint not encoded), `volumeIsYear`; 'Act of «date»' titles roman per 25.3.1. Exact tests for exs 56, 57, 59, 64, 70. 25.3.8 legislative history remains via rule 3.8 machinery (DECISION-008) — out of scope here.)
 - **Rule:** 25.3.7 (PDF p.309): omit the parenthesised year when it already appears in the title or when a state session-laws year-volume is present. Also 25.3.2 chapter numbers ('ch'), Priv L No, and state session laws (25.3.4–25.3.5 table).
 - **Engine:** `foreign/usa.ts:215–233` always appends `(${data.year})` — `*Detainee Treatment Act of 2005*, Pub L No 109-148, 119 Stat 2739 (2005)` is wrong. Test chapter15-26.test.ts:1107–1108 comments "implementation always includes it; test current behaviour" and asserts via `toContain` — acknowledged in test, not in the audit (CH25-010 PASS). No support for `ch`, `Priv L No`, original pinpoints, or state session laws (eg `1999 NJ Laws 1`).
 - **Fix:** suppress year when `title.includes(String(year))`; add chapter/private-law/state fields. Do not adopt the Guide's own example-66 'NY Stat' — the table says 'NY Laws'.
 - **Severity:** medium.
 
 ### 25.4 state constitutions unsupported (MEDIUM)
+
+**Status:** FIXED (usa.ts formatConstitution — optional `title` defaulting to "United States Constitution"; exact test for ex 77 'Texas Constitution art 1 § 8'. The Roman-vs-Arabic article-numeral anomaly stays pass-through; flagged for decisions.md in handoff/foreign.md §4.)
 - **Rule:** 25.4 (PDF p.310): `*Texas Constitution* art 1 § 8`.
 - **Engine:** `foreign/usa.ts:282` hardcodes "United States Constitution". Test chapter15-26.test.ts:1136–1139 acknowledges the hardcoding. (The Guide's Roman-vs-Arabic article-number inconsistency (ex 75 vs 77) is an open anomaly — engine passes numerals through, which is the safe behaviour; candidates for docs/decisions.md.)
 - **Fix:** add optional `title` param defaulting to "United States Constitution".
 - **Severity:** medium.
 
 ### 25.6.1 Congressional Record (HIGH)
+
+**Status:** FIXED (usa.ts formatCongressionalRecord — full italic '*Congressional Record*' title, speaker parenthetical before the year/date, `edition: "daily"` + new `date` param emitting '(daily ed, «Full Date»)', new `chamber` param after the year; exact tests for exs 83 and 84. 25.5.1 Fed Reg also FIXED via new `formatFederalRegister` (ex 80) and an optional CFR `title` (ex 79); 25.1.7 slip opinions FIXED via new `formatUnreportedCase` (exs 26–28).)
 - **Rule:** 25.6.1 (PDF pp.311–312): `156 *Congressional Record* H148 (Ann Kirkpatrick) (daily ed, 19 January 2010)` — title in full and italic, speaker parenthetical *before* the year/date parenthetical, daily-edition form `(daily ed, «Full Date»)`.
 - **Engine:** `foreign/usa.ts:361–371` emits roman Bluebook-style `158 Cong Rec S6299 (2012) (Harry Reid)` — wrong series rendering, speaker after year, and the `edition` field (usa.ts:344) is declared but never used (daily ed impossible).
 - **Fix:** emit `${volume} ` + italic run "Congressional Record" + ` ${page}` + optional ` (${speaker})` + ` (${edition==="daily" ? "daily ed, "+date : year})`.
 - **Severity:** high.
 
 ### 25.7 Restatements (HIGH)
+
+**Status:** FIXED (usa.ts formatRestatement — mandatory 'American Law Institute, ' author prepended in roman; element order now '(year) § section «cmt …»'; the two-toContain test rewritten to exact-string assertions for exs 90 and 91.)
 - **Rule:** 25.7 (PDF p.314): cite as a book authored by the Institute — `American Law Institute, *Restatement (Second) of Contracts* (1981) § 176`; comments as `§ 465 cmt (a)`.
 - **Engine:** `foreign/usa.ts:414–433` omits the mandatory author "American Law Institute, " and orders section before year: `*Restatement (Second) of Contracts* § 402A (1965)`. Test chapter15-26.test.ts:1167–1178 masks with two `toContain`s. Audit CH25-014 PASS is wrong.
 - **Fix:** prepend author run; emit ` (${year}) § ${section}${cmt}`.
 - **Severity:** high.
 
 ### 26.1.1 translation attribution marker (HIGH)
+
+**Status:** FIXED (other.ts — `translator?: string` ('author' or a name) emits ' [tr author]' / ' [tr Name]' as the final run of the citation; the legacy `isAuthorTranslation` flag maps to the same corrected output (text and position both fixed); exact tests for exs 1 and 2 of rule 26.1.1.)
 - **Rule:** 26.1.1 (PDF pp.315–316): author-made translations flagged `[tr author]` at the **end of the citation**; third-party translations `[tr «Translator's Name»]` at the end. Eg `*Urheberrechtsgesetz* [Copyright Law] (Switzerland) 9 October 1992, SR 231.1, art 29(2)(a) [tr author]`.
 - **Engine:** `foreign/other.ts:245–247` emits `[Author's trans]` (wrong text) after the jurisdiction and **before** the pinpoint (wrong position); no `[tr Name]` support at all. Audit CH26-001 PASS is wrong.
 - **Fix:** replace with `translator?: "author" | string` emitting ` [tr author]` / ` [tr ${name}]` as the final run.
 - **Severity:** high.
 
 ### 26.2 formatCase drops the year when a volume is present (HIGH — code bug)
+
+**Status:** FIXED (other.ts:113-ish — volume now appended to the year text (`yearText += \` ${volume}\``) instead of overwriting it; exact regression test via ex 8 '[1967] 1 All NLR 123'. The non-common-law element list (court, number, date, 'reported in' with no preceding comma, comma-separated elements) implemented as new exported `formatOtherDecision`, exact test for ex 12; `otherInformation` element support added to formatLegislation (26.3 ex 17).)
 - **Rule:** 26.2 (PDF pp.318–319): common-law decisions per ch 2 (`[1967] 1 All NLR 123`); other decisions comma-separated elements with `reported in`.
 - **Engine:** `foreign/other.ts:107–119`: when `year`, `volume` and `reportSeries` are all set, line 115 executes `yearText = `, ${data.volume}``, **overwriting** (not appending to) the year text — the year vanishes from the output. Additionally there is no `reported in` connector, and elements are space- rather than comma-separated for non-common-law decisions.
 - **Fix:** `yearText += ` ${data.volume}`` (mirror uk.ts:126–128); add `reportedIn` handling.

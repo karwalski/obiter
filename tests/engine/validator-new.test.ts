@@ -15,6 +15,7 @@ import {
   checkQuotationClauses,
   checkFootnoteFormat,
   checkParallelCitations,
+  checkMncYearValidity,
 } from "../../src/engine/validator";
 import type { Citation } from "../../src/types/citation";
 
@@ -351,5 +352,98 @@ describe("checkParallelCitations (Rule 2.2.7)", () => {
       modifiedAt: "",
     };
     expect(checkParallelCitations([citation])).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rule 2.3.1 — Medium neutral citation adoption-year check
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("checkMncYearValidity (Rule 2.3.1)", () => {
+  const makeMnc = (
+    year: number,
+    court: string,
+    caseNumber: number,
+    extra: Record<string, unknown> = {}
+  ): Citation => ({
+    id: "mnc-1",
+    aglcVersion: "4",
+    sourceType: "case.unreported.mnc",
+    data: { party1: "A", party2: "B", year, court, caseNumber, ...extra },
+    shortTitle: "A v B",
+    tags: [],
+    createdAt: "",
+    modifiedAt: "",
+  });
+
+  test("flags '[1995] HCA 1' as predating the HCA's 1998 adoption (rule 2.3.1 note)", () => {
+    const issues = checkMncYearValidity([makeMnc(1995, "HCA", 1)]);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ruleNumber).toBe("2.3.1");
+    expect(issues[0].severity).toBe("warning");
+    expect(issues[0].citationId).toBe("mnc-1");
+    expect(issues[0].message).toBe(
+      "Case 'A v B': '[1995] HCA 1' — the High Court of Australia did not " +
+        "allocate medium neutral citations before 1998 (rule 2.3.1 table); " +
+        "cite the decision as unreported per rule 2.3.2"
+    );
+  });
+
+  test("accepts [2017] HCA 4 per AGLC4 ex 82 (rule 2.3.1)", () => {
+    // Re Culleton [No 2] [2017] HCA 4.
+    const issues = checkMncYearValidity([makeMnc(2017, "HCA", 4)]);
+    expect(issues).toHaveLength(0);
+  });
+
+  test("accepts the adoption year itself ([1998] HCA 1)", () => {
+    expect(checkMncYearValidity([makeMnc(1998, "HCA", 1)])).toHaveLength(0);
+  });
+
+  test("flags '[2009] SASCFC 1' as predating the Full Court's 2010 identifier", () => {
+    const issues = checkMncYearValidity([makeMnc(2009, "SASCFC", 1)]);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ruleNumber).toBe("2.3.1");
+    expect(issues[0].message).toBe(
+      "Case 'A v B': '[2009] SASCFC 1' — the Supreme Court of South Australia " +
+        "(Full Court) did not allocate medium neutral citations before 2010 " +
+        "(rule 2.3.1 table); cite the decision as unreported per rule 2.3.2"
+    );
+  });
+
+  test("accepts the courtIdentifier data alias", () => {
+    const citation: Citation = {
+      id: "mnc-2",
+      aglcVersion: "4",
+      sourceType: "case.unreported.mnc",
+      data: { party1: "A", party2: "B", year: 1997, courtIdentifier: "TASSC", caseNumber: 5 },
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    const issues = checkMncYearValidity([citation]);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("'[1997] TASSC 5'");
+  });
+
+  test("ignores identifiers without a tabled adoption year (Appendix B rows)", () => {
+    // NSWDC is not in the rule 2.3.1 in-chapter table (no mncFrom).
+    expect(checkMncYearValidity([makeMnc(1990, "NSWDC", 1)])).toHaveLength(0);
+  });
+
+  test("ignores unknown court identifiers", () => {
+    expect(checkMncYearValidity([makeMnc(1990, "XYZ", 1)])).toHaveLength(0);
+  });
+
+  test("ignores non-MNC source types", () => {
+    const citation: Citation = {
+      id: "b2",
+      aglcVersion: "4",
+      sourceType: "case.reported",
+      data: { party1: "A", party2: "B", year: 1995, reportSeries: "CLR" },
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    expect(checkMncYearValidity([citation])).toHaveLength(0);
   });
 });

@@ -974,11 +974,14 @@ async function testNumberFormatting(): Promise<string> {
   assert(numberToWords(10) === "10", `Expected '10', got '${numberToWords(10)}'`);
   assert(numberToWords(100) === "100", `Expected '100', got '${numberToWords(100)}'`);
 
-  // No comma separators
-  assert(formatNumber(10000) === "10000", `Expected '10000', got '${formatNumber(10000)}'`);
-  assertNotContains(formatNumber(1000000), ",", "Formatted number");
+  // Rule 1.10.1: numbers of four or more digits take comma separators
+  assert(formatNumber(10000) === "10,000", `Expected '10,000', got '${formatNumber(10000)}'`);
+  assert(
+    formatNumber(1000000) === "1,000,000",
+    `Expected '1,000,000', got '${formatNumber(1000000)}'`
+  );
 
-  return "Number formatting verified: words for 1-9, numerals for 10+, no commas";
+  return "Number formatting verified: words for 1-9, numerals for 10+, commas in 4+ digit numbers";
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1337,7 +1340,11 @@ async function testCheckDashes(): Promise<string> {
   const issues = checkDashes("The decision in 1986--87 was significant");
   const doubleHyphen = issues.find((i) => i.message.includes("Double hyphen"));
   assert(doubleHyphen !== undefined, "Should flag '--' (Rule 1.6.3)");
-  assert(doubleHyphen!.suggestion === "\u2014", "Double hyphen should suggest em-dash");
+  // Rule 1.6.3: a double hyphen between digits is a number span \u2192 en-dash
+  assert(
+    doubleHyphen!.suggestion === "\u2013",
+    "Double hyphen between digits should suggest en-dash"
+  );
 
   return `Dash check verified: ${issues.length} issues found`;
 }

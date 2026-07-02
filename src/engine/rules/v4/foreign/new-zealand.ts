@@ -34,8 +34,10 @@ interface NZCaseData {
    */
   courtId?: string;
   /**
-   * Identifies Maori Land Court or Waitangi Tribunal decisions,
-   * which use distinctive court abbreviations per Rule 21.1.
+   * Identifies Māori Land Court or Waitangi Tribunal decisions. Not
+   * consumed by formatCase — those decisions have their own formats:
+   * use {@link formatMaoriLandCourt} (rule 21.1.4) or
+   * {@link formatWaitangiTribunal} (rule 21.1.5) instead.
    */
   specialCourt?: "MaoriLandCourt" | "WaitangiTribunal";
 }
@@ -54,11 +56,12 @@ const NZ_SERIES_IMPLIED_COURT: ReadonlySet<string> = new Set(["NZLR", "NZAR"]);
 /**
  * Formats a New Zealand case citation per AGLC4 Rule 21.1.
  *
- * AGLC4 Rule 21.1: New Zealand case citations follow the general
- * foreign case format. The NZLR and NZAR are the primary report
- * series. Medium neutral citations use court identifiers such as
- * NZSC, NZCA, and NZHC. The Maori Land Court uses the abbreviation
- * 'NZ Maori LR' and the Waitangi Tribunal uses 'Waitangi Tribunal'.
+ * AGLC4 Rule 21.1.1: New Zealand cases follow chapter 2 unchanged.
+ * Rule 21.1.2: the authorised NZLR is the preferred series. Rule
+ * 21.1.3: court-assigned medium neutral citations use identifiers
+ * such as NZSC, NZCA and NZHC (from the years in the 21.1.3 table).
+ * Māori Land Court and Māori Appellate Court decisions have their own
+ * minute-book format — use {@link formatMaoriLandCourt} (rule 21.1.4).
  *
  * @example
  *   // Couch v Attorney-General [2008] 3 NZLR 725
@@ -103,6 +106,94 @@ export function formatCase(data: NZCaseData): FormattedRun[] {
   // Court identifier (omitted when apparent from series)
   if (data.courtId && !NZ_SERIES_IMPLIED_COURT.has(data.reportSeries)) {
     runs.push({ text: ` (${data.courtId})` });
+  }
+
+  return runs;
+}
+
+// ─── NZ Māori Land Court Data ────────────────────────────────────────────────
+
+interface NZMaoriLandCourtData {
+  /** Parties' names, separated with 'v' (e.g. "O'Rorke v Hohaia"). */
+  parties: string;
+  /**
+   * Block name, included only where it appears in the decision
+   * (e.g. 'Pukekohatu 7B Block'). Joined to the parties with a spaced
+   * em-dash inside the italicised case name.
+   */
+  blockName?: string;
+  /** Year of the decision (round brackets). */
+  year: number;
+  /** Case (minute book volume) number (e.g. 173). */
+  caseNumber: number | string;
+  /** Registry name, written in full (e.g. 'Aotea', 'Hauraki'). */
+  registry: string;
+  /**
+   * Minute book abbreviation per the rule 21.1.4 table: 'MB' (Minute
+   * Book), 'ACMB' (Appellate Court Minute Book) or 'CJMB' (Chief
+   * Judge's Minute Book). Defaults to 'MB'. See NZ_MINUTE_BOOKS in
+   * src/engine/data/nz-court-identifiers.ts.
+   */
+  minuteBook?: "MB" | "ACMB" | "CJMB";
+  /** Starting page in the minute book. */
+  startingPage: number | string;
+  /** Pinpoint reference (rule 2.2.5). */
+  pinpoint?: string;
+  /** Judicial officer(s), per rule 2.4.1 (e.g. 'Judge Harvey'). */
+  judicialOfficer?: string;
+}
+
+// ─── FRGN-007-MLC: Māori Land Court and Māori Appellate Court (Rule 21.1.4) ─
+
+/**
+ * Formats a Māori Land Court or Māori Appellate Court decision per
+ * AGLC4 Rule 21.1.4.
+ *
+ * AGLC4 Rule 21.1.4 template: *Parties' Names — Block Name* (Year)
+ * Case Number Registry Minute Book Abbreviation Starting Page,
+ * Pinpoint. The block name is included only where it appears in the
+ * decision (omitting any introductory 'In the matter of'); where no
+ * minute book reference is available, cite as an unreported decision
+ * under rule 2.3.
+ *
+ * @example
+ *   // O'Rorke v Hohaia — Pukekohatu 7B Block (2006) 173 Aotea MB 114,
+ *   //   117 [12]–[13] (Judge Harvey)  — AGLC4 ex 13
+ *   formatMaoriLandCourt({
+ *     parties: "O'Rorke v Hohaia", blockName: "Pukekohatu 7B Block",
+ *     year: 2006, caseNumber: 173, registry: "Aotea",
+ *     startingPage: 114, pinpoint: "117 [12]–[13]",
+ *     judicialOfficer: "Judge Harvey",
+ *   })
+ *
+ * @example
+ *   // Taipari v Hauraki Maori Trust Board (2008) 114 Hauraki MB 34  — AGLC4 ex 14
+ *   formatMaoriLandCourt({
+ *     parties: "Taipari v Hauraki Maori Trust Board",
+ *     year: 2008, caseNumber: 114, registry: "Hauraki", startingPage: 34,
+ *   })
+ */
+export function formatMaoriLandCourt(data: NZMaoriLandCourtData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+  const minuteBook = data.minuteBook ?? "MB";
+
+  // Case name in italics, with the block name after a spaced em-dash
+  const caseName = data.blockName ? `${data.parties} — ${data.blockName}` : data.parties;
+  runs.push({ text: caseName, italic: true });
+
+  // Year, case number, registry, minute book abbreviation, starting page
+  runs.push({
+    text: ` (${data.year}) ${data.caseNumber} ${data.registry} ${minuteBook} ${data.startingPage}`,
+  });
+
+  // Pinpoint (rule 2.2.5)
+  if (data.pinpoint) {
+    runs.push({ text: `, ${data.pinpoint}` });
+  }
+
+  // Judicial officer(s) (rule 2.4.1)
+  if (data.judicialOfficer) {
+    runs.push({ text: ` (${data.judicialOfficer})` });
   }
 
   return runs;

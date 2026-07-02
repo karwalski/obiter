@@ -82,7 +82,7 @@ Verdict counts: MATCH 13 · MISMATCH 10 · GAP 2 · ANOMALY-RISK 1 · MANUAL-OK 
 (Coverage doc `docs/aglc4-coverage.md` line "1.5.3 … `. . .` with correct AGLC4 spacing" is wrong.)
 
 ### MED-1 — Rule 1.4.1 (PDF pp.34-35): disambiguation/short-title styling
-**Status:** DEFERRED (wave 2 — PARITY-102: resolver/engine change)
+**Status:** FIXED (src/engine/resolver.ts — disambiguation titles and the authorless short-title fallback styled per the source via shouldItaliciseTitle: italic for books/reports/Acts, inverted commas for articles; Bills roman. Exact-string tests for AGLC4 exs 55/61/62 in tests/engine/chapter1.test.ts. Full-name disambiguation for different authors sharing a surname remains unimplemented — low)
 **Rule requires:** when several works by the same author are cited, surname + title/short title, "styled the same way the title appeared in the first citation (eg italics for a book title; inverted commas for a journal article)". Guide ex 61: `Rubenstein, *Australian Citizenship Law in Context* (n 59)`. Ex 55: `*Traditional Rights and Freedoms* (n 52)` (italic report short title standing in for a body author).
 **Engine does:** `src/engine/resolver.ts:210-217` (and :275-281, :329-335) always renders the disambiguation title as plain text in straight single quotes (`'${title}'`), never italic — wrong for books/reports. The `getAuthorSurname` fallback to `citation.shortTitle` (:131-133) likewise renders report short titles non-italic. Test at `tests/engine/chapter1.test.ts:351-362` only asserts substrings, so the styling deviation is untested.
 **Proposed fix:** route the disambiguation title through `wrapTitle(title, sourceType)` (italicisation.ts) so books/reports come out italic and articles/chapters in quotes; italicise the short-title fallback for title-italicised source types.
@@ -90,21 +90,21 @@ Verdict counts: MATCH 13 · MISMATCH 10 · GAP 2 · ANOMALY-RISK 1 · MANUAL-OK 
 Also unimplemented (low): full-name disambiguation for different authors sharing a surname.
 
 ### MED-2 — Rules 1.4.3/1.2: signals dropped on subsequent references
-**Status:** DEFERRED (wave 2 — PARITY-102: engine.ts/resolver.ts change)
+**Status:** FIXED (wave 2 — src/engine/engine.ts formatCitation applies applySignalAndCommentary to subsequent-reference runs and lowercases a leading 'Ibid' when a signal/commentary precedes it ('See ibid', guide ex 69); exact tests in tests/engine/parity-dispatch.test.ts)
 **Rule requires:** "Introductory signals may accompany 'ibid'" (guide ex 69: `See ibid.`), and 'ibid' is capitalised only when it opens the footnote.
 **Engine does:** `src/engine/engine.ts:3228-3247` — for subsequent references `formatCitation` returns the resolver's runs directly, never calling `applySignalAndCommentary` (:3138), so any signal on an ibid/short reference is silently discarded. The comment at `src/word/citationRefresher.ts:543` ("Signal and commentary are already applied by formatCitation") is false for this path. Additionally `resolveIbid` (`src/engine/resolver.ts:369-384`) always emits capital "Ibid", so even if the signal were applied the output would be "See Ibid", not "See ibid".
 **Proposed fix:** apply signal/commentary to subsequent-reference runs in `formatCitation`, and lowercase "ibid" when a signal (or discursive text) precedes it.
 **Severity:** med.
 
 ### MED-3 — Rule 1.4.4 (PDF pp.37-38): short-title introduction skipped when "redundant"
-**Status:** DEFERRED (wave 2 — PARITY-102: engine.ts change)
+**Status:** FIXED (wave 2 — src/engine/engine.ts appendFirstCitationSuffixes: containment no longer suppresses the introduction; only strict equality of short title and full rendered citation does. Exact ch 3 ex 29 and ex 40 tests in tests/engine/parity-dispatch.test.ts)
 **Rule requires:** the first citation introduces the short title in `('…')` before it may be used in subsequent references. The guide's own example 81 introduces `('*Pape*')` even though 'Pape' is contained in the full case name — containment does not excuse the introduction.
 **Engine does:** `src/engine/engine.ts:3261-3273` (AUDIT2-015) — skips appending the introduction whenever `fullText.includes(shortLower)`. For virtually every case short title formed from the first-named party (the rule 2.1.14 default), the introduction is suppressed, yet `formatShortReference` still emits `Pape (n X)` later — an unintroduced short form.
 **Proposed fix:** only skip when the short title is exactly the full rendered name (true redundancy), or drop the containment branch and keep `startsWith` equality; guide ex 81 shows containment alone is not redundancy.
 **Severity:** med.
 
 ### MED-4 — Rule 1.4.6 (PDF p.39): 'at' beyond the immediately preceding source
-**Status:** DEFERRED (wave 2 — PARITY-102: citationRefresher.ts/resolver.ts change)
+**Status:** FIXED (src/word/citationRefresher.ts — isWithinSameFootnote now computed by isImmediatelyPrecedingInFootnote: 'at' only when the immediately preceding citation in the footnote is the same source; non-adjacent re-cites fall through to the rule 1.4.1 (n X) form. Identical-pinpoint repetition of 'at' retained deliberately: the rule's wording (PDF p 39, verified) is "it is not necessary to repeat", ie permissive, and auto-suppression would render an empty citation occurrence. Tests in tests/word/citationRefresher.test.ts)
 **Rule requires:** with multiple sources in the footnote, 'at' may only refer to the immediately preceding source; a later pinpoint to an earlier source must use the rule 1.4.1 `(n …)` form. 'At' is also unnecessary when the pinpoint is identical to the one immediately beforehand.
 **Engine does:** `src/word/citationRefresher.ts:486` sets `isWithinSameFootnote = currentFootnoteCitationIds.includes(child.citationId)` — true whenever the source appeared ANYWHERE earlier in the footnote; `src/engine/resolver.ts:601-604` then formats `at «pinpoint»` regardless of whether another source intervened. No suppression of `at` for identical consecutive pinpoints.
 **Proposed fix:** track the immediately preceding source within the footnote; use `at` only when it matches, otherwise fall through to `formatShortReference` (self-referencing footnote number, per the guide's 'Brennan Jr (n 94) 430' example); skip `at` when pinpoints are identical.

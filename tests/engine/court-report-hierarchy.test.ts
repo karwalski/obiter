@@ -125,8 +125,8 @@ describe("COURT-006: getPreferredReportOrder", () => {
     expect(getPreferredReportOrder("TASCCA")).toEqual(["Tas R", "ALR", "MNC"]);
   });
 
-  test("resolves legacy TASCSC preset key to TAS hierarchy", () => {
-    expect(getPreferredReportOrder("TASCSC")).toEqual(["Tas R", "ALR", "MNC"]);
+  test("does not resolve the removed TASCSC typo key", () => {
+    expect(getPreferredReportOrder("TASCSC")).toEqual([]);
   });
 
   test("resolves HCASL to HCA hierarchy (rule 2.3.1 identifier, 2008–)", () => {
@@ -227,6 +227,14 @@ describe("COURT-006: suggestPreferredReport", () => {
     expect(suggestPreferredReport("HCA", ["MNC", "IPR"])).toBe("IPR");
     expect(suggestPreferredReport("HCA", ["CLR", "IPR"])).toBe("CLR");
   });
+
+  test("medium neutral identifier ranks with MNC, below subject-specific series (rule 2.2.2)", () => {
+    // "NSWSC" is a rule 2.3.1 court identifier (mediumNeutral row in
+    // report-series.ts), not a report series — it must rank below the
+    // subject-specific tier, unlike other unknown abbreviations.
+    expect(suggestPreferredReport("NSW", ["NSWSC", "IPR"])).toBe("IPR");
+    expect(suggestPreferredReport("NSW", ["NSWSC", "NSWLR"])).toBe("NSWLR");
+  });
 });
 
 // ─── Cross-Jurisdictional Citation Tests ─────────────────────────────────────
@@ -272,6 +280,14 @@ describe("COURT-006: Unknown jurisdiction falls back to AGLC4 default ordering",
 
   test("unknown jurisdiction: subject-specific preferred over MNC", () => {
     expect(suggestPreferredReport("UNKNOWN", ["MNC", "IPR"])).toBe("IPR");
+  });
+
+  test("unknown jurisdiction: medium neutral identifiers rank below subject-specific (rule 2.2.2)", () => {
+    // "HCA" and "NSWSC" are rule 2.3.1 court identifiers flagged
+    // mediumNeutral in report-series.ts — the MNC tier, below all series.
+    expect(suggestPreferredReport("UNKNOWN", ["HCA", "IPR"])).toBe("IPR");
+    expect(suggestPreferredReport("UNKNOWN", ["NSWSC", "ALR"])).toBe("ALR");
+    expect(suggestPreferredReport("UNKNOWN", ["NSWSC", "CLR"])).toBe("CLR");
   });
 
   test("FLR is generalist unauthorised, not authorised (rule 2.2.2 table)", () => {

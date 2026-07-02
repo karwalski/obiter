@@ -40,7 +40,7 @@ Counts: MATCH 2 · MISMATCH 11 · GAP 5 · UNVERIFIED 1 (area-level; per-row UNV
 
 ## A1. Court identifiers (rule 2.3.1, PDF pp.79–81) — GAP, high
 
-**Status:** FIXED (src/engine/data/court-identifiers.ts — HCASL/FamCA/FamCAFC/NTCCA/TASCCA added; `mncFrom`/`mncTo` year fields added and populated from the 2.3.1 table; header corrected. Low-severity fullName inversions unchanged; AAT retained UNVERIFIED pending Appendix B.)
+**Status:** FIXED (src/engine/data/court-identifiers.ts — HCASL/FamCA/FamCAFC/NTCCA/TASCCA added; `mncFrom`/`mncTo` year fields added and populated from the 2.3.1 table; header corrected. Wave 2: validator.ts `checkMncYearValidity` enforces `mncFrom` — flags MNC years predating the court's adoption year, wired into validateDocument. Low-severity fullName inversions unchanged; AAT retained UNVERIFIED pending Appendix B.)
 
 Source: table at reference lines 1626–1654. Engine: `src/engine/data/court-identifiers.ts` (array lines 20–247).
 Counts: 25 distinct reference identifiers; 20 matched; **5 missing**; 18 engine-only (17 appendix-B-plausible, UNVERIFIED).
@@ -80,7 +80,7 @@ Minor: `court-identifiers.ts` uses all-caps `"CTH"/"VIC"/"QLD"/"TAS"` jurisdicti
 
 ## A4. Report series (rules 2.2.2–2.2.3, PDF pp.75–76) — MISMATCH, high
 
-**Status:** FIXED (src/engine/data/report-series.ts + src/engine/court/reportHierarchy.ts — QR deleted, Qd R authorised; SR (NSW) authorised/renamed; 7 historical series added; NTLR & WAR flipped to volume-organised (exx 60, 93); WASR & 'Fam CA' deleted; MNC identifiers flagged `mediumNeutral`; IR/BCLC duplicates disambiguated via getByAbbreviation jurisdiction param; SR (SA) renamed) / DEFERRED (NSWLR/VR/Tas R/ACTLR/ALJR yearOrganised flags — provisional, Appendix A / DATA-004; ACTR tier ambiguity routed to decisions.md via handoff §7) / HANDOFF (cases.ts SERIES_TO_COURT/tier sets; medium_neutral union migration incl AbbreviationLookup.tsx — handoff §§2–3).
+**Status:** FIXED (src/engine/data/report-series.ts + src/engine/court/reportHierarchy.ts — QR deleted, Qd R authorised; SR (NSW) authorised/renamed; 7 historical series added; NTLR & WAR flipped to volume-organised (exx 60, 93); WASR & 'Fam CA' deleted; MNC identifiers flagged `mediumNeutral`; IR/BCLC duplicates disambiguated via getByAbbreviation jurisdiction param; SR (SA) renamed) / DEFERRED (NSWLR/VR/Tas R/ACTLR/ALJR yearOrganised flags — provisional, Appendix A / DATA-004; ACTR tier ambiguity routed to decisions.md via handoff §7) / FIXED (wave 2: reportHierarchy.ts preference logic now ranks `mediumNeutral`-flagged rows with the MNC tier, below subject-specific unauthorised series per rule 2.2.2 — getDefaultPreferenceRank + getRankInHierarchy, tests in court-report-hierarchy.test.ts) / HANDOFF (cases.ts SERIES_TO_COURT/tier sets; medium_neutral union migration incl AbbreviationLookup.tsx — handoff §§2–3).
 
 Source: authorised table lines 1514–1533 (20 rows) + named unauthorised series (line 1535) + 2.2.2 examples. Engine: `src/engine/data/report-series.ts`.
 Counts: 10/20 authorised rows matched; 5/5 named unauthorised matched; **7 missing**; **2 wrong status**; ~135 engine-only (UNVERIFIED, Appendix A) except two contradictions below.
@@ -248,7 +248,7 @@ Implementation: `rules/v4/general/capitalisation.ts:16–128` (toTitleCase, vali
 
 ## B4. Rule 1.8 Italicisation (PDF pp.51–52) — MISMATCH, high
 
-**Status:** PARTIAL — 1.8.3 list inversion FIXED (see A13). Titles-inside-quotations skip in src/word/inlineFormatter.ts is outside wave-1 ch1 scope — HANDOFF (engine wiring; see wave-1 ch1 handoff). 1.8.1 emphasis-added tracking WONTFIX (manual; Styling.tsx Add Emphasis button covers the workflow)
+**Status:** PARTIAL — 1.8.3 list inversion FIXED (see A13). Titles-inside-quotations skip: INVALID (did not reproduce — `isInsideQuotationMarks` is called only from the Latin-terms pass (`scanAndFormatLatinTerms`); the 1.8.2 title pass has never skipped quoted text, verified against pre-wave-1 history; clarifying comment added to src/word/inlineFormatter.ts). 1.8.1 emphasis-added tracking WONTFIX (manual; Styling.tsx Add Emphasis button covers the workflow)
 
 Implementation: `rules/v4/general/italicisation.ts:24–127`; `data/latin-terms.ts`; validator.ts:642–701; `src/word/inlineFormatter.ts:131–240`.
 

@@ -120,7 +120,7 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
 
   // ── Tasmania ───────────────────────────────────────────────────────────────
   {
-    jurisdiction: "TASCSC",
+    jurisdiction: "TASSC",
     name: "Supreme Court of Tasmania — Practice Directions",
     url: "https://www.supremecourt.tas.gov.au/practice_directions/",
     lastVerified: "2026-04-21",

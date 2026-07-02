@@ -146,10 +146,12 @@ describe("MULTI-004: Subsequent reference format parameterisation", () => {
       expect(text).toBe("Smith v Jones, above n 5, at 42");
     });
 
-    it("disambiguation includes title", () => {
+    it("disambiguation includes title styled per the source (italic book title, rule 1.4.1)", () => {
       const result = formatShortReference(mockBookCitation, 3, undefined, true, NZLSG3_CONFIG);
       const text = result.map((r) => r.text).join("");
-      expect(text).toBe("Smith, 'Contract Law', above n 3");
+      expect(text).toBe("Smith, Contract Law, above n 3");
+      // Book titles are italic in disambiguating short references
+      expect(result[2].italic).toBe(true);
     });
   });
 

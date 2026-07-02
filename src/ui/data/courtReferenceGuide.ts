@@ -354,7 +354,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
 
   // ── Tasmania ───────────────────────────────────────────────────────────────
   {
-    jurisdiction: "TASCSC",
+    jurisdiction: "TASSC",
     courtName: "Tasmanian Supreme Court",
     group: "Other States/Territories",
     practiceDirection: {

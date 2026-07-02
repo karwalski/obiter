@@ -23,6 +23,8 @@
  * branches exist — the engine reads from a typed data map.
  */
 
+import { getByAbbreviation } from "../data/report-series";
+
 // ─── Jurisdiction Identifiers ────────────────────────────────────────────────
 
 /**
@@ -127,15 +129,10 @@ const COURT_TO_JURISDICTION: Record<string, ReportJurisdiction> = {
   SASC: "SA",
   SADC: "SA",
 
-  // Tasmania — TASSC/TASCCA/TASFC per the rule 2.3.1 table. "TASCSC" is
-  // NOT an AGLC4 identifier (typo — no such code in any table); it is
-  // retained solely because it is the court-mode preset key in
-  // presets.ts/validator.ts. Never emit it in citations; rename pending
-  // (see handoff).
+  // Tasmania — TASSC/TASCCA/TASFC per the rule 2.3.1 table.
   TASFC: "TAS",
   TASCCA: "TAS",
   TASSC: "TAS",
-  TASCSC: "TAS",
 
   // ACT
   ACTCA: "ACT",
@@ -264,9 +261,26 @@ function getRankInHierarchy(series: string, hierarchy: readonly string[]): numbe
   if (index !== -1) {
     return index;
   }
-  // Unknown series: rank just before MNC (last position)
   const mncIndex = hierarchy.indexOf("MNC");
-  return mncIndex !== -1 ? mncIndex - 0.5 : hierarchy.length - 0.5;
+  const base = mncIndex !== -1 ? mncIndex : hierarchy.length;
+  // Rule 2.2.2: medium neutral citations rank below ALL report series.
+  // Court-identifier rows in report-series.ts carry the mediumNeutral flag
+  // (interim representation pending the type-union migration), so an MNC
+  // form given by identifier (eg "NSWSC") ranks with the MNC placeholder.
+  if (isMediumNeutralSeries(series)) {
+    return base;
+  }
+  // Other unknown series: rank just before MNC (subject-specific tier)
+  return base - 0.5;
+}
+
+/**
+ * Returns true when the abbreviation is a medium neutral court identifier
+ * row in the report-series dataset (rule 2.3.1 identifiers, flagged
+ * `mediumNeutral: true`), not a report series.
+ */
+function isMediumNeutralSeries(series: string): boolean {
+  return getByAbbreviation(series)?.mediumNeutral === true;
 }
 
 /**
@@ -313,5 +327,9 @@ function getDefaultPreferenceRank(series: string): number {
   if (authorised.has(series)) return 1;
   if (generalistUnauthorised.has(series)) return 2;
   if (unreported.has(series)) return 4;
+  // Rule 2.2.2: medium neutral citations (rule 2.3.1 court identifiers,
+  // flagged mediumNeutral in report-series.ts) rank below ALL report
+  // series, including subject-specific unauthorised reports.
+  if (isMediumNeutralSeries(series)) return 4;
   return 3; // subject-specific unauthorised
 }

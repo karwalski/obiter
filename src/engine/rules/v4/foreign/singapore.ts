@@ -105,56 +105,72 @@ export function formatCase(data: SingaporeCaseData): FormattedRun[] {
 // ─── Singapore Legislation Data ──────────────────────────────────────────────
 
 interface SingaporeLegislationData {
-  /** Short title of the Act or Constitution provision. */
+  /** Short title of the Act or constitutional document. */
   title: string;
-  /** Year of the Act (omitted for the Constitution). */
+  /**
+   * Year the statute was passed or the subsidiary legislation was
+   * promulgated — used only in the no-chapter-number form
+   * (rule 22.2.1), where it forms part of the italicised title.
+   */
   year?: number;
-  /** Jurisdiction abbreviation — defaults to 'Singapore'. */
+  /** Jurisdiction — defaults to 'Singapore'. */
   jurisdiction?: string;
   /** Pinpoint reference (e.g. 's 9', 'art 12'). */
   pinpoint?: string;
-  /** Set to true when citing the Constitution of Singapore. */
+  /**
+   * Set to true when citing a constitutional document (rule 22.2.2).
+   * Constitutional documents have no chapter numbers; revision or
+   * reprint information appears in place of one.
+   */
   isConstitution?: boolean;
-  /** Cap number for revised edition references (e.g. 'Cap 224'). */
+  /** Chapter number, lowercase 'cap' per rule 22.2.1 (e.g. 'cap 224'). */
   capNumber?: string;
-  /** Revised edition year (e.g. '2008 Rev Ed'). */
+  /** Revised edition year, lowercase 'rev ed' per rule 22.2.1 (e.g. '2008 rev ed'). */
   revisedEdition?: string;
+  /**
+   * Reprint information for constitutional documents (rule 22.2.2),
+   * e.g. '1999 reprint'.
+   */
+  reprint?: string;
 }
 
-// ─── FRGN-008-LEG: Singapore Legislation (Rules 22.2–22.3) ──────────────────
+// ─── FRGN-008-LEG: Singapore Legislation (Rules 22.2.1–22.2.2) ──────────────
 
 /**
- * Formats a Singapore legislation citation per AGLC4 Rules 22.2–22.3.
+ * Formats a Singapore legislation citation per AGLC4 Rules
+ * 22.2.1–22.2.2.
  *
- * AGLC4 Rule 22.2: Singapore statutes are cited with the title in
- * italics. The cap number and revised edition details appear in
- * parentheses in roman type, e.g. '(Cap 224, 2008 Rev Ed)'.
+ * AGLC4 Rule 22.2.1: legislation with an assigned chapter number is
+ * cited *Title* (Singapore, cap Chapter Number, Year rev ed) Pinpoint —
+ * 'cap' and 'rev ed' lowercase. Legislation with no chapter number (or
+ * not revised) is cited *Title Year* (Singapore) Pinpoint.
  *
- * AGLC4 Rule 22.3: The Constitution of the Republic of Singapore
- * is cited in italics, with pinpoints using 'art' notation.
+ * AGLC4 Rule 22.2.2: constitutional documents follow rule 22.2.1, with
+ * revision or reprint information in place of a chapter number.
  *
  * @example
- *   // Penal Code (Singapore, Cap 224, 2008 Rev Ed) s 377A
+ *   // Adoption of Children Act (Singapore, cap 4, 1985 rev ed) s 5  — AGLC4 ex 9
  *   formatLegislation({
- *     title: "Penal Code",
- *     jurisdiction: "Singapore",
- *     capNumber: "Cap 224",
- *     revisedEdition: "2008 Rev Ed",
- *     pinpoint: "s 377A",
+ *     title: "Adoption of Children Act",
+ *     capNumber: "cap 4",
+ *     revisedEdition: "1985 rev ed",
+ *     pinpoint: "s 5",
  *   })
  *
  * @example
- *   // Constitution of the Republic of Singapore art 12
+ *   // Constitution of the Republic of Singapore (Singapore, 1999 reprint)
+ *   //   ss 9–16  — AGLC4 ex 14
  *   formatLegislation({
  *     title: "Constitution of the Republic of Singapore",
  *     isConstitution: true,
- *     pinpoint: "art 12",
+ *     reprint: "1999 reprint",
+ *     pinpoint: "ss 9–16",
  *   })
  */
 export function formatLegislation(data: SingaporeLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Title (and year if present) in italics
+  // Title (and year, in the no-chapter-number form) in italics
   if (data.isConstitution) {
     runs.push({ text: data.title, italic: true });
   } else {
@@ -162,21 +178,20 @@ export function formatLegislation(data: SingaporeLegislationData): FormattedRun[
     runs.push({ text: titleText, italic: true });
   }
 
-  // Parenthetical: jurisdiction, cap number, revised edition
-  const parenParts: string[] = [];
-  if (!data.isConstitution) {
-    const jurisdiction = data.jurisdiction ?? "Singapore";
-    parenParts.push(jurisdiction);
-    if (data.capNumber) {
-      parenParts.push(data.capNumber);
-    }
-    if (data.revisedEdition) {
-      parenParts.push(data.revisedEdition);
-    }
+  // Parenthetical: jurisdiction, cap number, revised edition / reprint.
+  // Constitutional documents take revision/reprint information in place
+  // of a chapter number (rule 22.2.2).
+  const parenParts: string[] = [data.jurisdiction ?? "Singapore"];
+  if (!data.isConstitution && data.capNumber) {
+    parenParts.push(data.capNumber);
   }
-  if (parenParts.length > 0) {
-    runs.push({ text: ` (${parenParts.join(", ")})` });
+  if (data.revisedEdition) {
+    parenParts.push(data.revisedEdition);
   }
+  if (data.reprint) {
+    parenParts.push(data.reprint);
+  }
+  runs.push({ text: ` (${parenParts.join(", ")})` });
 
   // Pinpoint
   if (data.pinpoint) {

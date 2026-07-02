@@ -90,7 +90,7 @@ describe("COURT-002: Jurisdictional preset structure", () => {
 
   test("getJurisdictionsByGroup returns correct Other States/Territories", () => {
     const other = getJurisdictionsByGroup("Other States/Territories");
-    expect(other).toEqual(["WASC", "SASC", "TASCSC", "ACTSC", "NTSC"]);
+    expect(other).toEqual(["WASC", "SASC", "TASSC", "ACTSC", "NTSC"]);
   });
 
   test("getJurisdictionsByGroup returns correct Tribunals", () => {
@@ -297,8 +297,8 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("TASCSC: preferred parallel, para-and-page, Tas R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
-    expectPreset("TASCSC", {
+  test("TASSC: preferred parallel, para-and-page, Tas R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+    expectPreset("TASSC", {
       parallelCitations: "preferred",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["Tas R", "CLR", "ALR"],
@@ -385,7 +385,7 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
     const warnJurisdictions = new Set<CourtJurisdiction>([
       "NSWCA", "NSWSC", "NSW_DISTRICT_LOCAL",
       "QCA", "QSC", "QLD_DISTRICT_MAG",
-      "TASCSC",
+      "TASSC",
     ]);
     for (const [id, preset] of Object.entries(COURT_PRESETS)) {
       if (warnJurisdictions.has(id as CourtJurisdiction)) {
