@@ -23,7 +23,9 @@ export function getDevicePref(key: string): unknown {
   try {
     const raw = localStorage.getItem(PREFIX + key);
     if (raw !== null) return JSON.parse(raw);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return undefined;
 }
 
@@ -35,5 +37,7 @@ export function setDevicePref(key: string, value: unknown): void {
     } else {
       localStorage.setItem(PREFIX + key, JSON.stringify(value));
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }

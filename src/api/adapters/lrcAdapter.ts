@@ -58,8 +58,7 @@ export const DEFAULT_LRC_CONFIGS: LrcCommissionConfig[] = [
     abbreviation: "NSWLRC",
     jurisdiction: "NSW",
     baseUrl: "https://www.lawreform.justice.nsw.gov.au",
-    searchPattern:
-      "https://www.lawreform.justice.nsw.gov.au/Pages/lrc/search.aspx?query={query}",
+    searchPattern: "https://www.lawreform.justice.nsw.gov.au/Pages/lrc/search.aspx?query={query}",
     enabled: true,
   },
   {
@@ -95,8 +94,7 @@ export const DEFAULT_LRC_CONFIGS: LrcCommissionConfig[] = [
     abbreviation: "SALRI",
     jurisdiction: "SA",
     baseUrl: "https://law.adelaide.edu.au/south-australian-law-reform-institute",
-    searchPattern:
-      "https://law.adelaide.edu.au/south-australian-law-reform-institute?q={query}",
+    searchPattern: "https://law.adelaide.edu.au/south-australian-law-reform-institute?q={query}",
     enabled: true,
   },
   {
@@ -303,17 +301,14 @@ export class LrcAdapter implements SourceAdapter {
 
   private async searchCommission(
     config: LrcCommissionConfig,
-    query: string,
+    query: string
   ): Promise<LookupResult[]> {
     const url = this.buildSearchUrl(config, query);
     const html = await this.fetchHtml(url);
     return this.parseSearchResults(html, config);
   }
 
-  private parseSearchResults(
-    html: string,
-    config: LrcCommissionConfig,
-  ): LookupResult[] {
+  private parseSearchResults(html: string, config: LrcCommissionConfig): LookupResult[] {
     const results: LookupResult[] = [];
     // Generic pattern: look for links with "report" in text or URL
     const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([^<]*(?:report|paper)[^<]*)<\/a>/gi;
@@ -345,10 +340,7 @@ export class LrcAdapter implements SourceAdapter {
     return results;
   }
 
-  private resultToMetadata(
-    result: LookupResult,
-    config: LrcCommissionConfig,
-  ): SourceMetadata {
+  private resultToMetadata(result: LookupResult, config: LrcCommissionConfig): SourceMetadata {
     const reportNum = extractReportNumber(result.title);
     const year = extractYear(result.title);
 
@@ -363,10 +355,7 @@ export class LrcAdapter implements SourceAdapter {
     };
   }
 
-  private parseDetailPage(
-    html: string,
-    config: LrcCommissionConfig,
-  ): SourceMetadata | null {
+  private parseDetailPage(html: string, config: LrcCommissionConfig): SourceMetadata | null {
     // Try to extract title from heading
     const headingMatch = html.match(/<h[12][^>]*>([^<]+)<\/h[12]>/i);
     const titleMatch = html.match(/<title>([^<]*)<\/title>/i);

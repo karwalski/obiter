@@ -14,13 +14,7 @@
 export type AccessTier = "open" | "live" | "link-only";
 
 /** High-level content categories aligned with AGLC4 source types. */
-export type ContentType =
-  | "case"
-  | "legislation"
-  | "hansard"
-  | "journal"
-  | "treaty"
-  | "lrc-report";
+export type ContentType = "case" | "legislation" | "hansard" | "journal" | "treaty" | "lrc-report";
 
 /**
  * Static descriptor published by every adapter so the orchestrator can

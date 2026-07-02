@@ -24,9 +24,7 @@ const ATTRIBUTION = "via Open Australian Legal Corpus (CC BY 4.0)";
 /** Convert a CorpusEntry to the SourceAdapter's LookupResult format. */
 function entryToLookupResult(entry: CorpusEntry): LookupResult {
   const displayTitle =
-    entry.type === "case"
-      ? entry.parties ?? entry.citation
-      : entry.title ?? entry.citation;
+    entry.type === "case" ? (entry.parties ?? entry.citation) : (entry.title ?? entry.citation);
 
   // Put the full citation in snippet so handleCaseSelect can parse
   // MNC ([YYYY] CourtCode N) and court from it.
@@ -78,10 +76,7 @@ export class CorpusAdapter implements SourceAdapter {
    * Search the corpus index. Maps SourceAdapter SearchFilters to the
    * corpus index's CorpusSearchFilters format.
    */
-  async search(
-    query: string,
-    filters?: SearchFilters,
-  ): Promise<LookupResult[]> {
+  async search(query: string, filters?: SearchFilters): Promise<LookupResult[]> {
     const index = getCorpusIndex();
     if (!index) {
       return [];

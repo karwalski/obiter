@@ -33,12 +33,7 @@ interface HealthRecord {
  * transiently. The first failure for these adapters is reported as
  * "degraded" rather than "offline" to avoid crying wolf.
  */
-const fragileAdapterIds = new Set<string>([
-  "austlii",
-  "nzlii",
-  "bailii",
-  "treaty-database",
-]);
+const fragileAdapterIds = new Set<string>(["austlii", "nzlii", "bailii", "treaty-database"]);
 
 /** In-memory health state, keyed by adapter ID. */
 const healthState = new Map<string, HealthRecord>();
@@ -69,7 +64,7 @@ export function deriveAdapterId(adapter: SourceLookup): string {
  * non-throwing response counts as healthy.
  */
 export async function checkHealth(
-  adapter: SourceLookup & { healthcheck?: () => Promise<void> },
+  adapter: SourceLookup & { healthcheck?: () => Promise<void> }
 ): Promise<HealthStatus> {
   const id = deriveAdapterId(adapter);
   const previous = healthState.get(id);
@@ -90,14 +85,12 @@ export async function checkHealth(
     });
     return "healthy";
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : String(err);
+    const message = err instanceof Error ? err.message : String(err);
     const failures = (previous?.consecutiveFailures ?? 0) + 1;
     const isFragile = fragileAdapterIds.has(id);
 
     // Fragile adapters get one grace failure before going offline.
-    const status: HealthStatus =
-      isFragile && failures < 2 ? "degraded" : "offline";
+    const status: HealthStatus = isFragile && failures < 2 ? "degraded" : "offline";
 
     healthState.set(id, {
       status,

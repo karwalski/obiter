@@ -109,9 +109,7 @@ export const SUPPORTED_JURISDICTIONS = Object.keys(PRACTICE_NOTES);
  * @returns The reminder object, or `null` if the jurisdiction does not
  *   have a known citation-verification practice note.
  */
-export function getPracticeNoteReminder(
-  jurisdiction: string,
-): PracticeNoteReminder | null {
+export function getPracticeNoteReminder(jurisdiction: string): PracticeNoteReminder | null {
   const key = jurisdiction.toUpperCase().replace(/\s+/g, "_");
   return PRACTICE_NOTES[key] ?? null;
 }

@@ -67,11 +67,12 @@ function mapMatchToMetadata(match: OpenAustraliaMatch): SourceMetadata {
   return {
     title: match.debate?.title,
     speaker: match.speaker?.full_name,
-    chamber: match.speaker?.house === "representatives"
-      ? "House of Representatives"
-      : match.speaker?.house === "senate"
-        ? "Senate"
-        : match.speaker?.house,
+    chamber:
+      match.speaker?.house === "representatives"
+        ? "House of Representatives"
+        : match.speaker?.house === "senate"
+          ? "Senate"
+          : match.speaker?.house,
     year,
     jurisdiction: "Cth",
     date: match.hdate,
@@ -129,10 +130,7 @@ export class OpenAustraliaAdapter implements SourceAdapter {
   /**
    * Build an OpenAustralia API URL with key and parameters.
    */
-  buildUrl(
-    endpoint: string,
-    params: Record<string, string>,
-  ): string | null {
+  buildUrl(endpoint: string, params: Record<string, string>): string | null {
     const key = this.getApiKey();
     if (!key) return null;
 
@@ -147,10 +145,7 @@ export class OpenAustraliaAdapter implements SourceAdapter {
   /**
    * Search Hansard debates by keyword.
    */
-  async getDebates(
-    query: string,
-    filters?: SearchFilters,
-  ): Promise<OpenAustraliaMatch[]> {
+  async getDebates(query: string, filters?: SearchFilters): Promise<OpenAustraliaMatch[]> {
     const params: Record<string, string> = { search: query };
     if (filters?.yearFrom) params.date = `${filters.yearFrom}-01-01`;
 
@@ -168,10 +163,7 @@ export class OpenAustraliaAdapter implements SourceAdapter {
   /**
    * Search Hansard entries directly.
    */
-  async getHansard(
-    query: string,
-    filters?: SearchFilters,
-  ): Promise<OpenAustraliaMatch[]> {
+  async getHansard(query: string, filters?: SearchFilters): Promise<OpenAustraliaMatch[]> {
     const params: Record<string, string> = { search: query };
     if (filters?.yearFrom) params.date = `${filters.yearFrom}-01-01`;
 
@@ -189,9 +181,7 @@ export class OpenAustraliaAdapter implements SourceAdapter {
   /**
    * Get division (vote) records.
    */
-  async getDivisions(
-    query: string,
-  ): Promise<OpenAustraliaMatch[]> {
+  async getDivisions(query: string): Promise<OpenAustraliaMatch[]> {
     const url = this.buildUrl("getDivisions", { search: query });
     if (!url) return [];
 

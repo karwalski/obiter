@@ -20,6 +20,9 @@ module.exports = async (env, options) => {
       polyfill: ["core-js/stable", "regenerator-runtime/runtime"],
       taskpane: ["./src/taskpane/taskpane.ts", "./src/taskpane/taskpane.html"],
       commands: "./src/commands/commands.ts",
+      // Staged shared-runtime page for the Copilot skill (COPILOT-010). Additive;
+      // the production manifest.xml does not reference it.
+      sharedRuntime: ["./src/runtime/sharedRuntime.ts", "./src/runtime/sharedRuntime.html"],
     },
     output: {
       clean: true,
@@ -96,6 +99,11 @@ module.exports = async (env, options) => {
         filename: "commands.html",
         template: "./src/commands/commands.html",
         chunks: ["polyfill", "commands"],
+      }),
+      new HtmlWebpackPlugin({
+        filename: "sharedRuntime.html",
+        template: "./src/runtime/sharedRuntime.html",
+        chunks: ["polyfill", "sharedRuntime"],
       }),
     ],
     devServer: {

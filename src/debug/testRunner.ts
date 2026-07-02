@@ -11,34 +11,17 @@
  *   runAllTests();
  */
 
-/* global Word Office */
+/* global Word */
 
 import { createLogger } from "./logger";
 import { CitationStore } from "../store/citationStore";
-import {
-  insertCitationFootnote,
-  getAllCitationFootnotes,
-  updateCitationContent,
-} from "../word/footnoteManager";
 import { buildFootnoteMap } from "../word/footnoteTracker";
 import { refreshAllCitations } from "../word/citationRefresher";
-import {
-  formatCitation,
-  getFormattedPreview,
-  CitationContext,
-} from "../engine/engine";
-import { resolveSubsequentReference } from "../engine/resolver";
+import { formatCitation, getFormattedPreview, CitationContext } from "../engine/engine";
 import { applyAglc4Styles, applyHeadingLevel, getHeadingPrefix } from "../word/styles";
 import { applyAglc4Template } from "../word/template";
-import {
-  scanAndFormatInlineReferences,
-  clearInlineFormatting,
-} from "../word/inlineFormatter";
-import {
-  insertAttribution,
-  removeAttribution,
-  hasAttribution,
-} from "../word/branding";
+import { scanAndFormatInlineReferences, clearInlineFormatting } from "../word/inlineFormatter";
+import { insertAttribution, removeAttribution, hasAttribution } from "../word/branding";
 import {
   generateBibliography,
   getBibliographyCategory,
@@ -47,14 +30,8 @@ import { toTitleCase } from "../engine/rules/v4/general/capitalisation";
 import { formatDate } from "../engine/rules/v4/general/dates";
 import { numberToWords, formatNumber } from "../engine/rules/v4/general/numbers";
 import { formatPinpoint } from "../engine/rules/v4/general/pinpoints";
-import {
-  formatSignal,
-  formatLinkingPhrase,
-} from "../engine/rules/v4/general/signals";
-import {
-  checkAbbreviationFullStops,
-  checkDashes,
-} from "../engine/rules/v4/general/punctuation";
+import { formatSignal, formatLinkingPhrase } from "../engine/rules/v4/general/signals";
+import { checkAbbreviationFullStops, checkDashes } from "../engine/rules/v4/general/punctuation";
 import {
   validateDocument,
   checkFootnoteFormat,
@@ -117,7 +94,9 @@ async function runTest(name: string, fn: TestFn): Promise<void> {
     if (onStatusUpdate) {
       const passed = results.filter((r) => r.passed).length;
       const failed = results.filter((r) => !r.passed).length;
-      onStatusUpdate(`[${testNumber}] FAIL: ${name} — ${message} (${passed} passed, ${failed} failed)`);
+      onStatusUpdate(
+        `[${testNumber}] FAIL: ${name} — ${message} (${passed} passed, ${failed} failed)`
+      );
     }
   }
   log.info(`END: ${name}`);
@@ -129,17 +108,13 @@ function assert(condition: boolean, message: string): void {
 
 function assertContains(text: string, substring: string, label?: string): void {
   if (!text.includes(substring)) {
-    throw new Error(
-      `${label ?? "Text"} does not contain '${substring}'. Got: '${text}'`,
-    );
+    throw new Error(`${label ?? "Text"} does not contain '${substring}'. Got: '${text}'`);
   }
 }
 
 function assertNotContains(text: string, substring: string, label?: string): void {
   if (text.includes(substring)) {
-    throw new Error(
-      `${label ?? "Text"} should not contain '${substring}'. Got: '${text}'`,
-    );
+    throw new Error(`${label ?? "Text"} should not contain '${substring}'. Got: '${text}'`);
   }
 }
 
@@ -150,16 +125,17 @@ function runsToText(runs: FormattedRun[]): string {
 // ─── Citation Factory ───────────────────────────────────────────────────────
 
 function makeCitation(
-  overrides: Partial<Citation> & { sourceType: Citation["sourceType"] },
+  overrides: Partial<Citation> & { sourceType: Citation["sourceType"] }
 ): Citation {
   const { sourceType, data, shortTitle, ...rest } = overrides;
   return {
-    id: typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-          const r = (Math.random() * 16) | 0;
-          return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-        }),
+    id:
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+          }),
     aglcVersion: "4",
     sourceType,
     data: data ?? {},
@@ -270,19 +246,6 @@ const TREATY_CITATION = (): Citation =>
 
 // ─── Test Essay Content ─────────────────────────────────────────────────────
 
-const ESSAY_HEADINGS = [
-  { level: 1 as const, text: "Introduction" },
-  { level: 2 as const, text: "Background" },
-  { level: 3 as const, text: "Historical Context" },
-  { level: 4 as const, text: "Pre-Federation" },
-  { level: 5 as const, text: "Colonial arrangements" },
-  { level: 1 as const, text: "Constitutional Framework" },
-  { level: 2 as const, text: "The Commonwealth Constitution" },
-  { level: 3 as const, text: "Legislative Power" },
-  { level: 1 as const, text: "Judicial Interpretation" },
-  { level: 2 as const, text: "The High Court's Role" },
-  { level: 1 as const, text: "Conclusion" },
-];
 
 const ESSAY_PARAGRAPHS: string[] = [
   // After Introduction > Background > Historical Context > Pre-Federation > Colonial arrangements
@@ -315,7 +278,7 @@ export async function generateTestEssay(): Promise<void> {
     // Title
     const titlePara = body.insertParagraph(
       "Australian Constitutional Law: Text, Interpretation, and Transformation",
-      "End",
+      "End"
     );
     titlePara.font.bold = true;
     titlePara.alignment = "Centered" as Word.Alignment;
@@ -332,7 +295,9 @@ export async function generateTestEssay(): Promise<void> {
     await context.sync();
 
     // Build the document: interleave headings and body paragraphs
-    const structure: Array<{ type: "heading"; level: 1|2|3|4|5; text: string } | { type: "body"; text: string }> = [
+    const structure: Array<
+      { type: "heading"; level: 1 | 2 | 3 | 4 | 5; text: string } | { type: "body"; text: string }
+    > = [
       { type: "heading", level: 1, text: "Introduction" },
       { type: "heading", level: 2, text: "Background" },
       { type: "heading", level: 3, text: "Historical Context" },
@@ -392,9 +357,21 @@ export async function generateTestEssay(): Promise<void> {
   const dam = TASMANIAN_DAM_CITATION();
   const cca = CCA_STATUTE();
 
-  try { await store.add(mabo); } catch { /* may already exist */ }
-  try { await store.add(dam); } catch { /* may already exist */ }
-  try { await store.add(cca); } catch { /* may already exist */ }
+  try {
+    await store.add(mabo);
+  } catch {
+    /* may already exist */
+  }
+  try {
+    await store.add(dam);
+  } catch {
+    /* may already exist */
+  }
+  try {
+    await store.add(cca);
+  } catch {
+    /* may already exist */
+  }
 
   // Insert footnotes at various positions
   await Word.run(async (context) => {
@@ -521,7 +498,7 @@ async function testHeadingLevelI(): Promise<string> {
       if (para.text.includes("Introduction") && !para.text.includes("Australian")) {
         assert(
           para.style === "Heading 1",
-          `Expected Heading 1 style on Introduction, got '${para.style}'`,
+          `Expected Heading 1 style on Introduction, got '${para.style}'`
         );
         found = true;
         break;
@@ -547,7 +524,7 @@ async function testHeadingLevelII(): Promise<string> {
       if (para.text.includes("Background")) {
         assert(
           para.style === "Heading 2",
-          `Expected Heading 2 style on Background, got '${para.style}'`,
+          `Expected Heading 2 style on Background, got '${para.style}'`
         );
         found = true;
         break;
@@ -573,7 +550,7 @@ async function testHeadingLevelIII(): Promise<string> {
       if (para.text.includes("Historical Context")) {
         assert(
           para.style === "Heading 3",
-          `Expected Heading 3 style on Historical Context, got '${para.style}'`,
+          `Expected Heading 3 style on Historical Context, got '${para.style}'`
         );
         found = true;
         break;
@@ -598,11 +575,17 @@ async function testHeadingLevelIVAndV(): Promise<string> {
     await context.sync();
     for (const para of body.paragraphs.items) {
       if (para.text.includes("Pre-Federation") && !foundIV) {
-        assert(para.style === "Heading 4", `Expected Heading 4 on Pre-Federation, got '${para.style}'`);
+        assert(
+          para.style === "Heading 4",
+          `Expected Heading 4 on Pre-Federation, got '${para.style}'`
+        );
         foundIV = true;
       }
       if (para.text.includes("Colonial arrangements") && !foundV) {
-        assert(para.style === "Heading 5", `Expected Heading 5 on Colonial arrangements, got '${para.style}'`);
+        assert(
+          para.style === "Heading 5",
+          `Expected Heading 5 on Colonial arrangements, got '${para.style}'`
+        );
         foundV = true;
       }
     }
@@ -665,7 +648,10 @@ async function testStoreAddCase(): Promise<string> {
   await testStore.add(storedMabo);
   const retrieved = testStore.getById(storedMabo.id);
   assert(retrieved !== undefined, "Mabo citation not found after add");
-  assert(retrieved!.sourceType === "case.reported", `Expected case.reported, got ${retrieved!.sourceType}`);
+  assert(
+    retrieved!.sourceType === "case.reported",
+    `Expected case.reported, got ${retrieved!.sourceType}`
+  );
   assert(retrieved!.shortTitle === "Mabo [No 2]", `Short title mismatch: ${retrieved!.shortTitle}`);
   return `Added reported case: Mabo v Queensland [No 2] (${storedMabo.id})`;
 }
@@ -675,10 +661,13 @@ async function testStoreAddStatute(): Promise<string> {
   await testStore.add(storedCCA);
   const retrieved = testStore.getById(storedCCA.id);
   assert(retrieved !== undefined, "CCA citation not found after add");
-  assert(retrieved!.sourceType === "legislation.statute", `Expected legislation.statute, got ${retrieved!.sourceType}`);
+  assert(
+    retrieved!.sourceType === "legislation.statute",
+    `Expected legislation.statute, got ${retrieved!.sourceType}`
+  );
   assert(
     (retrieved!.data.title as string) === "Competition and Consumer Act",
-    `Title mismatch: ${retrieved!.data.title}`,
+    `Title mismatch: ${retrieved!.data.title}`
   );
   return `Added statute: Competition and Consumer Act 2010 (Cth) (${storedCCA.id})`;
 }
@@ -688,8 +677,11 @@ async function testStoreAddJournal(): Promise<string> {
   await testStore.add(storedJournal);
   const retrieved = testStore.getById(storedJournal.id);
   assert(retrieved !== undefined, "Journal article not found after add");
-  assert(retrieved!.sourceType === "journal.article", `Expected journal.article, got ${retrieved!.sourceType}`);
-  return `Added journal article: ${(retrieved!.data.title as string)} (${storedJournal.id})`;
+  assert(
+    retrieved!.sourceType === "journal.article",
+    `Expected journal.article, got ${retrieved!.sourceType}`
+  );
+  return `Added journal article: ${retrieved!.data.title as string} (${storedJournal.id})`;
 }
 
 async function testStoreAddBook(): Promise<string> {
@@ -698,7 +690,7 @@ async function testStoreAddBook(): Promise<string> {
   const retrieved = testStore.getById(storedBook.id);
   assert(retrieved !== undefined, "Book citation not found after add");
   assert(retrieved!.sourceType === "book", `Expected book, got ${retrieved!.sourceType}`);
-  return `Added book: ${(retrieved!.data.title as string)} (${storedBook.id})`;
+  return `Added book: ${retrieved!.data.title as string} (${storedBook.id})`;
 }
 
 async function testStoreAddTreaty(): Promise<string> {
@@ -707,7 +699,7 @@ async function testStoreAddTreaty(): Promise<string> {
   const retrieved = testStore.getById(storedTreaty.id);
   assert(retrieved !== undefined, "Treaty citation not found after add");
   assert(retrieved!.sourceType === "treaty", `Expected treaty, got ${retrieved!.sourceType}`);
-  return `Added treaty: ${(retrieved!.data.title as string)} (${storedTreaty.id})`;
+  return `Added treaty: ${retrieved!.data.title as string} (${storedTreaty.id})`;
 }
 
 async function testStoreRetrieveAll(): Promise<string> {
@@ -720,9 +712,19 @@ async function testStoreRetrieveAll(): Promise<string> {
   assert(all.length >= 6, `Expected at least 6 citations, got ${all.length}`);
 
   // Verify we can find each one
-  const ids = [storedMabo.id, storedCCA.id, storedJournal.id, storedBook.id, storedTreaty.id, storedTasmanianDam.id];
+  const ids = [
+    storedMabo.id,
+    storedCCA.id,
+    storedJournal.id,
+    storedBook.id,
+    storedTreaty.id,
+    storedTasmanianDam.id,
+  ];
   for (const id of ids) {
-    assert(all.some((c) => c.id === id), `Citation ${id} not found in getAll()`);
+    assert(
+      all.some((c) => c.id === id),
+      `Citation ${id} not found in getAll()`
+    );
   }
 
   return `Store contains ${all.length} citations, all 6 test citations verified`;
@@ -803,7 +805,7 @@ async function testFormatJournalArticle(): Promise<string> {
   // Title should be in quotes (single curly)
   assert(
     text.includes("\u2018") || text.includes("'"),
-    "Journal article title should be enclosed in quotation marks",
+    "Journal article title should be enclosed in quotation marks"
   );
 
   // Journal name should be italic
@@ -824,16 +826,14 @@ async function testFormatBook(): Promise<string> {
   assertContains(text, "2022", "Book output");
 
   // Title should be italic
-  const titleRun = runs.find(
-    (r) => r.text.includes("Australian Constitutional Law and Theory"),
-  );
+  const titleRun = runs.find((r) => r.text.includes("Australian Constitutional Law and Theory"));
   assert(titleRun !== undefined, "Expected a run with book title");
   assert(titleRun!.italic === true, "Book title should be italic");
 
   // Publication details should be in parentheses
   assert(
     text.includes("(Federation Press") || text.includes("(Federation"),
-    "Publication details should be in parentheses",
+    "Publication details should be in parentheses"
   );
 
   return `Formatted book: ${text}`;
@@ -846,9 +846,7 @@ async function testFormatTreaty(): Promise<string> {
   assertContains(text, "Charter of the United Nations", "Treaty output");
 
   // Title should be italic
-  const titleRun = runs.find(
-    (r) => r.text.includes("Charter of the United Nations"),
-  );
+  const titleRun = runs.find((r) => r.text.includes("Charter of the United Nations"));
   assert(titleRun !== undefined, "Expected a run with treaty title");
   assert(titleRun!.italic === true, "Treaty title should be italic");
 
@@ -926,25 +924,25 @@ async function testCapitalisation(): Promise<string> {
   // Basic title case
   assert(
     toTitleCase("the rule of law in australia") === "The Rule of Law in Australia",
-    `Title case failed: got '${toTitleCase("the rule of law in australia")}'`,
+    `Title case failed: got '${toTitleCase("the rule of law in australia")}'`
   );
 
   // Articles/prepositions lowercased in middle
   assert(
     toTitleCase("a study of the law") === "A Study of the Law",
-    `Title case articles: got '${toTitleCase("a study of the law")}'`,
+    `Title case articles: got '${toTitleCase("a study of the law")}'`
   );
 
   // Conjunctions lowercased in middle
   assert(
     toTitleCase("law and order in the court") === "Law and Order in the Court",
-    `Title case conjunctions: got '${toTitleCase("law and order in the court")}'`,
+    `Title case conjunctions: got '${toTitleCase("law and order in the court")}'`
   );
 
   // Acronyms preserved
   assert(
     toTitleCase("the UN and EU") === "The UN and EU",
-    `Title case acronyms: got '${toTitleCase("the UN and EU")}'`,
+    `Title case acronyms: got '${toTitleCase("the UN and EU")}'`
   );
 
   return "Capitalisation (toTitleCase) verified for AGLC4 title-case rules";
@@ -1202,10 +1200,7 @@ async function testReRefreshNoChanges(): Promise<string> {
   return await Word.run(async (context) => {
     const result = await refreshAllCitations(context, testStore);
     // After an immediate re-refresh with no document changes, updated should be 0
-    assert(
-      result.updated === 0,
-      `Expected 0 updated after re-refresh, got ${result.updated}`,
-    );
+    assert(result.updated === 0, `Expected 0 updated after re-refresh, got ${result.updated}`);
     return `Re-refresh: ${result.updated} updated, ${result.unchanged} unchanged (0 updated as expected)`;
   });
 }
@@ -1238,8 +1233,14 @@ async function testBibliographySections(): Promise<string> {
 
   // Category mapping
   assert(getBibliographyCategory("case.reported") === "B", "Cases should be category B");
-  assert(getBibliographyCategory("legislation.statute") === "C", "Legislation should be category C");
-  assert(getBibliographyCategory("journal.article") === "A", "Journal articles should be category A");
+  assert(
+    getBibliographyCategory("legislation.statute") === "C",
+    "Legislation should be category C"
+  );
+  assert(
+    getBibliographyCategory("journal.article") === "A",
+    "Journal articles should be category A"
+  );
   assert(getBibliographyCategory("book") === "A", "Books should be category A");
   assert(getBibliographyCategory("treaty") === "D", "Treaties should be category D");
 
@@ -1272,7 +1273,11 @@ async function testBibliographyAuthorInversion(): Promise<string> {
     const text = runsToText(entry);
     // The entry itself should not have a trailing full stop appended by the formatter
     // (the ensureClosingPunctuation is for footnotes, not bibliography entries)
-    assertNotContains(text, ".", `Bibliography entry should not end with full stop (Rule 1.13): '${text}'`);
+    assertNotContains(
+      text,
+      ".",
+      `Bibliography entry should not end with full stop (Rule 1.13): '${text}'`
+    );
   }
 
   return "Bibliography author inversion verified, no trailing full stops";
@@ -1287,8 +1292,14 @@ async function testValidateDocument(): Promise<string> {
   const footnoteTexts = ["Mabo v Queensland [No 2] (1992) 175 CLR 1."];
   const result = validateDocument(footnoteTexts, citations);
 
-  assert(typeof result.errors === "object" && Array.isArray(result.errors), "errors should be array");
-  assert(typeof result.warnings === "object" && Array.isArray(result.warnings), "warnings should be array");
+  assert(
+    typeof result.errors === "object" && Array.isArray(result.errors),
+    "errors should be array"
+  );
+  assert(
+    typeof result.warnings === "object" && Array.isArray(result.warnings),
+    "warnings should be array"
+  );
   assert(typeof result.info === "object" && Array.isArray(result.info), "info should be array");
 
   return `Validation complete: ${result.errors.length} errors, ${result.warnings.length} warnings, ${result.info.length} info`;
@@ -1336,7 +1347,7 @@ async function testCheckFootnoteNumberPosition(): Promise<string> {
   const positionIssue = issues.find((i) => i.ruleNumber === "1.1.2");
   assert(
     positionIssue !== undefined,
-    "Should flag possible footnote number before punctuation (Rule 1.1.2)",
+    "Should flag possible footnote number before punctuation (Rule 1.1.2)"
   );
 
   // Clean text should not be flagged
@@ -1357,7 +1368,7 @@ async function testApplyBlockQuoteStyle(): Promise<string> {
     // Insert a test paragraph for block quote
     const para = body.insertParagraph(
       "This is a block quote paragraph that should be indented and in a smaller font per AGLC4 Rule 1.5.1.",
-      "End",
+      "End"
     );
 
     // Try to apply block quote style
@@ -1492,7 +1503,9 @@ export async function runAllTests(): Promise<TestResult[]> {
     await generateTestEssay();
     log.info("Test essay generated");
   } catch (err) {
-    log.error("Failed to generate test essay", { error: err instanceof Error ? err.message : String(err) });
+    log.error("Failed to generate test essay", {
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 
   // Group 1: Document Setup
@@ -1522,8 +1535,14 @@ export async function runAllTests(): Promise<TestResult[]> {
   log.info(`--- Group 3: ${currentGroup} ---`);
   await runTest("Engine: Format reported case (italic, brackets, series)", testFormatReportedCase);
   await runTest("Engine: Format unreported case with MNC", testFormatUnreportedCase);
-  await runTest("Engine: Format statute (italic title, non-italic jurisdiction)", testFormatStatute);
-  await runTest("Engine: Format journal article (quotes, italic journal)", testFormatJournalArticle);
+  await runTest(
+    "Engine: Format statute (italic title, non-italic jurisdiction)",
+    testFormatStatute
+  );
+  await runTest(
+    "Engine: Format journal article (quotes, italic journal)",
+    testFormatJournalArticle
+  );
   await runTest("Engine: Format book (italic title, parens details)", testFormatBook);
   await runTest("Engine: Format treaty (italic title)", testFormatTreaty);
   await runTest("Engine: Pinpoints (page, paragraph, section, combined)", testFormatPinpoints);
@@ -1543,7 +1562,10 @@ export async function runAllTests(): Promise<TestResult[]> {
   await runTest("Subseq: Short ref with (n 1) as footnote 5", testSubseqShortRef);
   await runTest("Subseq: Two citations in one footnote (semicolon)", testSubseqSemicolonSeparation);
   await runTest("Subseq: Ibid chain (3 consecutive)", testSubseqIbidChain);
-  await runTest("Subseq: Short ref always references first footnote", testSubseqAlwaysRefsFirstFootnote);
+  await runTest(
+    "Subseq: Short ref always references first footnote",
+    testSubseqAlwaysRefsFirstFootnote
+  );
 
   // Group 5: Refresh & Tracking
   currentGroup = "Refresh & Tracking";
@@ -1558,7 +1580,10 @@ export async function runAllTests(): Promise<TestResult[]> {
   log.info(`--- Group 6: ${currentGroup} ---`);
   await runTest("Biblio: Generate bibliography", testGenerateBibliography);
   await runTest("Biblio: Verify sections (A, B, C)", testBibliographySections);
-  await runTest("Biblio: Author inversion, no trailing full stops", testBibliographyAuthorInversion);
+  await runTest(
+    "Biblio: Author inversion, no trailing full stops",
+    testBibliographyAuthorInversion
+  );
 
   // Group 7: Validation
   currentGroup = "Validation";

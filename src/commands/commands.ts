@@ -34,26 +34,45 @@ async function applyTemplate(event: Office.AddinCommands.Event) {
       body.font.size = 12;
       await context.sync();
     });
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
   event.completed();
 }
 Office.actions.associate("applyTemplate", applyTemplate);
 
 // ── Block Quote ──
 async function applyBlockQuote(event: Office.AddinCommands.Event) {
+  // Prefer the named "AGLC4 Block Quote" paragraph style so the quote is semantic
+  // (ATAG Part B) and restylable; fall back to direct formatting where the style is
+  // not present yet (e.g. the AGLC4 template has not been applied to this document).
   try {
     await Word.run(async (context) => {
       const selection = context.document.getSelection();
       selection.paragraphs.load("items");
       await context.sync();
-      for (const para of (selection.paragraphs.items ?? [])) {
-        para.font.size = 10;
-        para.leftIndent = 36;
-        para.lineSpacing = 12;
+      for (const para of selection.paragraphs.items ?? []) {
+        para.style = "AGLC4 Block Quote";
       }
       await context.sync();
     });
-  } catch { /* silent */ }
+  } catch {
+    try {
+      await Word.run(async (context) => {
+        const selection = context.document.getSelection();
+        selection.paragraphs.load("items");
+        await context.sync();
+        for (const para of selection.paragraphs.items ?? []) {
+          para.font.size = 10;
+          para.leftIndent = 36;
+          para.lineSpacing = 12;
+        }
+        await context.sync();
+      });
+    } catch {
+      /* silent */
+    }
+  }
   event.completed();
 }
 Office.actions.associate("applyBlockQuote", applyBlockQuote);
@@ -66,7 +85,7 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       selection.paragraphs.load("items");
       await context.sync();
 
-      for (const para of (selection.paragraphs.items ?? [])) {
+      for (const para of selection.paragraphs.items ?? []) {
         // Apply built-in Heading style
         para.style = "Heading " + level;
         // Override with AGLC4 formatting
@@ -89,17 +108,29 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       }
       await context.sync();
     });
-  } catch { /* silent */ }
+  } catch {
+    /* silent */
+  }
   event.completed();
 }
 
-async function applyHeadingI(event: Office.AddinCommands.Event) { await applyHeading(event, 1); }
+async function applyHeadingI(event: Office.AddinCommands.Event) {
+  await applyHeading(event, 1);
+}
 Office.actions.associate("applyHeadingI", applyHeadingI);
-async function applyHeadingII(event: Office.AddinCommands.Event) { await applyHeading(event, 2); }
+async function applyHeadingII(event: Office.AddinCommands.Event) {
+  await applyHeading(event, 2);
+}
 Office.actions.associate("applyHeadingII", applyHeadingII);
-async function applyHeadingIII(event: Office.AddinCommands.Event) { await applyHeading(event, 3); }
+async function applyHeadingIII(event: Office.AddinCommands.Event) {
+  await applyHeading(event, 3);
+}
 Office.actions.associate("applyHeadingIII", applyHeadingIII);
-async function applyHeadingIV(event: Office.AddinCommands.Event) { await applyHeading(event, 4); }
+async function applyHeadingIV(event: Office.AddinCommands.Event) {
+  await applyHeading(event, 4);
+}
 Office.actions.associate("applyHeadingIV", applyHeadingIV);
-async function applyHeadingV(event: Office.AddinCommands.Event) { await applyHeading(event, 5); }
+async function applyHeadingV(event: Office.AddinCommands.Event) {
+  await applyHeading(event, 5);
+}
 Office.actions.associate("applyHeadingV", applyHeadingV);

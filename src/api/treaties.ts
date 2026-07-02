@@ -43,9 +43,7 @@ export class TreatyDatabaseClient implements SourceLookup {
 
     const allResults = await Promise.all(searches);
 
-    return allResults
-      .flat()
-      .sort((a, b) => b.confidence - a.confidence);
+    return allResults.flat().sort((a, b) => b.confidence - a.confidence);
   }
 
   async fetch(id: string): Promise<Record<string, unknown>> {
@@ -199,10 +197,7 @@ export class TreatyDatabaseClient implements SourceLookup {
       }));
   }
 
-  private parseTreatyData(
-    data: unknown,
-    source: "australian" | "un"
-  ): Record<string, unknown> {
+  private parseTreatyData(data: unknown, source: "australian" | "un"): Record<string, unknown> {
     if (!data || typeof data !== "object") {
       return {};
     }

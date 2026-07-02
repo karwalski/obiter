@@ -75,9 +75,7 @@ function mapWorkToMetadata(work: OpenAlexWork): SourceMetadata {
       ?.map((a) => a.author.display_name)
       .filter((name): name is string => !!name),
     journal: work.primary_location?.source?.display_name,
-    volume: work.biblio?.volume
-      ? parseInt(work.biblio.volume, 10) || undefined
-      : undefined,
+    volume: work.biblio?.volume ? parseInt(work.biblio.volume, 10) || undefined : undefined,
     issue: work.biblio?.issue,
     startingPage,
     year: work.publication_year,
@@ -104,8 +102,7 @@ export class OpenAlexAdapter implements SourceAdapter {
 
   async search(query: string, _filters?: SearchFilters): Promise<LookupResult[]> {
     const encodedQuery = encodeURIComponent(query);
-    const url =
-      `${BASE_URL}/works?search=${encodedQuery}&filter=type:article&per_page=10`;
+    const url = `${BASE_URL}/works?search=${encodedQuery}&filter=type:article&per_page=10`;
 
     const response = await fetch(url, {
       headers: { Accept: "application/json" },
@@ -120,9 +117,7 @@ export class OpenAlexAdapter implements SourceAdapter {
       const meta = mapWorkToMetadata(work);
       return {
         title: meta.title ?? "Untitled",
-        snippet: [meta.authors?.join(", "), meta.journal, meta.year]
-          .filter(Boolean)
-          .join(" — "),
+        snippet: [meta.authors?.join(", "), meta.journal, meta.year].filter(Boolean).join(" — "),
         sourceId: work.doi ?? work.id ?? `openalex-${index}`,
         confidence: Math.max(0, 1 - index * 0.05),
         sourceUrl: work.doi ?? undefined,

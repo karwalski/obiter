@@ -55,18 +55,22 @@ export function serializeCitation(citation: Citation): string {
     `aglcVersion="${escapeXml(citation.aglcVersion)}"`,
   ];
   if (citation.shortTitle) attrs.push(`shortTitle="${escapeXml(citation.shortTitle)}"`);
-  if (citation.firstFootnoteNumber != null) attrs.push(`firstFootnoteNumber="${citation.firstFootnoteNumber}"`);
+  if (citation.firstFootnoteNumber != null)
+    attrs.push(`firstFootnoteNumber="${citation.firstFootnoteNumber}"`);
   if (citation.createdAt) attrs.push(`createdAt="${escapeXml(citation.createdAt)}"`);
   if (citation.modifiedAt) attrs.push(`modifiedAt="${escapeXml(citation.modifiedAt)}"`);
 
   // SIGNAL-001: Signal and commentary attributes
   if (citation.signal) attrs.push(`signal="${escapeXml(citation.signal)}"`);
-  if (citation.commentaryBefore) attrs.push(`commentaryBefore="${escapeXml(citation.commentaryBefore)}"`);
-  if (citation.commentaryAfter) attrs.push(`commentaryAfter="${escapeXml(citation.commentaryAfter)}"`);
+  if (citation.commentaryBefore)
+    attrs.push(`commentaryBefore="${escapeXml(citation.commentaryBefore)}"`);
+  if (citation.commentaryAfter)
+    attrs.push(`commentaryAfter="${escapeXml(citation.commentaryAfter)}"`);
 
   // LINK-001: Linking phrase attributes (Rule 1.3)
   if (citation.linkingPhrase) attrs.push(`linkingPhrase="${escapeXml(citation.linkingPhrase)}"`);
-  if (citation.linkedCitationId) attrs.push(`linkedCitationId="${escapeXml(citation.linkedCitationId)}"`);
+  if (citation.linkedCitationId)
+    attrs.push(`linkedCitationId="${escapeXml(citation.linkedCitationId)}"`);
 
   // LOA fields
   if (citation.loaPart) attrs.push(`loaPart="${escapeXml(citation.loaPart)}"`);
@@ -77,7 +81,9 @@ export function serializeCitation(citation: Citation): string {
   // Data fields as <obiter:field name="...">value</obiter:field>
   for (const [key, value] of Object.entries(citation.data)) {
     if (value == null || value === "") continue;
-    lines.push(`    <obiter:field name="${escapeXml(key)}">${escapeXml(serializeValue(value))}</obiter:field>`);
+    lines.push(
+      `    <obiter:field name="${escapeXml(key)}">${escapeXml(serializeValue(value))}</obiter:field>`
+    );
   }
 
   // Tags
@@ -105,7 +111,7 @@ export function serializeStore(
   courtJurisdiction?: string,
   headingListId?: number,
   generatorVersion?: string,
-  ccModel?: "flat" | "parent-child",
+  ccModel?: "flat" | "parent-child"
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
@@ -113,13 +119,13 @@ export function serializeStore(
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}${ccModelAttr}>`,
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}${ccModelAttr}>`
   );
 
   // INFRA-008 Layer 2: generator element
   if (generatorVersion) {
     lines.push(
-      `  <obiter:generator name="Obiter" version="${escapeXml(generatorVersion)}" standard="${escapeXml(standardId)}" mode="${escapeXml(writingMode)}" />`,
+      `  <obiter:generator name="Obiter" version="${escapeXml(generatorVersion)}" standard="${escapeXml(standardId)}" mode="${escapeXml(writingMode)}" />`
     );
   }
 
@@ -184,9 +190,10 @@ export function deserializeCitation(xml: string | Element): Citation {
         // Strip nested <obiter:data> wrappers
         decoded = decoded.replace(/<\/?obiter:data>/g, "");
         if (decoded.includes("<obiter:")) {
-          const innerDoc = parser.parseFromString(
+          const innerParser = new DOMParser();
+          const innerDoc = innerParser.parseFromString(
             `<root xmlns:obiter="${OBITER_NAMESPACE}">${decoded}</root>`,
-            "text/xml",
+            "text/xml"
           );
           dataChildren = Array.from(innerDoc.documentElement.children);
         }
@@ -397,7 +404,10 @@ function deserializeValue(str: string): unknown {
   const trimmed = str.trim();
   if (trimmed === "") return "";
   // Try JSON parse for objects/arrays
-  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
     try {
       return JSON.parse(trimmed);
     } catch {

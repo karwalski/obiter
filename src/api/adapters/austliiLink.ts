@@ -71,11 +71,7 @@ const MNC_PATTERN = /\[(\d{4})]\s+([A-Za-z]+)\s+(\d+)/;
  *
  * Returns `null` if the court code is not in the known mapping.
  */
-export function buildAustliiUrl(
-  court: string,
-  year: number,
-  number: number,
-): string | null {
+export function buildAustliiUrl(court: string, year: number, number: number): string | null {
   const pathSegment = COURT_PATH_MAP[court];
   if (!pathSegment) {
     return null;

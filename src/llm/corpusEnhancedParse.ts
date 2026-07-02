@@ -22,10 +22,7 @@ import {
   tokeniseMNC,
   type ParsedCitation as DeterministicParsed,
 } from "../api/citationParser";
-import {
-  checkCorpusAvailable,
-  getCorpusIndex,
-} from "../api/corpus/corpusDownload";
+import { checkCorpusAvailable, getCorpusIndex } from "../api/corpus/corpusDownload";
 import { callLlmMultiTurn, type ChatMessage } from "./client";
 
 // ---------------------------------------------------------------------------
@@ -53,32 +50,84 @@ interface FieldDescriptor {
 
 /** All known source type string values. */
 const SOURCE_TYPES: SourceType[] = [
-  "case.reported", "case.unreported.mnc", "case.unreported.no_mnc",
-  "case.proceeding", "case.court_order", "case.quasi_judicial",
-  "case.arbitration", "case.transcript", "case.submission",
-  "legislation.statute", "legislation.bill", "legislation.delegated",
-  "legislation.constitution", "legislation.explanatory", "legislation.quasi",
-  "journal.article", "journal.online", "journal.forthcoming",
-  "book", "book.chapter", "book.translated", "book.audiobook",
-  "report", "report.parliamentary", "report.royal_commission",
-  "report.law_reform", "report.abs",
-  "research_paper", "research_paper.parliamentary",
-  "conference_paper", "thesis", "speech", "press_release",
-  "hansard", "submission.government", "evidence.parliamentary",
-  "constitutional_convention", "dictionary", "legal_encyclopedia",
-  "looseleaf", "ip_material", "constitutive_document",
-  "newspaper", "correspondence", "interview", "film_tv_media",
-  "internet_material", "social_media", "genai_output",
-  "treaty", "un.document", "un.communication", "un.yearbook",
-  "icj.decision", "icj.pleading",
-  "arbitral.state_state", "arbitral.individual_state",
-  "icc_tribunal.case", "wto.document", "wto.decision", "gatt.document",
-  "eu.official_journal", "eu.court", "echr.decision",
-  "supranational.decision", "supranational.document",
-  "foreign.canada", "foreign.china", "foreign.france", "foreign.germany",
-  "foreign.hong_kong", "foreign.malaysia", "foreign.new_zealand",
-  "foreign.singapore", "foreign.south_africa", "foreign.uk",
-  "foreign.usa", "foreign.other",
+  "case.reported",
+  "case.unreported.mnc",
+  "case.unreported.no_mnc",
+  "case.proceeding",
+  "case.court_order",
+  "case.quasi_judicial",
+  "case.arbitration",
+  "case.transcript",
+  "case.submission",
+  "legislation.statute",
+  "legislation.bill",
+  "legislation.delegated",
+  "legislation.constitution",
+  "legislation.explanatory",
+  "legislation.quasi",
+  "journal.article",
+  "journal.online",
+  "journal.forthcoming",
+  "book",
+  "book.chapter",
+  "book.translated",
+  "book.audiobook",
+  "report",
+  "report.parliamentary",
+  "report.royal_commission",
+  "report.law_reform",
+  "report.abs",
+  "research_paper",
+  "research_paper.parliamentary",
+  "conference_paper",
+  "thesis",
+  "speech",
+  "press_release",
+  "hansard",
+  "submission.government",
+  "evidence.parliamentary",
+  "constitutional_convention",
+  "dictionary",
+  "legal_encyclopedia",
+  "looseleaf",
+  "ip_material",
+  "constitutive_document",
+  "newspaper",
+  "correspondence",
+  "interview",
+  "film_tv_media",
+  "internet_material",
+  "social_media",
+  "genai_output",
+  "treaty",
+  "un.document",
+  "un.communication",
+  "un.yearbook",
+  "icj.decision",
+  "icj.pleading",
+  "arbitral.state_state",
+  "arbitral.individual_state",
+  "icc_tribunal.case",
+  "wto.document",
+  "wto.decision",
+  "gatt.document",
+  "eu.official_journal",
+  "eu.court",
+  "echr.decision",
+  "supranational.decision",
+  "supranational.document",
+  "foreign.canada",
+  "foreign.china",
+  "foreign.france",
+  "foreign.germany",
+  "foreign.hong_kong",
+  "foreign.malaysia",
+  "foreign.new_zealand",
+  "foreign.singapore",
+  "foreign.south_africa",
+  "foreign.uk",
+  "foreign.usa",
+  "foreign.other",
   "book.ebook",
   "periodical",
   "treaty.mou",
@@ -91,9 +140,7 @@ const SOURCE_TYPES: SourceType[] = [
  * These match exactly the field names used by updateField() in each
  * renderXxxForm function in InsertCitation.tsx.
  */
-export function getFieldSchemaForSourceType(
-  sourceType: SourceType,
-): FieldDescriptor[] {
+export function getFieldSchemaForSourceType(sourceType: SourceType): FieldDescriptor[] {
   const schemas: Record<string, FieldDescriptor[]> = {
     "case.reported": [
       { name: "party1", description: "First party name" },
@@ -209,7 +256,10 @@ export function getFieldSchemaForSourceType(
       { name: "pinpoint", description: "Pinpoint reference" },
     ],
     "legislation.quasi": [
-      { name: "quasiVariant", description: 'Variant: e.g. "rules", "practice direction", "gazette notice"' },
+      {
+        name: "quasiVariant",
+        description: 'Variant: e.g. "rules", "practice direction", "gazette notice"',
+      },
       { name: "issuingBody", description: "Issuing body" },
       { name: "documentType", description: "Document type" },
       { name: "number", description: "Document number" },
@@ -246,7 +296,7 @@ export function getFieldSchemaForSourceType(
       { name: "forthcomingNote", description: "Forthcoming note" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "book": [
+    book: [
       { name: "authors", description: "Array of { givenNames, surname }" },
       { name: "title", description: "Book title" },
       { name: "publisher", description: "Publisher name" },
@@ -282,7 +332,7 @@ export function getFieldSchemaForSourceType(
       { name: "year", description: "Year" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "report": [
+    report: [
       { name: "author", description: "Author or institutional author name" },
       { name: "title", description: "Report title" },
       { name: "reportNumber", description: "Report number" },
@@ -316,7 +366,7 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "research_paper": [
+    research_paper: [
       { name: "authors", description: "Array of { givenNames, surname }" },
       { name: "title", description: "Paper title" },
       { name: "seriesNumber", description: "Series/working paper number" },
@@ -331,7 +381,7 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "conference_paper": [
+    conference_paper: [
       { name: "authors", description: "Array of { givenNames, surname }" },
       { name: "title", description: "Paper title" },
       { name: "conferenceName", description: "Conference name" },
@@ -339,7 +389,7 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Conference date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "thesis": [
+    thesis: [
       { name: "author", description: "Author name" },
       { name: "title", description: "Thesis title" },
       { name: "thesisType", description: "Type (PhD, Masters, etc.)" },
@@ -347,7 +397,7 @@ export function getFieldSchemaForSourceType(
       { name: "year", description: "Year" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "speech": [
+    speech: [
       { name: "speaker", description: "Speaker name" },
       { name: "title", description: "Speech title" },
       { name: "event", description: "Event or occasion" },
@@ -355,16 +405,19 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "press_release": [
+    press_release: [
       { name: "issuingBody", description: "Issuing body or person" },
       { name: "title", description: "Title of the press release" },
       { name: "number", description: "Press release number" },
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "hansard": [
+    hansard: [
       { name: "jurisdiction", description: "Parliament (e.g. Commonwealth, New South Wales)" },
-      { name: "chamber", description: "Chamber (e.g. Senate, House of Representatives, Legislative Assembly)" },
+      {
+        name: "chamber",
+        description: "Chamber (e.g. Senate, House of Representatives, Legislative Assembly)",
+      },
       { name: "date", description: "Date of the debate" },
       { name: "pinpoint", description: "Page number" },
       { name: "speaker", description: "Name of the speaker" },
@@ -384,34 +437,34 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "constitutional_convention": [
+    constitutional_convention: [
       { name: "conventionName", description: "Convention name" },
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
       { name: "speaker", description: "Speaker name" },
     ],
-    "dictionary": [
+    dictionary: [
       { name: "title", description: "Dictionary title" },
       { name: "edition", description: "Edition" },
       { name: "year", description: "Year" },
       { name: "entryTerm", description: "Entry term being defined" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "legal_encyclopedia": [
+    legal_encyclopedia: [
       { name: "title", description: "Encyclopedia title" },
       { name: "volume", description: "Volume" },
       { name: "titleNumber", description: "Title number within volume" },
       { name: "topic", description: "Topic name" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "looseleaf": [
+    looseleaf: [
       { name: "authors", description: "Array of { givenNames, surname }" },
       { name: "title", description: "Service title" },
       { name: "publisher", description: "Publisher" },
       { name: "serviceNumber", description: "Service number" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "ip_material": [
+    ip_material: [
       { name: "applicant", description: "Applicant name" },
       { name: "title", description: "Title of the IP material" },
       { name: "ipType", description: "Type (Patent, Trade Mark, Design)" },
@@ -419,13 +472,13 @@ export function getFieldSchemaForSourceType(
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "constitutive_document": [
+    constitutive_document: [
       { name: "entityName", description: "Entity name" },
       { name: "documentType", description: "Document type (Constitution, Charter, etc.)" },
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "newspaper": [
+    newspaper: [
       { name: "author", description: "Author name" },
       { name: "title", description: "Article title" },
       { name: "newspaperName", description: "Newspaper name" },
@@ -434,21 +487,21 @@ export function getFieldSchemaForSourceType(
       { name: "page", description: "Page number" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "correspondence": [
+    correspondence: [
       { name: "author", description: "Author / sender name" },
       { name: "recipient", description: "Recipient name" },
       { name: "date", description: "Date" },
       { name: "medium", description: "Medium (Letter, Email, etc.)" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "interview": [
+    interview: [
       { name: "interviewee", description: "Interviewee name" },
       { name: "interviewer", description: "Interviewer name" },
       { name: "program", description: "Program or publication" },
       { name: "date", description: "Date" },
       { name: "medium", description: "Medium (Radio, Television, etc.)" },
     ],
-    "film_tv_media": [
+    film_tv_media: [
       { name: "title", description: "Film / TV title" },
       { name: "director", description: "Director name" },
       { name: "productionCompany", description: "Production company" },
@@ -460,7 +513,7 @@ export function getFieldSchemaForSourceType(
       { name: "episodeNumber", description: "Episode number (TV series)" },
       { name: "pinpoint", description: "Pinpoint (timestamp, episode)" },
     ],
-    "internet_material": [
+    internet_material: [
       { name: "author", description: "Author name" },
       { name: "title", description: "Page or article title" },
       { name: "websiteName", description: "Website name" },
@@ -468,14 +521,14 @@ export function getFieldSchemaForSourceType(
       { name: "url", description: "URL" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
-    "social_media": [
+    social_media: [
       { name: "author", description: "Author / handle" },
       { name: "platform", description: "Platform (Twitter/X, Facebook, etc.)" },
       { name: "content", description: "Post content / excerpt" },
       { name: "date", description: "Date" },
       { name: "url", description: "URL" },
     ],
-    "genai_output": [
+    genai_output: [
       { name: "platform", description: "AI platform name" },
       { name: "platformCustom", description: "Custom platform name (if other)" },
       { name: "model", description: "Model name" },
@@ -483,7 +536,7 @@ export function getFieldSchemaForSourceType(
       { name: "outputDate", description: "Date of the output" },
       { name: "url", description: "URL (if applicable)" },
     ],
-    "treaty": [
+    treaty: [
       { name: "title", description: "Treaty title" },
       { name: "parties", description: "Parties to the treaty" },
       { name: "openedDate", description: "Date opened for signature" },
@@ -632,7 +685,7 @@ export function getFieldSchemaForSourceType(
       { name: "url", description: "URL if applicable" },
       { name: "pinpoint", description: "Pinpoint page" },
     ],
-    "periodical": [
+    periodical: [
       { name: "author", description: "Author name" },
       { name: "title", description: "Article title" },
       { name: "periodicalName", description: "Periodical or magazine name" },
@@ -655,7 +708,11 @@ export function getFieldSchemaForSourceType(
   const foreignSchema: FieldDescriptor[] = [
     { name: "foreignSubType", description: '"case", "legislation", or "secondary"' },
     { name: "title", description: "Case name, legislation title, or source title" },
-    { name: "citationDetails", description: "FULL citation identifier as used in that jurisdiction (e.g. 2018 FCA 153, [2020] UKSC 5) — do NOT split into parts" },
+    {
+      name: "citationDetails",
+      description:
+        "FULL citation identifier as used in that jurisdiction (e.g. 2018 FCA 153, [2020] UKSC 5) — do NOT split into parts",
+    },
     { name: "court", description: "Court or body" },
     { name: "year", description: "Year" },
     { name: "pinpoint", description: "Pinpoint reference" },
@@ -673,17 +730,17 @@ export function getFieldSchemaForSourceType(
   }
 
   if (sourceType === "explanatory_note") {
-    return [
-      { name: "noteText", description: "Explanatory note text" },
-    ];
+    return [{ name: "noteText", description: "Explanatory note text" }];
   }
 
-  return schemas[sourceType] ?? [
-    { name: "author", description: "Author name" },
-    { name: "title", description: "Title" },
-    { name: "year", description: "Year" },
-    { name: "pinpoint", description: "Pinpoint reference" },
-  ];
+  return (
+    schemas[sourceType] ?? [
+      { name: "author", description: "Author name" },
+      { name: "title", description: "Title" },
+      { name: "year", description: "Year" },
+      { name: "pinpoint", description: "Pinpoint reference" },
+    ]
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -692,7 +749,7 @@ export function getFieldSchemaForSourceType(
 
 function mapDeterministicToSourceData(
   parsed: DeterministicParsed,
-  rawText: string,
+  rawText: string
 ): Partial<SourceData> {
   const data: Partial<SourceData> = {};
 
@@ -773,7 +830,7 @@ function extractParty2(parties: string): string {
 
 function mapCorpusEntryToSourceData(
   entry: CorpusEntry,
-  sourceType: SourceType,
+  sourceType: SourceType
 ): Partial<SourceData> {
   const data: Partial<SourceData> = {};
 
@@ -802,10 +859,7 @@ function mapCorpusEntryToSourceData(
       }
       data.yearType = "square";
     }
-  } else if (
-    sourceType === "legislation.statute" ||
-    sourceType === "legislation.delegated"
-  ) {
+  } else if (sourceType === "legislation.statute" || sourceType === "legislation.delegated") {
     if (entry.title) data.title = entry.title;
     data.year = entry.year;
     data.jurisdiction = entry.jurisdiction;
@@ -895,14 +949,12 @@ function buildExtractMessages(
   citationText: string,
   classifyResponse: string,
   candidates: ClassifyCandidate[],
-  nearbyMatches: CorpusEntry[],
+  nearbyMatches: CorpusEntry[]
 ): ChatMessage[] {
   // Build a schema block for each candidate
   const schemaBlocks = candidates.map((c) => {
     const schema = getFieldSchemaForSourceType(c.sourceType);
-    const fields = schema
-      .map((f) => `    - "${f.name}": ${f.description}`)
-      .join("\n");
+    const fields = schema.map((f) => `    - "${f.name}": ${f.description}`).join("\n");
     return `  "${c.sourceType}" (confidence ${c.confidence}):\n${fields}`;
   });
 
@@ -914,7 +966,7 @@ function buildExtractMessages(
               `  ${i + 1}. "${e.citation}"` +
               (e.parties ? ` — parties: ${e.parties}` : "") +
               (e.title ? ` — title: ${e.title}` : "") +
-              ` — year: ${e.year}, court/register: ${e.courtOrRegister}, jurisdiction: ${e.jurisdiction}`,
+              ` — year: ${e.year}, court/register: ${e.courtOrRegister}, jurisdiction: ${e.jurisdiction}`
           )
           .join("\n")
       : "  (no corpus examples available)";
@@ -980,7 +1032,7 @@ async function multiTurnLlmParse(
   citationText: string,
   hintSourceType: SourceType,
   llmConfig: LLMConfig,
-  nearbyMatches: CorpusEntry[],
+  nearbyMatches: CorpusEntry[]
 ): Promise<CorpusEnhancedResult> {
   // ── Turn 1: Classify — get ranked candidates ────────────────────────────
   const classifyMessages = buildClassifyMessages(citationText);
@@ -997,7 +1049,7 @@ async function multiTurnLlmParse(
     if (Array.isArray(rawClassification)) {
       // Raw array at top level
       candidateArray = rawClassification.filter(
-        (e): e is Record<string, unknown> => e !== null && typeof e === "object",
+        (e): e is Record<string, unknown> => e !== null && typeof e === "object"
       ) as typeof candidateArray;
     } else if (rawClassification !== null && typeof rawClassification === "object") {
       const obj = rawClassification as Record<string, unknown>;
@@ -1009,11 +1061,7 @@ async function multiTurnLlmParse(
     }
 
     candidates = candidateArray
-      .filter(
-        (c) =>
-          c.sourceType &&
-          SOURCE_TYPES.includes(c.sourceType as SourceType),
-      )
+      .filter((c) => c.sourceType && SOURCE_TYPES.includes(c.sourceType as SourceType))
       .map((c) => ({
         sourceType: c.sourceType as SourceType,
         confidence: Math.max(0, Math.min(1, Number(c.confidence) || 0)),
@@ -1036,7 +1084,7 @@ async function multiTurnLlmParse(
     citationText,
     classifyResponse,
     candidates,
-    nearbyMatches,
+    nearbyMatches
   );
   const extractResponse = await callLlmMultiTurn(llmConfig, extractMessages);
 
@@ -1071,8 +1119,7 @@ async function multiTurnLlmParse(
 
   // The LLM picks the final type in Turn 2 after seeing the schemas
   const finalType =
-    extracted.sourceType &&
-    SOURCE_TYPES.includes(extracted.sourceType as SourceType)
+    extracted.sourceType && SOURCE_TYPES.includes(extracted.sourceType as SourceType)
       ? (extracted.sourceType as SourceType)
       : candidates[0].sourceType;
 
@@ -1080,12 +1127,8 @@ async function multiTurnLlmParse(
     data: (extracted.data ?? {}) as Partial<SourceData>,
     source: "llm",
     warnings: [],
-    detectedSourceType:
-      finalType !== hintSourceType ? finalType : undefined,
-    shortTitle:
-      typeof extracted.shortTitle === "string"
-        ? extracted.shortTitle
-        : undefined,
+    detectedSourceType: finalType !== hintSourceType ? finalType : undefined,
+    shortTitle: typeof extracted.shortTitle === "string" ? extracted.shortTitle : undefined,
   };
 }
 
@@ -1106,7 +1149,7 @@ async function multiTurnLlmParse(
 export async function parseWithCorpusFirst(
   citationText: string,
   sourceType: SourceType,
-  llmConfig: LLMConfig | null,
+  llmConfig: LLMConfig | null
 ): Promise<CorpusEnhancedResult> {
   const text = citationText.trim();
   if (!text) {
@@ -1148,8 +1191,7 @@ export async function parseWithCorpusFirst(
         .trim();
       const normBest = best.normalisedCitation;
 
-      const isCloseMatch =
-        normBest.includes(normQuery) || normQuery.includes(normBest);
+      const isCloseMatch = normBest.includes(normQuery) || normQuery.includes(normBest);
 
       if (isCloseMatch) {
         const data = mapCorpusEntryToSourceData(best, sourceType);
@@ -1161,15 +1203,9 @@ export async function parseWithCorpusFirst(
       // ── Step 4: Multi-turn LLM with corpus context ──────────────────────
       if (llmConfig && llmConfig.enabled) {
         try {
-          return await multiTurnLlmParse(
-            text,
-            sourceType,
-            llmConfig,
-            topResults,
-          );
+          return await multiTurnLlmParse(text, sourceType, llmConfig, topResults);
         } catch (err: unknown) {
-          const msg =
-            err instanceof Error ? err.message : "LLM parsing failed";
+          const msg = err instanceof Error ? err.message : "LLM parsing failed";
           return {
             data: {},
             source: "llm",

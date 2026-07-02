@@ -102,10 +102,7 @@ function resultToEntry(result: VerificationResult): AuditLogEntry {
  * @param report — The verification report to log.
  * @param documentHash — SHA-256 hex digest of the document body text.
  */
-export function createAuditLog(
-  report: VerificationReport,
-  documentHash: string,
-): AuditLog {
+export function createAuditLog(report: VerificationReport, documentHash: string): AuditLog {
   return {
     version: 1,
     documentTitle: report.documentTitle,

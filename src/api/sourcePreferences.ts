@@ -24,13 +24,7 @@ import { getDevicePref, setDevicePref } from "../store/devicePreferences";
 export type AdapterKind = "corpus" | "live-api" | "scraper" | "link-only";
 
 /** Content types recognised by the preference system. */
-export type ContentType =
-  | "case"
-  | "legislation"
-  | "hansard"
-  | "journal"
-  | "treaty"
-  | "lrc-report";
+export type ContentType = "case" | "legislation" | "hansard" | "journal" | "treaty" | "lrc-report";
 
 /** Metadata about an adapter, used for default ordering. */
 export interface AdapterMeta {
@@ -59,12 +53,7 @@ const PREFS_KEY = "sourcePreferences";
  * Kind priority — lower index = higher priority.
  * Used to derive default ordering when no user preference exists.
  */
-const KIND_PRIORITY: AdapterKind[] = [
-  "corpus",
-  "live-api",
-  "scraper",
-  "link-only",
-];
+const KIND_PRIORITY: AdapterKind[] = ["corpus", "live-api", "scraper", "link-only"];
 
 // ---------------------------------------------------------------------------
 // Adapter registry (populated at startup)
@@ -125,10 +114,7 @@ function entryKey(contentType: ContentType, jurisdiction?: string): string {
  *  3. Default: all registered adapters that support the content type,
  *     sorted by kind priority then by jurisdiction affinity.
  */
-export function getPreferredAdapters(
-  contentType: ContentType,
-  jurisdiction?: string,
-): string[] {
+export function getPreferredAdapters(contentType: ContentType, jurisdiction?: string): string[] {
   const entries = loadEntries();
 
   // 1. Exact match
@@ -136,15 +122,13 @@ export function getPreferredAdapters(
     const exact = entries.find(
       (e) =>
         e.contentType === contentType &&
-        e.jurisdiction?.toUpperCase() === jurisdiction.toUpperCase(),
+        e.jurisdiction?.toUpperCase() === jurisdiction.toUpperCase()
     );
     if (exact) return exact.adapterIds;
   }
 
   // 2. Content-type-only match
-  const global = entries.find(
-    (e) => e.contentType === contentType && !e.jurisdiction,
-  );
+  const global = entries.find((e) => e.contentType === contentType && !e.jurisdiction);
   if (global) return global.adapterIds;
 
   // 3. Default ordering from registry
@@ -156,28 +140,24 @@ export function getPreferredAdapters(
  * sorted by kind priority, with a secondary sort that prefers adapters
  * whose jurisdiction list includes the requested jurisdiction.
  */
-function defaultOrder(
-  contentType: ContentType,
-  jurisdiction?: string,
-): string[] {
+function defaultOrder(contentType: ContentType, jurisdiction?: string): string[] {
   const candidates = Array.from(adapterRegistry.values()).filter((m) =>
-    m.contentTypes.includes(contentType),
+    m.contentTypes.includes(contentType)
   );
 
   const jUp = jurisdiction?.toUpperCase();
 
   candidates.sort((a, b) => {
     // Primary: kind priority
-    const kindDiff =
-      KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind);
+    const kindDiff = KIND_PRIORITY.indexOf(a.kind) - KIND_PRIORITY.indexOf(b.kind);
     if (kindDiff !== 0) return kindDiff;
 
     // Secondary: jurisdiction affinity (matching jurisdiction sorts first)
     if (jUp) {
-      const aMatch = a.jurisdictions.length === 0 ||
-        a.jurisdictions.some((j) => j.toUpperCase() === jUp);
-      const bMatch = b.jurisdictions.length === 0 ||
-        b.jurisdictions.some((j) => j.toUpperCase() === jUp);
+      const aMatch =
+        a.jurisdictions.length === 0 || a.jurisdictions.some((j) => j.toUpperCase() === jUp);
+      const bMatch =
+        b.jurisdictions.length === 0 || b.jurisdictions.some((j) => j.toUpperCase() === jUp);
       if (aMatch && !bMatch) return -1;
       if (!aMatch && bMatch) return 1;
     }
@@ -196,14 +176,12 @@ function defaultOrder(
 export function setPreference(
   contentType: ContentType,
   jurisdiction: string | undefined,
-  adapterIds: string[],
+  adapterIds: string[]
 ): void {
   const entries = loadEntries();
   const key = entryKey(contentType, jurisdiction);
 
-  const idx = entries.findIndex(
-    (e) => entryKey(e.contentType, e.jurisdiction) === key,
-  );
+  const idx = entries.findIndex((e) => entryKey(e.contentType, e.jurisdiction) === key);
 
   const entry: PreferenceEntry = {
     contentType,
@@ -223,15 +201,10 @@ export function setPreference(
 /**
  * Remove a custom preference, reverting to default ordering.
  */
-export function clearPreference(
-  contentType: ContentType,
-  jurisdiction?: string,
-): void {
+export function clearPreference(contentType: ContentType, jurisdiction?: string): void {
   const entries = loadEntries();
   const key = entryKey(contentType, jurisdiction);
-  saveEntries(
-    entries.filter((e) => entryKey(e.contentType, e.jurisdiction) !== key),
-  );
+  saveEntries(entries.filter((e) => entryKey(e.contentType, e.jurisdiction) !== key));
 }
 
 // ---------------------------------------------------------------------------

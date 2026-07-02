@@ -11,11 +11,7 @@
  */
 
 import { Citation, CitationStoreData, StoreMetadata } from "../types/citation";
-import {
-  OBITER_NAMESPACE,
-  serializeStore,
-  deserializeStore,
-} from "./xmlSerializer";
+import { OBITER_NAMESPACE, serializeStore, deserializeStore } from "./xmlSerializer";
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
 
@@ -73,10 +69,18 @@ export class CitationStore {
         if (partItems.length > 1) {
           for (const part of partItems) {
             if (part.id !== bestPart.id) {
-              try { part.delete(); } catch { /* ignore */ }
+              try {
+                part.delete();
+              } catch {
+                /* ignore */
+              }
             }
           }
-          try { await context.sync(); } catch { /* ignore cleanup errors */ }
+          try {
+            await context.sync();
+          } catch {
+            /* ignore cleanup errors */
+          }
         }
       } else {
         // First use — create an empty store
@@ -294,7 +298,7 @@ export class CitationStore {
       this.storeData!.metadata.courtJurisdiction,
       this.storeData!.metadata.headingListId,
       APP_VERSION,
-      this.storeData!.metadata.ccModel,
+      this.storeData!.metadata.ccModel
     );
 
     await Word.run(async (context) => {

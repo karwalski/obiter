@@ -37,8 +37,7 @@ const STATUS_DESCRIPTIONS: Record<CoverageStatus, string> = {
     "Comprehensive coverage. The corpus contains most published decisions and current legislation.",
   partial:
     "Partial coverage. Some decisions and legislation may be missing. Consider verifying against primary sources.",
-  absent:
-    "No corpus coverage. Use online sources (AustLII, Jade) for this jurisdiction.",
+  absent: "No corpus coverage. Use online sources (AustLII, Jade) for this jurisdiction.",
 };
 
 /**

@@ -56,51 +56,93 @@ const ACCENT_MAP: Record<string, string> = {
   "`": "\u0300", // grave
   "'": "\u0301", // acute
   "^": "\u0302", // circumflex
-  "\"": "\u0308", // diaeresis
+  '"': "\u0308", // diaeresis
   "~": "\u0303", // tilde
   "=": "\u0304", // macron
   ".": "\u0307", // dot above
-  "u": "\u0306", // breve
-  "v": "\u030C", // caron
-  "H": "\u030B", // double acute
-  "c": "\u0327", // cedilla
-  "k": "\u0328", // ogonek
-  "d": "\u0323", // dot below
-  "b": "\u0331", // macron below
-  "r": "\u030A", // ring above
-  "t": "\u0361", // tie
+  u: "\u0306", // breve
+  v: "\u030C", // caron
+  H: "\u030B", // double acute
+  c: "\u0327", // cedilla
+  k: "\u0328", // ogonek
+  d: "\u0323", // dot below
+  b: "\u0331", // macron below
+  r: "\u030A", // ring above
+  t: "\u0361", // tie
 };
 
 // Common pre-composed accent results for normalisation
 const PRECOMPOSED: Record<string, Record<string, string>> = {
   "'": {
-    a: "\u00E1", A: "\u00C1", e: "\u00E9", E: "\u00C9",
-    i: "\u00ED", I: "\u00CD", o: "\u00F3", O: "\u00D3",
-    u: "\u00FA", U: "\u00DA", y: "\u00FD", Y: "\u00DD",
-    c: "\u0107", C: "\u0106", n: "\u0144", N: "\u0143",
-    s: "\u015B", S: "\u015A", z: "\u017A", Z: "\u0179",
+    a: "\u00E1",
+    A: "\u00C1",
+    e: "\u00E9",
+    E: "\u00C9",
+    i: "\u00ED",
+    I: "\u00CD",
+    o: "\u00F3",
+    O: "\u00D3",
+    u: "\u00FA",
+    U: "\u00DA",
+    y: "\u00FD",
+    Y: "\u00DD",
+    c: "\u0107",
+    C: "\u0106",
+    n: "\u0144",
+    N: "\u0143",
+    s: "\u015B",
+    S: "\u015A",
+    z: "\u017A",
+    Z: "\u0179",
   },
   "`": {
-    a: "\u00E0", A: "\u00C0", e: "\u00E8", E: "\u00C8",
-    i: "\u00EC", I: "\u00CC", o: "\u00F2", O: "\u00D2",
-    u: "\u00F9", U: "\u00D9",
+    a: "\u00E0",
+    A: "\u00C0",
+    e: "\u00E8",
+    E: "\u00C8",
+    i: "\u00EC",
+    I: "\u00CC",
+    o: "\u00F2",
+    O: "\u00D2",
+    u: "\u00F9",
+    U: "\u00D9",
   },
   "^": {
-    a: "\u00E2", A: "\u00C2", e: "\u00EA", E: "\u00CA",
-    i: "\u00EE", I: "\u00CE", o: "\u00F4", O: "\u00D4",
-    u: "\u00FB", U: "\u00DB",
+    a: "\u00E2",
+    A: "\u00C2",
+    e: "\u00EA",
+    E: "\u00CA",
+    i: "\u00EE",
+    I: "\u00CE",
+    o: "\u00F4",
+    O: "\u00D4",
+    u: "\u00FB",
+    U: "\u00DB",
   },
-  "\"": {
-    a: "\u00E4", A: "\u00C4", e: "\u00EB", E: "\u00CB",
-    i: "\u00EF", I: "\u00CF", o: "\u00F6", O: "\u00D6",
-    u: "\u00FC", U: "\u00DC", y: "\u00FF",
+  '"': {
+    a: "\u00E4",
+    A: "\u00C4",
+    e: "\u00EB",
+    E: "\u00CB",
+    i: "\u00EF",
+    I: "\u00CF",
+    o: "\u00F6",
+    O: "\u00D6",
+    u: "\u00FC",
+    U: "\u00DC",
+    y: "\u00FF",
   },
   "~": {
-    a: "\u00E3", A: "\u00C3", n: "\u00F1", N: "\u00D1",
-    o: "\u00F5", O: "\u00D5",
+    a: "\u00E3",
+    A: "\u00C3",
+    n: "\u00F1",
+    N: "\u00D1",
+    o: "\u00F5",
+    O: "\u00D5",
   },
-  "c": {
-    c: "\u00E7", C: "\u00C7",
+  c: {
+    c: "\u00E7",
+    C: "\u00C7",
   },
 };
 
@@ -125,20 +167,17 @@ function convertLatexToUnicode(input: string): string {
       const combining = ACCENT_MAP[accent];
       if (combining) return char + combining;
       return char;
-    },
+    }
   );
 
   // Without braces: \'e
-  result = result.replace(
-    /\\([`'^"~=.])\s?([a-zA-Z])/g,
-    (_match, accent: string, char: string) => {
-      const precomp = PRECOMPOSED[accent];
-      if (precomp && precomp[char]) return precomp[char];
-      const combining = ACCENT_MAP[accent];
-      if (combining) return char + combining;
-      return char;
-    },
-  );
+  result = result.replace(/\\([`'^"~=.])\s?([a-zA-Z])/g, (_match, accent: string, char: string) => {
+    const precomp = PRECOMPOSED[accent];
+    if (precomp && precomp[char]) return precomp[char];
+    const combining = ACCENT_MAP[accent];
+    if (combining) return char + combining;
+    return char;
+  });
 
   // Named commands: \ss, \o, \ae, etc.
   for (const [latex, unicode] of Object.entries(LATEX_ESCAPES)) {
@@ -163,10 +202,7 @@ function convertLatexToUnicode(input: string): string {
  *
  * Returns the extracted value and the index after the closing delimiter.
  */
-function extractFieldValue(
-  input: string,
-  startIndex: number,
-): { value: string; endIndex: number } {
+function extractFieldValue(input: string, startIndex: number): { value: string; endIndex: number } {
   let i = startIndex;
 
   // Skip whitespace
@@ -188,11 +224,11 @@ function extractFieldValue(
     return { value: input.substring(i + 1, j - 1), endIndex: j };
   }
 
-  if (delimiter === "\"") {
+  if (delimiter === '"') {
     // Quote-delimited: find closing quote (respecting escaped quotes)
     let j = i + 1;
     while (j < input.length) {
-      if (input[j] === "\"" && input[j - 1] !== "\\") break;
+      if (input[j] === '"' && input[j - 1] !== "\\") break;
       j++;
     }
     return { value: input.substring(i + 1, j), endIndex: j + 1 };
@@ -219,8 +255,7 @@ function parseEntryFields(body: string): Record<string, string> {
 
     // Read field name
     let nameEnd = i;
-    while (nameEnd < body.length && /[a-zA-Z0-9_-]/.test(body[nameEnd]))
-      nameEnd++;
+    while (nameEnd < body.length && /[a-zA-Z0-9_-]/.test(body[nameEnd])) nameEnd++;
     if (nameEnd === i) {
       i++;
       continue;
@@ -281,17 +316,12 @@ export function parseBibTeX(bibtexString: string): BibEntry[] {
 
     // Read entry type
     let typeEnd = atIndex + 1;
-    while (typeEnd < input.length && /[a-zA-Z]/.test(input[typeEnd]))
-      typeEnd++;
+    while (typeEnd < input.length && /[a-zA-Z]/.test(input[typeEnd])) typeEnd++;
 
     const entryType = input.substring(atIndex + 1, typeEnd).toLowerCase();
 
     // Skip @string, @preamble, @comment
-    if (
-      entryType === "string" ||
-      entryType === "preamble" ||
-      entryType === "comment"
-    ) {
+    if (entryType === "string" || entryType === "preamble" || entryType === "comment") {
       // Find the closing brace and skip
       const openBrace = input.indexOf("{", typeEnd);
       if (openBrace === -1) {
@@ -457,9 +487,7 @@ export function mapBibEntryToObiter(entry: BibEntry): Citation {
   if (f.url) {
     data.url = f.url;
   } else if (f.doi) {
-    data.url = f.doi.startsWith("http")
-      ? f.doi
-      : `https://doi.org/${f.doi}`;
+    data.url = f.doi.startsWith("http") ? f.doi : `https://doi.org/${f.doi}`;
   }
 
   // Thesis type
@@ -467,8 +495,7 @@ export function mapBibEntryToObiter(entry: BibEntry): Citation {
     sourceType === "thesis" &&
     (entry.entryType === "phdthesis" || entry.entryType === "mastersthesis")
   ) {
-    data.thesisType =
-      entry.entryType === "phdthesis" ? "PhD Thesis" : "Masters Thesis";
+    data.thesisType = entry.entryType === "phdthesis" ? "PhD Thesis" : "Masters Thesis";
     if (f.school || f.institution) {
       data.institution = f.school || f.institution;
     }
@@ -517,11 +544,7 @@ export function mapBibEntryToObiter(entry: BibEntry): Citation {
  */
 function isDuplicate(entry: BibEntry, existing: Citation[]): boolean {
   const entryTitle = (entry.fields.title || "").toLowerCase().trim();
-  const entryYear = (
-    entry.fields.year ||
-    (entry.fields.date || "").substring(0, 4) ||
-    ""
-  ).trim();
+  const entryYear = (entry.fields.year || (entry.fields.date || "").substring(0, 4) || "").trim();
 
   let entryFirstAuthor = "";
   if (entry.fields.author) {
@@ -538,9 +561,7 @@ function isDuplicate(entry: BibEntry, existing: Citation[]): boolean {
     )
       .toLowerCase()
       .trim();
-    const cYear = (
-      typeof c.data.year === "string" ? c.data.year : ""
-    ).trim();
+    const cYear = (typeof c.data.year === "string" ? c.data.year : "").trim();
 
     let cFirstAuthor = "";
     if (Array.isArray(c.data.authors) && c.data.authors.length > 0) {
@@ -567,7 +588,7 @@ function isDuplicate(entry: BibEntry, existing: Citation[]): boolean {
  */
 export async function importBibTeX(
   bibtexString: string,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<{ imported: number; skipped: number }> {
   const entries = parseBibTeX(bibtexString);
   const existingCitations = store.getAll();
@@ -594,10 +615,7 @@ export async function importBibTeX(
 // ─── UUID Helper ────────────────────────────────────────────────────────────
 
 function generateUUID(): string {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 

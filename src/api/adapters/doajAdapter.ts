@@ -79,7 +79,7 @@ function extractOpenUrl(links?: DoajLink[]): string | undefined {
     (l) =>
       l.type === "fulltext" ||
       l.content_type === "application/pdf" ||
-      l.content_type === "text/html",
+      l.content_type === "text/html"
   );
   return fulltext?.url;
 }
@@ -96,13 +96,9 @@ function mapResultToMetadata(result: DoajResult): SourceMetadata {
 
   return {
     title: bib.title,
-    authors: bib.author
-      ?.map((a) => a.name)
-      .filter((name): name is string => !!name),
+    authors: bib.author?.map((a) => a.name).filter((name): name is string => !!name),
     journal: bib.journal?.title,
-    volume: bib.journal?.volume
-      ? parseInt(bib.journal.volume, 10) || undefined
-      : undefined,
+    volume: bib.journal?.volume ? parseInt(bib.journal.volume, 10) || undefined : undefined,
     issue: bib.journal?.number,
     startingPage,
     year: bib.year ? parseInt(bib.year, 10) || undefined : undefined,
@@ -146,9 +142,7 @@ export class DoajAdapter implements SourceAdapter {
       const openUrl = extractOpenUrl(result.bibjson?.link);
       return {
         title: meta.title ?? "Untitled",
-        snippet: [meta.authors?.join(", "), meta.journal, meta.year]
-          .filter(Boolean)
-          .join(" — "),
+        snippet: [meta.authors?.join(", "), meta.journal, meta.year].filter(Boolean).join(" — "),
         sourceId: result.id ?? `doaj-${index}`,
         confidence: Math.max(0, 1 - index * 0.05),
         sourceUrl: openUrl ?? (meta.doi ? `https://doi.org/${meta.doi}` : undefined),

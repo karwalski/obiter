@@ -128,9 +128,7 @@ export class SaHansardAdapter implements SourceAdapter {
 
     return entries.map((entry, index) => ({
       title: entry.title ?? entry.text?.slice(0, 80) ?? "Hansard entry",
-      snippet: [entry.speaker, entry.chamber, entry.date]
-        .filter(Boolean)
-        .join(" — "),
+      snippet: [entry.speaker, entry.chamber, entry.date].filter(Boolean).join(" — "),
       sourceId: entry.id ?? `sa-hansard-${index}`,
       confidence: Math.max(0, 0.85 - index * 0.05),
       sourceUrl: entry.url,

@@ -33,7 +33,7 @@ export async function searchCasesViaProxy(query: string): Promise<LookupResult[]
       fetch(`${PROXY_BASE}/austlii?q=${encodeURIComponent(query)}`).then((r) => {
         if (!r.ok) throw new Error(`AustLII proxy returned ${r.status}`);
         return r.json();
-      }),
+      })
     );
     labels.push("austlii");
   }
@@ -42,7 +42,7 @@ export async function searchCasesViaProxy(query: string): Promise<LookupResult[]
       fetch(`${PROXY_BASE}/jade?q=${encodeURIComponent(query)}`).then((r) => {
         if (!r.ok) throw new Error(`Jade proxy returned ${r.status}`);
         return r.json();
-      }),
+      })
     );
     labels.push("jade");
   }
@@ -58,7 +58,10 @@ export async function searchCasesViaProxy(query: string): Promise<LookupResult[]
   const jadeIdx = labels.indexOf("jade");
   const austliiIdx = labels.indexOf("austlii");
 
-  for (const [label, idx] of [["jade", jadeIdx], ["austlii", austliiIdx]] as const) {
+  for (const [label, idx] of [
+    ["jade", jadeIdx],
+    ["austlii", austliiIdx],
+  ] as const) {
     if (idx < 0) continue;
     const result = settled[idx];
     if (result.status === "fulfilled") {
@@ -68,7 +71,9 @@ export async function searchCasesViaProxy(query: string): Promise<LookupResult[]
       }
       allResults.push(...(data.results ?? []));
     } else {
-      errors.push(`${label}: ${result.reason instanceof Error ? result.reason.message : "request failed"}`);
+      errors.push(
+        `${label}: ${result.reason instanceof Error ? result.reason.message : "request failed"}`
+      );
     }
   }
 

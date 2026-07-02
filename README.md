@@ -1,4 +1,4 @@
-# Obiter v1.13.18
+# Obiter v1.14.0
 
 **AGLC4, applied automatically.**
 
@@ -75,9 +75,37 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 - **Import from Word Source Manager and BibTeX**
 - **Typeahead search** via AustLII, Jade.io, and Federal Register of Legislation
 - **Dark mode** -- respects the Word theme
-- **WCAG 2.1 AA accessible**
+- **WCAG 2.2 AA accessible** -- keyboard-first, screen-reader friendly, Comfort mode, reduced-motion and Windows Contrast Themes support
 - **Works offline** after initial installation
 - **AGLC5 ready** -- version-parameterised rule engine designed for a clean upgrade path
+
+## Accessibility and keyboard
+
+Obiter is built to be usable without a mouse and under assistive technology. See
+[ACCESSIBILITY.md](ACCESSIBILITY.md) and the
+[accessibility statement](https://obiter.com.au/accessibility.html) for the full conformance picture.
+
+**Quick start (keyboard only):**
+
+1. Open the **Obiter** tab in the Word ribbon and launch the task pane.
+2. Press **Ctrl/Cmd + K** to open the command palette, type `insert`, and press **Enter** -- or **Tab** to the Insert view.
+3. **Tab** to the citation field, type to search, use the **arrow keys** to choose a result, and **Enter** to select it.
+4. **Tab** to **Insert** and press **Enter**. The footnote is inserted as a native Word footnote.
+5. Press **Ctrl/Cmd + K** again and run **Refresh all footnotes**, or **Generate bibliography**, the same way.
+
+**Keyboard shortcuts:**
+
+| Keys | Action |
+|------|--------|
+| `Ctrl/Cmd + K` | Open the command palette (run any action) |
+| `Ctrl/Cmd + /` | Open the keyboard shortcuts reference |
+| `Tab` / `Shift + Tab` | Move between controls |
+| Arrow keys | Move within a list or the citation search results |
+| `Enter` | Activate the focused control or selected result |
+| `Esc` | Close a menu, dialog, or the command palette |
+
+The palette trigger key is customisable, and **Comfort mode** (Settings, or via the palette) enlarges
+targets and text, widens spacing, and turns off motion.
 
 ## System Requirements
 

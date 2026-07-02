@@ -29,16 +29,11 @@ Respond with ONLY the short title text (no quotes, no JSON, no explanation).`;
  * Ask the LLM to suggest a short title for a citation, following AGLC4
  * Rule 1.4.4.
  */
-export async function suggestShortTitle(
-  citation: Citation,
-  config: LLMConfig,
-): Promise<string> {
+export async function suggestShortTitle(citation: Citation, config: LLMConfig): Promise<string> {
   const userPrompt = [
     `Source type: ${citation.sourceType}`,
     `Data: ${JSON.stringify(citation.data, null, 2)}`,
-    citation.shortTitle
-      ? `Current short title: ${citation.shortTitle}`
-      : "",
+    citation.shortTitle ? `Current short title: ${citation.shortTitle}` : "",
   ]
     .filter(Boolean)
     .join("\n");

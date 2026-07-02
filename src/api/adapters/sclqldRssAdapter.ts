@@ -20,11 +20,7 @@ import { parseRssItems } from "./fcaRssAdapter";
 const SCLQLD_BASE = "https://www.sclqld.org.au/caselaw/rss";
 
 /** Individual court feeds. */
-const SCLQLD_FEEDS = [
-  `${SCLQLD_BASE}/QSC`,
-  `${SCLQLD_BASE}/QCA`,
-  `${SCLQLD_BASE}/QCAT`,
-];
+const SCLQLD_FEEDS = [`${SCLQLD_BASE}/QSC`, `${SCLQLD_BASE}/QCA`, `${SCLQLD_BASE}/QCAT`];
 
 /** Thirty days in milliseconds. */
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -64,7 +60,7 @@ export class SclqldRssAdapter implements SourceAdapter {
         if (!res.ok) return [];
         const xml = await res.text();
         return parseRssItems(xml);
-      }),
+      })
     );
 
     const items: RssItem[] = [];
@@ -149,10 +145,7 @@ export class SclqldRssAdapter implements SourceAdapter {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private itemToMetadata(
-    item: RssItem,
-    mnc: ReturnType<typeof tokeniseMNC>,
-  ): SourceMetadata {
+  private itemToMetadata(item: RssItem, mnc: ReturnType<typeof tokeniseMNC>): SourceMetadata {
     return {
       title: item.title,
       parties: item.title.split("[")[0]?.trim() || item.title,

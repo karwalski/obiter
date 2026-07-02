@@ -23,7 +23,9 @@ const KEY_PREFIX = "obiter-device.sourceKey.";
 export function saveKey(adapterId: string, key: string): void {
   try {
     localStorage.setItem(KEY_PREFIX + adapterId, key);
-  } catch { /* storage full or unavailable — fail silently */ }
+  } catch {
+    /* storage full or unavailable — fail silently */
+  }
 }
 
 /**
@@ -44,7 +46,9 @@ export function getKey(adapterId: string): string {
 export function removeKey(adapterId: string): void {
   try {
     localStorage.removeItem(KEY_PREFIX + adapterId);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /**

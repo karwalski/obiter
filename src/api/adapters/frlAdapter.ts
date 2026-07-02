@@ -217,8 +217,7 @@ export class FrlAdapter implements SourceAdapter {
   private parseSearchResults(html: string): LookupResult[] {
     const results: LookupResult[] = [];
     // FRL search results are in <div class="result-title"> / <a> tags
-    const resultRegex =
-      /<a[^>]+href="(\/Details\/[^"]+)"[^>]*>([^<]+)<\/a>/g;
+    const resultRegex = /<a[^>]+href="(\/Details\/[^"]+)"[^>]*>([^<]+)<\/a>/g;
     let match: RegExpExecArray | null;
 
     while ((match = resultRegex.exec(html)) !== null) {

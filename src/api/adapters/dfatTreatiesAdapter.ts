@@ -33,9 +33,7 @@ const DFAT_BASE = "https://www.info.dfat.gov.au/Info/Treaties";
  * Pattern: "[YYYY] ATS NN" or "ATS YYYY No NN"
  */
 function extractAtsNumber(text: string): string | undefined {
-  const m =
-    text.match(/\[(\d{4})\]\s*ATS\s+(\d+)/) ||
-    text.match(/ATS\s+(\d{4})\s+No\.?\s*(\d+)/i);
+  const m = text.match(/\[(\d{4})\]\s*ATS\s+(\d+)/) || text.match(/ATS\s+(\d{4})\s+No\.?\s*(\d+)/i);
   if (m) return `[${m[1]}] ATS ${m[2]}`;
   return undefined;
 }
@@ -73,9 +71,7 @@ function extractTreatyTitle(html: string): string {
   // Fall back to page title
   const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
   if (titleMatch) {
-    return titleMatch[1]
-      .replace(/\s*[-|]\s*Australian Treaties.*$/i, "")
-      .trim();
+    return titleMatch[1].replace(/\s*[-|]\s*Australian Treaties.*$/i, "").trim();
   }
 
   return "";
@@ -181,8 +177,7 @@ export class DfatTreatiesAdapter implements SourceAdapter {
 
   private parseSearchResults(html: string): LookupResult[] {
     const results: LookupResult[] = [];
-    const linkRegex =
-      /<a[^>]+href="(Treaty\.aspx\?id=[^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    const linkRegex = /<a[^>]+href="(Treaty\.aspx\?id=[^"]+)"[^>]*>([^<]+)<\/a>/gi;
     let match: RegExpExecArray | null;
 
     while ((match = linkRegex.exec(html)) !== null) {

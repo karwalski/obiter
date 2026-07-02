@@ -73,8 +73,7 @@ const SELECT_FIELDS = [
 ].join(",");
 
 function extractYear(work: CrossrefWork): number | undefined {
-  const pub =
-    work["published-print"] ?? work["published-online"];
+  const pub = work["published-print"] ?? work["published-online"];
   const parts = pub?.["date-parts"];
   if (parts && parts.length > 0 && parts[0].length > 0) {
     return parts[0][0];
@@ -133,16 +132,13 @@ export class CrossrefAdapter implements SourceAdapter {
 
   private getRateLimitHint(): { requestsPerSecond: number; burst: number } {
     const hasEmail = getKey("crossref").length > 0;
-    return hasEmail
-      ? { requestsPerSecond: 50, burst: 50 }
-      : { requestsPerSecond: 1, burst: 1 };
+    return hasEmail ? { requestsPerSecond: 50, burst: 50 } : { requestsPerSecond: 1, burst: 1 };
   }
 
   async search(query: string, _filters?: SearchFilters): Promise<LookupResult[]> {
     const encodedQuery = encodeURIComponent(query);
     const mailto = buildMailtoParam();
-    const url =
-      `${BASE_URL}/works?query.bibliographic=${encodedQuery}&rows=10&select=${SELECT_FIELDS}${mailto}`;
+    const url = `${BASE_URL}/works?query.bibliographic=${encodedQuery}&rows=10&select=${SELECT_FIELDS}${mailto}`;
 
     const response = await fetch(url, {
       headers: { Accept: "application/json" },
@@ -157,9 +153,7 @@ export class CrossrefAdapter implements SourceAdapter {
       const meta = mapWorkToMetadata(work);
       return {
         title: meta.title ?? "Untitled",
-        snippet: [meta.authors?.join(", "), meta.journal, meta.year]
-          .filter(Boolean)
-          .join(" — "),
+        snippet: [meta.authors?.join(", "), meta.journal, meta.year].filter(Boolean).join(" — "),
         sourceId: work.DOI ?? `crossref-${index}`,
         confidence: Math.max(0, 1 - index * 0.05),
         sourceUrl: work.DOI ? `https://doi.org/${work.DOI}` : undefined,

@@ -16,8 +16,7 @@ import type {
 import { tokeniseMNC } from "../citationParser";
 
 /** RSS feed URL for FCA judgments. */
-const FCA_RSS_URL =
-  "https://www.fedcourt.gov.au/digital-law-library/judgments/rss/fca-judgments";
+const FCA_RSS_URL = "https://www.fedcourt.gov.au/digital-law-library/judgments/rss/fca-judgments";
 
 /** Thirty days in milliseconds. */
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -170,10 +169,7 @@ export class FcaRssAdapter implements SourceAdapter {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private itemToMetadata(
-    item: RssItem,
-    mnc: ReturnType<typeof tokeniseMNC>,
-  ): SourceMetadata {
+  private itemToMetadata(item: RssItem, mnc: ReturnType<typeof tokeniseMNC>): SourceMetadata {
     return {
       title: item.title,
       parties: item.title.split("[")[0]?.trim() || item.title,

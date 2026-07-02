@@ -545,13 +545,47 @@ Audit results: 2,000+ tests across the engine, Word layer, API, and UI suites. S
 
 ## EPIC: A11Y — Accessibility Audit & Compliance
 
-**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+**Phase:** Post-backlog | **Stories:** 32 (3 audit + 29 uplift) | **Completed:** 32
 
-| ID | Title | Type | Status |
-|----|-------|------|--------|
-| A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | FEATURE | DONE |
-| A11Y-002 | Audit and confirm compliance with Microsoft Commercial Marketplace certification policies (1000-1140) | FEATURE | DONE |
-| A11Y-003 | Website dark mode (prefers-color-scheme), contrast audit, and screen reader accessibility | FEATURE | DONE |
+Normative reference for the uplift (A11Y-004+): **WCAG 2.2** and **ATAG 2.0** (see
+`../accessibility-uplift-brief.md`, `ACCESSIBILITY.md`, and `decisions.md` DECISION-009/010).
+Uplift delivered in v1.14.0. A few stories landed a deliberately scoped slice; the residual
+follow-up is noted inline in the title and tracked for a later pass.
+
+| ID | Title | WCAG/ATAG | Type | Status |
+|----|-------|-----------|------|--------|
+| A11Y-001 | Audit add-in against Microsoft Office Add-in accessibility guidelines and create remediation stories | — | FEATURE | DONE |
+| A11Y-002 | Audit and confirm compliance with Microsoft Commercial Marketplace certification policies (1000-1140) | — | FEATURE | DONE |
+| A11Y-003 | Website dark mode (prefers-color-scheme), contrast audit, and screen reader accessibility | — | FEATURE | DONE |
+| A11Y-004 | Accessibility design tokens: focus-ring (≥3:1), target-min, type-min floor, motion tokens | 1.4.11, 2.5.5 | FEATURE | DONE |
+| A11Y-005 | a11y CI scaffolding: jsx-a11y lint + jest-axe; per-component axe tests; zero critical/serious gate | G1, G9 | FEATURE | DONE |
+| A11Y-006 | lang="en-AU" on task pane + ribbon command HTML; title on commands.html | 3.1.1 | FEATURE | DONE |
+| A11Y-007 | Keyboard-operable typeahead combobox (ARIA APG list-autocomplete) + live region | 2.1.1, 4.1.2 | FEATURE | DONE |
+| A11Y-008 | Manual-Mode banner → status region with a real button | 2.1.1, 4.1.2 | FEATURE | DONE |
+| A11Y-009 | prefers-reduced-motion: collapse transitions/animations | 2.3.3 | FEATURE | DONE |
+| A11Y-010 | forced-colors / Contrast Themes + prefers-contrast; fix useTheme media-query listener | 1.4.1 | FEATURE | DONE |
+| A11Y-011 | Raise 10px/9px type floor to token; route inline font-size literals through tokens | 1.4.4, 1.4.10 | FEATURE | DONE |
+| A11Y-012 | Replace timing-dependent title tooltips with aria-label / FieldHelp | 1.4.13 | FEATURE | DONE |
+| A11Y-013 | Persistent status log + surfaced errors + async announcements | 3.3.1, 4.1.3 | FEATURE | DONE |
+| A11Y-014 | Comfort mode (larger targets/type, wider spacing, no motion) via device prefs | enhancement | FEATURE | DONE |
+| A11Y-015 | Target-size pass: nav + action buttons ≥24px floor, tremor-tolerant spacing | 2.5.8, 2.5.5 | FEATURE | DONE |
+| A11Y-016 | Focus-ring contrast token (Deep Teal / accent-light) ≥3:1; skip-link focus restored | 1.4.11, 2.4.13 | FEATURE | DONE |
+| A11Y-017 | Focus management: move focus to view heading/main on route change | 2.4.3, 2.4.11 | FEATURE | DONE |
+| A11Y-018 | Block quote → named "AGLC4 Block Quote" style with direct-format fallback | ATAG B, 1.4.4 | FEATURE | DONE |
+| A11Y-019 | Bibliography heading outline level (shows in nav pane); native-footnote/outline tests | ATAG B, 1.3.1 | FEATURE | DONE |
+| A11Y-020 | Set document editing language (English Australia) in AGLC4 template | ATAG B, 3.1.1 | FEATURE | DONE |
+| A11Y-021 | Ribbon commands surface (commands.html) Part A audit: lang/title, named-style block quote | ATAG A | FEATURE | DONE |
+| A11Y-022 | LLM/research pane: classify/parse/suggest announce start/finish/errors to status log; inline errors role="alert" (no token streaming exists) | ATAG A, 4.1.3 | FEATURE | DONE |
+| A11Y-023 | Website WCAG 2.2 AA: confirmed lang, skip-link targets, landmarks, heading order, alt text, form labels; accessibility statement linked site-wide | WCAG 2.2 AA | FEATURE | DONE |
+| A11Y-024 | Website media: audit confirmed no autoplaying GIF/video (static captioned screenshots); download/contact flow keyboard + SR operable | 2.2.2, 1.2.x | FEATURE | DONE |
+| A11Y-025 | Accessibility statement page (website) + ACCESSIBILITY.md | G8 | FEATURE | DONE |
+| A11Y-026 | Docs: keyboard-shortcut reference + plain-language keyboard quick-start in README and website docs | WCAG 2.2 AA | FEATURE | DONE |
+| A11Y-027 | Support: text-based/async path — contact form + accessibility@ email + accessibility issue template; no voice required | comms access | FEATURE | DONE |
+| A11Y-028 | Document accessibility check via validator (heading-order scan wired into Validation; pure checker also covers language/faux footnotes) | ATAG B.3 | FEATURE | DONE |
+| A11Y-029 | Command palette (Ctrl/Cmd-K) keyboard-first action runner (APG combobox, tested) | 2.1.1 | FEATURE | DONE |
+| A11Y-030 | Shortcuts reference view + customisable palette trigger key / enable toggle | 2.1.1 | FEATURE | DONE |
+| A11Y-031 | Fewest-keystrokes insert path: command palette "Insert a citation" + keyboard-complete insert flow | motor effort | FEATURE | DONE |
+| A11Y-032 | GitHub hygiene: PR template + accessibility issue template carrying the DoD checklist | G9 | FEATURE | DONE |
 
 ---
 
@@ -877,12 +911,43 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 ## EPIC: INFRA-ENH — Infrastructure Enhancements
 
-**Phase:** Post-backlog | **Stories:** 1 | **Completed:** 0
+**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 2
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
 | INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | DONE |
 | INFRA-009 | Separate device-level preferences (localStorage) from document-level settings | FEATURE | DONE |
+| INFRA-010 | Resolve pre-existing typecheck and lint debt so CI's lint-and-typecheck gate goes green | CHORE | PARTIAL |
+
+**INFRA-010 Details:**
+The production build is via Babel (which strips types and does not type-check), so a backlog of
+type and lint errors has accumulated without blocking releases. As of v1.14.0, `npm run typecheck`
+reports **10 pre-existing `tsc --noEmit` errors** and `npm run lint` reports **~1,300 pre-existing
+`prettier/prettier` and `office-addins/*` errors** across `.ts` files. Because both are red, the CI
+`lint-and-typecheck` job (`.github/workflows/ci.yml`) does not currently gate merges. This story is
+to clear that debt and restore the gate. It is **not** an accessibility story — the A11Y uplift
+(A11Y-005) added a clean `jsx-a11y` + `jest-axe` gate on top of this existing debt without adding to
+it (the project `eslint.config.mjs` replicates the bundled office-addins config byte-for-byte and
+only adds the a11y rules for `.tsx`).
+
+Representative type errors to fix:
+- `src/store/xmlSerializer.ts` — `Cannot find name 'parser'` (TS2304).
+- `src/ui/components/CitationFinder.tsx` — `Citation` object literal missing `tags`/`createdAt`/`modifiedAt`.
+- `src/ui/views/InsertCitation.tsx` — `setState` called with an updater function `(prev) => boolean` where a `boolean` is expected (state setter typed too narrowly).
+
+**AC:**
+- `npm run typecheck` exits 0 (no `error TS`), with no behaviour change to the engine or UI.
+- `npm run lint` is either clean or reduced to an explicitly documented, tracked baseline; prefer running `npm run lint:fix` / `npm run prettier` for the auto-fixable formatting bulk, reviewed in isolation from feature changes.
+- The CI `lint-and-typecheck` job passes on `main` and blocks merges again.
+- No regression in the test suite (`npm test` stays green) and no change to runtime behaviour.
+
+**Progress (v1.14.0):**
+- **Typecheck: DONE — `tsc --noEmit` now exits 0** (was 10). Fixed: `xmlSerializer.ts` out-of-scope `parser` → local `DOMParser`; `CitationFinder.tsx` Citation literal given `tags`/`createdAt`/`modifiedAt`; `InsertCitationContext` expanded-state setters typed `Dispatch<SetStateAction<boolean>>`. Build and full test suite green.
+- **Lint: reduced from ~1,662 to 98 problems (61 errors, 37 warnings).** Cleared the entire `prettier/prettier` formatting bulk via `eslint --fix` (run directly — note `npm run lint:fix` itself fails on a stale `src/**/*.jsx` glob, see below); disabled core `no-undef` (TypeScript resolves symbols; the rule only misfired on ambient Office.js globals); and **resolved all `no-unused-vars`**: configured the `^_` ignore pattern for intentionally-unused adapter-interface params (~36), removed ~14 genuinely-dead imports/consts/functions, and cleaned the resulting cascades (orphaned imports/state). Typecheck stays 0 and all 2,073 tests pass.
+- **Remaining tracked baseline (61 errors):**
+  - 50 `office-addins/load-object-before-read` + `call-sync-before-read` — Word API best-practice lints in published, tested code. Likely a mix of false positives (loads the linter can't track across helpers) and benign reads; fixing requires careful per-call `Word.run` review **with sideload verification** — must not be mass-fixed blind. This is the main blocker to a green lint gate.
+  - ~11 `no-useless-escape` / `no-useless-catch` — cosmetic.
+- **Also fix `npm run lint:fix`**: office-addin-lint passes a `src/**/*.jsx` glob; with no `.jsx` files, ESLint 9 errors before fixing. Add a `.jsx` shim or override the lint scripts to the real globs.
 
 ---
 
@@ -1082,7 +1147,7 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | API-008 | Clear button for citation form | FEATURE | DONE |
 | Epic 17 | Source Lookup & Citation Verification (55 stories) | FEATURE | DONE |
 | FN-ARCH | Footnote architecture rebuild (FN-001 to FN-005) | FEATURE | DONE |
-| STORE-001 | XML schema v2 — DOMParser + attribute-based structure | REFACTOR | IN PROGRESS |
+| STORE-001 | XML schema v2 — DOMParser + attribute-based structure | REFACTOR | DONE |
 | STORE-002 | Per-occurrence pinpoints in CC titles | FEATURE | DONE |
 | STORE-003 | Multiple Custom XML Part handling | BUG | DONE |
 | STORE-004 | Repair orphaned CCs from Find Citations | FEATURE | DONE |
@@ -1174,3 +1239,158 @@ Currently "Help Me Choose" classifies a description into a source type but does 
 | VALID-012 | Capitalisation check for case/legislation titles Rule 1.7 | FEATURE | DONE |
 | VALID-013 | Source titles not italicised check Rule 1.8.2 | FEATURE | DONE |
 | UX-011 | Validation "Go to" button — navigates to issue location in document | FEATURE | DONE |
+
+---
+
+## EPIC: JURISD — Jurisd Research Assistant Integration & Token Portal (Exploration)
+
+**Phase:** Post-backlog | **Stories:** 2 | **Completed:** 1 (JURISD-002 blocked on owner go/no-go)
+
+Strategic exploration: whether to integrate [jurisd](https://github.com/russellbrenner/jurisd) as a
+source-grounded research assistant for Obiter, and (conditionally) introduce a hosted token portal
+with free and paid tiers. Both stories feed `decisions.md` DECISION-011.
+
+**Review outcome (JURISD-001 — see DECISION-011 for full findings):** jurisd is a **Node-only, local,
+stdio MCP server** with DuckDB modules and **no HTTP/browser build** — so Obiter's Word **WebView**
+cannot bundle, fork, or talk to it directly. The only viable architecture is a **hosted jurisd
+backend** behind an HTTPS API + LLM orchestrator, with Obiter's pane as the chat client — which means
+**JURISD-001 and JURISD-002 collapse into one initiative** (the backend *is* the portal). Code is
+Apache-2.0 (host/brand with NOTICE — fine); the sharp edges are **AustLII ToS + VIC/NT Crown-copyright
+data** (not redistributable) and the **privacy-posture shift** (hosting inverts "nothing leaves your
+document"). Two front-ends are viable against one hosted backend: **(A/B)** an Obiter-built opt-in
+assistant + token portal, or **(C)** a **Microsoft 365 Copilot declarative agent** (MCP support is GA;
+surfaces in Word Copilot) — Option C offloads LLM/auth/billing to Microsoft so the token portal mostly
+disappears, but requires a paid Copilot licence (serves licensed firms/courts/universities, not the
+free audience) and still needs jurisd hosted. **Recommended shape (DECISION-011 point 8): two
+independent Copilot skills** — a **jurisd skill** (jurisd team owns the hosted MCP server + auth +
+token/subscription billing) and an **independent Obiter skill** (the add-in registered as a Copilot
+skill, exposing only insert/update/refresh native-footnote + AGLC4-style actions — no backend, no
+billing, Obiter stays free/local). Copilot orchestrates: jurisd researches → Obiter inserts. This
+**removes Obiter's need for a hosted assistant/portal (JURISD-002 becomes largely moot)** and keeps
+Obiter free. Load-bearing caveat: Obiter's engine is GPLv3 and jurisd is Apache-2.0, so Obiter must be
+**invoked as a separate skill, not embedded** in jurisd's code (avoids copyleft propagation). Needs
+jurisd-maintainer collaboration; Copilot-licence-gated; add-in-as-skill + remote MCP are preview.
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| JURISD-001 | Plan-mode review of jurisd integration + a single source-grounded assistant; licensing & privacy assessment | RESEARCH | DONE |
+| JURISD-002 | Obiter document-mutation Copilot skill (insert/update/refresh native footnotes + AGLC4 styles as agent actions) — recommended path; jurisd owns the hosted MCP/auth/billing skill separately. Blocked on DECISION-011 go/no-go + jurisd-maintainer alignment | RESEARCH | 0 |
+
+**JURISD-001 Details:**
+Enter plan mode and review jurisd to assess how it could work with Obiter. jurisd is a local-first
+Australian/NZ legal-research workbench (Apache-2.0, TypeScript, MCP server + DuckDB) whose stated
+principle is that "every claim traces back to the primary source" — a strong fit for Obiter's AGLC4
+rigour. The vision is to **replace Obiter's several discrete BYOK AI features** (source classification,
+citation parsing, short-title suggestion) **with one source-grounded chat assistant** that discusses
+citations and research and cites back to primary sources, branded as jurisd with full credit.
+
+Assess and recommend:
+- **Integration path:** consume jurisd as an **MCP tool/dependency** (cleaner; tracks upstream) vs
+  **fork/port and maintain a synced branch**. Apache-2.0 permits both; favour the lower-maintenance
+  path unless a port is required for the Office runtime.
+- **Licensing:** confirm Apache-2.0 terms (preserve `NOTICE`/copyright, attribute, brand as jurisd
+  with full credits) and one-way GPLv3 compatibility. Data modules are **CC-BY-4.0 with per-source
+  restrictions** — respect each module's manifest; do not redistribute restricted jurisdiction data.
+- **Privacy:** jurisd is local-first/offline, so grounding can stay on device — good. The off-device
+  part is the **LLM inference** for the assistant. Reconcile with Obiter's current public stance
+  ("no data collection; everything stays in your document"): the assistant must be **opt-in**,
+  disclosed, and the privacy policy + accessibility statement updated.
+- **Maintenance:** upstream-sync strategy if forking; version pinning if consuming via MCP.
+
+**AC:**
+- Plan-mode review documents jurisd's architecture, MCP surface, code + data licensing, and AU/NZ + AGLC4 coverage (verifying the snapshot above).
+- A recommendation on MCP-consume vs fork/port, with the licensing/attribution plan.
+- A privacy impact assessment: exactly what leaves the device, the opt-in model, and the required privacy-policy / accessibility-statement changes.
+- Assistant scope defined: one source-grounded chat replacing the discrete AI features, with citation-traceable answers.
+- Findings logged in DECISION-011; JURISD-002 stays blocked until a "go" decision.
+
+**JURISD-002 Details (conditional on JURISD-001 + DECISION-011):**
+A sign-in **portal** so users authenticate once and **stay signed in** to Obiter (within the Office
+webview — mind the MemoryRouter / per-document-localStorage constraints), replacing **BYOK** (which is
+not ideal for non-technical users) with **pooled token access**: a **free tier** (rate-limited pooled
+tokens) and a **paid tier** (monthly subscription, higher rate limits). Obiter itself remains free and
+GPLv3. **Pooled subscription revenue offsets free-tier token costs and hosting/development
+incidentals only — explicitly not profit and not developer salaries.** The paid tier is framed as an
+easier stepping stone to buy AI token access at a subscription rather than configuring an API key.
+
+Flags to resolve in the review:
+- **Microsoft Commercial Marketplace** policies for paid/subscription add-ins (cf. A11Y-002, policies 1000-1140); billing/refunds.
+- **Abuse prevention + rate limiting** for the pooled free tier; maintainer's token-cost exposure and caps.
+- **GPLv3 vs hosted backend** — GPLv3 does not compel server-source release (that is AGPL); confirm no integrated component requires it.
+- **Auth provider + session** for the Office webview; data handling and retention for signed-in users.
+- **Non-profit pooling model** documented transparently (so the free ethos and the funding are both clear).
+
+**AC:**
+- Auth/session design for the Office webview (sign-in, stay-signed-in, sign-out).
+- Tier design: free pooled tokens with rate limits; paid subscription with higher limits; decision on whether BYOK is retained as an option.
+- The non-profit pooling model documented (revenue → free-tier + hosting/incidentals only).
+- Compliance review: AppSource paid-add-in policies, billing, privacy, abuse prevention.
+- Explicit decision sign-off recorded before any implementation begins.
+
+---
+
+## EPIC: COPILOT — Obiter Copilot Skill Readiness
+
+**Phase:** Post-backlog (starts after v1.14.0 ships) | **Stories:** 16 | **Completed:** 4 DONE + 9 BUILT (3 BLOCKED on Copilot licence / DECISION-011)
+
+Statuses: DONE = built + tested now; BUILT = code + generator + tests + staged manifest landed and
+green, but the live Copilot behaviour still needs the Office/Copilot preview + a Copilot licence +
+sideload to verify (staged in `manifest.skill.xml` / `docs/obiter-copilot-skill.json`; NOT applied to
+the production manifest, which stays on v1.14.0). PREVIEW = superseded status (was: documented only).
+
+Make the Obiter add-in invocable as a **Microsoft 365 Copilot skill** (via the "Combine Copilot
+Agents with Office Add-ins" mechanism), so Copilot can call Obiter to insert/update native footnotes
+and to parse/classify **without BYOK** — while the existing pane + **BYOK stay unchanged** (most
+students have no Copilot licence, so BYOK is used just as much). **No dependency on jurisd**, but the
+insert contract is designed so a future jurisd Copilot skill / MCP client can produce valid input and
+call Obiter to insert (Obiter **invoked, not embedded** — keeps the GPLv3 vs jurisd Apache-2.0 boundary
+clean; see DECISION-011 point 8). Deploy the Obiter skill together with the jurisd skill later.
+
+**Grounding (current state, mapped):** the document-mutation seams are already UI-independent and take
+structured data — `insertCitationFootnote(id, title, FormattedRun[], appendIndex?)`,
+`updateCitationContent`, `deleteCitationFootnote`, `refreshAllCitations(context, store)` — fed by the
+**pure** engine `getFormattedPreview(citation, config)` / `formatCitation(...)`. `handleInsert`
+(`InsertCitation.tsx:1222-1341`) only couples the *assembly of the Citation + append target* and the
+feedback/reset to React. `exportRuleReference()` (`ruleExporter.ts`, currently unused) already emits a
+machine-readable per-source-type required/optional-field schema — a ready-made basis for the action
+contract. Gaps: (a) no clean insert-request DTO (Citation is entangled with store fields), (b) no
+headless insert entry point, (c) **no shared runtime** (commands.ts is static-imports-only and cannot
+reach the engine/word layer).
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| COPILOT-001 | Headless citation-service layer (`src/actions/citationService.ts`): insert/update/delete/refresh/format orchestration; `handleInsert` now delegates to it (one code path). Tested. | REFACTOR | DONE |
+| COPILOT-002 | `CitationInsertRequest` DTO + `buildCitationFromRequest` mapper (`src/actions/citationRequest.ts`); versioned contract. Tested. | FEATURE | DONE |
+| COPILOT-003 | Shared runtime: `SharedRuntime` requirement set + `<Runtimes>` element + `FunctionFile`→shared page, staged in `manifest.skill.xml` (passes `office-addin-manifest validate`); production `manifest.xml` untouched on v1.14.0. Migrating commands.ts logic into the shared page is the sideload-time wiring step. | INFRA | BUILT |
+| COPILOT-004 | Action catalogue (`src/actions/actionCatalogue.ts`): `OBITER_ACTIONS` + LLM-facing descriptions + `getCitationInsertContract()` (bundles per-source-type schema). Tested. | FEATURE | DONE |
+| COPILOT-005 | Register the add-in as a Copilot skill: `buildCopilotSkillManifest()` (`src/actions/skillManifest.ts`) generates the skill declaration from `OBITER_ACTIONS` + the insert contract; `npm run export-skill` emits `docs/obiter-copilot-skill.json`; referenced from `manifest.skill.xml`. Tested. Binding the preview agent-manifest schema needs the Copilot preview. | FEATURE | BUILT |
+| COPILOT-006 | Review UX resolved to **direct insert** — the skill inserts the native footnote and returns the structured `InsertResult`; Copilot confirmation + Word track changes is the review (`reviewMode: "direct"` in the skill manifest). No pane-driving. Tested. | FEATURE | BUILT |
+| COPILOT-007 | No-BYOK parse/classify: the BYOK prompts are exported as shared constants (`CLASSIFY_SOURCE_SYSTEM_PROMPT` / `PARSE_CITATION_SYSTEM_PROMPT`) and `buildAgentInstructions()` (`src/actions/agentInstructions.ts`) embeds them verbatim into the Copilot agent instructions — one source of truth, no drift. Tested. | FEATURE | BUILT |
+| COPILOT-008 | Published insert contract (`docs/copilot-skill-contract.md`) + example jurisd→Obiter payload + round-trip tests. | FEATURE | DONE |
+| COPILOT-009 | Expose citationService ops as agent-callable functions (`src/actions/skillFunctions.ts`): parse/validate `CitationInsertRequest` at the boundary + dispatch insert/format/update/delete/refresh; `registerSkillFunctions()` via `Office.actions.associate`. Tested. | FEATURE | BUILT |
+| COPILOT-010 | Shared-runtime page (`src/runtime/sharedRuntime.ts` + html + webpack entry) hosting the pane runtime + agent functions; `refreshAll` delegates to `citationService` (proves engine reach the classic commands page can't). Applies COPILOT-003; production `commands.ts` untouched. | INFRA | BUILT |
+| COPILOT-011 | Unified Microsoft 365 manifest (`manifest.skill.json`, v1.17+) + `declarativeAgent.json`, generated by `npm run export-skill` from `OBITER_ACTIONS` + `buildAgentInstructions()`: `extensions` (add-in) + `copilotAgents` (declarative agent). Staged; production `manifest.xml` untouched. Preview-schema fields need M365 Agents Toolkit validation (COPILOT-014). | FEATURE | BUILT |
+| COPILOT-012 | Copilot skill icons — 192×192 colour + 32×32 outline (transparent), brand teal, via `scripts/generate-skill-icons.js`. | DESIGN | BUILT |
+| COPILOT-013 | Skill package build (`scripts/package-skill.sh` + `npm run package:skill`): localhost→`obiter.com.au` substitution, assembles `manifest.skill.json` + icons, emits a sideloadable `.zip`. Staged; no production deploy. | INFRA | BUILT |
+| COPILOT-014 | Sideload + live Copilot verification — describe/paste a source → Copilot → `insertCitation` → native footnote; direct-insert review UX; ribbon + pane unaffected. **Needs a Copilot licence + preview tenant.** | FEATURE | BLOCKED |
+| COPILOT-015 | Privacy + accessibility + policy updates for the Copilot path (privacy policy discloses Copilot processes request text; accessibility statement; `marketplace-policy-audit.md`). | DOCS | BLOCKED |
+| COPILOT-016 | Partner Center listing + submission as a **Microsoft 365 app** (not the classic Office-add-in type); apply the Copilot listing copy; minor version bump + submit. | RELEASE | BLOCKED |
+
+**Architecture principles (apply across the epic):**
+- **One code path** — the pane and the skill both call the citation-service layer (COPILOT-001); no duplicated insert logic.
+- **Contract-first** — the `CitationInsertRequest` DTO + `exportRuleReference` schema is the public surface any caller (Copilot LLM, jurisd skill, MCP client) targets; Obiter is invoked, never embedded (GPLv3 boundary).
+- **Additive** — BYOK and the entire existing pane flow are untouched; the skill is a parallel entry point for Copilot-licensed users.
+- **No backend, no auth, no jurisd** — the Obiter skill is pure local document operations; Copilot provides LLM + identity.
+- **Engine stays pure** — formatting is pure TS; the service layer adds only the Office.js orchestration seam.
+
+**Sequencing / versioning:** COPILOT-001 → 002 → 003 are the foundation (decouple, contract, runtime);
+004-006 build the skill surface; 007 is the self-contained no-BYOK parse/classify win (needs no
+jurisd); 008 locks the external contract. 009-013 build the packageable skill (agent functions →
+shared runtime → unified manifest → icons → package); they are staged so production v1.14.0 is
+untouched. 014-016 are the **release tail** and are BLOCKED: 014 needs a Copilot-licensed preview
+tenant to live-verify, and 014-016 all sit behind the **DECISION-011 go/no-go** business gate.
+Manifest + shared-runtime changes mean at least a **minor version bump** (new features + XML update) —
+target the release *after* v1.14.0, deployed alongside the jurisd Copilot skill. Each
+document-mutation story carries the sideload checklist and (per DoD) the v1.14 accessibility bar.
+
+---

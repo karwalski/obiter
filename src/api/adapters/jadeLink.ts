@@ -27,11 +27,7 @@ const MNC_PATTERN = /\[(\d{4})]\s+([A-Za-z]+)\s+(\d+)/;
  * Jade.io uses a flat URL scheme: jade.io/article/{courtCode}/{year}/{number}
  * This works for any court code — no mapping table required.
  */
-export function buildJadeUrl(
-  court: string,
-  year: number,
-  number: number,
-): string {
+export function buildJadeUrl(court: string, year: number, number: number): string {
   return `https://jade.io/article/${court}/${year}/${number}`;
 }
 

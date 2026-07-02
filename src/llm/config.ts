@@ -41,7 +41,9 @@ export function loadLlmConfig(): LLMConfig | null {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem("obiter.llmConfig");
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   if (!raw) return null;
   try {
     const config = JSON.parse(raw) as LLMConfig;
@@ -64,7 +66,7 @@ export async function testConnection(config: LLMConfig): Promise<{ ok: boolean; 
     const response = await callLlm(
       config,
       "You are a connection test.",
-      "Respond with the single word OK.",
+      "Respond with the single word OK."
     );
     return response.length > 0 ? { ok: true } : { ok: false, error: "Empty response from API" };
   } catch (err: unknown) {

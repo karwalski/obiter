@@ -31,11 +31,7 @@ const DEFAULT_MODE: CloudMode = "local-then-cloud";
 /** Read the current cloud mode from device preferences. */
 export function getCloudMode(): CloudMode {
   const stored = getDevicePref(PREF_KEY);
-  if (
-    stored === "local-only" ||
-    stored === "cloud-only" ||
-    stored === "local-then-cloud"
-  ) {
+  if (stored === "local-only" || stored === "cloud-only" || stored === "local-then-cloud") {
     return stored as CloudMode;
   }
   return DEFAULT_MODE;

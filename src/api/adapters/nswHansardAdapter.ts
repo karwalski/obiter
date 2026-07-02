@@ -124,9 +124,7 @@ export class NswHansardAdapter implements SourceAdapter {
 
     return entries.map((entry, index) => ({
       title: entry.Title ?? entry.Content?.slice(0, 80) ?? "Hansard entry",
-      snippet: [entry.Speaker, entry.Chamber, entry.Date]
-        .filter(Boolean)
-        .join(" — "),
+      snippet: [entry.Speaker, entry.Chamber, entry.Date].filter(Boolean).join(" — "),
       sourceId: entry.Id ?? `nsw-hansard-${index}`,
       confidence: Math.max(0, 0.85 - index * 0.05),
       sourceUrl: entry.Url,

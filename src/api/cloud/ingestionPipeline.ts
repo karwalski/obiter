@@ -16,12 +16,7 @@ import { getReplicableSources } from "./licenceLedger";
 // Types
 // ---------------------------------------------------------------------------
 
-export type IngestionStatus =
-  | "idle"
-  | "running"
-  | "completed"
-  | "failed"
-  | "disabled";
+export type IngestionStatus = "idle" | "running" | "completed" | "failed" | "disabled";
 
 export interface IngestionJob {
   /** Matches a sourceId from the licence ledger. */
@@ -46,13 +41,13 @@ export interface IngestionJob {
  * sensible defaults for display when the server is unreachable.
  */
 const DEFAULT_SCHEDULES: Record<string, string> = {
-  corpus: "0 2 * * 0",         // Weekly, Sunday 02:00
-  crossref: "0 3 * * *",       // Daily, 03:00
-  openalex: "0 4 * * *",       // Daily, 04:00
-  doaj: "0 5 * * 1",           // Weekly, Monday 05:00
-  "nsw-hansard": "0 6 * * *",  // Daily, 06:00
+  corpus: "0 2 * * 0", // Weekly, Sunday 02:00
+  crossref: "0 3 * * *", // Daily, 03:00
+  openalex: "0 4 * * *", // Daily, 04:00
+  doaj: "0 5 * * 1", // Weekly, Monday 05:00
+  "nsw-hansard": "0 6 * * *", // Daily, 06:00
   "qld-legislation": "0 7 * * 0", // Weekly, Sunday 07:00
-  "act-sc-rss": "30 * * * *",  // Every 30 minutes
+  "act-sc-rss": "30 * * * *", // Every 30 minutes
 };
 
 // ---------------------------------------------------------------------------

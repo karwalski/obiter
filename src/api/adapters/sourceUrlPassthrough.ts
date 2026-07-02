@@ -43,7 +43,7 @@ function isAggregatorUrl(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
     return AGGREGATOR_DOMAINS.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
     );
   } catch {
     return false;

@@ -1,8 +1,12 @@
 {
-  "plugins": [
-    "office-addins"
-  ],
+  "plugins": ["office-addins", "jsx-a11y"],
   "extends": [
-    "plugin:office-addins/recommended"
-  ]
+    "plugin:office-addins/recommended",
+    "plugin:jsx-a11y/recommended"
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
 }

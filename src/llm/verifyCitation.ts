@@ -67,7 +67,7 @@ export interface VerificationResult {
 export async function verifyCitationFormat(
   formattedText: string,
   ruleNumber: string,
-  config: LLMConfig,
+  config: LLMConfig
 ): Promise<VerificationResult> {
   const userPrompt = `Verify this citation against AGLC4 Rule ${ruleNumber}:\n\n${formattedText}`;
 
@@ -79,9 +79,7 @@ export async function verifyCitationFormat(
 
   // Normalise: ensure arrays are present even if the LLM omits them.
   result.issues = Array.isArray(result.issues) ? result.issues : [];
-  result.ruleReferences = Array.isArray(result.ruleReferences)
-    ? result.ruleReferences
-    : [];
+  result.ruleReferences = Array.isArray(result.ruleReferences) ? result.ruleReferences : [];
 
   return result;
 }
@@ -92,10 +90,7 @@ export async function verifyCitationFormat(
  * number up-front. The LLM identifies the source type and relevant rules
  * automatically.
  */
-export async function checkReference(
-  text: string,
-  config: LLMConfig,
-): Promise<VerificationResult> {
+export async function checkReference(text: string, config: LLMConfig): Promise<VerificationResult> {
   const userPrompt = `Check the following text for AGLC4 compliance:\n\n${text}`;
 
   const response = await callLlm(config, CHECK_REFERENCE_SYSTEM_PROMPT, userPrompt);
@@ -105,9 +100,7 @@ export async function checkReference(
   const result = JSON.parse(cleaned) as VerificationResult;
 
   result.issues = Array.isArray(result.issues) ? result.issues : [];
-  result.ruleReferences = Array.isArray(result.ruleReferences)
-    ? result.ruleReferences
-    : [];
+  result.ruleReferences = Array.isArray(result.ruleReferences) ? result.ruleReferences : [];
 
   return result;
 }

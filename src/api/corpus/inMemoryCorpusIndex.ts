@@ -44,9 +44,7 @@ export class InMemoryCorpusIndex implements CorpusIndex {
       normalisedCitation: e.normalisedCitation || normaliseCitation(e.citation),
     }));
     this.byId = new Map(this.entries.map((e) => [e.corpusDocId, e]));
-    this.byNormCitation = new Map(
-      this.entries.map((e) => [e.normalisedCitation, e]),
-    );
+    this.byNormCitation = new Map(this.entries.map((e) => [e.normalisedCitation, e]));
   }
 
   /**
@@ -77,11 +75,7 @@ export class InMemoryCorpusIndex implements CorpusIndex {
       }
 
       // Substring match on searchable fields
-      const haystack = [
-        entry.citation,
-        entry.parties ?? "",
-        entry.title ?? "",
-      ]
+      const haystack = [entry.citation, entry.parties ?? "", entry.title ?? ""]
         .join(" ")
         .toLowerCase();
 
@@ -106,10 +100,7 @@ export class InMemoryCorpusIndex implements CorpusIndex {
     // Fuzzy fallback: find first entry whose normalised citation contains
     // the query, or whose query contains the normalised citation.
     for (const entry of this.entries) {
-      if (
-        entry.normalisedCitation.includes(norm) ||
-        norm.includes(entry.normalisedCitation)
-      ) {
+      if (entry.normalisedCitation.includes(norm) || norm.includes(entry.normalisedCitation)) {
         return entry;
       }
     }

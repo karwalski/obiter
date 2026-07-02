@@ -30,20 +30,12 @@ import { getDevicePref } from "../../store/devicePreferences";
 const MNC_PATTERN = /\[(\d{4})]\s+([A-Za-z]+)\s+(\d+)/;
 
 /** Free-tier Jade URL. */
-export function buildJadeFreeUrl(
-  court: string,
-  year: number,
-  number: number,
-): string {
+export function buildJadeFreeUrl(court: string, year: number, number: number): string {
   return `https://jade.io/article/${court}/${year}/${number}`;
 }
 
 /** Jade Professional portal URL. */
-export function buildJadeProUrl(
-  court: string,
-  year: number,
-  number: number,
-): string {
+export function buildJadeProUrl(court: string, year: number, number: number): string {
   return `https://pro.jade.io/article/${court}/${year}/${number}`;
 }
 

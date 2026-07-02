@@ -41,8 +41,7 @@ export const LICENCE_LEDGER: LicenceLedgerEntry[] = [
     licenceUrl: "https://creativecommons.org/licenses/by/4.0/",
     permissionStatus: "permitted",
     replicable: true,
-    attributionString:
-      "Isaacus, Open Australian Legal Corpus (CC BY 4.0)",
+    attributionString: "Isaacus, Open Australian Legal Corpus (CC BY 4.0)",
   },
   {
     sourceId: "crossref",
@@ -78,8 +77,7 @@ export const LICENCE_LEDGER: LicenceLedgerEntry[] = [
     licenceUrl: "https://creativecommons.org/licenses/by/4.0/",
     permissionStatus: "permitted",
     replicable: true,
-    attributionString:
-      "NSW Parliament Hansard (CC BY)",
+    attributionString: "NSW Parliament Hansard (CC BY)",
   },
   {
     sourceId: "qld-legislation",
@@ -126,8 +124,7 @@ export const LICENCE_LEDGER: LicenceLedgerEntry[] = [
     licenceUrl: "https://creativecommons.org/licenses/by-nc-nd/3.0/au/",
     permissionStatus: "permitted",
     replicable: false,
-    attributionString:
-      "Commonwealth Parliament Hansard (CC BY-NC-ND 3.0 AU)",
+    attributionString: "Commonwealth Parliament Hansard (CC BY-NC-ND 3.0 AU)",
   },
 ];
 
@@ -148,6 +145,5 @@ export function isReplicable(sourceId: string): boolean {
 
 /** Return the attribution string for a source, or `undefined` if unknown. */
 export function getAttribution(sourceId: string): string | undefined {
-  return LICENCE_LEDGER.find((e) => e.sourceId === sourceId)
-    ?.attributionString;
+  return LICENCE_LEDGER.find((e) => e.sourceId === sourceId)?.attributionString;
 }

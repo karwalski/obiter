@@ -91,7 +91,12 @@ const SOURCE_TYPES: SourceType[] = [
   "foreign.other",
 ];
 
-const SYSTEM_PROMPT = `You are an expert in the Australian Guide to Legal Citation, 4th Edition (AGLC4).
+/**
+ * The AGLC4 source-type classification system prompt. Exported so the Copilot
+ * skill's agent instructions (COPILOT-007) embed the same AGLC4-tuned guidance
+ * the BYOK path uses — one source of truth, no drift.
+ */
+export const CLASSIFY_SOURCE_SYSTEM_PROMPT = `You are an expert in the Australian Guide to Legal Citation, 4th Edition (AGLC4).
 
 Given a description of a legal source, classify it into the most appropriate
 AGLC4 source type. Consider:
@@ -123,11 +128,11 @@ export interface ClassificationResult {
  */
 export async function classifySourceType(
   description: string,
-  config: LLMConfig,
+  config: LLMConfig
 ): Promise<ClassificationResult> {
   const userPrompt = `Classify this source:\n\n${description}`;
 
-  const response = await callLlm(config, SYSTEM_PROMPT, userPrompt);
+  const response = await callLlm(config, CLASSIFY_SOURCE_SYSTEM_PROMPT, userPrompt);
 
   const cleaned = response.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
 
@@ -135,9 +140,7 @@ export async function classifySourceType(
 
   // Validate sourceType.
   if (!SOURCE_TYPES.includes(result.sourceType)) {
-    throw new Error(
-      `LLM returned unknown source type: ${result.sourceType}`,
-    );
+    throw new Error(`LLM returned unknown source type: ${result.sourceType}`);
   }
 
   // Clamp confidence to [0, 1].

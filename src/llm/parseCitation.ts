@@ -96,7 +96,12 @@ const SOURCE_TYPES: SourceType[] = [
   "foreign.other",
 ];
 
-const SYSTEM_PROMPT = `You are an expert in Australian, UK, and New Zealand legal citation standards (AGLC4, OSCOLA, NZLSG).
+/**
+ * The multi-standard citation-parsing system prompt. Exported so the Copilot
+ * skill's agent instructions (COPILOT-007) reuse the same field-mapping guidance
+ * the BYOK path uses — one source of truth, no drift.
+ */
+export const PARSE_CITATION_SYSTEM_PROMPT = `You are an expert in Australian, UK, and New Zealand legal citation standards (AGLC4, OSCOLA, NZLSG).
 
 Given a fully formatted citation string, you must:
 1. Identify the citation standard used (aglc4, oscola, or nzlsg).
@@ -184,11 +189,11 @@ export interface ParsedCitation {
  */
 export async function parseCitationText(
   rawText: string,
-  config: LLMConfig,
+  config: LLMConfig
 ): Promise<ParsedCitation> {
   const userPrompt = `Parse this formatted citation into structured fields:\n\n${rawText}`;
 
-  const response = await callLlm(config, SYSTEM_PROMPT, userPrompt);
+  const response = await callLlm(config, PARSE_CITATION_SYSTEM_PROMPT, userPrompt);
 
   // Strip potential markdown code fences the model may add despite instructions.
   const cleaned = response.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();

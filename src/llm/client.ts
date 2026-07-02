@@ -74,9 +74,7 @@ function resolveEndpoint(config: LLMConfig): { url: string; useProxy: boolean } 
   }
   const endpoint = DIRECT_ENDPOINTS[config.provider];
   if (!endpoint) {
-    throw new Error(
-      `Provider "${config.provider}" requires an explicit endpoint in LLMConfig.`,
-    );
+    throw new Error(`Provider "${config.provider}" requires an explicit endpoint in LLMConfig.`);
   }
   if (CORS_BLOCKED_PROVIDERS.has(config.provider)) {
     return { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true };
@@ -89,7 +87,7 @@ function resolveEndpoint(config: LLMConfig): { url: string; useProxy: boolean } 
 function buildOpenAIRequest(
   config: LLMConfig,
   systemPrompt: string,
-  userPrompt: string,
+  userPrompt: string
 ): { url: string; init: RequestInit } {
   const body: OpenAIRequestBody = {
     model: config.model,
@@ -115,7 +113,7 @@ function buildOpenAIRequest(
 function buildAnthropicRequest(
   config: LLMConfig,
   systemPrompt: string,
-  userPrompt: string,
+  userPrompt: string
 ): { url: string; init: RequestInit } {
   const body: AnthropicRequestBody = {
     model: config.model,
@@ -149,9 +147,7 @@ function extractOpenAIText(json: OpenAIResponse): string {
 }
 
 function extractAnthropicText(json: AnthropicResponse): string {
-  const block = json.content?.find(
-    (b: AnthropicContentBlock) => b.type === "text",
-  );
+  const block = json.content?.find((b: AnthropicContentBlock) => b.type === "text");
   if (!block) {
     throw new Error("Empty response from Anthropic API.");
   }
@@ -173,7 +169,7 @@ export interface ChatMessage {
 export async function callLlm(
   config: LLMConfig,
   systemPrompt: string,
-  userPrompt: string,
+  userPrompt: string
 ): Promise<string> {
   const isAnthropic = config.provider === "anthropic";
   const endpoint = resolveEndpoint(config);
@@ -215,15 +211,15 @@ export async function callLlm(
     const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
     throw new Error(
       `Cannot reach ${config.provider} API. This may be a CORS restriction — ` +
-      `browser-based add-ins cannot always connect directly to LLM APIs. ` +
-      `Error: ${msg}`,
+        `browser-based add-ins cannot always connect directly to LLM APIs. ` +
+        `Error: ${msg}`
     );
   }
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "");
     throw new Error(
-      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`,
+      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`
     );
   }
 
@@ -252,7 +248,7 @@ export async function callLlm(
  */
 export async function callLlmMultiTurn(
   config: LLMConfig,
-  messages: ChatMessage[],
+  messages: ChatMessage[]
 ): Promise<string> {
   const isAnthropic = config.provider === "anthropic";
   const endpoint = resolveEndpoint(config);
@@ -270,9 +266,7 @@ export async function callLlmMultiTurn(
 
   if (endpoint.useProxy) {
     // Proxy doesn't support multi-turn natively — concatenate into single turn
-    const userParts = conversationMessages.map(
-      (m) => `[${m.role}]: ${m.content}`,
-    );
+    const userParts = conversationMessages.map((m) => `[${m.role}]: ${m.content}`);
     url = endpoint.url;
     const proxyBody = {
       provider: config.provider,
@@ -312,9 +306,7 @@ export async function callLlmMultiTurn(
     const body: OpenAIRequestBody = {
       model: config.model,
       messages: [
-        ...(systemPrompt
-          ? [{ role: "system" as const, content: systemPrompt }]
-          : []),
+        ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
         ...conversationMessages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
@@ -338,15 +330,13 @@ export async function callLlmMultiTurn(
     response = await fetch(url, init);
   } catch (fetchErr: unknown) {
     const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-    throw new Error(
-      `Cannot reach ${config.provider} API. Error: ${msg}`,
-    );
+    throw new Error(`Cannot reach ${config.provider} API. Error: ${msg}`);
   }
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "");
     throw new Error(
-      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`,
+      `${config.provider} API error (${response.status}): ${errorBody.slice(0, 200)}`
     );
   }
 

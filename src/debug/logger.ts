@@ -17,7 +17,13 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 let enabled = false;
 let minLevel: LogLevel = "debug";
-let logHistory: Array<{ timestamp: string; level: LogLevel; module: string; message: string; data?: unknown }> = [];
+let logHistory: Array<{
+  timestamp: string;
+  level: LogLevel;
+  module: string;
+  message: string;
+  data?: unknown;
+}> = [];
 const MAX_HISTORY = 500;
 
 /** Check if debug mode is enabled (from localStorage). */
@@ -36,7 +42,9 @@ export function enableDebug(level: LogLevel = "debug"): void {
   try {
     localStorage.setItem("obiter-debug", "true");
     localStorage.setItem("obiter-debug-level", level);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Disable debug logging. */
@@ -45,7 +53,9 @@ export function disableDebug(): void {
   try {
     localStorage.removeItem("obiter-debug");
     localStorage.removeItem("obiter-debug-level");
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Returns whether debug logging is currently enabled. */
@@ -107,19 +117,15 @@ export function createLogger(module: string) {
     const prefix = `[Obiter:${module}]`;
     switch (level) {
       case "debug":
-        // eslint-disable-next-line no-console
         console.debug(prefix, message, data ?? "");
         break;
       case "info":
-        // eslint-disable-next-line no-console
         console.info(prefix, message, data ?? "");
         break;
       case "warn":
-        // eslint-disable-next-line no-console
         console.warn(prefix, message, data ?? "");
         break;
       case "error":
-        // eslint-disable-next-line no-console
         console.error(prefix, message, data ?? "");
         break;
     }

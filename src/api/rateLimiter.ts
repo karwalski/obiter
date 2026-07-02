@@ -89,9 +89,7 @@ export class RateLimiter {
     const bucket = this.getBucket(adapterId);
 
     if (bucket.health === "offline") {
-      throw new Error(
-        `Adapter "${adapterId}" is offline — circuit breaker open`,
-      );
+      throw new Error(`Adapter "${adapterId}" is offline — circuit breaker open`);
     }
 
     // Honour back-off
@@ -184,9 +182,7 @@ export class RateLimiter {
   private getBucket(adapterId: string): BucketState {
     const bucket = this.buckets.get(adapterId);
     if (!bucket) {
-      throw new Error(
-        `Adapter "${adapterId}" is not registered with the rate limiter`,
-      );
+      throw new Error(`Adapter "${adapterId}" is not registered with the rate limiter`);
     }
     return bucket;
   }

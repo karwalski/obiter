@@ -141,9 +141,7 @@ export class NswCaselawAdapter implements SourceAdapter {
 
       return (data.results || []).map((decision) => {
         const parsedMnc = decision.mnc ? tokeniseMNC(decision.mnc) : null;
-        const decisionUrl = decision.uri
-          ? this.buildDecisionUrl(decision.uri)
-          : undefined;
+        const decisionUrl = decision.uri ? this.buildDecisionUrl(decision.uri) : undefined;
 
         return {
           title: decision.caseTitle || decision.mnc || "Untitled",
@@ -220,9 +218,7 @@ export class NswCaselawAdapter implements SourceAdapter {
       court: mnc?.court || decision.court,
       mnc: mnc?.raw || decision.mnc,
       jurisdiction: "NSW",
-      sourceUrl: decision.uri
-        ? this.buildDecisionUrl(decision.uri)
-        : undefined,
+      sourceUrl: decision.uri ? this.buildDecisionUrl(decision.uri) : undefined,
     };
   }
 }

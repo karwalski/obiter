@@ -20,8 +20,7 @@ import { tokeniseMNC } from "../citationParser";
 import { parseRssItems } from "./fcaRssAdapter";
 
 /** RSS feed URL for WA Supreme Court judgments. */
-const WA_SC_RSS_URL =
-  "https://ecourts.justice.wa.gov.au/eCourtsPortal/Decisions/rss";
+const WA_SC_RSS_URL = "https://ecourts.justice.wa.gov.au/eCourtsPortal/Decisions/rss";
 
 /** Thirty days in milliseconds. */
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -134,10 +133,7 @@ export class WaScRssAdapter implements SourceAdapter {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private itemToMetadata(
-    item: RssItem,
-    mnc: ReturnType<typeof tokeniseMNC>,
-  ): SourceMetadata {
+  private itemToMetadata(item: RssItem, mnc: ReturnType<typeof tokeniseMNC>): SourceMetadata {
     return {
       title: item.title,
       parties: item.title.split("[")[0]?.trim() || item.title,

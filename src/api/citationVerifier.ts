@@ -113,7 +113,7 @@ function partiesFuzzyMatch(a: string, b: string): boolean {
  */
 export function calculateConfidence(
   parsed: ParsedCitation,
-  resolved: SourceMetadata | null,
+  resolved: SourceMetadata | null
 ): number {
   if (!resolved) return 0.0;
 
@@ -138,8 +138,7 @@ function scoreMNC(parsed: MNCToken, meta: SourceMetadata): number {
   if (!yearMatch && !courtMatch) return -1;
 
   // Check MNC number via the mnc string field
-  const mncMatch =
-    meta.mnc !== undefined && meta.mnc.includes(String(parsed.number));
+  const mncMatch = meta.mnc !== undefined && meta.mnc.includes(String(parsed.number));
 
   if (yearMatch && courtMatch && mncMatch) {
     // Check parties for exact vs fuzzy
@@ -165,8 +164,7 @@ function scoreMNC(parsed: MNCToken, meta: SourceMetadata): number {
 function scoreReport(parsed: ReportCitation, meta: SourceMetadata): number {
   const yearMatch = meta.year === parsed.year;
   const seriesMatch =
-    meta.reportSeries !== undefined &&
-    normalise(meta.reportSeries) === normalise(parsed.series);
+    meta.reportSeries !== undefined && normalise(meta.reportSeries) === normalise(parsed.series);
   const volumeMatch = meta.volume === parsed.volume;
   const pageMatch = meta.startingPage === parsed.page;
 
@@ -183,8 +181,7 @@ function scoreReport(parsed: ReportCitation, meta: SourceMetadata): number {
 }
 
 function scoreStatute(parsed: StatuteCitation, meta: SourceMetadata): number {
-  const titleMatch =
-    meta.title !== undefined && normalise(meta.title) === normalise(parsed.title);
+  const titleMatch = meta.title !== undefined && normalise(meta.title) === normalise(parsed.title);
   const yearMatch = meta.year === parsed.year;
   const jurisdictionMatch =
     meta.jurisdiction !== undefined &&
@@ -220,10 +217,7 @@ function scoreHansard(parsed: HansardCitation, meta: SourceMetadata): number {
 // Mismatch detail generation
 // ---------------------------------------------------------------------------
 
-function describeMismatch(
-  parsed: ParsedCitation,
-  meta: SourceMetadata,
-): string {
+function describeMismatch(parsed: ParsedCitation, meta: SourceMetadata): string {
   const diffs: string[] = [];
 
   if (parsed.type === "mnc") {
@@ -239,7 +233,10 @@ function describeMismatch(
     if (meta.year !== undefined && meta.year !== parsed.year) {
       diffs.push(`year: expected ${parsed.year}, got ${meta.year}`);
     }
-    if (meta.reportSeries !== undefined && normalise(meta.reportSeries) !== normalise(parsed.series)) {
+    if (
+      meta.reportSeries !== undefined &&
+      normalise(meta.reportSeries) !== normalise(parsed.series)
+    ) {
       diffs.push(`series: expected ${parsed.series}, got ${meta.reportSeries}`);
     }
   }
@@ -248,7 +245,10 @@ function describeMismatch(
     if (meta.title !== undefined && normalise(meta.title) !== normalise(parsed.title)) {
       diffs.push(`title: expected "${parsed.title}", got "${meta.title}"`);
     }
-    if (meta.jurisdiction !== undefined && normalise(meta.jurisdiction) !== normalise(parsed.jurisdiction)) {
+    if (
+      meta.jurisdiction !== undefined &&
+      normalise(meta.jurisdiction) !== normalise(parsed.jurisdiction)
+    ) {
       diffs.push(`jurisdiction: expected ${parsed.jurisdiction}, got ${meta.jurisdiction}`);
     }
   }
@@ -274,7 +274,7 @@ function describeMismatch(
  */
 export async function verifySingleCitation(
   citation: CitationInput,
-  adapters: SourceAdapter[],
+  adapters: SourceAdapter[]
 ): Promise<VerificationResult> {
   const baseResult: VerificationResult = {
     citationId: citation.id,
@@ -360,7 +360,7 @@ export async function verifySingleCitation(
 export async function verifyAllCitations(
   citations: CitationInput[],
   enabledAdapters: SourceAdapter[],
-  documentTitle: string,
+  documentTitle: string
 ): Promise<VerificationReport> {
   const results: VerificationResult[] = [];
 

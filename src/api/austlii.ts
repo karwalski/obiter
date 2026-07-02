@@ -129,14 +129,11 @@ function parseDocumentPage(html: string, id: string): Record<string, unknown> {
 
   // Try to extract the court name — often in a heading or meta tag.
   const courtMeta = doc.querySelector('meta[name="DC.Source"]');
-  const court = courtMeta
-    ? (courtMeta.getAttribute("content") ?? "")
-    : "";
+  const court = courtMeta ? (courtMeta.getAttribute("content") ?? "") : "";
 
   // Try to extract the date — often in a "DC.Date" or "citation_date" meta.
   const dateMeta =
-    doc.querySelector('meta[name="DC.Date"]') ??
-    doc.querySelector('meta[name="citation_date"]');
+    doc.querySelector('meta[name="DC.Date"]') ?? doc.querySelector('meta[name="citation_date"]');
   const date = dateMeta ? (dateMeta.getAttribute("content") ?? "") : "";
 
   // Try to extract parties from the page title (often "Party v Party").

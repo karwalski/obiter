@@ -354,7 +354,9 @@ async function fetchFromCdn(): Promise<CorpusCdnResponse | null> {
           const manifest = await mRes.json();
           if (manifest.version) version = manifest.version;
         }
-      } catch { /* use default version */ }
+      } catch {
+        /* use default version */
+      }
       return { version, entries: data as CorpusEntry[] };
     }
 
@@ -397,9 +399,7 @@ export async function checkCorpusUpdate(): Promise<string | null> {
  * Calls onProgress to allow UI progress bars.
  * After downloading, persists entries to IndexedDB for future sessions.
  */
-export async function downloadCorpusIndex(
-  onProgress?: CorpusProgressCallback,
-): Promise<void> {
+export async function downloadCorpusIndex(onProgress?: CorpusProgressCallback): Promise<void> {
   if (corpusStatus === "downloading") {
     return;
   }

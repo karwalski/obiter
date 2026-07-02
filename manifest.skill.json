@@ -1,0 +1,189 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "id": "933c30ed-e129-4844-9880-c4009e3969a5",
+  "version": "1.15.0",
+  "developer": {
+    "name": "Matthew Watt",
+    "websiteUrl": "https://obiter.com.au",
+    "privacyUrl": "https://obiter.com.au/privacy.html",
+    "termsOfUseUrl": "https://obiter.com.au/terms.html"
+  },
+  "name": {
+    "short": "Obiter",
+    "full": "Obiter — AGLC4 Citations"
+  },
+  "description": {
+    "short": "Insert AGLC4-formatted citations as native Word footnotes through Microsoft 365 Copilot.",
+    "full": "Obiter Skill for Copilot connects the Obiter AGLC4 citation engine to Microsoft 365 Copilot. Describe a source or paste a rough reference in Copilot and Obiter formats it to the Australian Guide to Legal Citation, 4th edition, and inserts a native Word footnote. Copilot handles the language understanding; Obiter's engine remains the authority for citation correctness, so every footnote traces to a numbered AGLC4 rule rather than being written by a language model. No separate API key is required on the Copilot path. Companion to the free, open-source Obiter Word add-in."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#2AA198",
+  "localizationInfo": {
+    "defaultLanguageTag": "en-us"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "Document.ReadWrite.User",
+          "type": "Delegated"
+        }
+      ]
+    }
+  },
+  "validDomains": [
+    "obiter.com.au"
+  ],
+  "extensions": [
+    {
+      "contractVersion": "1.0.0",
+      "requirements": {
+        "scopes": [
+          "document"
+        ],
+        "capabilities": [
+          {
+            "name": "SharedRuntime",
+            "minVersion": "1.1"
+          }
+        ]
+      },
+      "runtimes": [
+        {
+          "id": "SharedRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/sharedRuntime.html"
+          },
+          "lifetime": "long",
+          "actions": [
+            {
+              "id": "insertCitation",
+              "type": "executeFunction",
+              "displayName": "insertCitation",
+              "description": "Insert an AGLC4 citation into the Word document as a native footnote. Accepts structured citation fields (source type + data); Obiter formats them per AGLC4 and inserts a real Word footnote, reusing an existing citation for subsequent references."
+            },
+            {
+              "id": "formatCitation",
+              "type": "executeFunction",
+              "displayName": "formatCitation",
+              "description": "Return the AGLC4-formatted text of a citation without inserting it. Use to preview or to obtain the formatted string for display."
+            },
+            {
+              "id": "updateCitation",
+              "type": "executeFunction",
+              "displayName": "updateCitation",
+              "description": "Re-format and update every occurrence of an existing citation (identified by its id) from new structured fields."
+            },
+            {
+              "id": "deleteCitation",
+              "type": "executeFunction",
+              "displayName": "deleteCitation",
+              "description": "Remove a specific footnote occurrence of a citation from the document."
+            },
+            {
+              "id": "refreshFootnotes",
+              "type": "executeFunction",
+              "displayName": "refreshFootnotes",
+              "description": "Re-render every managed footnote: fix ibid and short references, renumber, and normalise separators/punctuation."
+            }
+          ]
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": [
+            "default"
+          ],
+          "tabs": [
+            {
+              "builtInTabId": "TabHome",
+              "groups": [
+                {
+                  "id": "obiterCitationGroup",
+                  "label": "Obiter",
+                  "icons": [
+                    {
+                      "size": 16,
+                      "url": "https://obiter.com.au/app/assets/icon-16.png"
+                    },
+                    {
+                      "size": 32,
+                      "url": "https://obiter.com.au/app/assets/icon-32.png"
+                    },
+                    {
+                      "size": 80,
+                      "url": "https://obiter.com.au/app/assets/icon-80.png"
+                    }
+                  ],
+                  "controls": [
+                    {
+                      "id": "obiterShowPane",
+                      "type": "button",
+                      "label": "Obiter",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Obiter",
+                        "description": "Show the Obiter task pane."
+                      },
+                      "actionId": "showTaskpane"
+                    },
+                    {
+                      "id": "obiterRefreshAll",
+                      "type": "button",
+                      "label": "Refresh All",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-refresh-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-refresh-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-refresh-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Refresh All",
+                        "description": "Rebuild citations, headings, and inline formatting."
+                      },
+                      "actionId": "refreshAll"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "copilotAgents": {
+    "declarativeAgents": [
+      {
+        "id": "obiterCitations",
+        "file": "declarativeAgent.json"
+      }
+    ]
+  }
+}

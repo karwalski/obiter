@@ -20,8 +20,7 @@ import { tokeniseMNC } from "../citationParser";
 import { parseRssItems } from "./fcaRssAdapter";
 
 /** RSS feed URL for ACT Supreme Court judgments on data.gov.au. */
-const ACT_SC_RSS_URL =
-  "https://data.gov.au/data/dataset/act-supreme-court-judgments/resource/rss";
+const ACT_SC_RSS_URL = "https://data.gov.au/data/dataset/act-supreme-court-judgments/resource/rss";
 
 /** Thirty days in milliseconds. */
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -134,10 +133,7 @@ export class ActScRssAdapter implements SourceAdapter {
   // Helpers
   // -----------------------------------------------------------------------
 
-  private itemToMetadata(
-    item: RssItem,
-    mnc: ReturnType<typeof tokeniseMNC>,
-  ): SourceMetadata {
+  private itemToMetadata(item: RssItem, mnc: ReturnType<typeof tokeniseMNC>): SourceMetadata {
     return {
       title: item.title,
       parties: item.title.split("[")[0]?.trim() || item.title,

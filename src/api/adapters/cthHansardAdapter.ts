@@ -63,9 +63,7 @@ const BASE_URL = "https://parlinfo.aph.gov.au/parlInfo/feeds/rss.w3p";
  * without requiring a DOM parser for Node/browser portability.
  */
 export function extractXmlTag(xml: string, tag: string): string {
-  const re = new RegExp(
-    `<${tag}>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</${tag}>`,
-  );
+  const re = new RegExp(`<${tag}>\\s*(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?\\s*</${tag}>`);
   const m = re.exec(xml);
   return m ? m[1].trim() : "";
 }
@@ -197,9 +195,7 @@ export class CthHansardAdapter implements SourceAdapter {
     return entries.map((entry, index) => {
       const result: LookupResult = {
         title: entry.debateTitle ?? entry.content?.slice(0, 80) ?? "Hansard entry",
-        snippet: [entry.speaker, entry.chamber, entry.date]
-          .filter(Boolean)
-          .join(" — "),
+        snippet: [entry.speaker, entry.chamber, entry.date].filter(Boolean).join(" — "),
         sourceId: entry.id ?? `cth-hansard-${index}`,
         confidence: Math.max(0, 0.8 - index * 0.05),
         sourceUrl: entry.url,

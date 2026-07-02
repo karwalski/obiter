@@ -20,7 +20,7 @@ export interface CloudSearchFilter {
   contentType?: string;
   jurisdiction?: string;
   dateFrom?: string; // ISO date
-  dateTo?: string;   // ISO date
+  dateTo?: string; // ISO date
 }
 
 export interface CloudSearchResult {
@@ -54,7 +54,7 @@ export interface CloudResolveResponse {
 export class CloudClientError extends Error {
   constructor(
     message: string,
-    public readonly statusCode?: number,
+    public readonly statusCode?: number
   ) {
     super(message);
     this.name = "CloudClientError";
@@ -73,16 +73,11 @@ export class CloudSearchClient {
 
   constructor(baseUrl?: string) {
     this.baseUrl =
-      baseUrl ??
-      (getDevicePref("cloudBaseUrl") as string | undefined) ??
-      DEFAULT_BASE_URL;
+      baseUrl ?? (getDevicePref("cloudBaseUrl") as string | undefined) ?? DEFAULT_BASE_URL;
   }
 
   /** Search the Obiter Cloud index. */
-  async search(
-    query: string,
-    filters?: CloudSearchFilter,
-  ): Promise<CloudSearchResponse> {
+  async search(query: string, filters?: CloudSearchFilter): Promise<CloudSearchResponse> {
     return this.post<CloudSearchResponse>("/api/search", {
       query,
       ...filters,
@@ -111,10 +106,7 @@ export class CloudSearchClient {
       });
 
       if (!response.ok) {
-        throw new CloudClientError(
-          `Cloud search returned ${response.status}`,
-          response.status,
-        );
+        throw new CloudClientError(`Cloud search returned ${response.status}`, response.status);
       }
 
       return (await response.json()) as T;
@@ -126,7 +118,7 @@ export class CloudSearchClient {
       }
 
       throw new CloudClientError(
-        `Cloud search network error: ${error instanceof Error ? error.message : String(error)}`,
+        `Cloud search network error: ${error instanceof Error ? error.message : String(error)}`
       );
     } finally {
       clearTimeout(timer);

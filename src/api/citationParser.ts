@@ -46,11 +46,7 @@ export interface HansardCitation {
   raw: string;
 }
 
-export type ParsedCitation =
-  | MNCToken
-  | ReportCitation
-  | StatuteCitation
-  | HansardCitation;
+export type ParsedCitation = MNCToken | ReportCitation | StatuteCitation | HansardCitation;
 
 // ---------------------------------------------------------------------------
 // Patterns
@@ -70,11 +66,11 @@ const JURISDICTION_ALTERNATION = JURISDICTIONS.join("|");
 
 /** Statute: Title YYYY (Jurisdiction) */
 const STATUTE_RE = new RegExp(
-  `([A-Z][A-Za-z\\s&'()]+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)`,
+  `([A-Z][A-Za-z\\s&'()]+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)`
 );
 const STATUTE_RE_G = new RegExp(
   `([A-Z][A-Za-z\\s&'()]+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)`,
-  "g",
+  "g"
 );
 
 /**
@@ -299,14 +295,11 @@ const SOLO_CONNECTORS = new Set(["as enacted", "as at"]);
  * which also disambiguates "amended by" from "later amended by" / "as amended
  * by" (only the intended phrase immediately follows the comma).
  */
-const LEG_HISTORY_CONNECTOR_RE = new RegExp(
-  `,\\s*(${LEG_HISTORY_CONNECTORS.join("|")})\\b`,
-  "i",
-);
+const LEG_HISTORY_CONNECTOR_RE = new RegExp(`,\\s*(${LEG_HISTORY_CONNECTORS.join("|")})\\b`, "i");
 
 /** Single statute reference: Title [ (No N) ] YYYY (Jurisdiction) [pinpoint]. */
 const STATUTE_REF_RE = new RegExp(
-  `^\\s*(.+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)\\s*(.*?)\\s*$`,
+  `^\\s*(.+?)\\s+(\\d{4})\\s+\\((${JURISDICTION_ALTERNATION})\\)\\s*(.*?)\\s*$`
 );
 
 /**
@@ -354,9 +347,7 @@ export function parseStatuteRef(text: string): StatuteRef | null {
  *
  * @returns A `LegislativeHistoryCitation`, or `null`.
  */
-export function parseLegislativeHistory(
-  text: string,
-): LegislativeHistoryCitation | null {
+export function parseLegislativeHistory(text: string): LegislativeHistoryCitation | null {
   // Drop a single trailing sentence full stop (AGLC4 uses none in citations).
   const raw = text.trim().replace(/\.$/, "");
 

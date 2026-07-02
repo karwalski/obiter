@@ -174,7 +174,7 @@ export function getAllAdapterInstances(): SourceAdapter[] {
 export async function searchViaAdapters(
   query: string,
   contentType: ContentType,
-  jurisdiction?: string,
+  jurisdiction?: string
 ): Promise<LookupResult[]> {
   initialiseAdapters();
 
@@ -234,7 +234,7 @@ export async function searchViaAdapters(
         }
         return [] as LookupResult[];
       }
-    }),
+    })
   );
 
   // Merge and deduplicate
@@ -262,10 +262,7 @@ export async function searchViaAdapters(
  * Sort adapter instances according to a preferred order list.
  * Adapters not in the preference list are appended at the end.
  */
-function sortByPreference(
-  adapters: SourceAdapter[],
-  preferredIds: string[],
-): SourceAdapter[] {
+function sortByPreference(adapters: SourceAdapter[], preferredIds: string[]): SourceAdapter[] {
   const idxMap = new Map<string, number>();
   for (let i = 0; i < preferredIds.length; i++) {
     idxMap.set(preferredIds[i], i);

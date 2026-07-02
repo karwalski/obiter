@@ -33,11 +33,7 @@ export {
   importPreferences,
   resetRegistry,
 } from "./sourcePreferences";
-export type {
-  AdapterKind,
-  AdapterMeta,
-  ContentType,
-} from "./sourcePreferences";
+export type { AdapterKind, AdapterMeta, ContentType } from "./sourcePreferences";
 export {
   registerAdapter as registerSourceAdapter,
   getAdapter,
@@ -53,9 +49,11 @@ export type {
   HealthStatus as RegistryHealthStatus,
   SourceAdapterDescriptor,
 } from "./sourceRegistry";
+export { isMasterEnabled, setMasterEnabled } from "./sourceRegistry";
 export {
-  isMasterEnabled,
-  setMasterEnabled,
-} from "./sourceRegistry";
-export { searchViaAdapters, initialiseAdapters, getAdapterInstance, getAllAdapterInstances } from "./adapterSearch";
+  searchViaAdapters,
+  initialiseAdapters,
+  getAdapterInstance,
+  getAllAdapterInstances,
+} from "./adapterSearch";
 export { saveKey, getKey, removeKey, hasKey } from "./keyVault";
