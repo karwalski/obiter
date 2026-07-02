@@ -2,10 +2,11 @@
  * Obiter — AGLC4 Word Add-in
  * Copyright (C) 2026. Licensed under GPLv3.
  *
- * Tests for AGLC4 Rule 1.8.3 — Latin and Foreign Word Italicisation
+ * Tests for AGLC4 Rule 1.8.3 — Italicisation of Foreign Words (PDF p 52)
  *
- * Validates the Latin terms data module: the dictionary of terms to
- * italicise, the exceptions set, and the sorted output helper.
+ * Validates the Latin terms data module against the rule's own two lists:
+ * the 29 terms generally NOT italicised (Macquarie-listed) and the 7 terms
+ * generally italicised.
  */
 
 import {
@@ -15,90 +16,82 @@ import {
 } from "../../src/engine/data/latin-terms";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Rule 1.8.3 — Latin Terms Dictionary
+// Rule 1.8.3 — the rule's "generally italicised" list (7 terms)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("Rule 1.8.3 — Latin terms data", () => {
-  test("italicised set contains key Latin legal terms", () => {
-    const expected = [
-      "ab initio",
-      "actus reus",
-      "amicus curiae",
-      "certiorari",
-      "corpus delicti",
-      "de facto",
-      "de jure",
-      "de novo",
-      "dictum",
-      "dicta",
-      "ejusdem generis",
-      "ex officio",
-      "ex parte",
-      "functus officio",
-      "habeas corpus",
-      "in camera",
-      "in personam",
-      "in re",
-      "in rem",
-      "inter alia",
-      "intra vires",
-      "lex fori",
-      "lis pendens",
-      "locus standi",
-      "mandamus",
-      "mens rea",
-      "mutatis mutandis",
-      "obiter dictum",
-      "obiter dicta",
-      "per curiam",
-      "per incuriam",
-      "per se",
-      "prima facie",
-      "pro bono",
-      "qua",
-      "quantum meruit",
-      "ratio decidendi",
-      "res ipsa loquitur",
-      "res judicata",
-      "stare decisis",
-      "sub judice",
-      "sui generis",
-      "ultra vires",
-      "volenti non fit injuria",
-    ];
+/** The rule's own "generally italicised" list, verbatim (PDF p 52). */
+const RULE_ITALICISED = [
+  "contra proferentem",
+  "ex ante",
+  "jus ad bellum",
+  "lex fori",
+  "ne bis in idem",
+  "quantum meruit",
+  "stare decisis",
+];
 
-    for (const term of expected) {
+/** The rule's own "generally not italicised" list, verbatim (PDF p 52). */
+const RULE_NOT_ITALICISED = [
+  "ab initio",
+  "ad hoc",
+  "ad idem",
+  "amicus curiae",
+  "bona fide",
+  "caveat emptor",
+  "de facto",
+  "de jure",
+  "et al",
+  "ex gratia",
+  "ex parte",
+  "ex post facto",
+  "habeas corpus",
+  "inter alia",
+  "laissez-faire",
+  "non-refoulement",
+  "non est factum",
+  "obiter dictum",
+  "per se",
+  "prima facie",
+  "quid pro quo",
+  "raison d'être",
+  "ratio decidendi",
+  "res ipsa loquitur",
+  "sui generis",
+  "terra nullius",
+  "ultra vires",
+  "vice versa",
+  "vis-a-vis",
+];
+
+describe("Rule 1.8.3 — Latin terms data", () => {
+  test("italicised set contains all 7 terms of the rule's italicise list", () => {
+    for (const term of RULE_ITALICISED) {
       expect(LATIN_TERMS_ITALICISED.has(term)).toBe(true);
     }
   });
 
-  test("italicised set does not contain common English terms", () => {
-    const notExpected = [
-      "ad hoc",
-      "caveat",
-      "eg",
-      "et al",
-      "etc",
-      "ibid",
-      "ie",
-      "per",
-      "per annum",
-      "re",
-      "sic",
-      "status quo",
-      "versus",
-      "vice versa",
-      "viz",
-    ];
+  test("italicised set contains NONE of the rule's 29 not-italicised terms", () => {
+    for (const term of RULE_NOT_ITALICISED) {
+      expect(LATIN_TERMS_ITALICISED.has(term)).toBe(false);
+    }
+  });
 
-    for (const term of notExpected) {
+  test("exceptions set contains all 29 terms of the rule's not-italicised list", () => {
+    for (const term of RULE_NOT_ITALICISED) {
+      expect(LATIN_TERMS_EXCEPTIONS.has(term)).toBe(true);
+    }
+  });
+
+  test("exceptions set contains variants sharing a listed term's treatment", () => {
+    // Plural/noun forms of listed terms take the listed form's treatment.
+    for (const term of ["obiter dicta", "dictum", "dicta", "bona fides"]) {
+      expect(LATIN_TERMS_EXCEPTIONS.has(term)).toBe(true);
       expect(LATIN_TERMS_ITALICISED.has(term)).toBe(false);
     }
   });
 
   test("exceptions set contains common English usage terms", () => {
     const expected = [
-      "ad hoc",
       "caveat",
       "eg",
       "et al",
@@ -117,6 +110,13 @@ describe("Rule 1.8.3 — Latin terms data", () => {
 
     for (const term of expected) {
       expect(LATIN_TERMS_EXCEPTIONS.has(term)).toBe(true);
+    }
+  });
+
+  test("exceptions set never appears in the italicised set", () => {
+    const notExpected = [...RULE_NOT_ITALICISED, "ad hoc", "etc", "ibid", "status quo"];
+    for (const term of notExpected) {
+      expect(LATIN_TERMS_ITALICISED.has(term)).toBe(false);
     }
   });
 
@@ -150,14 +150,6 @@ describe("Rule 1.8.3 — getLatinTermsSorted", () => {
     for (const term of sorted) {
       expect(LATIN_TERMS_ITALICISED.has(term)).toBe(true);
     }
-  });
-
-  test("multi-word phrases appear before their single-word components", () => {
-    const sorted = getLatinTermsSorted();
-    const obiterDictumIdx = sorted.indexOf("obiter dictum");
-    const dictumIdx = sorted.indexOf("dictum");
-
-    expect(obiterDictumIdx).toBeLessThan(dictumIdx);
   });
 
   test("longer compound terms appear before shorter overlapping terms", () => {

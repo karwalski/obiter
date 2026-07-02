@@ -6,11 +6,7 @@
 /* global Word, Office */
 
 /** Tags used by Obiter for non-citation content controls. */
-const NON_CITATION_TAG_PREFIXES = [
-  "obiter-heading-",
-  "obiter-attribution",
-  "obiter-fn",
-];
+const NON_CITATION_TAG_PREFIXES = ["obiter-heading-", "obiter-attribution", "obiter-fn"];
 
 /** Returns true if the tag looks like a citation ID (UUID), not an internal Obiter tag. */
 function isCitationTag(tag: string): boolean {
@@ -44,7 +40,7 @@ let selectionHandlerReference: (() => void) | null = null;
  *   user selects/clicks a citation content control.
  */
 export async function registerSelectionHandler(
-  onCitationSelected: CitationSelectedCallback,
+  onCitationSelected: CitationSelectedCallback
 ): Promise<void> {
   // Clean up any existing handler before registering a new one.
   if (selectionHandlerReference) {
@@ -61,7 +57,7 @@ export async function registerSelectionHandler(
 
         // Walk through all content controls at the selection and fire the
         // callback for the first one that has a citation tag (not heading/branding tags).
-        for (const cc of (contentControls.items ?? [])) {
+        for (const cc of contentControls.items ?? []) {
           if (cc.tag && isCitationTag(cc.tag)) {
             onCitationSelected(cc.tag, cc.title);
             return;
@@ -91,22 +87,17 @@ export async function registerSelectionHandler(
       (result) => {
         if (result.status === Office.AsyncResultStatus.Succeeded) {
           selectionHandlerReference = () => {
-            Office.context.document.removeHandlerAsync(
-              Office.EventType.DocumentSelectionChanged,
-              { handler },
-            );
+            Office.context.document.removeHandlerAsync(Office.EventType.DocumentSelectionChanged, {
+              handler,
+            });
           };
           resolve();
         } else {
           reject(
-            new Error(
-              result.error
-                ? result.error.message
-                : "Failed to register selection handler",
-            ),
+            new Error(result.error ? result.error.message : "Failed to register selection handler")
           );
         }
-      },
+      }
     );
   });
 }

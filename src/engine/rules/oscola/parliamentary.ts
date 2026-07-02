@@ -139,9 +139,7 @@ export function formatOscolaHansard(data: OscolaHansardData): FormattedRun[] {
  *     seriesPrefix: "Cm", paperNumber: "7967", year: 2010,
  *   })
  */
-export function formatOscolaCommandPaper(
-  data: OscolaCommandPaperData,
-): FormattedRun[] {
+export function formatOscolaCommandPaper(data: OscolaCommandPaperData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author
@@ -179,9 +177,7 @@ export function formatOscolaCommandPaper(
  *     reportNumber: 247, year: 1997,
  *   })
  */
-export function formatOscolaLawCommission(
-  data: OscolaLawCommissionData,
-): FormattedRun[] {
+export function formatOscolaLawCommission(data: OscolaLawCommissionData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // "Law Commission, "
@@ -219,7 +215,7 @@ export function formatOscolaLawCommission(
  *   })
  */
 export function formatOscolaParliamentaryReport(
-  data: OscolaParliamentaryReportData,
+  data: OscolaParliamentaryReportData
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 

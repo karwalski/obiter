@@ -10,9 +10,7 @@ import { useState, useEffect } from "react";
  * Updates reactively when online/offline state changes.
  */
 export function useOnlineStatus(): boolean {
-  const [online, setOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
+  const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
 
   useEffect(() => {
     const goOnline = () => setOnline(true);

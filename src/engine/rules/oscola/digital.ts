@@ -65,9 +65,7 @@ export function formatOscolaWebsite(data: {
   runs.push({ text: singleQuote(data.title) });
 
   // Parenthetical: (Website Name, Date) or (Website Name)
-  const parenthetical = data.date
-    ? `${data.websiteName}, ${data.date}`
-    : data.websiteName;
+  const parenthetical = data.date ? `${data.websiteName}, ${data.date}` : data.websiteName;
   runs.push({ text: ` (${parenthetical})` });
 
   runs.push({ text: ` ${angleUrl(data.url)}` });

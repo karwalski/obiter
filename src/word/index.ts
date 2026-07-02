@@ -34,13 +34,13 @@ export type { CitationSelectedCallback } from "./selectionHandler";
 
 export { applyAglc4Styles, getHeadingPrefix, toRoman } from "./styles";
 
-export { getStyleInstallPath, isAglc4StyleInstalled, getInstallInstructions } from "./styleInstaller";
-
 export {
-  getWordSources,
-  mapWordSourceToObiter,
-  importWordSources,
-} from "./sourceImporter";
+  getStyleInstallPath,
+  isAglc4StyleInstalled,
+  getInstallInstructions,
+} from "./styleInstaller";
+
+export { getWordSources, mapWordSourceToObiter, importWordSources } from "./sourceImporter";
 export type { WordSource } from "./sourceImporter";
 
 export {

@@ -10,131 +10,252 @@ import { formatPinpoint } from "../general/pinpoints";
 // ─── CASE-015: Identifying Judicial Officers (Rules 2.4.1–2.4.5) ────────────
 
 /**
- * Pluralise a judicial title abbreviation when shared by multiple officers.
- *
- * AGLC4 Rule 2.4.2: Where two or more judicial officers share the same title,
- * the plural abbreviation is used after the last name (e.g. 'JJ' instead of 'J').
+ * AGLC4 Rule 2.4.1 plural forms from the judicial-office table. Only the
+ * offices listed here have a plural abbreviation; per Rule 2.4.5, where
+ * there is no plural form the singular is repeated after each name.
  */
-function pluraliseTitle(title: string): string {
-  const plurals: Record<string, string> = {
-    J: "JJ",
-    JA: "JJA",
-    AJA: "AJJA",
-  };
-  return plurals[title] ?? title;
+const PLURAL_TITLES: Record<string, string> = {
+  J: "JJ",
+  JA: "JJA",
+  AJA: "AJJA",
+  AJ: "AJJ",
+  SJ: "SJJ",
+};
+
+/**
+ * AGLC4 Rule 2.4.1: offices marked with an asterisk in the rule's table
+ * (Commissioner, Judge, Magistrate, Master) always appear in full
+ * *before* the officer's name (ex 93: 'Commissioner Buss'; ex 117:
+ * 'Judge Lacava').
+ */
+const PRE_NAME_TITLES: ReadonlySet<string> = new Set([
+  "Commissioner",
+  "Judge",
+  "Magistrate",
+  "Master",
+]);
+
+/**
+ * A judicial officer reference per AGLC4 Rules 2.4.1–2.4.5.
+ */
+export interface JudicialOfficerRef {
+  /** Surname (with first name/initials only where needed, Rule 2.4.1). */
+  name: string;
+  /** Office abbreviation/title from the Rule 2.4.1 table (eg 'J', 'CJ', 'Commissioner'). */
+  title: string;
+  /**
+   * - `majority` (default): part of the main listing.
+   * - `agreeing` / `dissenting`: Rule 2.4.2, rendered inside the same
+   *   parentheses after the main listing.
+   * - `for_the_court`: Rule 2.4.3, 'for the Court' follows the name.
+   * - `during_argument`: Rule 2.4.4, separate '(during argument)' parentheses.
+   * - `concurring`: legacy alias retained for stored data; Rule 2.4.3
+   *   directs separate concurring judgments to the 'agreeing' form.
+   */
+  role?:
+    | "majority"
+    | "concurring"
+    | "dissenting"
+    | "agreeing"
+    | "during_argument"
+    | "for_the_court";
+  /**
+   * Rule 2.4.2: pinpoint to a separate agreeing (or dissenting) judgment,
+   * rendered as 'agreeing at «pinpoint»' (ex 96: 'Webb J agreeing at 591').
+   */
+  agreeingAt?: string;
+  /**
+   * Rule 2.4.5: officers share a plural title only when they shared a
+   * *joint judgment*. Officers with the same title but different
+   * `judgmentGroup` values wrote separate judgments and keep the
+   * singular title each (fn 106: 'Heydon J, Kirby J and Crennan J').
+   * When omitted, same-title officers are treated as a joint judgment.
+   */
+  judgmentGroup?: string;
+  /**
+   * Rule 2.4.3: the judicial officer(s) on whose behalf the judgment was
+   * delivered, rendered as 'for «names»' (ex 101: 'Hudson J for
+   * Gavan Duffy and Hudson JJ'). The deliverer's own name appears in
+   * this list when the judgment is also on their behalf.
+   */
+  onBehalfOf?: Array<{ name: string; title: string }>;
 }
 
 /**
- * Join a list of names with commas and 'and' before the last element.
+ * Render one group of officers who shared a joint judgment as "name
+ * units" — the title attached per Rules 2.4.1/2.4.5:
+ * - pre-name titles (asterisked in the 2.4.1 table) precede each name;
+ * - a plural title attaches once, after the last name of the group;
+ * - titles with no plural form repeat after each name (Rule 2.4.5).
  */
-function joinNames(names: string[]): string {
+function groupNameUnits(names: string[], title: string): string[] {
+  if (!title) {
+    return [...names];
+  }
+  if (PRE_NAME_TITLES.has(title)) {
+    return names.map((n) => `${title} ${n}`);
+  }
   if (names.length === 1) {
-    return names[0];
+    return [`${names[0]} ${title}`];
   }
-  if (names.length === 2) {
-    return `${names[0]} and ${names[1]}`;
+  const plural = PLURAL_TITLES[title];
+  if (plural) {
+    return [...names.slice(0, -1), `${names[names.length - 1]} ${plural}`];
   }
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return names.map((n) => `${n} ${title}`);
+}
+
+/**
+ * Join name units with commas and a single 'and' before the last unit
+ * (ex 94: 'Maxwell P, Buchanan, Nettle, Neave and Redlich JJA').
+ */
+function joinUnits(units: string[]): string {
+  if (units.length === 1) {
+    return units[0];
+  }
+  return `${units.slice(0, -1).join(", ")} and ${units[units.length - 1]}`;
+}
+
+interface OfficerGroup {
+  names: string[];
+  title: string;
+  role: "majority" | "concurring" | "dissenting" | "agreeing" | "for_the_court";
+  agreeingAt?: string;
+  judgmentGroup?: string;
+  onBehalfOf?: Array<{ name: string; title: string }>;
 }
 
 /**
  * Format judicial officer references in a parenthetical according to
  * AGLC4 Rules 2.4.1–2.4.5.
  *
- * @remarks AGLC4 Rule 2.4.1: The names of judicial officers may be included in
- * a parenthetical after the citation. The abbreviated judicial title follows the
- * officer's surname.
+ * @remarks AGLC4 Rule 2.4.1: judicial officers are identified in
+ * parentheses after the pinpoint; the abbreviated office follows the
+ * surname, except asterisked offices (Commissioner, Judge, Magistrate,
+ * Master) which appear in full before the name. 'Per' is not used.
  *
- * @remarks AGLC4 Rule 2.4.2: Where two or more judicial officers share the same
- * title, only the last officer listed carries the title, which is pluralised.
- * E.g. 'Gummow, Hayne and Heydon JJ'.
+ * @remarks AGLC4 Rule 2.4.2: agreement (and, where important, dissent)
+ * is recorded inside the same parentheses, comma-separated, each
+ * agreeing officer separately with an optional 'at' pinpoint
+ * (ex 96: '(Kitto J, Webb J agreeing at 591)').
  *
- * @remarks AGLC4 Rule 2.4.3: Dissenting and concurring judgments are indicated
- * after the judicial title. E.g. 'Kirby J dissenting'.
+ * @remarks AGLC4 Rule 2.4.3: a judgment of the Court takes 'for the
+ * Court' after the deliverer's name (ex 100); a judgment delivered on
+ * behalf of other officers takes 'for' plus their names (ex 101).
  *
- * @remarks AGLC4 Rule 2.4.4: Where a judge agrees with the majority but writes
- * a separate judgment, 'agreeing' is used.
+ * @remarks AGLC4 Rule 2.4.4: statements made during argument take
+ * '(during argument)' as a separate parenthetical; 'Arguendo' is not used.
  *
- * @remarks AGLC4 Rule 2.4.4: When citing a statement made during argument,
- * the words 'during argument' should be included in separate parentheses
- * after the judicial officer's or counsel's name. 'Arguendo' should not
- * be used.
+ * @remarks AGLC4 Rule 2.4.5: the plural abbreviation is used only for a
+ * joint judgment; officers who wrote separate judgments keep the
+ * singular title each, even when they agree.
  *
- * @param officers - Array of judicial officers with name, title, and optional role
- * @returns FormattedRun[] representing the parenthetical
+ * @param officers - Array of judicial officers
+ * @returns FormattedRun[] representing the parenthetical(s)
  */
-export function formatJudicialOfficers(
-  officers: Array<{
-    name: string;
-    title: string;
-    role?: "majority" | "concurring" | "dissenting" | "agreeing" | "during_argument";
-  }>,
-): FormattedRun[] {
+export function formatJudicialOfficers(officers: JudicialOfficerRef[]): FormattedRun[] {
   if (officers.length === 0) {
     return [];
   }
 
-  // Separate "during argument" officers — they render in separate parentheses
-  // per Rule 2.4.4.
+  // "During argument" officers render in separate parentheses (Rule 2.4.4).
   const duringArgument = officers.filter((o) => o.role === "during_argument");
   const regular = officers.filter((o) => o.role !== "during_argument");
 
-  // Group regular officers by title and role for shared-title collapsing.
-  // Officers with dissenting/concurring/agreeing roles are rendered separately
-  // since they need a role suffix.
-  const groups: Array<{
-    names: string[];
-    title: string;
-    role?: "majority" | "concurring" | "dissenting" | "agreeing";
-  }> = [];
-
+  // Group officers who shared a joint judgment: same role, same title,
+  // same judgmentGroup and (for agreeing officers) the same 'at'
+  // pinpoint (ex 97: 'Brennan, Deane and Gaudron JJ agreeing at 570').
+  // Officers carrying 'for the Court'/'for …' render individually.
+  const groups: OfficerGroup[] = [];
   for (const officer of regular) {
-    const effectiveRole = (officer.role ?? "majority") as "majority" | "concurring" | "dissenting" | "agreeing";
-
-    // Only group majority officers together by title; others render individually.
-    if (effectiveRole === "majority") {
-      const existing = groups.find(
-        (g) => g.title === officer.title && (g.role === "majority" || g.role === undefined),
-      );
-      if (existing) {
-        existing.names.push(officer.name);
-      } else {
-        groups.push({ names: [officer.name], title: officer.title, role: effectiveRole });
-      }
+    const role = (officer.role ?? "majority") as OfficerGroup["role"];
+    const mergeable = !officer.onBehalfOf && role !== "for_the_court";
+    const existing = mergeable
+      ? groups.find(
+          (g) =>
+            g.role === role &&
+            g.title === officer.title &&
+            g.judgmentGroup === officer.judgmentGroup &&
+            g.agreeingAt === officer.agreeingAt &&
+            !g.onBehalfOf
+        )
+      : undefined;
+    if (existing) {
+      existing.names.push(officer.name);
     } else {
-      groups.push({ names: [officer.name], title: officer.title, role: effectiveRole });
+      groups.push({
+        names: [officer.name],
+        title: officer.title,
+        role,
+        agreeingAt: officer.agreeingAt,
+        judgmentGroup: officer.judgmentGroup,
+        onBehalfOf: officer.onBehalfOf,
+      });
     }
+  }
+
+  // Main listing (majority + for-the-court groups): all name units are
+  // joined with commas and a single 'and' before the final unit of the
+  // whole listing (ex 94, ex 95).
+  const mainGroups = groups.filter((g) => g.role === "majority" || g.role === "for_the_court");
+  const suffixGroups = groups.filter((g) => g.role !== "majority" && g.role !== "for_the_court");
+
+  const segments: string[] = [];
+
+  if (mainGroups.length > 0) {
+    const units: string[] = [];
+    for (const group of mainGroups) {
+      const groupUnits = groupNameUnits(group.names, group.title);
+      if (group.role === "for_the_court") {
+        groupUnits[groupUnits.length - 1] += " for the Court";
+      } else if (group.onBehalfOf && group.onBehalfOf.length > 0) {
+        // Rule 2.4.3: 'for' followed by the officers on whose behalf the
+        // judgment is delivered, grouped/pluralised per Rule 2.4.5.
+        const behalfGroups: Array<{ names: string[]; title: string }> = [];
+        for (const b of group.onBehalfOf) {
+          const bg = behalfGroups.find((g) => g.title === b.title);
+          if (bg) {
+            bg.names.push(b.name);
+          } else {
+            behalfGroups.push({ names: [b.name], title: b.title });
+          }
+        }
+        const behalfUnits = behalfGroups.flatMap((g) => groupNameUnits(g.names, g.title));
+        groupUnits[groupUnits.length - 1] += ` for ${joinUnits(behalfUnits)}`;
+      }
+      units.push(...groupUnits);
+    }
+    segments.push(joinUnits(units));
+  }
+
+  // Agreement/dissent segments follow inside the same parentheses,
+  // comma-separated (Rule 2.4.2).
+  for (const group of suffixGroups) {
+    const units = groupNameUnits(group.names, group.title);
+    let segment = joinUnits(units);
+    if (group.role === "dissenting") {
+      segment += " dissenting";
+    } else if (group.role === "concurring") {
+      segment += " concurring";
+    } else {
+      segment += " agreeing";
+    }
+    if (group.agreeingAt) {
+      segment += ` at ${group.agreeingAt}`;
+    }
+    segments.push(segment);
   }
 
   const runs: FormattedRun[] = [];
-
-  // Build the parenthetical content for regular officers.
-  if (groups.length > 0) {
-    const segments: string[] = [];
-
-    for (const group of groups) {
-      const titleStr = group.names.length > 1 ? pluraliseTitle(group.title) : group.title;
-      const namesStr = joinNames(group.names);
-      let segment = `${namesStr} ${titleStr}`;
-
-      if (group.role === "dissenting") {
-        segment += " dissenting";
-      } else if (group.role === "concurring") {
-        segment += " concurring";
-      } else if (group.role === "agreeing") {
-        segment += " agreeing";
-      }
-
-      segments.push(segment);
-    }
-
-    const inner = segments.join("; ");
-    runs.push({ text: `(${inner})` });
+  if (segments.length > 0) {
+    runs.push({ text: `(${segments.join(", ")})` });
   }
 
-  // Append "during argument" officers in separate parentheses per Rule 2.4.4.
+  // "During argument" officers in separate parentheses per Rule 2.4.4.
   for (const officer of duringArgument) {
-    runs.push({ text: ` (${officer.name} ${officer.title}) (during argument)` });
+    const unit = groupNameUnits([officer.name], officer.title)[0];
+    const prefix = runs.length > 0 ? " " : "";
+    runs.push({ text: `${prefix}(${unit}) (during argument)` });
   }
 
   return runs;
@@ -155,7 +276,7 @@ export function formatJudicialOfficers(
  * @returns FormattedRun[] representing the case history appendage
  */
 export function formatCaseHistory(
-  entries: Array<{ phrase: string; citation: FormattedRun[] }>,
+  entries: Array<{ phrase: string; citation: FormattedRun[] }>
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -172,9 +293,17 @@ export function formatCaseHistory(
 /**
  * Format an administrative decision citation according to AGLC4 Rule 2.6.1.
  *
- * @remarks AGLC4 Rule 2.6.1: Administrative decisions are cited in the form:
- * 'Re [Party] and [Department] (Year) Volume Report Series Starting Page'.
- * 'Re' is italicised.
+ * @remarks AGLC4 Rule 2.6.1: Administrative decisions and determinations
+ * are cited in the same way as reported and unreported cases, except:
+ * party names are often separated by 'and' rather than 'v' (rendered as
+ * it appears on the decision); the title may be a number or code rather
+ * than party names (ex 109: 'AAT Case 7422' — no 'Re'); and
+ * decision-makers may bear the titles 'Member', 'Deputy Member' or
+ * 'Senior Member', which precede the name.
+ *
+ * A 'Re' prefix is added only for the two-party 'Re X and Y' form
+ * (ex 110); single-title decisions (number/code titles, 'Application by
+ * …') are emitted as given.
  *
  * @param data - Administrative decision metadata
  * @returns FormattedRun[] representing the formatted citation
@@ -186,22 +315,29 @@ export function formatAdministrativeDecision(data: {
   volume?: number;
   reportSeries: string;
   startingPage: number;
+  /** Pinpoint after the starting page, comma-separated (ex 109: ', 3456 [28]'). */
+  pinpoint?: Pinpoint;
+  /** Separator between the parties as it appears on the decision. Defaults to 'and'. */
+  separator?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   const party = (data.party ?? "").trim();
   const department = (data.department ?? "").trim();
-  // Avoid emitting "Re Re ..." when the user already typed the "Re " prefix.
+  // 'Re' applies to the two-party 'Re X and Y' form only; number/code
+  // titles (ex 109) and 'Application by …' titles (ex 111) take no
+  // prefix. Avoid "Re Re ..." when the user already typed the prefix.
   const hasRePrefix = /^re\s/i.test(party);
-  if (!hasRePrefix) {
+  if (department && !hasRePrefix) {
     runs.push({ text: "Re ", italic: true });
   }
   runs.push({ text: party, italic: true });
   // Only emit " and Department" when there actually IS a department —
   // otherwise we render the broken "X and  (0)  0" trail for matters
-  // with no opposing party.
+  // with no opposing party. The separator renders as it appears on the
+  // decision itself (Rule 2.6.1) — usually 'and', occasionally 'v'.
   if (department) {
-    runs.push({ text: " and ", italic: true });
+    runs.push({ text: ` ${(data.separator ?? "and").trim()} `, italic: true });
     runs.push({ text: department, italic: true });
   }
 
@@ -221,27 +357,89 @@ export function formatAdministrativeDecision(data: {
     runs.push({ text: ` ${segments.join(" ")}` });
   }
 
+  // Pinpoint, comma-separated as for reported cases (ex 109:
+  // '(1991) 22 ATR 3450, 3456 [28]').
+  if (data.pinpoint) {
+    runs.push({ text: ", " });
+    runs.push(...formatPinpoint(data.pinpoint));
+  }
+
   return runs;
 }
 
 /**
  * Format an arbitration citation according to AGLC4 Rule 2.6.2.
  *
- * @remarks AGLC4 Rule 2.6.2: Arbitration citations include the parties,
- * the type of arbitration, and the award details.
+ * @remarks AGLC4 Rule 2.6.2: Arbitral decisions are cited as:
+ * `«Case Name» («Award Description», «Forum», «Case/Award No #», «Full Date») «Pinpoint»`.
+ * Only information appearing on the decision is included. If the
+ * parties' names are omitted from the decision, the other elements are
+ * included without parentheses, and a comma separates the full date from
+ * any pinpoint (with party names, no punctuation intervenes between the
+ * closing parenthesis and the pinpoint). Where there is no forum, the
+ * arbitrator's name may be substituted (ex 112). A reproduction in a
+ * report series, book or periodical is appended after 'reported in'.
+ *
+ * The deprecated `arbitrationType`/`awardDetails` fields preserve the
+ * legacy output for stored data that predates the template fields.
  *
  * @param data - Arbitration metadata
  * @returns FormattedRun[] representing the formatted citation
  */
 export function formatArbitration(data: {
-  parties: string;
-  arbitrationType: string;
-  awardDetails: string;
+  parties?: string;
+  /** Award description as it appears (eg 'Award', 'Final Award'). */
+  awardDescription?: string;
+  /** The arbitral forum; the arbitrator's name(s) where there is none. */
+  forum?: string;
+  /** Case/award number with the forum's own designation (eg 'Case No 1930'). */
+  caseNumber?: string;
+  /** Full date of the decision. */
+  date?: string;
+  /** Page/paragraph pinpoint (Rules 1.1.6–1.1.7), eg '[10.2]'. */
+  pinpoint?: string;
+  /** Citation of the reproduction, appended after 'reported in'. */
+  reportedIn?: FormattedRun[];
+  /** @deprecated Legacy field; use awardDescription/forum/caseNumber/date. */
+  arbitrationType?: string;
+  /** @deprecated Legacy field; use awardDescription/forum/caseNumber/date. */
+  awardDetails?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  runs.push({ text: data.parties, italic: true });
-  runs.push({ text: ` (${data.arbitrationType}) ${data.awardDetails}` });
+  const detailParts = [data.awardDescription, data.forum, data.caseNumber, data.date].filter(
+    (p): p is string => Boolean(p && p.trim())
+  );
+
+  // Legacy path: no template fields supplied.
+  if (detailParts.length === 0 && (data.arbitrationType || data.awardDetails)) {
+    runs.push({ text: data.parties ?? "", italic: true });
+    runs.push({ text: ` (${data.arbitrationType ?? ""}) ${data.awardDetails ?? ""}` });
+    return runs;
+  }
+
+  const details = detailParts.join(", ");
+
+  if (data.parties && data.parties.trim()) {
+    runs.push({ text: data.parties.trim(), italic: true });
+    runs.push({ text: ` (${details})` });
+    // With party names: no punctuation between ')' and the pinpoint.
+    if (data.pinpoint) {
+      runs.push({ text: ` ${data.pinpoint}` });
+    }
+  } else {
+    // Without party names: elements without parentheses; a comma
+    // separates the full date from any pinpoint (ex 115).
+    runs.push({ text: details });
+    if (data.pinpoint) {
+      runs.push({ text: `, ${data.pinpoint}` });
+    }
+  }
+
+  if (data.reportedIn && data.reportedIn.length > 0) {
+    runs.push({ text: " reported in " });
+    runs.push(...data.reportedIn);
+  }
 
   return runs;
 }
@@ -249,10 +447,36 @@ export function formatArbitration(data: {
 // ─── CASE-018: Transcripts of Proceedings (Rules 2.7.1–2.7.2) ──────────────
 
 /**
+ * A transcript pinpoint (page or line numbers) with an optional speaker.
+ * Rules 2.7.1–2.7.2: after a pinpoint, a speaker's name may be included
+ * (formatted per Rule 2.4) but '(during argument)' must not be added.
+ */
+export interface TranscriptPinpoint {
+  /** Page or line number(s), eg '31' or '2499–517'. */
+  value: string;
+  /** Speaker name as formatted per Rule 2.4, eg 'PJ Bick QC'. */
+  speaker?: string;
+}
+
+/**
+ * Render transcript pinpoint/speaker pairs, eg '31 (PJ Bick QC)' or
+ * '2499–517 (Callinan J and JBR Beach QC), 2589–93 (McHugh J)'.
+ */
+function renderTranscriptPinpoints(pinpoints: TranscriptPinpoint[]): string {
+  return pinpoints.map((p) => (p.speaker ? `${p.value} (${p.speaker})` : p.value)).join(", ");
+}
+
+/**
  * Format a general transcript of proceedings according to AGLC4 Rule 2.7.1.
  *
- * @remarks AGLC4 Rule 2.7.1: Transcripts of proceedings are cited in the form:
- * 'Transcript of Proceedings, Case Name (Court, Proceeding Number, Full Date)'.
+ * @remarks AGLC4 Rule 2.7.1: Transcripts of proceedings are cited as:
+ * `Transcript of Proceedings, «Case Name» («Court», «Proceeding Number», «Judicial Officer(s)», «Full Date of Proceedings») «Pinpoint»`.
+ * The proceeding number is included only if it appears on the transcript.
+ * The names of ALL judicial officers hearing the matter follow the
+ * proceeding number. Pinpoints are to page or line numbers; a speaker's
+ * name may follow a pinpoint but '(during argument)' must not.
+ *
+ * @example `Transcript of Proceedings, Celano v Swan (County Court of Victoria, 09/0867, Judge Lacava, 27 August 2009) 11 (SM Petrovich)`
  *
  * @param data - Transcript metadata including the pre-formatted case name
  * @returns FormattedRun[] representing the formatted citation
@@ -260,14 +484,35 @@ export function formatArbitration(data: {
 export function formatTranscript(data: {
   caseName: FormattedRun[];
   court: string;
-  proceedingNumber: string;
+  /** Included only if it appears on the transcript (Rule 2.7.1). */
+  proceedingNumber?: string;
+  /**
+   * All judicial officers hearing the matter, formatted per Rule 2.4
+   * (eg 'Croft J', 'Judge Lacava').
+   */
+  judicialOfficers?: string;
   date: string;
+  /** Pinpoint(s) after the closing parenthesis, no comma (ex 116). */
+  pinpoints?: TranscriptPinpoint[];
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   runs.push({ text: "Transcript of Proceedings, " });
   runs.push(...data.caseName);
-  runs.push({ text: ` (${data.court}, ${data.proceedingNumber}, ${data.date})` });
+
+  const parts: string[] = [data.court];
+  if (data.proceedingNumber && data.proceedingNumber.trim()) {
+    parts.push(data.proceedingNumber.trim());
+  }
+  if (data.judicialOfficers && data.judicialOfficers.trim()) {
+    parts.push(data.judicialOfficers.trim());
+  }
+  parts.push(data.date);
+  runs.push({ text: ` (${parts.join(", ")})` });
+
+  if (data.pinpoints && data.pinpoints.length > 0) {
+    runs.push({ text: ` ${renderTranscriptPinpoints(data.pinpoints)}` });
+  }
 
   return runs;
 }
@@ -275,9 +520,14 @@ export function formatTranscript(data: {
 /**
  * Format an HCA transcript citation according to AGLC4 Rule 2.7.2.
  *
- * @remarks AGLC4 Rule 2.7.2: From July 2003, High Court of Australia transcripts
- * are cited in the form:
- * 'Transcript of Proceedings, Case Name [Year] HCATrans Number'.
+ * @remarks AGLC4 Rule 2.7.2: High Court transcripts bearing an
+ * 'HCATrans' number on the transcript itself (from July 2003) are cited as:
+ * `Transcript of Proceedings, «Case Name» [«Year»] HCATrans «Number», «Pinpoint»`.
+ * Pinpoints are to line numbers; a speaker's name may follow a pinpoint
+ * (per Rule 2.4) but '(during argument)' must not be included. Other
+ * High Court transcripts are cited under Rule 2.7.1.
+ *
+ * @example `Transcript of Proceedings, Mulholland v Australian Electoral Commission [2004] HCATrans 8, 2499–517 (Callinan J and JBR Beach QC), 2589–93 (McHugh J)`
  *
  * @param data - HCA transcript metadata including the pre-formatted case name
  * @returns FormattedRun[] representing the formatted citation
@@ -286,12 +536,18 @@ export function formatHcaTranscript(data: {
   caseName: FormattedRun[];
   year: number;
   number: number;
+  /** Line-number pinpoint(s), comma-separated after the number (ex 119). */
+  pinpoints?: TranscriptPinpoint[];
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   runs.push({ text: "Transcript of Proceedings, " });
   runs.push(...data.caseName);
   runs.push({ text: ` [${data.year}] HCATrans ${data.number}` });
+
+  if (data.pinpoints && data.pinpoints.length > 0) {
+    runs.push({ text: `, ${renderTranscriptPinpoints(data.pinpoints)}` });
+  }
 
   return runs;
 }

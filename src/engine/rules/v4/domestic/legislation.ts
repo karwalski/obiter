@@ -18,31 +18,30 @@ type PinpointType = Pinpoint["type"];
  * These override the general pinpoint prefixes for legislation-specific
  * formatting under Rules 3.1.4–3.1.5.
  */
-const LEGISLATION_PINPOINT_SINGULAR: Partial<Record<Pinpoint["type"], string>> =
-  {
-    section: "s",
-    part: "pt",
-    clause: "cl",
-    schedule: "sch",
-    article: "art",
-    regulation: "reg",
-    rule: "r",
-    chapter: "ch",
-    column: "col",
-    line: "line",
-    footnote: "n",
-    division: "div",
-    appendix: "app",
-    subdivision: "sub-div",
-    subsection: "sub-s",
-    subclause: "sub-cl",
-    subparagraph: "sub-para",
-    subregulation: "sub-reg",
-    subrule: "sub-r",
-    order: "ord",
-    paragraph: "para",
-    item: "item",
-  };
+const LEGISLATION_PINPOINT_SINGULAR: Partial<Record<Pinpoint["type"], string>> = {
+  section: "s",
+  part: "pt",
+  clause: "cl",
+  schedule: "sch",
+  article: "art",
+  regulation: "reg",
+  rule: "r",
+  chapter: "ch",
+  column: "col",
+  line: "line",
+  footnote: "n",
+  division: "div",
+  appendix: "app",
+  subdivision: "sub-div",
+  subsection: "sub-s",
+  subclause: "sub-cl",
+  subparagraph: "sub-para",
+  subregulation: "sub-reg",
+  subrule: "sub-r",
+  order: "ord",
+  paragraph: "para",
+  item: "item",
+};
 
 /**
  * Plural pinpoint abbreviations for legislation references (AGLC4 Appendix C).
@@ -116,9 +115,7 @@ export function formatStatute(data: {
   const runs: FormattedRun[] = [];
 
   // Title in italics, including any (No 2) numbering
-  const titleText = data.number
-    ? `${data.title} ${data.number}`
-    : data.title;
+  const titleText = data.number ? `${data.title} ${data.number}` : data.title;
 
   // Title and year in italics
   runs.push({ text: `${titleText} ${data.year}`, italic: true });
@@ -186,12 +183,17 @@ export function formatLegislationPinpoint(pinpoint: Pinpoint): FormattedRun[] {
 /**
  * Format a legislative definition reference according to AGLC4 Rule 3.1.6.
  *
- * @remarks AGLC4 Rule 3.1.6: When citing a defined term in legislation,
- * the format is: `[statute] [pinpoint] (definition of 'term')`. The defined
- * term appears in single quotation marks within the parenthetical.
+ * @remarks AGLC4 Rule 3.1.6: An unnumbered definition is cited as
+ * `s «Section Number» (definition of '«Defined Term»')`. Where the definition
+ * lives in a schedule or other portion of the Act, that portion replaces the
+ * whole `s «Section Number»` element verbatim (pass `pinpointType: "portion"`).
+ * Where a particular paragraph of a multi-paragraph definition is referred to,
+ * it is appended inside the parenthetical, preceded by 'para', with no comma
+ * after the defined term.
  *
  * AGLC4 Example 24: `Property Law Act 1958 (Vic) s 3 (definition of 'legal practitioner')`
  * AGLC4 Example 25: `Evidence Act 2008 (Vic) Dictionary pt 1 (definition of 'civil proceeding')`
+ * AGLC4 Example 26: `Corporations Act 2001 (Cth) s 9 (definition of 'administrator' para (a)(i))`
  *
  * The pinpoint prefix depends on the pinpoint type — not always `s` (section).
  * When no pinpoint type is provided, defaults to `s` for backward compatibility.
@@ -199,19 +201,34 @@ export function formatLegislationPinpoint(pinpoint: Pinpoint): FormattedRun[] {
  * @param statute - The pre-formatted statute runs (from formatStatute)
  * @param section - The pinpoint value (e.g. "3", "Dictionary pt 1")
  * @param term - The defined term
- * @param pinpointType - The pinpoint type (defaults to "section")
+ * @param pinpointType - The pinpoint type (defaults to "section"); `"portion"`
+ *   renders `section` verbatim with no abbreviation prefix (Rule 3.1.6, ex 25)
+ * @param definitionParagraph - Optional definition-paragraph reference,
+ *   e.g. "(a)(i)" (Rule 3.1.6, ex 26)
  * @returns An array of FormattedRun representing the formatted definition citation
  */
 export function formatLegislativeDefinition(
   statute: FormattedRun[],
   section: string,
   term: string,
-  pinpointType: PinpointType = "section",
+  pinpointType: PinpointType | "portion" = "section",
+  definitionParagraph?: string
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Statute citation (already formatted)
   runs.push(...statute);
+
+  // No comma between the defined term and 'para' (Rule 3.1.6, ex 26)
+  const paraSuffix = definitionParagraph ? ` para ${definitionParagraph}` : "";
+  const parenthetical = `(definition of ‘${term}’${paraSuffix})`;
+
+  // A schedule or other portion of the Act replaces the whole `s «n»` element
+  // verbatim (Rule 3.1.6, ex 25: "Dictionary pt 1")
+  if (pinpointType === "portion") {
+    runs.push({ text: ` ${section} ${parenthetical}` });
+    return runs;
+  }
 
   // Use the legislation-specific pinpoint prefix for the given type
   const isPlural = isPluralPinpoint(section);
@@ -220,10 +237,10 @@ export function formatLegislativeDefinition(
     : LEGISLATION_PINPOINT_SINGULAR[pinpointType];
 
   if (prefix) {
-    runs.push({ text: ` ${prefix} ${section} (definition of \u2018${term}\u2019)` });
+    runs.push({ text: ` ${prefix} ${section} ${parenthetical}` });
   } else {
     // Fallback for page/paragraph or unknown types — no prefix
-    runs.push({ text: ` ${section} (definition of \u2018${term}\u2019)` });
+    runs.push({ text: ` ${section} ${parenthetical}` });
   }
 
   return runs;
@@ -254,9 +271,7 @@ export function formatBill(data: {
   const runs: FormattedRun[] = [];
 
   // Title including any (No 2) numbering
-  const titleText = data.number
-    ? `${data.title} ${data.number}`
-    : data.title;
+  const titleText = data.number ? `${data.title} ${data.number}` : data.title;
 
   // Title and year NOT italicised (per AGLC4 Rule 3.2)
   runs.push({ text: `${titleText} ${data.year}` });

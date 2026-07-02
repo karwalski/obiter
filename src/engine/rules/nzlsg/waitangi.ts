@@ -45,9 +45,7 @@ export interface WaitangiTribunalReportData {
  *     pinpoint: "23",
  *   })
  */
-export function formatWaitangiTribunalReport(
-  data: WaitangiTribunalReportData,
-): FormattedRun[] {
+export function formatWaitangiTribunalReport(data: WaitangiTribunalReportData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author: Waitangi Tribunal

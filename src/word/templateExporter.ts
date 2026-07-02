@@ -28,9 +28,7 @@ const TEMPLATE_NOTICE_TEXT =
  * After calling this, the user saves the document as .dotx via
  * File > Save As > Word Template (.dotx).
  */
-export async function prepareAsTemplate(
-  context: Word.RequestContext,
-): Promise<void> {
+export async function prepareAsTemplate(context: Word.RequestContext): Promise<void> {
   // Insert template notice if not already present
   const existing = context.document.contentControls.getByTag(TEMPLATE_NOTICE_TAG);
   existing.load("items");
@@ -38,10 +36,7 @@ export async function prepareAsTemplate(
 
   if ((existing.items ?? []).length === 0) {
     const body = context.document.body;
-    const para = body.insertParagraph(
-      TEMPLATE_NOTICE_TEXT,
-      "Start" as Word.InsertLocation.start,
-    );
+    const para = body.insertParagraph(TEMPLATE_NOTICE_TEXT, "Start" as Word.InsertLocation.start);
     para.font.size = 9;
     para.font.color = "#999999";
     para.font.italic = true;
@@ -62,9 +57,7 @@ export async function prepareAsTemplate(
  * Removes the template notice. Called when the add-in loads on a document
  * that was created from an Obiter template.
  */
-export async function removeTemplateNotice(
-  context: Word.RequestContext,
-): Promise<void> {
+export async function removeTemplateNotice(context: Word.RequestContext): Promise<void> {
   const controls = context.document.contentControls.getByTag(TEMPLATE_NOTICE_TAG);
   controls.load("items");
   await context.sync();
@@ -85,9 +78,7 @@ export async function removeTemplateNotice(
  * Checks if the current document was created from an Obiter template
  * (has the template notice tag).
  */
-export async function isFromObiterTemplate(
-  context: Word.RequestContext,
-): Promise<boolean> {
+export async function isFromObiterTemplate(context: Word.RequestContext): Promise<boolean> {
   const controls = context.document.contentControls.getByTag(TEMPLATE_NOTICE_TAG);
   controls.load("items");
   await context.sync();

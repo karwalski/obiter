@@ -77,57 +77,107 @@ export function fixAbbreviationFullStops(text: string): string {
 }
 
 /**
+ * Returns true when a digit-hyphen-digit sequence at `hyphenIndex` is a
+ * plausible numeric span (rather than an identifier such as a CCH looseleaf
+ * pinpoint, session-law number, docket number, ISBN or phone number).
+ *
+ * A span is plausible only when:
+ * - the second number has no leading zero (leading zeros mark identifiers,
+ *   eg the guide's own CCH pinpoint `¶82-091` under Rule 1.10.1);
+ * - the sequence is not preceded by `¶`, `§`, or a `No`/`Pub L No`-style
+ *   identifier marker;
+ * - the sequence is not part of a longer hyphenated chain (eg ISBNs,
+ *   phone numbers);
+ * - the second number, expanded per the Rule 1.10.1 span-shortening
+ *   convention where it has fewer digits (eg `42-5` → 45; `1986-87` →
+ *   1987), is greater than the first.
+ *
+ * @remarks AGLC4 Rules 1.6.3, 1.1.7 — en-dashes join spans between two
+ * numbers; document identifiers keep their printed form (cf Rule 1.6.1).
+ */
+function isPlausibleNumberSpan(text: string, hyphenIndex: number): boolean {
+  // Extract the full number on each side of the hyphen.
+  let start = hyphenIndex;
+  while (start > 0 && /\d/.test(text[start - 1])) start--;
+  let end = hyphenIndex + 1;
+  while (end < text.length && /\d/.test(text[end])) end++;
+
+  const first = text.slice(start, hyphenIndex);
+  const second = text.slice(hyphenIndex + 1, end);
+  if (first.length === 0 || second.length === 0) return false;
+
+  // Part of a longer hyphenated chain (ISBN, phone number, docket number).
+  if (text[start - 1] === "-" || text[end] === "-") return false;
+
+  // Leading zero in the second number marks an identifier, not a span.
+  if (second.length > 1 && second.startsWith("0")) return false;
+
+  // Identifier markers before the first number: ¶, §, 'No'/'Nos'.
+  const before = text.slice(0, start);
+  if (/[¶§]\s*$/.test(before)) return false;
+  if (/\bNos?\s*$/.test(before)) return false;
+
+  // Expand a shortened second number (Rule 1.10.1) and require an
+  // ascending range.
+  const firstNum = Number(first);
+  const expandedSecond =
+    second.length < first.length
+      ? Number(first.slice(0, first.length - second.length) + second)
+      : Number(second);
+  return expandedSecond > firstNum;
+}
+
+/**
  * Scans text for dash and hyphen issues.
  *
  * Checks for:
- * 1. Double hyphens (`--`) that should be em-dashes or en-dashes
- * 2. Spaces around em-dashes (em-dashes should have no surrounding spaces)
- * 3. Hyphens used in number/date spans that should be en-dashes
+ * 1. Double hyphens (`--`) that should be em-dashes (or en-dashes between
+ *    digits)
+ * 2. Hyphens used in plausible number/date spans that should be en-dashes
  *
- * @remarks AGLC4 Rule 1.6.3 — Dashes and hyphens.
+ * Em-dash spacing is NOT checked: Rule 1.6.3 says nothing about spacing,
+ * and the guide's own Rule 1.8.2 example uses spaced em-dashes
+ * ('provision — s 39(1) — of'). See docs/decisions.md DECISION-013.
+ *
+ * Identifier patterns (CCH `¶82-091` pinpoints, `Pub L No 108-201`,
+ * docket numbers, ISBNs) are not flagged — see `isPlausibleNumberSpan`.
+ *
+ * @remarks AGLC4 Rule 1.6.3 — em-dashes, en-dashes, hyphens and slashes.
  */
 export function checkDashes(text: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  // 1. Double hyphens → suggest em-dash or en-dash
+  // 1. Double hyphens → suggest en-dash between digits, em-dash otherwise
   const doubleHyphenRegex = /--/g;
   let match: RegExpExecArray | null;
   while ((match = doubleHyphenRegex.exec(text)) !== null) {
+    const betweenDigits =
+      /\d/.test(text[match.index - 1] ?? "") && /\d/.test(text[match.index + 2] ?? "");
     issues.push({
       ruleNumber: "1.6.3",
-      message: "Double hyphen should be an em-dash (\u2014) or en-dash (\u2013)",
+      message: betweenDigits
+        ? "Double hyphen in a number span should be an en-dash (–)"
+        : "Double hyphen should be an em-dash (—) or en-dash (–)",
       severity: "warning",
       offset: match.index,
       length: 2,
-      suggestion: "\u2014",
+      suggestion: betweenDigits ? "–" : "—",
     });
   }
 
-  // 2. Spaces around em-dashes
-  // Match: space(s) before em-dash, space(s) after em-dash, or both
-  const spacedEmDashRegex = /\s+\u2014\s+|\s+\u2014|\u2014\s+/g;
-  while ((match = spacedEmDashRegex.exec(text)) !== null) {
-    issues.push({
-      ruleNumber: "1.6.3",
-      message: "Em-dashes should not have surrounding spaces",
-      severity: "warning",
-      offset: match.index,
-      length: match[0].length,
-      suggestion: "\u2014",
-    });
-  }
-
-  // 3. Hyphens in number/date spans → suggest en-dash
-  // Matches patterns like 42-5, 1986-87, pp 1-10, 100-200
+  // 2. Hyphens in plausible number/date spans → suggest en-dash
+  // Matches patterns like 42-5, 1986-87, pp 1-10, 100-200; skips
+  // identifiers like ¶82-091 or Pub L No 108-201.
   const numberSpanRegex = /(?<=\d)-(?=\d)/g;
   while ((match = numberSpanRegex.exec(text)) !== null) {
+    if (!isPlausibleNumberSpan(text, match.index)) continue;
     issues.push({
       ruleNumber: "1.6.3",
-      message: "Hyphens in number or date spans should be en-dashes (\u2013)",
+      message: "Hyphens in number or date spans should be en-dashes (–)",
       severity: "warning",
       offset: match.index,
       length: 1,
-      suggestion: "\u2013",
+      suggestion: "–",
     });
   }
 
@@ -137,23 +187,28 @@ export function checkDashes(text: string): ValidationIssue[] {
 /**
  * Auto-corrects dash and hyphen issues.
  *
- * - Replaces `--` with em-dash (`\u2014`)
- * - Removes spaces around em-dashes
- * - Replaces hyphens in number spans with en-dashes (`\u2013`)
+ * - Replaces `--` with an em-dash (`—`), or an en-dash (`–`)
+ *   between digits
+ * - Replaces hyphens in plausible number spans with en-dashes (`–`);
+ *   identifiers (CCH `¶82-091`, `Pub L No 108-201`, ISBNs, docket and
+ *   phone numbers) keep their printed hyphens
  *
- * @remarks AGLC4 Rule 1.6.3 — Dashes and hyphens.
+ * Em-dash spacing is left untouched (DECISION-013): the rule band says
+ * nothing about spacing and the guide's own examples use spaced em-dashes.
+ *
+ * @remarks AGLC4 Rule 1.6.3 — em-dashes, en-dashes, hyphens and slashes.
  */
 export function fixDashes(text: string): string {
   let result = text;
 
-  // 1. Replace double hyphens with em-dash
-  result = result.replace(/--/g, "\u2014");
+  // 1. Replace double hyphens: en-dash between digits, em-dash otherwise
+  result = result.replace(/(?<=\d)--(?=\d)/g, "–");
+  result = result.replace(/--/g, "—");
 
-  // 2. Remove spaces around em-dashes
-  result = result.replace(/\s*\u2014\s*/g, "\u2014");
-
-  // 3. Replace hyphens in number spans with en-dashes
-  result = result.replace(/(?<=\d)-(?=\d)/g, "\u2013");
+  // 2. Replace hyphens in plausible number spans with en-dashes
+  result = result.replace(/(?<=\d)-(?=\d)/g, (hyphen: string, offset: number, whole: string) =>
+    isPlausibleNumberSpan(whole, offset) ? "–" : hyphen
+  );
 
   return result;
 }

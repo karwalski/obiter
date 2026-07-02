@@ -127,7 +127,7 @@ export function formatNZPD(data: NZPDData): FormattedRun[] {
  *   })
  */
 export function formatSelectCommitteeSubmission(
-  data: SelectCommitteeSubmissionData,
+  data: SelectCommitteeSubmissionData
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -166,9 +166,7 @@ export function formatSelectCommitteeSubmission(
  *     date: "30 April 2012",
  *   })
  */
-export function formatCabinetDocument(
-  data: CabinetDocumentData,
-): FormattedRun[] {
+export function formatCabinetDocument(data: CabinetDocumentData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Cabinet Office as author

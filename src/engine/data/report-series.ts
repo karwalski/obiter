@@ -16,7 +16,20 @@ export interface ReportSeriesEntry {
   abbreviation: string;
   fullName: string;
   jurisdiction: string;
+  /**
+   * AGLC4 rule 2.2.2 preference tier. Where `mediumNeutral` is true this
+   * field is a legacy placeholder — treat the entry as the "Unreported
+   * (medium neutral citation)" tier, which rule 2.2.2 ranks below every
+   * report series.
+   */
   type: "authorised" | "unauthorised_generalist" | "unauthorised_subject";
+  /**
+   * True where `abbreviation` is a medium neutral citation court identifier
+   * (rule 2.3.1), not a report series. Rule 2.2.2 places these below all
+   * report series in the preference order; this flag overrides `type` for
+   * ranking purposes.
+   */
+  mediumNeutral?: boolean;
   yearOrganised: boolean;
   source: string;
 }
@@ -52,11 +65,15 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: false,
     source: "Court website",
   },
+  // FCAFC and FamCAFC are medium neutral court identifiers (rule 2.3.1 table,
+  // 2002– and 2008–), not report series; rule 2.2.2 ranks them below all
+  // report series.
   {
     abbreviation: "FCAFC",
     fullName: "Federal Court of Australia (Full Court)",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -65,6 +82,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Family Court of Australia (Full Court)",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -73,6 +91,10 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "New South Wales Law Reports",
     jurisdiction: "NSW",
     type: "authorised",
+    // provisional: verify against Appendix A (DATA-004). The guide's own
+    // illustrations show both forms — [1980] 2 NSWLR 398 (ex 22) and
+    // (2004) 59 NSWLR 557 (ex 92) — the series switched to volume
+    // organisation circa 1990; a single boolean cannot represent both.
     yearOrganised: true,
     source: "Court website",
   },
@@ -81,11 +103,18 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Victorian Reports",
     jurisdiction: "VIC",
     type: "authorised",
+    // provisional: verify against Appendix A (DATA-004). Guide illustrations
+    // show both forms — [1980] VR 17 (rule 2.2.1 specimen) and
+    // (2002) 6 VR 317 (ex 57) — the series switched to volume organisation
+    // in 1997; a single boolean cannot represent both.
     yearOrganised: true,
     source: "Court website",
   },
+  // Rule 2.2.3 table (PDF p.76): the authorised Queensland series 1958– is
+  // "Qd R" (Queensland Reports). A fabricated "QR" entry previously sat here;
+  // "QR" is not an AGLC4 abbreviation.
   {
-    abbreviation: "QR",
+    abbreviation: "Qd R",
     fullName: "Queensland Reports",
     jurisdiction: "QLD",
     type: "authorised",
@@ -100,20 +129,16 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: false,
     source: "Court website",
   },
-  {
-    abbreviation: "WASR",
-    fullName: "Western Australian State Reports",
-    jurisdiction: "WA",
-    type: "authorised",
-    yearOrganised: false,
-    source: "Court website",
-  },
+  // "WASR" removed: not an AGLC4 abbreviation. The rule 2.2.3 table
+  // (PDF p.76) covers WA with WALR (1898–1958) and WAR (1958–) only;
+  // State Reports (Western Australia) is "SR (WA)" (separate entry below).
   {
     abbreviation: "WAR",
     fullName: "Western Australian Reports",
     jurisdiction: "WA",
     type: "authorised",
-    yearOrganised: true,
+    // Volume-organised per guide ex 93: (1995) 14 WAR 373 (rule 2.4.1).
+    yearOrganised: false,
     source: "Court website",
   },
   {
@@ -121,6 +146,8 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Tasmanian Reports",
     jurisdiction: "TAS",
     type: "authorised",
+    // provisional: verify against Appendix A (DATA-004) — no in-chapter
+    // illustration shows the bracket style for Tas R.
     yearOrganised: true,
     source: "Court website",
   },
@@ -129,6 +156,8 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Australian Capital Territory Law Reports",
     jurisdiction: "ACT",
     type: "authorised",
+    // provisional: verify against Appendix A (DATA-004) — no in-chapter
+    // illustration shows the bracket style for ACTLR.
     yearOrganised: true,
     source: "AustLII",
   },
@@ -145,7 +174,87 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Northern Territory Law Reports",
     jurisdiction: "NT",
     type: "authorised",
-    yearOrganised: true,
+    // Volume-organised per guide ex 60: (2013) 33 NTLR 65 (rule 2.2.2).
+    yearOrganised: false,
+    source: "AustLII",
+  },
+
+  // =========================================================================
+  // AUSTRALIA — AUTHORISED HISTORICAL SERIES (rule 2.2.3 table, PDF p.76)
+  // yearOrganised values are provisional: the in-chapter table gives
+  // coverage years only — verify against Appendix A (DATA-004).
+  // =========================================================================
+  {
+    // New South Wales, 1901–59 (rule 2.2.3 table). Previously mistyped
+    // unauthorised_generalist and misnamed "New South Wales State Reports".
+    abbreviation: "SR (NSW)",
+    fullName: "State Reports (New South Wales)",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: false, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // New South Wales, 1960–70 (rule 2.2.3 table).
+    abbreviation: "NSWR",
+    fullName: "New South Wales Reports",
+    jurisdiction: "NSW",
+    type: "authorised",
+    yearOrganised: true, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // Queensland, 1902–57 (rule 2.2.3 table).
+    abbreviation: "St R Qd",
+    fullName: "State Reports (Queensland)",
+    jurisdiction: "QLD",
+    type: "authorised",
+    yearOrganised: true, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // South Australia, 1899–1920 (rule 2.2.3 table).
+    abbreviation: "SALR",
+    fullName: "South Australian Law Reports",
+    jurisdiction: "SA",
+    type: "authorised",
+    yearOrganised: true, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // Tasmania, 1904–40 (rule 2.2.3 table).
+    abbreviation: "Tas LR",
+    fullName: "Tasmanian Law Reports",
+    jurisdiction: "TAS",
+    type: "authorised",
+    yearOrganised: false, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // Tasmania, 1941–78 (rule 2.2.3 table).
+    abbreviation: "Tas SR",
+    fullName: "Tasmanian State Reports",
+    jurisdiction: "TAS",
+    type: "authorised",
+    yearOrganised: true, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // Victoria, 1875–1956 (rule 2.2.3 table).
+    abbreviation: "VLR",
+    fullName: "Victorian Law Reports",
+    jurisdiction: "VIC",
+    type: "authorised",
+    yearOrganised: true, // provisional: verify against Appendix A (DATA-004)
+    source: "AustLII",
+  },
+  {
+    // Western Australia, 1898–1958 (rule 2.2.3 table).
+    abbreviation: "WALR",
+    fullName: "Western Australian Law Reports",
+    jurisdiction: "WA",
+    type: "authorised",
+    yearOrganised: false, // provisional: verify against Appendix A (DATA-004)
     source: "AustLII",
   },
 
@@ -159,6 +268,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "High Court of Australia",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -167,6 +277,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Federal Court of Australia",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -175,6 +286,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Administrative Appeals Tribunal of Australia",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -183,6 +295,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Family Court of Australia",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -191,6 +304,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Federal Circuit and Family Court of Australia (Appeal Division)",
     jurisdiction: "CTH",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -201,6 +315,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of New South Wales (Court of Appeal)",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -209,6 +324,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of New South Wales (Court of Criminal Appeal)",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -217,6 +333,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Children's Court of New South Wales",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -225,6 +342,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "District Court of New South Wales",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -233,6 +351,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Land and Environment Court of New South Wales",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -241,6 +360,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of New South Wales",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -249,6 +369,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Workers Compensation Commission of New South Wales",
     jurisdiction: "NSW",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -259,6 +380,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Victorian Civil and Administrative Tribunal",
     jurisdiction: "VIC",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -267,6 +389,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "County Court of Victoria",
     jurisdiction: "VIC",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -275,6 +398,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Magistrates' Court of Victoria",
     jurisdiction: "VIC",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -283,6 +407,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of Victoria",
     jurisdiction: "VIC",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -293,6 +418,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Queensland Civil and Administrative Tribunal",
     jurisdiction: "QLD",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -301,6 +427,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "District Court of Queensland",
     jurisdiction: "QLD",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -309,6 +436,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Magistrates Court of Queensland",
     jurisdiction: "QLD",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -317,6 +445,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of Queensland",
     jurisdiction: "QLD",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -327,6 +456,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "District Court of Western Australia",
     jurisdiction: "WA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -335,6 +465,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "State Administrative Tribunal of Western Australia",
     jurisdiction: "WA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -343,6 +474,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of Western Australia",
     jurisdiction: "WA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -353,6 +485,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "South Australian Civil and Administrative Tribunal",
     jurisdiction: "SA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -361,6 +494,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "District Court of South Australia",
     jurisdiction: "SA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -369,6 +503,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "South Australian Employment Tribunal",
     jurisdiction: "SA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -377,6 +512,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of South Australia",
     jurisdiction: "SA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -385,6 +521,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of South Australia (Full Court)",
     jurisdiction: "SA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -395,6 +532,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of Tasmania (Full Court)",
     jurisdiction: "TAS",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -403,6 +541,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Magistrates Court of Tasmania",
     jurisdiction: "TAS",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -413,6 +552,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "ACT Civil and Administrative Tribunal",
     jurisdiction: "ACT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -421,6 +561,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of the Australian Capital Territory (Court of Appeal)",
     jurisdiction: "ACT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -429,6 +570,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Magistrates Court of the Australian Capital Territory",
     jurisdiction: "ACT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -437,6 +579,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of the Australian Capital Territory",
     jurisdiction: "ACT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -447,6 +590,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Supreme Court of the Northern Territory (Court of Appeal)",
     jurisdiction: "NT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -455,6 +599,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Local Court of the Northern Territory",
     jurisdiction: "NT",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Court website",
   },
@@ -534,26 +679,17 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: false,
     source: "AustLII",
   },
-  {
-    abbreviation: "Qd R",
-    fullName: "Queensland Reports (historical)",
-    jurisdiction: "QLD",
-    type: "unauthorised_generalist",
-    yearOrganised: true,
-    source: "AustLII",
-  },
+  // (The former duplicate "Qd R (historical)" entry was removed — the
+  // authorised Queensland Reports entry now lives in the authorised section
+  // per the rule 2.2.3 table.)
   {
     abbreviation: "ACTR",
     fullName: "Australian Capital Territory Reports",
     jurisdiction: "ACT",
-    type: "unauthorised_generalist",
-    yearOrganised: false,
-    source: "AustLII",
-  },
-  {
-    abbreviation: "SR (NSW)",
-    fullName: "New South Wales State Reports",
-    jurisdiction: "NSW",
+    // Reference-internal ambiguity: the rule 2.2.3 authorised/preferred table
+    // lists "ACTR (in ALR) 1973–2008", but the rule 2.2.2 preference table
+    // gives ACTR as a *generalist unauthorised* example. Kept unauthorised
+    // pending researcher resolution — see docs/decisions.md (DATA-004).
     type: "unauthorised_generalist",
     yearOrganised: false,
     source: "AustLII",
@@ -587,6 +723,10 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     source: "AustLII",
   },
   {
+    // Subject-specific per the rule 2.2.2 preference table example.
+    // Duplicate abbreviation with the Irish Reports entry; pass a
+    // jurisdiction to getByAbbreviation to disambiguate (AU entry wins the
+    // bare lookup).
     abbreviation: "IR",
     fullName: "Industrial Reports",
     jurisdiction: "CTH",
@@ -714,15 +854,12 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: true,
     source: "Public domain",
   },
+  // (A duplicate "Fam CA" entry — the FamCA medium neutral identifier with a
+  // stray space — was removed; see FamCA in the identifiers section.)
   {
-    abbreviation: "Fam CA",
-    fullName: "Family Court of Australia",
-    jurisdiction: "CTH",
-    type: "unauthorised_subject",
-    yearOrganised: true,
-    source: "AustLII",
-  },
-  {
+    // provisional: verify against Appendix A (DATA-004) — duplicate
+    // abbreviation with the UK Butterworths Company Law Cases entry; pass a
+    // jurisdiction to getByAbbreviation to disambiguate.
     abbreviation: "BCLC",
     fullName: "Building and Construction Law Cases",
     jurisdiction: "CTH",
@@ -731,8 +868,11 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     source: "Public domain",
   },
   {
+    // fullName previously collided with SASR's "South Australian State
+    // Reports"; "SR (SA)" is State Reports (South Australia), 1921–71.
+    // provisional: verify against Appendix A (DATA-004).
     abbreviation: "SR (SA)",
-    fullName: "South Australian State Reports",
+    fullName: "State Reports (South Australia)",
     jurisdiction: "SA",
     type: "unauthorised_subject",
     yearOrganised: false,
@@ -903,6 +1043,9 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     source: "Cardiff Index",
   },
   {
+    // Duplicate abbreviation with the Australian Building and Construction
+    // Law Cases entry; pass jurisdiction "UK" to getByAbbreviation to reach
+    // this row. provisional: verify against Appendix A (DATA-004).
     abbreviation: "BCLC",
     fullName: "Butterworths Company Law Cases (UK)",
     jurisdiction: "UK",
@@ -915,6 +1058,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "United Kingdom House of Lords",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -923,6 +1067,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "United Kingdom Supreme Court",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -931,6 +1076,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "United Kingdom Privy Council",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -939,6 +1085,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "England and Wales Court of Appeal (Civil Division)",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -947,6 +1094,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "England and Wales Court of Appeal (Criminal Division)",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -955,6 +1103,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "England and Wales High Court",
     jurisdiction: "UK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "BAILII",
   },
@@ -1255,6 +1404,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "New Zealand Supreme Court",
     jurisdiction: "NZ",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1263,6 +1413,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "New Zealand Court of Appeal",
     jurisdiction: "NZ",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1271,6 +1422,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "New Zealand High Court",
     jurisdiction: "NZ",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1307,6 +1459,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Singapore Court of Appeal",
     jurisdiction: "SG",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1315,6 +1468,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Singapore High Court",
     jurisdiction: "SG",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1343,6 +1497,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Hong Kong Court of Final Appeal",
     jurisdiction: "HK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1351,6 +1506,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Hong Kong Court of Appeal",
     jurisdiction: "HK",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1391,6 +1547,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Constitutional Court of South Africa",
     jurisdiction: "ZA",
     type: "authorised",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "Public domain",
   },
@@ -1399,6 +1556,8 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
   // IRELAND
   // =========================================================================
   {
+    // Duplicate abbreviation with the Australian Industrial Reports entry;
+    // pass jurisdiction "IE" to getByAbbreviation to reach this row.
     abbreviation: "IR",
     fullName: "Irish Reports",
     jurisdiction: "IE",
@@ -1444,7 +1603,8 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
   },
   {
     abbreviation: "PCIJ (ser A/B)",
-    fullName: "Permanent Court of International Justice Series A/B: Judgments, Orders and Advisory Opinions",
+    fullName:
+      "Permanent Court of International Justice Series A/B: Judgments, Orders and Advisory Opinions",
     jurisdiction: "INTL",
     type: "authorised",
     yearOrganised: false,
@@ -1635,6 +1795,7 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     fullName: "Federal Magistrates Court of Australia",
     jurisdiction: "CTH",
     type: "unauthorised_generalist",
+    mediumNeutral: true,
     yearOrganised: true,
     source: "AustLII",
   },
@@ -1654,9 +1815,20 @@ export function searchReportSeries(query: string): ReportSeriesEntry[] {
 
 /**
  * Look up a report series by its exact abbreviation (case-sensitive).
+ *
+ * A few abbreviations are shared across jurisdictions (eg "IR" — Industrial
+ * Reports (CTH) and Irish Reports (IE); "BCLC" — CTH and UK). Without a
+ * `jurisdiction` argument the first entry in dataset order wins (the
+ * Australian entry, as this is an AGLC4-first engine); pass a jurisdiction
+ * to disambiguate.
  */
 export function getByAbbreviation(
-  abbrev: string
+  abbrev: string,
+  jurisdiction?: string
 ): ReportSeriesEntry | undefined {
-  return REPORT_SERIES.find((entry) => entry.abbreviation === abbrev);
+  return REPORT_SERIES.find(
+    (entry) =>
+      entry.abbreviation === abbrev &&
+      (jurisdiction === undefined || entry.jurisdiction === jurisdiction)
+  );
 }

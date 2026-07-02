@@ -45,14 +45,14 @@ export type LoaType = "off" | "simple" | "part-ab";
 
 export interface CitationConfig {
   standardId: CitationStandardId;
-  standardLabel: string;          // "AGLC4", "OSCOLA 5", "NZLSG 3"
+  standardLabel: string; // "AGLC4", "OSCOLA 5", "NZLSG 3"
   italiciseLegislation: boolean;
   quotationMarkStyle: "single" | "double";
   pinpointPrefix: "" | "at ";
   subsequentReferenceFormat: "n" | "above n";
   ibidEnabled: boolean;
   editionAbbreviation: "ed" | "edn";
-  homeJurisdiction: string | null;  // null = always show, "UK" = suppress UK, "NZ" = suppress NZ
+  homeJurisdiction: string | null; // null = always show, "UK" = suppress UK, "NZ" = suppress NZ
   bibliographyStructure: "aglc" | "oscola" | "nzlsg";
   /**
    * MULTI-014: Writing mode — "academic" (default) for standard footnote

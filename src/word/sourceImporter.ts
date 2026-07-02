@@ -14,8 +14,7 @@ import { CitationStore } from "../store/citationStore";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const BIBLIOGRAPHY_NS =
-  "http://schemas.openxmlformats.org/officeDocument/2006/bibliography";
+const BIBLIOGRAPHY_NS = "http://schemas.openxmlformats.org/officeDocument/2006/bibliography";
 
 // ─── WordSource Interface ───────────────────────────────────────────────────
 
@@ -40,33 +39,13 @@ export interface WordSource {
 // ─── XML Parsing Helpers ────────────────────────────────────────────────────
 
 /**
- * Extract the text content of a child element by local name.
- * Handles the `b:` namespace prefix used in Word bibliography XML.
- */
-function getChildText(parent: Element, localName: string): string | undefined {
-  // Try namespace-aware lookup first
-  const el = parent.getElementsByTagNameNS(BIBLIOGRAPHY_NS, localName)[0];
-  if (el?.textContent) return el.textContent.trim();
-
-  // Fallback: try with b: prefix (DOMParser may not resolve namespaces)
-  const prefixed = parent.getElementsByTagName(`b:${localName}`)[0];
-  if (prefixed?.textContent) return prefixed.textContent.trim();
-
-  return undefined;
-}
-
-/**
  * Extract the direct child element text (non-recursive) to avoid picking up
  * nested elements with the same local name.
  */
-function getDirectChildText(
-  parent: Element,
-  localName: string,
-): string | undefined {
+function getDirectChildText(parent: Element, localName: string): string | undefined {
   for (let i = 0; i < parent.children.length; i++) {
     const child = parent.children[i];
-    const childLocal =
-      child.localName || child.nodeName.replace(/^b:/, "");
+    const childLocal = child.localName || child.nodeName.replace(/^b:/, "");
     if (childLocal === localName) {
       return child.textContent?.trim() || undefined;
     }
@@ -78,9 +57,7 @@ function getDirectChildText(
  * Parse Person elements from the Author structure.
  * Word uses: <b:Author><b:Author><b:NameList><b:Person>...
  */
-function parseAuthors(
-  sourceEl: Element,
-): Array<{ first: string; last: string }> {
+function parseAuthors(sourceEl: Element): Array<{ first: string; last: string }> {
   const authors: Array<{ first: string; last: string }> = [];
 
   // Find all Person elements anywhere under this source
@@ -91,10 +68,7 @@ function parseAuthors(
 
   for (let i = 0; i < persons.length; i++) {
     const person = persons[i];
-    const first =
-      getDirectChildText(person, "First") ||
-      getDirectChildText(person, "Middle") ||
-      "";
+    const first = getDirectChildText(person, "First") || getDirectChildText(person, "Middle") || "";
     const last = getDirectChildText(person, "Last") || "";
     if (first || last) {
       authors.push({ first, last });
@@ -109,11 +83,8 @@ function parseAuthors(
 /**
  * Read Word's bibliography XML part and parse all sources.
  */
-export async function getWordSources(
-  context: Word.RequestContext,
-): Promise<WordSource[]> {
-  const parts =
-    context.document.customXmlParts.getByNamespace(BIBLIOGRAPHY_NS);
+export async function getWordSources(context: Word.RequestContext): Promise<WordSource[]> {
+  const parts = context.document.customXmlParts.getByNamespace(BIBLIOGRAPHY_NS);
   parts.load("items");
   await context.sync();
 
@@ -242,7 +213,7 @@ export function mapWordSourceToObiter(source: WordSource): Citation {
  */
 export async function importWordSources(
   context: Word.RequestContext,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<{ imported: number; skipped: number }> {
   const wordSources = await getWordSources(context);
   const existingCitations = store.getAll();
@@ -270,17 +241,10 @@ export async function importWordSources(
  * Check whether a Word source is a duplicate of an existing citation
  * by matching title + year + first author surname.
  */
-function isDuplicate(
-  source: WordSource,
-  existing: Citation[],
-): boolean {
+function isDuplicate(source: WordSource, existing: Citation[]): boolean {
   const srcTitle = (source.title || "").toLowerCase().trim();
   const srcYear = (source.year || "").trim();
-  const srcFirstAuthor = (
-    source.authors[0]?.last || ""
-  )
-    .toLowerCase()
-    .trim();
+  const srcFirstAuthor = (source.authors[0]?.last || "").toLowerCase().trim();
 
   return existing.some((c) => {
     const cTitle = (
@@ -289,9 +253,7 @@ function isDuplicate(
     )
       .toLowerCase()
       .trim();
-    const cYear = (
-      typeof c.data.year === "string" ? c.data.year : ""
-    ).trim();
+    const cYear = (typeof c.data.year === "string" ? c.data.year : "").trim();
 
     let cFirstAuthor = "";
     if (Array.isArray(c.data.authors) && c.data.authors.length > 0) {
@@ -300,10 +262,7 @@ function isDuplicate(
     }
 
     return (
-      srcTitle !== "" &&
-      srcTitle === cTitle &&
-      srcYear === cYear &&
-      srcFirstAuthor === cFirstAuthor
+      srcTitle !== "" && srcTitle === cTitle && srcYear === cYear && srcFirstAuthor === cFirstAuthor
     );
   });
 }
@@ -313,20 +272,14 @@ function isDuplicate(
  */
 function generateUUID(): string {
   // Use crypto.randomUUID if available, otherwise fallback
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
 
   // Fallback for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-    /[xy]/g,
-    (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    },
-  );
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }

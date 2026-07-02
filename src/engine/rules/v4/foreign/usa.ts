@@ -46,12 +46,7 @@ interface USCaseData {
 /**
  * Reporters from which the US Supreme Court can be inferred (Rule 25.1).
  */
-const US_SCOTUS_REPORTERS: ReadonlySet<string> = new Set([
-  "US",
-  "S Ct",
-  "L Ed",
-  "L Ed 2d",
-]);
+const US_SCOTUS_REPORTERS: ReadonlySet<string> = new Set(["US", "S Ct", "L Ed", "L Ed 2d"]);
 
 // ─── FRGN-011-CASE: US Cases (Rules 25.1–25.3) ──────────────────────────────
 
@@ -363,9 +358,7 @@ interface USCongressionalRecordData {
  *     volume: 158, page: "S6299", year: 2012, speaker: "Harry Reid",
  *   })
  */
-export function formatCongressionalRecord(
-  data: USCongressionalRecordData,
-): FormattedRun[] {
+export function formatCongressionalRecord(data: USCongressionalRecordData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   let text = `${data.volume} Cong Rec ${data.page} (${data.year})`;

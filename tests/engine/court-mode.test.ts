@@ -258,8 +258,27 @@ describe("MULTI-014: Court Mode — Validator", () => {
     expect(parallelIssues).toHaveLength(0);
   });
 
-  test("academic mode: parallel citation warnings still emitted", () => {
-    const result = validateDocument([], [mockCase], undefined, "academic");
+  test("academic mode: rule 2.2.7 flags parallel citations when present (never required)", () => {
+    // Rule 2.2.7: parallel citations should never be used for Australian
+    // cases. A case cited only to CLR is compliant — no warning.
+    const clean = validateDocument([], [mockCase], undefined, "academic");
+    const cleanIssues = [
+      ...clean.warnings.filter((w) => w.ruleNumber === "2.2.7"),
+      ...clean.info.filter((i) => i.ruleNumber === "2.2.7"),
+    ];
+    expect(cleanIssues).toHaveLength(0);
+
+    // A case carrying parallel citations breaches rule 2.2.7 (ex 80 rejects
+    // '(1999) 198 CLR 180; 164 ALR 606; [1999] HCA 36').
+    const caseWithParallels: Citation = {
+      ...mockCase,
+      id: "court-case-parallel",
+      data: {
+        ...mockCase.data,
+        parallelCitations: [{ volume: 164, reportSeries: "ALR", startingPage: 606 }],
+      },
+    };
+    const result = validateDocument([], [caseWithParallels], undefined, "academic");
     const parallelIssues = [
       ...result.warnings.filter((w) => w.ruleNumber === "2.2.7"),
       ...result.info.filter((i) => i.ruleNumber === "2.2.7"),

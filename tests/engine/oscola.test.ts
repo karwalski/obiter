@@ -2181,8 +2181,8 @@ describe("Data: EU Case Prefixes", () => {
     expect(entry).toBeDefined();
   });
 
-  it("EU_CASE_PREFIXES has entries", () => {
-    expect(EU_CASE_PREFIXES.length).toBeGreaterThan(3);
+  it("EU_CASE_PREFIXES has exactly the C-/T-/F- prefixes (no fabricated P-, no duplicates)", () => {
+    expect(EU_CASE_PREFIXES.map((p) => p.prefix)).toEqual(["C-", "T-", "F-"]);
   });
 
   it("OJ_SERIES has entries", () => {

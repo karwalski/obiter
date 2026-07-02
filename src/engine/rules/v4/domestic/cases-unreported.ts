@@ -63,11 +63,14 @@ export function formatUnreportedMnc(data: {
  *
  * @remarks AGLC4 Rule 2.3.2: Unreported decisions without a medium neutral
  * citation are cited as:
- * `Case Name (Court Identifier, Proceeding Number, Full Date)`.
- * The court identifier and full date appear in parentheses. The proceeding
- * number is included if available.
+ * `Case Name («Court», «Judge(s)», «Full Date») «Pinpoint»`.
+ * The judge(s) — named per Rule 2.4.1 — are a template element between
+ * the court and the full date. Pinpoints are generally to the pages of
+ * the judgment as delivered, and no punctuation intervenes between the
+ * closing parenthesis and the pinpoint. A proceeding number is NOT part
+ * of this template (it belongs to Rules 2.3.3–2.3.4).
  *
- * @example `Smith v Jones (Supreme Court of New South Wales, 12345/2020, 15 March 2021)`
+ * @example `Ross v Chambers (Supreme Court of the Northern Territory, Kriewaldt J, 5 April 1956) 77–8`
  *
  * @param data - The unreported non-MNC case data
  * @returns An array of FormattedRun representing the formatted citation
@@ -76,6 +79,17 @@ export function formatUnreportedNoMnc(data: {
   caseName: FormattedRun[];
   courtIdentifier: string;
   fullDate: string;
+  /**
+   * Judge(s) formatted per Rule 2.4.1 (eg 'Kriewaldt J' or
+   * 'Charles, Callaway JJA and Vincent AJA').
+   */
+  judges?: string;
+  /** Pinpoint following the closing parenthesis, no comma (Rule 2.3.2). */
+  pinpoint?: Pinpoint;
+  /**
+   * @deprecated Not a Rule 2.3.2 element; accepted for backwards
+   * compatibility with stored data but never emitted.
+   */
   proceedingNumber?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -83,16 +97,23 @@ export function formatUnreportedNoMnc(data: {
   // Case name in italics
   runs.push(...data.caseName.map((r) => ({ ...r, italic: true })));
 
-  // Parenthetical: (Court Identifier, [Proceeding Number,] Full Date)
+  // Parenthetical: (Court, Judge(s), Full Date)
   const parts: string[] = [data.courtIdentifier];
 
-  if (data.proceedingNumber) {
-    parts.push(data.proceedingNumber);
+  if (data.judges) {
+    parts.push(data.judges);
   }
 
   parts.push(data.fullDate);
 
   runs.push({ text: ` (${parts.join(", ")})` });
+
+  // Pinpoint: follows the closing parenthesis with no intervening
+  // punctuation (ex 84: '… 5 April 1956) 77–8').
+  if (data.pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatPinpoint(data.pinpoint));
+  }
 
   return runs;
 }
@@ -131,9 +152,14 @@ export function formatProceeding(data: {
 /**
  * Format a court order citation.
  *
- * @remarks AGLC4 Rule 2.3.4: Court orders are cited as:
- * `Case Name (Court, Full Date of Order)`.
- * The court and the full date of the order appear in parentheses.
+ * @remarks AGLC4 Rule 2.3.4: Court orders not contained within a judgment
+ * are cited as:
+ * `Order of «Judicial Officer(s)» in «Case Name» («Court», «Proceeding Number», «Full Date of Court Order»)`.
+ * Every judicial officer who issued the order is named, per Rule 2.4.1.
+ * The proceeding number is included only if it appears on the court
+ * order itself.
+ *
+ * @example `Order of Murphy J in Duffy v Darmanin (Federal Court of Australia, VID1218/2017, 10 November 2017)`
  *
  * @param data - The court order data
  * @returns An array of FormattedRun representing the formatted citation
@@ -142,14 +168,33 @@ export function formatCourtOrder(data: {
   caseName: FormattedRun[];
   court: string;
   orderDate: string;
+  /**
+   * The issuing judicial officer(s) formatted per Rule 2.4.1
+   * (eg 'Burley J'). Required by the Rule 2.3.4 template; optional here
+   * only until the engine dispatch passes it through.
+   */
+  judicialOfficers?: string;
+  /** Included only if it appears on the court order (Rule 2.3.4). */
+  proceedingNumber?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+
+  // Template head: 'Order of «Judicial Officer(s)» in ' (roman)
+  if (data.judicialOfficers) {
+    runs.push({ text: `Order of ${data.judicialOfficers} in ` });
+  }
 
   // Case name in italics
   runs.push(...data.caseName.map((r) => ({ ...r, italic: true })));
 
-  // Parenthetical: (Court, Full Date of Order)
-  runs.push({ text: ` (${data.court}, ${data.orderDate})` });
+  // Parenthetical: (Court, [Proceeding Number,] Full Date of Court Order)
+  const parts: string[] = [data.court];
+  if (data.proceedingNumber) {
+    parts.push(data.proceedingNumber);
+  }
+  parts.push(data.orderDate);
+
+  runs.push({ text: ` (${parts.join(", ")})` });
 
   return runs;
 }

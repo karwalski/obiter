@@ -11,6 +11,7 @@ import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
+import { checkDocumentAccessibility, DocumentA11yModel } from "../../engine/documentAccessibility";
 import CheckReference from "../components/CheckReference";
 
 type FilterTab = "all" | "error" | "warning" | "info";
@@ -167,11 +168,13 @@ export default function Validation(): JSX.Element {
 
     try {
       // Read footnote texts and body text from the document
-      const { footnoteTexts, bodyText } = await Word.run(async (context) => {
+      const { footnoteTexts, bodyText, headingLevels } = await Word.run(async (context) => {
         const body = context.document.body;
         body.load("text");
         const footnotes = body.footnotes;
         footnotes.load("items");
+        const paragraphs = body.paragraphs;
+        paragraphs.load("items/style");
         await context.sync();
 
         const texts: string[] = [];
@@ -184,7 +187,15 @@ export default function Validation(): JSX.Element {
         for (const fn of fnItems) {
           texts.push(fn.body.text);
         }
-        return { footnoteTexts: texts, bodyText: body.text };
+
+        // Collect outline levels from built-in Heading styles for the document
+        // accessibility check (A11Y-028 / ATAG Part B.3).
+        const levels: number[] = [];
+        for (const para of paragraphs.items ?? []) {
+          const match = /^Heading (\d)$/.exec(para.style ?? "");
+          if (match) levels.push(parseInt(match[1], 10));
+        }
+        return { footnoteTexts: texts, bodyText: body.text, headingLevels: levels };
       });
 
       // Load citations from store
@@ -233,6 +244,24 @@ export default function Validation(): JSX.Element {
               validationResult.info.push(issue);
               break;
           }
+        }
+      }
+
+      // Document accessibility check (ATAG Part B.3 / A11Y-028). Heading order is
+      // scanned live; the document language is set by the AGLC4 template and Obiter
+      // footnotes are native, so those branches are not re-flagged here.
+      const a11yModel: DocumentA11yModel = {
+        headingLevels,
+        documentLanguageSet: true,
+        fauxFootnoteCount: 0,
+      };
+      for (const issue of checkDocumentAccessibility(a11yModel)) {
+        if (issue.severity === "error") {
+          validationResult.errors.push(issue);
+        } else if (issue.severity === "warning") {
+          validationResult.warnings.push(issue);
+        } else {
+          validationResult.info.push(issue);
         }
       }
 
@@ -423,7 +452,7 @@ export default function Validation(): JSX.Element {
                       className="validation-goto-btn"
                       onClick={() => void handleGoTo(issue, idx)}
                       disabled={navigating === idx}
-                      title="Navigate to this issue in the document"
+                      aria-label="Go to this issue in the document"
                     >
                       {navigating === idx ? "..." : "Go to"}
                     </button>

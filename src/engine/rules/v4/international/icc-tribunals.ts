@@ -48,6 +48,7 @@ export function formatIccCase(data: {
   caseNumber: string;
   date: string;
   pinpoint?: string;
+  judge?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -58,14 +59,92 @@ export function formatIccCase(data: {
   runs.push({ text: " " });
   runs.push({ text: `(${data.phase})`, italic: true });
 
-  // Court, chamber, case number, and date in parentheses
+  // Court, chamber, case number, and date in parentheses.
+  // 'Case Nos' where multiple case numbers are joined with 'and' (Rule 12.2.5).
+  const caseNoLabel = /\band\b/.test(data.caseNumber) ? "Case Nos" : "Case No";
   runs.push({
-    text: ` (${data.court}, ${data.chamber}, Case No ${data.caseNumber}, ${data.date})`,
+    text: ` (${data.court}, ${data.chamber}, ${caseNoLabel} ${data.caseNumber}, ${data.date})`,
   });
 
-  // Optional pinpoint reference
+  // Optional pinpoint reference (Rule 12.2.7)
   if (data.pinpoint) {
     runs.push({ text: ` ${data.pinpoint}` });
+  }
+
+  // Judge — after pinpoints, for separate/dissenting opinions only
+  // (Rules 12.2.8, 10.2.8)
+  if (data.judge) {
+    runs.push({ text: ` (${data.judge})` });
+  }
+
+  return runs;
+}
+
+// ─── PARITY: Reports of Cases (Rule 12.3) ────────────────────────────────────
+
+/**
+ * Formats a reported international criminal tribunal decision per AGLC4
+ * Rule 12.3.
+ *
+ * AGLC4 Rule 12.3: Judgments appearing in report series (e.g. ILR, ILM)
+ * are cited as:
+ *   *Parties' Names* (*Phase*) (Year) Volume Series StartingPage, Pinpoint
+ *   (Tribunal, Chamber).
+ *
+ * Parties' names and phase follow rules 12.2.1–12.2.2 (both italicised);
+ * year, volume, report series and starting page follow rules 2.2.1–2.2.4;
+ * the conventional shortened tribunal name and chamber may optionally close
+ * the citation in parentheses after any pinpoint or judges' names.
+ *
+ * @param data - The reported tribunal case citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 12.3.
+ */
+export function formatIccCaseReported(data: {
+  caseName: string;
+  phase?: string;
+  year: number;
+  volume?: number;
+  reportSeries: string;
+  startingPage: number;
+  pinpoint?: string;
+  judge?: string;
+  tribunal?: string;
+  chamber?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Parties' names — italicised (Rule 12.2.1)
+  runs.push({ text: data.caseName, italic: true });
+
+  // Phase — italicised in parentheses (Rule 12.2.2)
+  if (data.phase) {
+    runs.push({ text: " " });
+    runs.push({ text: `(${data.phase})`, italic: true });
+  }
+
+  // Year, volume, report series, starting page (Rules 2.2.1–2.2.4)
+  runs.push({ text: ` (${data.year})` });
+  if (data.volume !== undefined) {
+    runs.push({ text: ` ${data.volume}` });
+  }
+  runs.push({ text: ` ${data.reportSeries} ${data.startingPage}` });
+
+  // Pinpoint — comma-preceded (Rule 10.2.7)
+  if (data.pinpoint) {
+    runs.push({ text: `, ${data.pinpoint}` });
+  }
+
+  // Judge — separate/dissenting opinions only (Rule 12.2.8)
+  if (data.judge) {
+    runs.push({ text: ` (${data.judge})` });
+  }
+
+  // Optional tribunal and chamber parenthetical (Rules 12.3, 2.2.6)
+  if (data.tribunal) {
+    const tail = data.chamber ? `${data.tribunal}, ${data.chamber}` : data.tribunal;
+    runs.push({ text: ` (${tail})` });
   }
 
   return runs;

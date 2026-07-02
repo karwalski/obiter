@@ -32,8 +32,7 @@ interface GitHubRelease {
  * Compare two semver version strings. Returns true if remote is newer than local.
  */
 function isNewerVersion(local: string, remote: string): boolean {
-  const parse = (v: string): number[] =>
-    v.replace(/^v/, "").split(".").map(Number);
+  const parse = (v: string): number[] => v.replace(/^v/, "").split(".").map(Number);
   const localParts = parse(local);
   const remoteParts = parse(remote);
 
@@ -76,12 +75,9 @@ function setCachedData(latestVersion: string, updateUrl: string): void {
 
 async function fetchLatestVersion(): Promise<{ version: string; url: string } | null> {
   try {
-    const response = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
-      {
-        headers: { Accept: "application/vnd.github.v3+json" },
-      }
-    );
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { Accept: "application/vnd.github.v3+json" },
+    });
     if (!response.ok) return null;
     const data = (await response.json()) as GitHubRelease;
     return {
@@ -132,8 +128,7 @@ export function useVersionCheck(): VersionCheckResult {
     void check();
   }, [check]);
 
-  const updateAvailable =
-    latestVersion !== null && isNewerVersion(APP_VERSION, latestVersion);
+  const updateAvailable = latestVersion !== null && isNewerVersion(APP_VERSION, latestVersion);
 
   return {
     currentVersion: APP_VERSION,

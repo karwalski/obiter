@@ -56,19 +56,12 @@ const QUOTED_TYPES: ReadonlySet<SourceType> = new Set<SourceType>([
  *
  * @see AGLC4, Rule 1.8.2.
  */
-export function shouldItaliciseTitle(
-  sourceType: SourceType,
-  config?: CitationConfig,
-): boolean {
+export function shouldItaliciseTitle(sourceType: SourceType, config?: CitationConfig): boolean {
   // Quoted types are never italicised even if they match a prefix (e.g. book.chapter).
   if (QUOTED_TYPES.has(sourceType)) return false;
 
   // MULTI-006: Legislation italicisation toggle
-  if (
-    config &&
-    config.italiciseLegislation === false &&
-    sourceType.startsWith("legislation.")
-  ) {
+  if (config && config.italiciseLegislation === false && sourceType.startsWith("legislation.")) {
     return false;
   }
 
@@ -116,7 +109,7 @@ export function shouldQuoteTitle(sourceType: SourceType): boolean {
 export function wrapTitle(
   title: string,
   sourceType: SourceType,
-  quotationMarkStyle?: "single" | "double",
+  quotationMarkStyle?: "single" | "double"
 ): FormattedRun[] {
   if (shouldItaliciseTitle(sourceType)) {
     return [{ text: title, italic: true }];
@@ -126,11 +119,7 @@ export function wrapTitle(
     const style = quotationMarkStyle ?? "single";
     const openQuote = style === "double" ? "\u201C" : "\u2018";
     const closeQuote = style === "double" ? "\u201D" : "\u2019";
-    return [
-      { text: openQuote },
-      { text: title },
-      { text: closeQuote },
-    ];
+    return [{ text: openQuote }, { text: title }, { text: closeQuote }];
   }
 
   // Default: plain text (no special formatting).

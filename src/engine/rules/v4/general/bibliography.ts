@@ -6,10 +6,7 @@
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
-import {
-  generateTableOfCases,
-  generateTableOfLegislation,
-} from "../../oscola/tables";
+import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
 import type { CaseEntry, LegislationEntry } from "../../oscola/tables";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -38,7 +35,7 @@ export interface BibliographySection {
  */
 export function getBibliographyCategory(
   sourceType: SourceType,
-  data?: Record<string, unknown>,
+  data?: Record<string, unknown>
 ): string {
   // Cases (Part II domestic cases, Part IV international court decisions,
   // Part V foreign cases). Per AGLC4 Rule 1.13 the Cases section includes
@@ -54,9 +51,10 @@ export function getBibliographyCategory(
   if (sourceType === "supranational.decision") return "B";
   if (sourceType === "wto.decision") return "B";
   if (sourceType.startsWith("foreign.")) {
-    const subType = typeof data?.foreignSubType === "string"
-      ? (data.foreignSubType as string).toLowerCase()
-      : undefined;
+    const subType =
+      typeof data?.foreignSubType === "string"
+        ? (data.foreignSubType as string).toLowerCase()
+        : undefined;
     if (subType === "case") return "B";
     if (subType === "legislation") return "C";
     if (subType === "secondary") return "A";
@@ -144,9 +142,7 @@ export function getBibliographyCategory(
  * @returns An array of FormattedRun for the author portion, or an empty
  *   array if there are no authors.
  */
-function formatBibliographyAuthors(
-  data: Record<string, unknown>
-): FormattedRun[] {
+function formatBibliographyAuthors(data: Record<string, unknown>): FormattedRun[] {
   const authors = data["authors"] as
     | Array<{ givenNames: string; surname: string; suffix?: string }>
     | undefined;
@@ -197,16 +193,20 @@ function getSortKey(citation: Citation): string {
   }
 
   // ICJ/supranational: sort by case title
-  if (citation.sourceType.startsWith("icj.") || citation.sourceType.startsWith("arbitral.") ||
-      citation.sourceType.startsWith("icc_tribunal.") || citation.sourceType.startsWith("supranational.") ||
-      citation.sourceType === "echr.decision" || citation.sourceType === "eu.court") {
-    const caseTitle = (data["caseTitle"] as string | undefined) ?? (data["title"] as string | undefined) ?? "";
+  if (
+    citation.sourceType.startsWith("icj.") ||
+    citation.sourceType.startsWith("arbitral.") ||
+    citation.sourceType.startsWith("icc_tribunal.") ||
+    citation.sourceType.startsWith("supranational.") ||
+    citation.sourceType === "echr.decision" ||
+    citation.sourceType === "eu.court"
+  ) {
+    const caseTitle =
+      (data["caseTitle"] as string | undefined) ?? (data["title"] as string | undefined) ?? "";
     if (caseTitle) return caseTitle.toLowerCase();
   }
 
-  const authors = data["authors"] as
-    | Array<{ surname: string }>
-    | undefined;
+  const authors = data["authors"] as Array<{ surname: string }> | undefined;
 
   if (authors && authors.length > 0) {
     return authors[0].surname.toLowerCase();
@@ -218,6 +218,108 @@ function getSortKey(citation: Citation): string {
 
   const title = (data["title"] as string | undefined) ?? "";
   return title.toLowerCase();
+}
+
+/**
+ * Strips a leading 'The ' from a title/institution for ordering purposes.
+ *
+ * AGLC4 Rule 1.13: title- and institution-based ordering excludes a
+ * leading 'the'.
+ */
+function stripLeadingThe(value: string): string {
+  return value.replace(/^the\s+/i, "");
+}
+
+/**
+ * Extracts the ordered comparison fields for the Rule 1.13 alphabetical
+ * cascade.
+ *
+ * `names` holds the author-name fields in tie-break order: first author's
+ * surname, then first author's given names, then — for each later author —
+ * given names then surname (the rule compares the second author's first
+ * name before the surname, since only the first author's name is
+ * inverted). Where there is no personal author, the institutional author
+ * (or, failing that, the title) stands in as the single name field, each
+ * excluding a leading 'the'.
+ *
+ * `title` is the final tie-breaker, excluding a leading 'the'.
+ *
+ * @remarks AGLC4 Rule 1.13 (PDF pp 60–2) — ordering cascade steps 1–6.
+ */
+function getOrderingFields(citation: Citation): { names: string[]; title: string } {
+  const data = citation.data;
+  const title = stripLeadingThe(((data["title"] as string | undefined) ?? "").trim()).toLowerCase();
+
+  // Cases and international decisions: ordered by the single name key.
+  if (
+    citation.sourceType.startsWith("case.") ||
+    citation.sourceType.startsWith("icj.") ||
+    citation.sourceType.startsWith("arbitral.") ||
+    citation.sourceType.startsWith("icc_tribunal.") ||
+    citation.sourceType.startsWith("supranational.") ||
+    citation.sourceType === "echr.decision" ||
+    citation.sourceType === "eu.court"
+  ) {
+    return { names: [getSortKey(citation)], title };
+  }
+
+  const authors = data["authors"] as Array<{ surname?: string; givenNames?: string }> | undefined;
+
+  if (authors && authors.length > 0) {
+    const names: string[] = [
+      (authors[0].surname ?? "").toLowerCase(),
+      (authors[0].givenNames ?? "").toLowerCase(),
+    ];
+    for (const a of authors.slice(1)) {
+      names.push((a.givenNames ?? "").toLowerCase());
+      names.push((a.surname ?? "").toLowerCase());
+    }
+    return { names, title };
+  }
+
+  // Institutional author (step 5), excluding a leading 'the'.
+  const institution =
+    (data["institutionalAuthor"] as string | undefined) ??
+    (data["body"] as string | undefined) ??
+    (data["author"] as string | undefined);
+  if (institution && institution.trim().length > 0) {
+    return { names: [stripLeadingThe(institution.trim()).toLowerCase()], title };
+  }
+
+  // No author (step 6): order by title, excluding a leading 'the'.
+  return { names: [title], title };
+}
+
+/**
+ * Compares two citations per the AGLC4 Rule 1.13 alphabetical-ordering
+ * cascade:
+ * 1. surname of the first-listed author;
+ * 2. first name of the first-listed author;
+ * 3. names of subsequent authors (a work with fewer authors precedes works
+ *    that add further authors);
+ * 4./6. the title, excluding a leading 'the';
+ * 5. institutional authors order by the institution's name, excluding a
+ *    leading 'the'.
+ *
+ * @remarks AGLC4 Rule 1.13 (PDF pp 60–2).
+ */
+export function compareBibliographyOrder(a: Citation, b: Citation): number {
+  const fa = getOrderingFields(a);
+  const fb = getOrderingFields(b);
+
+  const shared = Math.min(fa.names.length, fb.names.length);
+  for (let i = 0; i < shared; i++) {
+    const cmp = fa.names[i].localeCompare(fb.names[i]);
+    if (cmp !== 0) return cmp;
+  }
+
+  // Same shared authors: the work with fewer authors precedes (step 3).
+  if (fa.names.length !== fb.names.length) {
+    return fa.names.length - fb.names.length;
+  }
+
+  // Exactly the same authors: order by title excluding 'the' (step 4).
+  return fa.title.localeCompare(fb.title);
 }
 
 // ─── Single Entry Formatting ─────────────────────────────────────────────────
@@ -252,21 +354,33 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
   if (st.startsWith("case.")) {
     const party1 = data["party1"] as string | undefined;
     const party2 = data["party2"] as string | undefined;
-    const caseName = party1 && party2 ? `${party1} v ${party2}`
-      : party1 ?? (data["caseTitle"] as string | undefined)
-        ?? (data["title"] as string | undefined) ?? "";
+    const caseName =
+      party1 && party2
+        ? `${party1} v ${party2}`
+        : (party1 ??
+          (data["caseTitle"] as string | undefined) ??
+          (data["title"] as string | undefined) ??
+          "");
     if (caseName) {
       runs.push({ text: caseName, italic: true });
     }
   }
 
   // ICJ/supranational/arbitral/ECHR — use caseTitle or title
-  if (st.startsWith("icj.") || st.startsWith("arbitral.") || st.startsWith("icc_tribunal.") ||
-      st.startsWith("supranational.") || st === "echr.decision" || st === "eu.court") {
-    const caseTitle = (data["caseTitle"] as string | undefined)
-      ?? (data["parties"] as string | undefined)
-      ?? (data["title"] as string | undefined)
-      ?? (data["accused"] as string | undefined) ?? "";
+  if (
+    st.startsWith("icj.") ||
+    st.startsWith("arbitral.") ||
+    st.startsWith("icc_tribunal.") ||
+    st.startsWith("supranational.") ||
+    st === "echr.decision" ||
+    st === "eu.court"
+  ) {
+    const caseTitle =
+      (data["caseTitle"] as string | undefined) ??
+      (data["parties"] as string | undefined) ??
+      (data["title"] as string | undefined) ??
+      (data["accused"] as string | undefined) ??
+      "";
     if (caseTitle && runs.length === 0) {
       runs.push({ text: caseTitle, italic: true });
     }
@@ -312,7 +426,13 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
   const year = data["year"] as number | string | undefined;
 
-  if (st === "book" || st === "book.chapter" || st === "book.translated" || st === "book.audiobook" || st === "book.ebook") {
+  if (
+    st === "book" ||
+    st === "book.chapter" ||
+    st === "book.translated" ||
+    st === "book.audiobook" ||
+    st === "book.ebook"
+  ) {
     // Books: (Publisher, Edition ed, Year) — Rule 6 bibliography format
     const publisher = data["publisher"] as string | undefined;
     const edition = data["edition"] as number | string | undefined;
@@ -335,8 +455,7 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
     const volume = data["volume"] as number | string | undefined;
     const issue = data["issue"] as string | undefined;
     const journal =
-      (data["journal"] as string | undefined) ??
-      (data["journalName"] as string | undefined);
+      (data["journal"] as string | undefined) ?? (data["journalName"] as string | undefined);
     const startingPage = data["startingPage"] as number | string | undefined;
 
     if (journal) {
@@ -353,7 +472,11 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
         runs.push({ text: ` ${startingPage}` });
       }
     }
-  } else if (st.startsWith("report") || st === "research_paper" || st === "research_paper.parliamentary") {
+  } else if (
+    st.startsWith("report") ||
+    st === "research_paper" ||
+    st === "research_paper.parliamentary"
+  ) {
     // Reports: Body Name, Title (Year) — Rule 7 bibliography format
     // If no authors were formatted, use the body name as the author stand-in
     const body = data["body"] as string | undefined;
@@ -422,8 +545,7 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
     const volume = data["volume"] as number | string | undefined;
     const reportSeries =
-      (data["journalName"] as string | undefined) ??
-      (data["reportSeries"] as string | undefined);
+      (data["journalName"] as string | undefined) ?? (data["reportSeries"] as string | undefined);
     const startingPage = data["startingPage"] as number | string | undefined;
 
     if (reportSeries) {
@@ -466,16 +588,16 @@ const RENUMBERED_LETTERS = ["A", "B", "C", "D", "E"];
  *
  * AGLC4 Rule 1.13: A bibliography should be divided into sections:
  * A (Articles/Books/Reports), B (Cases), C (Legislation), D (Treaties),
- * E (Other). Entries within each section are sorted alphabetically by
- * the first author's surname (or title if there is no author). Empty
- * sections are omitted.
+ * E (Other). Entries within each section are ordered by the rule's
+ * alphabetical cascade (first author's surname → first author's first
+ * name → later authors' names, fewer authors first → title excluding a
+ * leading 'the'; institutional author or title where there is no personal
+ * author). Empty sections are omitted.
  *
  * @param citations - All citations referenced in the document.
  * @returns An array of BibliographySection objects, one per non-empty section.
  */
-export function generateBibliography(
-  citations: Citation[]
-): BibliographySection[] {
+export function generateBibliography(citations: Citation[]): BibliographySection[] {
   // Group citations by category.
   const groups: Record<string, Citation[]> = {};
   for (const category of SECTION_ORDER) {
@@ -497,12 +619,9 @@ export function generateBibliography(
     const citationsInGroup = groups[category];
     if (citationsInGroup.length === 0) continue;
 
-    // Sort alphabetically by first author surname or title.
-    citationsInGroup.sort((a, b) => {
-      const keyA = getSortKey(a);
-      const keyB = getSortKey(b);
-      return keyA.localeCompare(keyB);
-    });
+    // Sort per the Rule 1.13 alphabetical-ordering cascade (first author
+    // surname → first name → later authors → title excluding 'the').
+    citationsInGroup.sort(compareBibliographyOrder);
 
     // Deduplicate by citation ID.
     const seen = new Set<string>();
@@ -537,7 +656,7 @@ export function generateBibliography(
  * - Bibliography (secondary sources, subdivided)
  */
 function getOscolaBibliographySection(
-  sourceType: SourceType,
+  sourceType: SourceType
 ): "cases" | "legislation" | "secondary" {
   if (sourceType.startsWith("case.")) return "cases";
   if (sourceType.startsWith("legislation.")) return "legislation";
@@ -559,9 +678,13 @@ function citationToCaseEntry(citation: Citation): CaseEntry {
   const d = citation.data;
   const party1 = d["party1"] as string | undefined;
   const party2 = d["party2"] as string | undefined;
-  const caseName = party1 && party2 ? `${party1} v ${party2}`
-    : party1 ?? (d["caseTitle"] as string | undefined)
-      ?? (d["title"] as string | undefined) ?? "";
+  const caseName =
+    party1 && party2
+      ? `${party1} v ${party2}`
+      : (party1 ??
+        (d["caseTitle"] as string | undefined) ??
+        (d["title"] as string | undefined) ??
+        "");
 
   // Build citation text from the formatted entry, stripping the case name prefix.
   const fullEntry = formatBibliographyEntry(citation);
@@ -638,9 +761,7 @@ function citationToLegislationEntry(citation: Citation): LegislationEntry {
  *
  * @see OSCOLA, Rule 1.4.
  */
-export function generateOscolaBibliography(
-  citations: Citation[],
-): BibliographySection[] {
+export function generateOscolaBibliography(citations: Citation[]): BibliographySection[] {
   const groups: Record<"cases" | "legislation" | "secondary", Citation[]> = {
     cases: [],
     legislation: [],
@@ -710,7 +831,7 @@ export function generateOscolaBibliography(
  * Waitangi Tribunal section) and secondary sources.
  */
 function getNzlsgBibliographySection(
-  sourceType: SourceType,
+  sourceType: SourceType
 ): "cases" | "legislation" | "waitangi" | "secondary" {
   if (sourceType.startsWith("case.")) return "cases";
   if (sourceType.startsWith("legislation.")) return "legislation";
@@ -727,13 +848,8 @@ function getNzlsgBibliographySection(
  *
  * @see NZLSG, Rule 1.5.
  */
-export function generateNzlsgBibliography(
-  citations: Citation[],
-): BibliographySection[] {
-  const groups: Record<
-    "cases" | "legislation" | "waitangi" | "secondary",
-    Citation[]
-  > = {
+export function generateNzlsgBibliography(citations: Citation[]): BibliographySection[] {
+  const groups: Record<"cases" | "legislation" | "waitangi" | "secondary", Citation[]> = {
     cases: [],
     legislation: [],
     waitangi: [],
@@ -744,9 +860,7 @@ export function generateNzlsgBibliography(
     // Check for Waitangi Tribunal reports (identified by tag or data field)
     const isWaitangi =
       citation.tags.includes("waitangi_tribunal") ||
-      (citation.data["body"] as string | undefined)
-        ?.toLowerCase()
-        .includes("waitangi tribunal");
+      (citation.data["body"] as string | undefined)?.toLowerCase().includes("waitangi tribunal");
 
     if (isWaitangi) {
       groups.waitangi.push(citation);
@@ -842,9 +956,7 @@ function formatLoaCaseEntry(citation: Citation): FormattedRun[] {
  * @param citations - All citations referenced in the document.
  * @returns An array of BibliographySection objects for the List of Authorities.
  */
-export function generateListOfAuthorities(
-  citations: Citation[],
-): BibliographySection[] {
+export function generateListOfAuthorities(citations: Citation[]): BibliographySection[] {
   const cases: Citation[] = [];
   const legislation: Citation[] = [];
 
@@ -898,7 +1010,7 @@ export interface PartABLoaResult {
  */
 function groupAndSortForLoa(
   citations: Citation[],
-  includeSecondary: boolean,
+  includeSecondary: boolean
 ): { cases: Citation[]; legislation: Citation[]; secondary: Citation[] } {
   const cases: Citation[] = [];
   const legislation: Citation[] = [];
@@ -934,7 +1046,7 @@ function groupAndSortForLoa(
 function buildLoaSections(
   cases: Citation[],
   legislation: Citation[],
-  secondary: Citation[],
+  secondary: Citation[]
 ): BibliographySection[] {
   const sections: BibliographySection[] = [];
 
@@ -1000,7 +1112,7 @@ function formatLoaEntryWithKeyMarker(citation: Citation): FormattedRun[] {
  */
 export function generatePartABListOfAuthorities(
   citations: Citation[],
-  includeSecondary = false,
+  includeSecondary = false
 ): PartABLoaResult {
   const warnings: LoaValidationWarning[] = [];
 
@@ -1014,11 +1126,7 @@ export function generatePartABListOfAuthorities(
 
   // Part B: cases, legislation, and optionally secondary sources.
   const partBGroups = groupAndSortForLoa(partBCitations, includeSecondary);
-  const partB = buildLoaSections(
-    partBGroups.cases,
-    partBGroups.legislation,
-    partBGroups.secondary,
-  );
+  const partB = buildLoaSections(partBGroups.cases, partBGroups.legislation, partBGroups.secondary);
 
   // LOA-002 validation: warn if Part A is empty.
   if (partA.length === 0) {
@@ -1027,7 +1135,7 @@ export function generatePartABListOfAuthorities(
       code: "LOA_PART_A_EMPTY",
       message:
         "Part A of the List of Authorities is empty. At least one authority " +
-        "should be marked for reading (loaPart: \"A\").",
+        'should be marked for reading (loaPart: "A").',
     });
   }
 
@@ -1102,10 +1210,7 @@ export interface JbaResult {
  * @param caseDetails - HCA case metadata for the title page.
  * @returns A JbaResult containing all JBA components and validation warnings.
  */
-export function generateJBA(
-  citations: Citation[],
-  caseDetails: JbaCaseDetails,
-): JbaResult {
+export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails): JbaResult {
   // Generate the Part A/B split via LOA-002.
   const loaResult = generatePartABListOfAuthorities(citations, false);
   const warnings = [...loaResult.warnings];
@@ -1114,15 +1219,9 @@ export function generateJBA(
   const titlePage: BibliographySection = {
     heading: "Joint Book of Authorities",
     entries: [
-      [
-        { text: "Joint Book of Authorities", bold: true, size: 14 },
-      ],
-      [
-        { text: caseDetails.caseName, italic: true },
-      ],
-      [
-        { text: `HCA File No: ${caseDetails.fileNumber}` },
-      ],
+      [{ text: "Joint Book of Authorities", bold: true, size: 14 }],
+      [{ text: caseDetails.caseName, italic: true }],
+      [{ text: `HCA File No: ${caseDetails.fileNumber}` }],
     ],
   };
 
@@ -1130,9 +1229,7 @@ export function generateJBA(
   const certificatePlaceholder: BibliographySection = {
     heading: "Certificate",
     entries: [
-      [
-        { text: "Certificate of Senior Practitioners", bold: true },
-      ],
+      [{ text: "Certificate of Senior Practitioners", bold: true }],
       [
         {
           text:
@@ -1141,12 +1238,8 @@ export function generateJBA(
             "to which the Court will be referred during the hearing of this matter.",
         },
       ],
-      [
-        { text: "[Name of Senior Practitioner for the Appellant]" },
-      ],
-      [
-        { text: "[Name of Senior Practitioner for the Respondent]" },
-      ],
+      [{ text: "[Name of Senior Practitioner for the Appellant]" }],
+      [{ text: "[Name of Senior Practitioner for the Respondent]" }],
     ],
   };
 
@@ -1267,7 +1360,7 @@ export interface LoaResult {
  */
 export function generateLoaWithOptions(
   citations: Citation[],
-  options: LoaGenerationOptions,
+  options: LoaGenerationOptions
 ): LoaResult {
   const warnings: LoaValidationWarning[] = [];
 
@@ -1288,10 +1381,7 @@ export function generateLoaWithOptions(
   }
 
   // Part A/B mode.
-  const abResult = generatePartABListOfAuthorities(
-    citations,
-    options.includeSecondary,
-  );
+  const abResult = generatePartABListOfAuthorities(citations, options.includeSecondary);
 
   // Combine Part A and Part B into a single sections array for rendering,
   // with Part A/B headings prepended.
@@ -1348,7 +1438,7 @@ export function generateBibliographyForStandard(
   citations: Citation[],
   structure: CitationConfig["bibliographyStructure"],
   writingMode?: WritingMode,
-  loaType?: LoaType,
+  loaType?: LoaType
 ): BibliographySection[] {
   // MULTI-014 + COURT-FIX-005: Court mode generates List of Authorities
   // controlled by the loaType toggle.

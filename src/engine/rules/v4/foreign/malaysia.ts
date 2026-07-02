@@ -123,10 +123,7 @@ export function formatLegislation(data: {
  * @param data - Malaysian constitutional citation data
  * @returns An array of FormattedRun representing the formatted citation
  */
-export function formatConstitution(data: {
-  title: string;
-  pinpoint?: string;
-}): FormattedRun[] {
+export function formatConstitution(data: { title: string; pinpoint?: string }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title in italics

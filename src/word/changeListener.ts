@@ -41,9 +41,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
  * @param onDocumentChanged - Callback invoked (at most once per 2 seconds)
  *   when the document may have changed.
  */
-export function registerChangeListener(
-  onDocumentChanged: () => void,
-): void {
+export function registerChangeListener(onDocumentChanged: () => void): void {
   // Clean up any previously registered listeners.
   unregisterChangeListener();
 
@@ -64,13 +62,12 @@ export function registerChangeListener(
     (result) => {
       if (result.status === Office.AsyncResultStatus.Succeeded) {
         selectionCleanup = () => {
-          Office.context.document.removeHandlerAsync(
-            Office.EventType.DocumentSelectionChanged,
-            { handler: debouncedCallback },
-          );
+          Office.context.document.removeHandlerAsync(Office.EventType.DocumentSelectionChanged, {
+            handler: debouncedCallback,
+          });
         };
       }
-    },
+    }
   );
 
   // Attempt to register a second listener for ActiveViewChanged, which
@@ -84,13 +81,12 @@ export function registerChangeListener(
       (result) => {
         if (result.status === Office.AsyncResultStatus.Succeeded) {
           contentControlCleanup = () => {
-            Office.context.document.removeHandlerAsync(
-              Office.EventType.ActiveViewChanged,
-              { handler: debouncedCallback },
-            );
+            Office.context.document.removeHandlerAsync(Office.EventType.ActiveViewChanged, {
+              handler: debouncedCallback,
+            });
           };
         }
-      },
+      }
     );
   } catch {
     // Silently ignore — selection handler alone is sufficient.

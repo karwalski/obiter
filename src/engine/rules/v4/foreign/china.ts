@@ -20,13 +20,6 @@ import { FormattedRun } from "../../../../types/formattedRun";
  * AGLC4 Rule 16.1: Chinese courts are referenced by their standard
  * abbreviations reflecting the four-tier court system.
  */
-const COURT_ABBREVIATIONS: Record<string, string> = {
-  SPC: "Supreme People's Court",
-  HPC: "Higher People's Court",
-  IPC: "Intermediate People's Court",
-  BPC: "Basic People's Court",
-};
-
 // ─── FRGN-002: Chinese Cases (Rules 16.1–16.2) ──────────────────────────────
 
 /**

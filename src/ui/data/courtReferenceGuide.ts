@@ -119,9 +119,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Simple List of Authorities (single-part).",
       "Cases listed alphabetically with full citations.",
     ],
-    filingProcedures: [
-      "LOA filed with written submissions via the Commonwealth Courts Portal.",
-    ],
+    filingProcedures: ["LOA filed with written submissions via the Commonwealth Courts Portal."],
   },
 
   // ── New South Wales ────────────────────────────────────────────────────────
@@ -172,9 +170,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Simple List of Authorities.",
       "Cases listed alphabetically with authorised report and MNC.",
     ],
-    filingProcedures: [
-      "LOA filed with written submissions via the NSW Online Registry.",
-    ],
+    filingProcedures: ["LOA filed with written submissions via the NSW Online Registry."],
   },
   {
     jurisdiction: "NSW_DIST_LOCAL",
@@ -191,12 +187,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Pinpoint style is para-only.",
       "Unreported judgment gate applies.",
     ],
-    loaRequirements: [
-      "LOA not typically required for District or Local Court appearances.",
-    ],
-    filingProcedures: [
-      "Authorities may be provided as a bundle to the bench on the hearing day.",
-    ],
+    loaRequirements: ["LOA not typically required for District or Local Court appearances."],
+    filingProcedures: ["Authorities may be provided as a bundle to the bench on the hearing day."],
   },
 
   // ── Victoria ───────────────────────────────────────────────────────────────
@@ -216,12 +208,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "The Supreme Court of Victoria expressly adopts AGLC formatting (cl 4.1). Academic AGLC4 formatting is appropriate for Victorian court submissions, with the addition of parallel citations.",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Part A / Part B LOA required for Court of Appeal matters.",
-    ],
-    filingProcedures: [
-      "LOA filed via the Supreme Court of Victoria eFiling system.",
-    ],
+    loaRequirements: ["Part A / Part B LOA required for Court of Appeal matters."],
+    filingProcedures: ["LOA filed via the Supreme Court of Victoria eFiling system."],
   },
   {
     jurisdiction: "VSC",
@@ -239,12 +227,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "The Supreme Court of Victoria expressly adopts AGLC formatting (cl 4.1).",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed via the Supreme Court of Victoria eFiling system.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed via the Supreme Court of Victoria eFiling system."],
   },
   {
     jurisdiction: "VIC_COUNTY_MAG",
@@ -260,12 +244,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Preferred report hierarchy: VR, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
     ],
-    loaRequirements: [
-      "LOA not typically required for County or Magistrates' Court appearances.",
-    ],
-    filingProcedures: [
-      "Authorities may be provided as a bundle to the bench on the hearing day.",
-    ],
+    loaRequirements: ["LOA not typically required for County or Magistrates' Court appearances."],
+    filingProcedures: ["Authorities may be provided as a bundle to the bench on the hearing day."],
   },
 
   // ── Queensland ─────────────────────────────────────────────────────────────
@@ -290,9 +270,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Part A / Part B LOA required for Court of Appeal matters.",
       "LOA entries include subsequent-treatment notes where applicable.",
     ],
-    filingProcedures: [
-      "LOA filed via the Queensland Courts eFiling system.",
-    ],
+    filingProcedures: ["LOA filed via the Queensland Courts eFiling system."],
   },
   {
     jurisdiction: "QSC",
@@ -311,12 +289,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Subsequent treatment disclosure required (cl 4(c)).",
       "Selectivity duty applies (cl 5).",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed via the Queensland Courts eFiling system.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed via the Queensland Courts eFiling system."],
   },
   {
     jurisdiction: "QLD_DIST_MAG",
@@ -334,12 +308,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Unreported judgment gate applies.",
       "Subsequent treatment disclosure required.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed with written submissions.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed with written submissions."],
   },
 
   // ── Western Australia ──────────────────────────────────────────────────────
@@ -358,12 +328,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed via the WA eLodgment system.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed via the WA eLodgment system."],
   },
 
   // ── South Australia ────────────────────────────────────────────────────────
@@ -382,12 +348,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed with written submissions.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed with written submissions."],
   },
 
   // ── Tasmania ───────────────────────────────────────────────────────────────
@@ -407,12 +369,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Unreported judgment gate: may apply for unreported decisions (convention from PD 3/2014).",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed with written submissions.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed with written submissions."],
   },
 
   // ── Australian Capital Territory ───────────────────────────────────────────
@@ -431,12 +389,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed with written submissions via the ACT Courts Portal.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed with written submissions via the ACT Courts Portal."],
   },
 
   // ── Northern Territory ─────────────────────────────────────────────────────
@@ -455,12 +409,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
-    loaRequirements: [
-      "Simple List of Authorities.",
-    ],
-    filingProcedures: [
-      "LOA filed with written submissions.",
-    ],
+    loaRequirements: ["Simple List of Authorities."],
+    filingProcedures: ["LOA filed with written submissions."],
   },
 
   // ── Tribunals ──────────────────────────────────────────────────────────────
@@ -479,12 +429,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Ibid and (n X) cross-references are not used.",
       "Citation formality is less prescriptive than superior courts.",
     ],
-    loaRequirements: [
-      "LOA not typically required.",
-    ],
-    filingProcedures: [
-      "Documents filed via the ART portal at art.gov.au.",
-    ],
+    loaRequirements: ["LOA not typically required."],
+    filingProcedures: ["Documents filed via the ART portal at art.gov.au."],
   },
   {
     jurisdiction: "FWC",
@@ -501,12 +447,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Ibid and (n X) cross-references are not used.",
       "Citation formality is less prescriptive than superior courts.",
     ],
-    loaRequirements: [
-      "LOA not typically required.",
-    ],
-    filingProcedures: [
-      "Documents filed via the FWC portal at fwc.gov.au.",
-    ],
+    loaRequirements: ["LOA not typically required."],
+    filingProcedures: ["Documents filed via the FWC portal at fwc.gov.au."],
   },
   {
     jurisdiction: "STATE_TRIBUNAL",
@@ -523,9 +465,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Ibid and (n X) cross-references are not used.",
       "Citation formality varies by tribunal; consult the specific tribunal's practice directions.",
     ],
-    loaRequirements: [
-      "LOA not typically required for most tribunal proceedings.",
-    ],
+    loaRequirements: ["LOA not typically required for most tribunal proceedings."],
     filingProcedures: [
       "Filing procedures vary by tribunal. Check the relevant tribunal's website.",
     ],
@@ -536,20 +476,14 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
  * Retrieve court guide entries for a specific jurisdiction.
  * Returns an empty array when no entries are registered.
  */
-export function getCourtGuideForJurisdiction(
-  jurisdictionId: string,
-): CourtGuideEntry[] {
-  return COURT_GUIDE_ENTRIES.filter(
-    (entry) => entry.jurisdiction === jurisdictionId,
-  );
+export function getCourtGuideForJurisdiction(jurisdictionId: string): CourtGuideEntry[] {
+  return COURT_GUIDE_ENTRIES.filter((entry) => entry.jurisdiction === jurisdictionId);
 }
 
 /**
  * Retrieve all court guide entries, optionally filtered by group.
  */
-export function getCourtGuideByGroup(
-  group?: string,
-): CourtGuideEntry[] {
+export function getCourtGuideByGroup(group?: string): CourtGuideEntry[] {
   if (!group) return COURT_GUIDE_ENTRIES;
   return COURT_GUIDE_ENTRIES.filter((entry) => entry.group === group);
 }
@@ -570,7 +504,7 @@ export function searchCourtGuide(query: string): CourtGuideEntry[] {
       entry.practiceDirection.name.toLowerCase().includes(q) ||
       entry.citationRequirements.some((r) => r.toLowerCase().includes(q)) ||
       entry.loaRequirements.some((r) => r.toLowerCase().includes(q)) ||
-      entry.filingProcedures.some((r) => r.toLowerCase().includes(q)),
+      entry.filingProcedures.some((r) => r.toLowerCase().includes(q))
   );
 }
 

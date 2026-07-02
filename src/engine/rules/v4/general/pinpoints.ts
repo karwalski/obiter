@@ -54,14 +54,17 @@ const PINPOINT_PREFIX: Partial<Record<Pinpoint["type"], string>> = {
  *   (e.g. `"at "` for NZLSG). Defaults to `""` (no prefix, AGLC4 style).
  * @returns An array of FormattedRun representing the pinpoint
  */
-export function formatPinpoint(
-  pinpoint: Pinpoint,
-  prefix?: string,
-): FormattedRun[] {
+export function formatPinpoint(pinpoint: Pinpoint, prefix?: string): FormattedRun[] {
   const runs: FormattedRun[] = [];
   const configPrefix = prefix ?? "";
 
-  const typePrefix = PINPOINT_PREFIX[pinpoint.type];
+  let typePrefix = PINPOINT_PREFIX[pinpoint.type];
+
+  // Rule 1.1.7: spans or lists of footnote pinpoints take the plural
+  // abbreviation 'nn' (AGLC4 ex 39: '348 nn 22–4').
+  if (pinpoint.type === "footnote" && /[–,-]/.test(pinpoint.value)) {
+    typePrefix = "nn";
+  }
 
   if (typePrefix) {
     runs.push({ text: `${configPrefix}${typePrefix} ${pinpoint.value}` });

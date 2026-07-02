@@ -25,6 +25,9 @@ import {
   formatExplanatoryMemorandum,
   formatGazette,
   formatQuasiLegislative,
+  formatPracticeDirection,
+  formatLegislativeHistory,
+  trimIssuingBodyName,
 } from "../../src/engine/rules/v4/domestic/legislation-supplementary";
 
 import { FormattedRun } from "../../src/types/formattedRun";
@@ -449,9 +452,9 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
     );
   });
 
-  it("should format definition in Dictionary (AGLC4 Example 25)", () => {
-    // AGLC4 Example 25: Evidence Act 2008 (Vic) pt Dictionary pt 1 (definition of 'civil proceeding')
-    // The pinpoint type is "part", not "section", so the prefix should be "pt".
+  it("formats definition housed in a portion of the Act per AGLC4 ex 25 (rule 3.1.6)", () => {
+    // Rule 3.1.6: the portion of the Act containing the definition replaces
+    // the whole `s <n>` element verbatim — no abbreviation prefix.
     const statute = formatStatute({
       title: "Evidence Act",
       year: 2008,
@@ -461,13 +464,11 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
       statute,
       "Dictionary pt 1",
       "civil proceeding",
-      "part"
+      "portion"
     );
-    const text = toPlainText(runs);
-    expect(text).toContain("pt Dictionary pt 1");
-    expect(text).toContain("definition of \u2018civil proceeding\u2019");
-    // Must NOT contain "s Dictionary" — that was the old bug
-    expect(text).not.toContain("s Dictionary");
+    expect(toPlainText(runs)).toBe(
+      "Evidence Act 2008 (Vic) Dictionary pt 1 (definition of \u2018civil proceeding\u2019)"
+    );
   });
 
   it("AUDIT2-019: defaults to section prefix when no pinpointType given", () => {
@@ -482,15 +483,23 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
     );
   });
 
-  it("should format definition with paragraph ref (AGLC4 Example 26)", () => {
+  it("formats definition with paragraph reference per AGLC4 ex 26 (rule 3.1.6)", () => {
+    // Rule 3.1.6: a particular definition paragraph is appended inside the
+    // parenthetical, preceded by 'para', with no comma after the term.
     const statute = formatStatute({
       title: "Corporations Act",
       year: 2001,
       jurisdiction: "Cth",
     });
-    const runs = formatLegislativeDefinition(statute, "9", "administrator");
+    const runs = formatLegislativeDefinition(
+      statute,
+      "9",
+      "administrator",
+      "section",
+      "(a)(i)"
+    );
     expect(toPlainText(runs)).toBe(
-      "Corporations Act 2001 (Cth) s 9 (definition of \u2018administrator\u2019)"
+      "Corporations Act 2001 (Cth) s 9 (definition of \u2018administrator\u2019 para (a)(i))"
     );
   });
 
@@ -641,11 +650,21 @@ describe("Rule 3.4 -- Delegated Legislation", () => {
 // =============================================================================
 
 describe("Rule 3.5 -- Short Title and Subsequent References", () => {
-  it("should format short title in italic parenthetical (AGLC4 Example 45)", () => {
+  it("formats short title introduction per AGLC4 ex 45 (rule 3.5)", () => {
+    // Rule 3.5: only the short title itself is italicised — the
+    // parentheses and quotation marks stay roman.
     const runs = formatLegislationShortTitle("Property Act");
-    expect(toPlainText(runs)).toBe(" ('Property Act')");
-    // Short title parenthetical should be italic
-    expect(runs[0].italic).toBe(true);
+    expect(toPlainText(runs)).toBe(" (\u2018Property Act\u2019)");
+    expect(italicText(runs)).toBe("Property Act");
+    expect(romanText(runs)).toBe(" (\u2018\u2019)");
+  });
+
+  it("formats a Bill short title introduction in roman (rules 3.2, 3.5)", () => {
+    // Rule 3.5: the short title is italicised according to this chapter's
+    // rules — roman for Bills (rule 3.2).
+    const runs = formatLegislationShortTitle("Human Rights Bill", false);
+    expect(toPlainText(runs)).toBe(" (\u2018Human Rights Bill\u2019)");
+    expect(italicText(runs)).toBe("");
   });
 
   it("should format subsequent reference with footnote xref (AGLC4 Example 48)", () => {
@@ -670,6 +689,17 @@ describe("Rule 3.5 -- Short Title and Subsequent References", () => {
       value: "52",
     });
     expect(toPlainText(runs)).toBe("CCA (n 1) s 52");
+  });
+
+  it("formats a Bill short-title subsequent reference in roman (rules 3.2, 3.5)", () => {
+    const runs = formatLegislationSubsequentRef(
+      "Human Rights Bill",
+      12,
+      { type: "clause", value: "7" },
+      false
+    );
+    expect(toPlainText(runs)).toBe("Human Rights Bill (n 12) cl 7");
+    expect(italicText(runs)).toBe("");
   });
 });
 
@@ -795,7 +825,8 @@ describe("Rule 3.6 -- Australian Constitutions", () => {
 // =============================================================================
 
 describe("Rule 3.7 -- Explanatory Memoranda", () => {
-  it("should format Explanatory Memorandum (AGLC4 Example 58)", () => {
+  it("formats Explanatory Memorandum per AGLC4 ex 58 (rule 3.7)", () => {
+    // Rule 3.7: the Bill citation follows rule 3.2, so nothing is italicised.
     const runs = formatExplanatoryMemorandum({
       type: "Explanatory Memorandum",
       billTitle: "Charter of Human Rights and Responsibilities Bill",
@@ -805,14 +836,10 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
     expect(toPlainText(runs)).toBe(
       "Explanatory Memorandum, Charter of Human Rights and Responsibilities Bill 2006 (Vic)"
     );
-    // Document type not italic, bill title not italic (per Rule 3.2)
-    // Note: the current implementation italicises the bill title in EM citations.
-    // AGLC4 Rule 3.7 says "The citation to the Bill should appear in accordance
-    // with rule 3.2" which says bills are NOT italicised. This is a known
-    // deviation that may need future correction.
+    expect(italicText(runs)).toBe("");
   });
 
-  it("should format Explanatory Notes with pinpoint (AGLC4 Example 59)", () => {
+  it("formats Explanatory Notes with pinpoint per AGLC4 ex 59 (rule 3.7)", () => {
     const runs = formatExplanatoryMemorandum({
       type: "Explanatory Notes",
       billTitle: "Adoption Bill",
@@ -820,13 +847,13 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
       jurisdiction: "Qld",
       pinpoint: { type: "page", value: "5\u20136, 29" },
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("Explanatory Notes");
-    expect(text).toContain("Adoption Bill 2009");
-    expect(text).toContain("(Qld)");
+    expect(toPlainText(runs)).toBe(
+      "Explanatory Notes, Adoption Bill 2009 (Qld) 5\u20136, 29"
+    );
+    expect(italicText(runs)).toBe("");
   });
 
-  it("should format Explanatory Statement (AGLC4 Example 60)", () => {
+  it("formats Explanatory Statement per AGLC4 ex 60 (rule 3.7)", () => {
     const runs = formatExplanatoryMemorandum({
       type: "Explanatory Statement",
       billTitle: "Human Rights Bill",
@@ -834,11 +861,10 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
       jurisdiction: "ACT",
       pinpoint: { type: "page", value: "3" },
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("Explanatory Statement");
-    expect(text).toContain("Human Rights Bill 2003");
-    expect(text).toContain("(ACT)");
-    expect(text).toContain("3");
+    expect(toPlainText(runs)).toBe(
+      "Explanatory Statement, Human Rights Bill 2003 (ACT) 3"
+    );
+    expect(italicText(runs)).toBe("");
   });
 
   it("should not italicise the document type label", () => {
@@ -855,17 +881,55 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
 });
 
 // =============================================================================
-// Rule 3.8: Legislative History -- Placeholder
+// Rule 3.8: Legislative History
 // =============================================================================
 
 describe("Rule 3.8 -- Legislative History", () => {
   it("should have guidance constant defined", () => {
-    // Rule 3.8 is a placeholder -- just verify the guidance exists
     const { LEGISLATIVE_HISTORY_GUIDANCE } = require(
       "../../src/engine/rules/v4/domestic/legislation-supplementary"
     );
     expect(LEGISLATIVE_HISTORY_GUIDANCE).toBeDefined();
     expect(typeof LEGISLATIVE_HISTORY_GUIDANCE).toBe("string");
+  });
+
+  // Exhaustive connector coverage (AGLC4 fns 61-68) lives in
+  // tests/engine/legislation-history.test.ts; these two pin the hybrid
+  // form end-to-end at the chapter level (DECISION-008).
+  it("formats amended provision per AGLC4 ex 62 (rule 3.8)", () => {
+    const lead = [
+      ...formatStatute({ title: "Copyright Act", year: 1968, jurisdiction: "Cth" }),
+      { text: " " },
+      ...formatLegislationPinpoint({ type: "section", value: "40(3)" }),
+    ];
+    const runs = formatLegislativeHistory(lead, {
+      connector: "later amended by",
+      relatedAct: {
+        title: "Copyright Amendment Act",
+        year: 2006,
+        jurisdiction: "Cth",
+        pinpoint: {
+          type: "schedule",
+          value: "6",
+          subPinpoint: { type: "item", value: "11" },
+        },
+      },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Copyright Act 1968 (Cth) s 40(3), later amended by Copyright Amendment Act 2006 (Cth) sch 6 item 11"
+    );
+  });
+
+  it("formats as-enacted citation per AGLC4 ex 67 (rule 3.8)", () => {
+    const lead = formatStatute({
+      title: "Restrictive Trade Practices Act",
+      year: 1971,
+      jurisdiction: "Cth",
+    });
+    const runs = formatLegislativeHistory(lead, { connector: "as enacted" });
+    expect(toPlainText(runs)).toBe(
+      "Restrictive Trade Practices Act 1971 (Cth), as enacted"
+    );
   });
 });
 
@@ -898,16 +962,45 @@ describe("Rule 3.9.1 -- Gazettes", () => {
     expect(gazetteRun!.italic).toBe(true);
   });
 
-  it("should include page when provided", () => {
+  it("formats notice without author per AGLC4 ex 70 (rule 3.9.1)", () => {
+    // Rule 3.9.1: the notice's author is included only if available.
     const runs = formatGazette({
+      noticeTitle: "Australian Capital Territory Teaching Service",
+      jurisdiction: "Australian Capital Territory",
+      gazetteType: "Australian Capital Territory Gazette",
+      number: "1",
+      date: "24 May 1989",
+      page: 3,
+    });
+    expect(toPlainText(runs)).toBe(
+      "\u2018Australian Capital Territory Teaching Service\u2019 in Australian Capital Territory, " +
+        "Australian Capital Territory Gazette, No 1, 24 May 1989, 3"
+    );
+  });
+
+  it("formats individual notice per AGLC4 ex 71 (rule 3.9.1)", () => {
+    // Rule 3.9.1: author, roman quoted notice title, 'in', then the basic
+    // form, starting page, and page pinpoint.
+    const runs = formatGazette({
+      noticeAuthor: "Minister for Lands (WA)",
+      noticeTitle:
+        "Land Acquisition and Public Works Act 1902 — Native Title Act 1993 " +
+        "(Commonwealth) — Notice of Intention to Take Land for a Public Work",
       jurisdiction: "Western Australia",
       gazetteType: "Western Australian Government Gazette",
       number: "27",
       date: "18 February 1997",
       page: 1142,
+      pinpoint: "1143",
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("1142");
+    expect(toPlainText(runs)).toBe(
+      "Minister for Lands (WA), \u2018Land Acquisition and Public Works Act 1902 — " +
+        "Native Title Act 1993 (Commonwealth) — Notice of Intention to Take Land " +
+        "for a Public Work\u2019 in Western Australia, Western Australian Government Gazette, " +
+        "No 27, 18 February 1997, 1142, 1143"
+    );
+    // Only the gazette title is italic; the notice title is roman
+    expect(italicText(runs)).toBe("Western Australian Government Gazette");
   });
 
   it("should not italicise jurisdiction", () => {
@@ -929,40 +1022,64 @@ describe("Rule 3.9.1 -- Gazettes", () => {
 // =============================================================================
 
 describe("Rule 3.9.2 -- Orders and Rulings", () => {
-  it("should format ATO tax ruling with title (AGLC4 Example 72)", () => {
+  it("formats ATO taxation ruling per AGLC4 ex 72 (rule 3.9.2)", () => {
+    // Rule 3.9.2 template: Instrumentality, Title (Number, Date) Pinpoint
     const runs = formatQuasiLegislative({
       issuingBody: "Australian Taxation Office",
-      documentType: "Income Tax: Carrying on a Business as a Professional Artist",
+      title: "Income Tax: Carrying on a Business as a Professional Artist",
       number: "TR 2005/1",
       date: "12 January 2005",
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("Australian Taxation Office");
-    expect(text).toContain("TR 2005/1");
-    expect(text).toContain("12 January 2005");
+    expect(toPlainText(runs)).toBe(
+      "Australian Taxation Office, Income Tax: Carrying on a Business as a " +
+        "Professional Artist (TR 2005/1, 12 January 2005)"
+    );
+    expect(italicText(runs)).toBe(
+      "Income Tax: Carrying on a Business as a Professional Artist"
+    );
   });
 
-  it("should format ASIC class order (AGLC4 Example 73)", () => {
+  it("formats ASIC class order with paragraph pinpoint per AGLC4 ex 73 (rule 3.9.2)", () => {
     const runs = formatQuasiLegislative({
       issuingBody: "Australian Securities and Investments Commission",
-      documentType: "ASIC Class Order",
+      title: "ASIC Class Order — Credit Rating Agencies",
       number: "CO 05/1230",
       date: "31 December 2005",
-      title: "Credit Rating Agencies",
+      pinpoint: { type: "paragraph", value: "[4]" },
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("Australian Securities and Investments Commission");
-    expect(text).toContain("ASIC Class Order");
-    expect(text).toContain("CO 05/1230");
+    expect(toPlainText(runs)).toBe(
+      "Australian Securities and Investments Commission, ASIC Class Order — " +
+        "Credit Rating Agencies (CO 05/1230, 31 December 2005) [4]"
+    );
+  });
+
+  it("formats officer instrument with jurisdiction and no number per AGLC4 ex 74 (rule 3.9.2)", () => {
+    // Rule 3.9.2: an officer's jurisdiction follows the officer name in
+    // parentheses; a document number is included only if one appears.
+    const runs = formatQuasiLegislative({
+      issuingBody: "Minister for Immigration and Border Protection",
+      bodyJurisdiction: "Cth",
+      title:
+        "Direction No 65: Visa Refusal and Cancellation under s501 and " +
+        "Revocation of a Mandatory Cancellation of a Visa under s501CA",
+      date: "22 December 2014",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Minister for Immigration and Border Protection (Cth), Direction No 65: " +
+        "Visa Refusal and Cancellation under s501 and Revocation of a Mandatory " +
+        "Cancellation of a Visa under s501CA (22 December 2014)"
+    );
+    expect(romanText(runs)).toBe(
+      "Minister for Immigration and Border Protection (Cth),  (22 December 2014)"
+    );
   });
 
   it("should italicise title when present", () => {
     const runs = formatQuasiLegislative({
       issuingBody: "Australian Taxation Office",
-      documentType: "Taxation Ruling",
+      title: "Income Tax: Residency Tests",
       number: "TR 2010/1",
       date: "14 July 2010",
-      title: "Income Tax: Residency Tests",
     });
     const titleRun = runs.find(
       (r) => r.text === "Income Tax: Residency Tests"
@@ -977,18 +1094,53 @@ describe("Rule 3.9.2 -- Orders and Rulings", () => {
 // =============================================================================
 
 describe("Rule 3.9.3 -- Non-Government Delegated Legislation", () => {
-  it("should format ASX Listing Rules (AGLC4 Example 75) using quasi-legislative formatter", () => {
-    // AGLC4 Example 75: ASX, Listing Rules (at 19 December 2016)
-    // This can be formatted using formatQuasiLegislative with adapted fields
+  it("formats ASX Listing Rules per AGLC4 ex 75 (rule 3.9.3)", () => {
+    // Rule 3.9.3: with no document number (or a frequently updated source),
+    // the parenthetical takes the version date as (at Full Date).
     const runs = formatQuasiLegislative({
       issuingBody: "ASX",
-      documentType: "Listing Rules",
-      number: "at 19 December 2016",
-      date: "19 December 2016",
+      title: "Listing Rules",
+      atDate: "19 December 2016",
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("ASX");
-    expect(text).toContain("Listing Rules");
+    expect(toPlainText(runs)).toBe("ASX, Listing Rules (at 19 December 2016)");
+    expect(italicText(runs)).toBe("Listing Rules");
+  });
+
+  it("formats conduct rules with rule pinpoint per AGLC4 ex 76 (rule 3.9.3)", () => {
+    const runs = formatQuasiLegislative({
+      issuingBody: "Law Society of the Australian Capital Territory",
+      title: "ACT Legal Profession (Solicitors) Conduct Rules 2015",
+      atDate: "20 November 2015",
+      pinpoint: { type: "rule", value: "8.1" },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Law Society of the Australian Capital Territory, ACT Legal Profession " +
+        "(Solicitors) Conduct Rules 2015 (at 20 November 2015) r 8.1"
+    );
+  });
+
+  it("trims company designators from the issuing body per AGLC4 ex 77 (rule 3.9.3)", () => {
+    // Rule 3.9.3: omit 'Pty'/'Ltd'/'Co'/'Inc' and a leading 'The'
+    // (ex 77: not 'The Victorian Bar Inc').
+    const runs = formatQuasiLegislative({
+      issuingBody: "The Victorian Bar Inc",
+      title: "Compulsory Continuing Professional Development Rules",
+      atDate: "1 April 2011",
+      pinpoint: { type: "rule", value: "4\u20135" },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Victorian Bar, Compulsory Continuing Professional Development Rules " +
+        "(at 1 April 2011) rr 4\u20135"
+    );
+  });
+
+  it("trimIssuingBodyName strips designators and leading 'The' (rule 3.9.3)", () => {
+    expect(trimIssuingBodyName("The Victorian Bar Inc")).toBe("Victorian Bar");
+    expect(trimIssuingBodyName("Acme Holdings Pty Ltd")).toBe("Acme Holdings");
+    // Internal 'the' and ordinary words are untouched
+    expect(trimIssuingBodyName("Law Society of the Australian Capital Territory")).toBe(
+      "Law Society of the Australian Capital Territory"
+    );
   });
 });
 
@@ -997,19 +1149,70 @@ describe("Rule 3.9.3 -- Non-Government Delegated Legislation", () => {
 // =============================================================================
 
 describe("Rule 3.9.4 -- Court Practice Directions", () => {
-  it("should format practice direction with report series (AGLC4 Example 78 context)", () => {
-    // Practice directions are formatted using quasi-legislative rules.
-    // Example 78: Supreme Court of Victoria, Practice Note No 8 of 2010: ...
-    const runs = formatQuasiLegislative({
-      issuingBody: "Supreme Court of Victoria",
-      documentType: "Practice Note No 8 of 2010",
-      number: "Management of Group Proceedings",
-      date: "2010",
+  it("formats practice note in report series per AGLC4 ex 78 (rule 3.9.4)", () => {
+    // Rule 3.9.4: designation, identifier and title are one italic unit;
+    // 'No' is inserted before an identifier clearly specified as a number;
+    // the report-series citation is roman.
+    const runs = formatPracticeDirection({
+      court: "Supreme Court of Victoria",
+      designation: "Practice Note",
+      identifier: "8 of 2010",
       title: "Management of Group Proceedings",
+      reportCitation: "(2010) 30 VR 693",
     });
-    const text = toPlainText(runs);
-    expect(text).toContain("Supreme Court of Victoria");
-    expect(text).toContain("Practice Note");
+    expect(toPlainText(runs)).toBe(
+      "Supreme Court of Victoria, Practice Note No 8 of 2010: Management of " +
+        "Group Proceedings (2010) 30 VR 693"
+    );
+    expect(italicText(runs)).toBe(
+      "Practice Note No 8 of 2010: Management of Group Proceedings"
+    );
+  });
+
+  it("omits 'No' before a non-numeric identifier per AGLC4 ex 79 (rule 3.9.4)", () => {
+    // Ex 79: not '... Practice Note No SC Gen 10: Conduct ...'
+    const runs = formatPracticeDirection({
+      court: "Supreme Court of Victoria",
+      designation: "Practice Note",
+      identifier: "SC Gen 10",
+      title: "Conduct of Group Proceedings (Class Actions)",
+      date: "30 January 2017",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Supreme Court of Victoria, Practice Note SC Gen 10: Conduct of Group " +
+        "Proceedings (Class Actions), 30 January 2017"
+    );
+  });
+
+  it("formats dated practice direction per AGLC4 ex 80 (rule 3.9.4)", () => {
+    const runs = formatPracticeDirection({
+      court: "High Court of Australia",
+      designation: "Practice Direction",
+      identifier: "2 of 2010",
+      title: "Use of Initials or Pseudonyms in Applications",
+      date: "2 November 2010",
+    });
+    expect(toPlainText(runs)).toBe(
+      "High Court of Australia, Practice Direction No 2 of 2010: Use of " +
+        "Initials or Pseudonyms in Applications, 2 November 2010"
+    );
+    expect(italicText(runs)).toBe(
+      "Practice Direction No 2 of 2010: Use of Initials or Pseudonyms in Applications"
+    );
+  });
+
+  it("formats identifier-less practice note with pinpoint per AGLC4 ex 81 (rule 3.9.4)", () => {
+    const runs = formatPracticeDirection({
+      court: "Federal Court of Australia",
+      designation: "Central Practice Note",
+      title: "National Court Framework and Case Management",
+      date: "25 October 2016",
+      pinpoint: { type: "paragraph", value: "para 4.1" },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Federal Court of Australia, Central Practice Note: National Court " +
+        "Framework and Case Management, 25 October 2016, para 4.1"
+    );
   });
 });
 

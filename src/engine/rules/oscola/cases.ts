@@ -182,9 +182,7 @@ export function formatOscolaCase(data: OscolaCaseData): FormattedRun[] {
 
   // Determine effective neutral citation (disregard BAILII retrospective)
   const effectiveNeutral =
-    data.neutralCitation && !data.bailiiRetrospective
-      ? data.neutralCitation
-      : undefined;
+    data.neutralCitation && !data.bailiiRetrospective ? data.neutralCitation : undefined;
 
   if (effectiveNeutral && data.reportCitation) {
     // Modern parallel form: neutral citation, report citation
@@ -197,10 +195,7 @@ export function formatOscolaCase(data: OscolaCaseData): FormattedRun[] {
     // Pre-2001 or no neutral: report citation only
     runs.push({ text: ` ${renderReportCitation(data.reportCitation)}` });
     // Court in parentheses if not apparent from series
-    if (
-      data.courtId &&
-      !OSCOLA_SERIES_IMPLIED_COURT.has(data.reportCitation.series)
-    ) {
+    if (data.courtId && !OSCOLA_SERIES_IMPLIED_COURT.has(data.reportCitation.series)) {
       runs.push({ text: ` (${data.courtId})` });
     }
   }

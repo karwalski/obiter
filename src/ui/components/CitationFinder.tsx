@@ -106,6 +106,9 @@ async function repairOrphanedCitations(): Promise<number> {
           shortTitle: "",
           aglcVersion: "4",
           firstFootnoteNumber: i + 1,
+          tags: [],
+          createdAt: new Date().toISOString(),
+          modifiedAt: new Date().toISOString(),
         });
 
         storeIds.add(citationId);
@@ -330,7 +333,7 @@ export default function CitationFinder({
                         key={`${entry.citationId}-${entry.footnoteIndex}-${index}`}
                         className="finder-item"
                         onClick={() => handleNavigate(entry.footnoteIndex)}
-                        title={`Go to footnote ${entry.footnoteIndex}`}
+                        aria-label={`Go to footnote ${entry.footnoteIndex}`}
                       >
                         <span className="finder-item-fn">
                           n {entry.footnoteIndex}

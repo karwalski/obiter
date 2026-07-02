@@ -41,10 +41,7 @@ interface SingaporeCaseData {
 /**
  * Report series from which the Singapore court can be inferred (Rule 22.1).
  */
-const SG_SERIES_IMPLIED_COURT: ReadonlySet<string> = new Set([
-  "SLR",
-  "MLJ",
-]);
+const SG_SERIES_IMPLIED_COURT: ReadonlySet<string> = new Set(["SLR", "MLJ"]);
 
 // ─── FRGN-008-CASE: Singapore Cases (Rule 22.1) ─────────────────────────────
 
@@ -154,9 +151,7 @@ interface SingaporeLegislationData {
  *     pinpoint: "art 12",
  *   })
  */
-export function formatLegislation(
-  data: SingaporeLegislationData,
-): FormattedRun[] {
+export function formatLegislation(data: SingaporeLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title (and year if present) in italics

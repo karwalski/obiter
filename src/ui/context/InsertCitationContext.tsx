@@ -14,7 +14,7 @@
  * error messages, feedback banners) remain local to the component.
  */
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, type Dispatch, type SetStateAction } from "react";
 import type { SourceType, SourceData, IntroductorySignal, LinkingPhrase } from "../../types/citation";
 import type { CitationStandardId } from "../../engine/standards";
 import type { ClassificationResult } from "../../llm/classifySource";
@@ -75,7 +75,7 @@ interface InsertCitationState {
 
   // Paste citation
   pasteCitationExpanded: boolean;
-  setPasteCitationExpanded: (v: boolean) => void;
+  setPasteCitationExpanded: Dispatch<SetStateAction<boolean>>;
   pasteCitationText: string;
   setPasteCitationText: (v: string) => void;
   pasteCitationResult: ParsedCitation | null;
@@ -91,7 +91,7 @@ interface InsertCitationState {
 
   // Recent citations panel
   recentExpanded: boolean;
-  setRecentExpanded: (v: boolean) => void;
+  setRecentExpanded: Dispatch<SetStateAction<boolean>>;
 
   // Reset all form state (e.g. after successful insert)
   resetForm: () => void;

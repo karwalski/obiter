@@ -19,9 +19,7 @@ export function toRoman(num: number): string {
   if (num <= 0) return "";
 
   const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  const symbols = [
-    "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I",
-  ];
+  const symbols = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
 
   let result = "";
   let remaining = num;
@@ -53,10 +51,7 @@ export function toRoman(num: number): string {
  * @param number - The sequence number within that level (1-based).
  * @returns The formatted prefix string (e.g. "II", "B", "3", "(c)", "(iv)").
  */
-export function getHeadingPrefix(
-  level: 1 | 2 | 3 | 4 | 5,
-  number: number
-): string {
+export function getHeadingPrefix(level: 1 | 2 | 3 | 4 | 5, number: number): string {
   switch (level) {
     case 1:
       return toRoman(number);
@@ -94,9 +89,7 @@ export function getHeadingPrefix(
  *
  * @param context - A Word.RequestContext from within a Word.run() callback.
  */
-export async function applyAglc4Styles(
-  context: Word.RequestContext
-): Promise<void> {
+export async function applyAglc4Styles(context: Word.RequestContext): Promise<void> {
   const doc = context.document;
 
   // Check if addStyle is available (WordApi 1.6+)
@@ -111,10 +104,7 @@ export async function applyAglc4Styles(
   // addStyle throws at sync time if the name is taken, so we
   // track names we've already attempted and skip duplicates.
   const attempted = new Set<string>();
-  const getOrCreateStyle = (
-    name: string,
-    type: Word.StyleType
-  ): Word.Style | null => {
+  const getOrCreateStyle = (name: string, type: Word.StyleType): Word.Style | null => {
     if (attempted.has(name)) return null;
     attempted.add(name);
     try {
@@ -127,10 +117,7 @@ export async function applyAglc4Styles(
   // ── AGLC4 Block Quote (Rule 1.5.1) ──────────────────────────────────────
   // "Quotations of four or more lines ... should be displayed in an
   //  indented block, without quotation marks, in a smaller font."
-  const blockQuote = getOrCreateStyle(
-    "AGLC4 Block Quote",
-    "Paragraph" as Word.StyleType
-  );
+  const blockQuote = getOrCreateStyle("AGLC4 Block Quote", "Paragraph" as Word.StyleType);
   if (blockQuote) {
     blockQuote.font.size = 10;
     blockQuote.paragraphFormat.leftIndent = 36; // 720 twips = 36pt = 0.5 in
@@ -154,10 +141,7 @@ export async function applyAglc4Styles(
   }
 
   // ── AGLC4 Footnote Text ─────────────────────────────────────────────────
-  const footnoteText = getOrCreateStyle(
-    "AGLC4 Footnote Text",
-    "Paragraph" as Word.StyleType
-  );
+  const footnoteText = getOrCreateStyle("AGLC4 Footnote Text", "Paragraph" as Word.StyleType);
   if (footnoteText) {
     footnoteText.font.size = 10;
     footnoteText.paragraphFormat.lineSpacing = 12;
@@ -167,15 +151,20 @@ export async function applyAglc4Styles(
   // Bibliography section headings are centred and in italic. Add visible
   // breathing room before/after each heading so sections are visually
   // separated from the entries above and below.
-  const bibHeading = getOrCreateStyle(
-    "AGLC4 Bibliography Heading",
-    "Paragraph" as Word.StyleType
-  );
+  const bibHeading = getOrCreateStyle("AGLC4 Bibliography Heading", "Paragraph" as Word.StyleType);
   if (bibHeading) {
     bibHeading.font.italic = true;
     bibHeading.paragraphFormat.alignment = "Centered" as Word.Alignment;
     bibHeading.paragraphFormat.spaceBefore = 18;
     bibHeading.paragraphFormat.spaceAfter = 6;
+    try {
+      // ATAG Part B / WCAG 1.3.1: give the bibliography heading an outline level so it
+      // appears in Word's Navigation pane and document outline. It is a named paragraph
+      // style (not a numbered Heading), so it must carry the outline level explicitly.
+      bibHeading.paragraphFormat.outlineLevel = "OutlineLevel1" as Word.OutlineLevel;
+    } catch {
+      // outlineLevel not supported on this platform/API — the heading still renders.
+    }
   }
 
   // ── Modify built-in Heading 1–5 for AGLC4 (Rule 1.12.2) ────────────────
@@ -192,11 +181,46 @@ export async function applyAglc4Styles(
     centered: boolean;
     leftIndent: number;
   }> = [
-    { name: "Heading 1", italic: false, smallCaps: true,  bold: false, centered: true,  leftIndent: 0  },
-    { name: "Heading 2", italic: true,  smallCaps: false, bold: false, centered: true,  leftIndent: 0  },
-    { name: "Heading 3", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 0  },
-    { name: "Heading 4", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 36 },
-    { name: "Heading 5", italic: true,  smallCaps: false, bold: false, centered: false, leftIndent: 72 },
+    {
+      name: "Heading 1",
+      italic: false,
+      smallCaps: true,
+      bold: false,
+      centered: true,
+      leftIndent: 0,
+    },
+    {
+      name: "Heading 2",
+      italic: true,
+      smallCaps: false,
+      bold: false,
+      centered: true,
+      leftIndent: 0,
+    },
+    {
+      name: "Heading 3",
+      italic: true,
+      smallCaps: false,
+      bold: false,
+      centered: false,
+      leftIndent: 0,
+    },
+    {
+      name: "Heading 4",
+      italic: true,
+      smallCaps: false,
+      bold: false,
+      centered: false,
+      leftIndent: 36,
+    },
+    {
+      name: "Heading 5",
+      italic: true,
+      smallCaps: false,
+      bold: false,
+      centered: false,
+      leftIndent: 72,
+    },
   ];
 
   for (const cfg of headingConfigs) {
@@ -273,11 +297,7 @@ export async function createAglc4HeadingList(
   // Configure all five levels of the multilevel list
   for (let i = 0; i < HEADING_LEVEL_CONFIG.length; i++) {
     const config = HEADING_LEVEL_CONFIG[i];
-    list.setLevelNumbering(
-      i,
-      config.listNumbering as Word.ListNumbering,
-      config.formatString
-    );
+    list.setLevelNumbering(i, config.listNumbering as Word.ListNumbering, config.formatString);
     list.setLevelStartingNumber(i, 1);
   }
 
@@ -320,7 +340,7 @@ export const HEADING_TAG_PREFIX = "obiter-heading-";
  * list after a document close/reopen cycle.
  */
 export async function findExistingHeadingListId(
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<number | undefined> {
   try {
     const body = context.document.body;
@@ -328,7 +348,7 @@ export async function findExistingHeadingListId(
     paragraphs.load("items/style,items/isListItem");
     await context.sync();
 
-    for (const para of (paragraphs.items ?? [])) {
+    for (const para of paragraphs.items ?? []) {
       if (para.style && para.style.startsWith("Heading") && para.isListItem) {
         // Access the list via listItem — load listString which contains the list ID
         const listItem = para.listItem;
@@ -455,9 +475,7 @@ export async function applyHeadingLevel(
  * them sequentially per Rule 1.12.2. Resets child-level counters
  * when a parent level increments.
  */
-export async function renumberAllHeadings(
-  context: Word.RequestContext,
-): Promise<number> {
+export async function renumberAllHeadings(context: Word.RequestContext): Promise<number> {
   // Scan all paragraphs for Heading 1-5 styles and apply text-prefix numbering.
   // This is more reliable than Word's multilevel list API on Mac.
   const body = context.document.body;
@@ -529,11 +547,11 @@ export async function renumberAllHeadings(
 /** Strips an existing heading prefix from text. */
 function stripPrefix(text: string, level: number): string {
   const patterns: RegExp[] = [
-    /^[IVXLCDM]+\s+/,     // Level 1: Upper Roman
-    /^[A-Z]\s+/,           // Level 2: Upper Letter
-    /^\d+\s+/,             // Level 3: Arabic
-    /^\([a-z]\)\s+/,       // Level 4: Lower letter in parens
-    /^\([ivxlcdm]+\)\s+/,  // Level 5: Lower Roman in parens
+    /^[IVXLCDM]+\s+/, // Level 1: Upper Roman
+    /^[A-Z]\s+/, // Level 2: Upper Letter
+    /^\d+\s+/, // Level 3: Arabic
+    /^\([a-z]\)\s+/, // Level 4: Lower letter in parens
+    /^\([ivxlcdm]+\)\s+/, // Level 5: Lower Roman in parens
   ];
   return text.replace(patterns[level - 1], "");
 }

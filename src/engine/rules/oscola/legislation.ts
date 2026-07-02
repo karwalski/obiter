@@ -63,10 +63,7 @@ export interface OscolaSecondaryLegislationData {
 
 // ─── Type prefix mapping ─────────────────────────────────────────────────────
 
-const SECONDARY_LEGISLATION_PREFIX: Record<
-  OscolaSecondaryLegislationData["type"],
-  string
-> = {
+const SECONDARY_LEGISLATION_PREFIX: Record<OscolaSecondaryLegislationData["type"], string> = {
   si: "SI",
   ssi: "SSI",
   wsi: "WSI",
@@ -115,9 +112,7 @@ const SECONDARY_LEGISLATION_PREFIX: Record<
  *     title: "Justice (Northern Ireland) Act", year: 2002, type: "ni",
  *   })
  */
-export function formatOscolaPrimaryLegislation(
-  data: OscolaPrimaryLegislationData,
-): FormattedRun[] {
+export function formatOscolaPrimaryLegislation(data: OscolaPrimaryLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title and year in roman (not italic) — this is the key OSCOLA distinction
@@ -198,7 +193,7 @@ export function formatOscolaPrimaryLegislation(
  *   })
  */
 export function formatOscolaSecondaryLegislation(
-  data: OscolaSecondaryLegislationData,
+  data: OscolaSecondaryLegislationData
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 

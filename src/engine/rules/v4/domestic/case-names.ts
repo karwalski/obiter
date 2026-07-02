@@ -7,26 +7,39 @@ import { FormattedRun } from "../../../../types/formattedRun";
 
 // ─── Corporate Abbreviation Map ─────────────────────────────────────────────
 
+/**
+ * AGLC4 Rule 2.1.2 word abbreviations. The rule's table mandates exactly:
+ * and→&, Company→Co, Limited→Ltd, Proprietary→Pty, Incorporated→Inc (plus
+ * the corporate-status phrases handled separately below). Words such as
+ * 'Corporation', 'Department' and 'Commission' are NOT abbreviated — the
+ * guide's own examples keep 'Kuwait Airlines Corporation' (ex 39),
+ * 'Seiko Epson Corporation' (ex 88) and 'Department of Industrial
+ * Relations …' (ex 22) in full.
+ *
+ * 'and'→'&' is handled conditionally in {@link abbreviateCorporateNames}
+ * because it applies only where the party is a business corporation or
+ * firm (eg 'Re Judiciary and Navigation Acts' must keep its 'and').
+ */
 const CORPORATE_ABBREVIATIONS: ReadonlyMap<string, string> = new Map([
   ["Company", "Co"],
   ["Limited", "Ltd"],
   ["Proprietary", "Pty"],
   ["Incorporated", "Inc"],
-  ["Corporation", "Corp"],
-  ["Association", "Assn"],
-  ["Department", "Dept"],
-  ["Authority", "Auth"],
-  ["Commission", "Cmmn"],
-  ["University", "Univ"],
 ]);
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
  * Strips given names and initials from an individual party name,
- * leaving only the surname. A name is considered an individual if it
- * contains at least two space-separated words and does not look like
- * a corporate entity.
+ * leaving only the surname (AGLC4 Rule 2.1.1: individuals are cited by
+ * surname only).
+ *
+ * The heuristic is deliberately conservative: a name is treated as an
+ * individual only when it carries a strong signal — it contains
+ * initials (eg 'R J Lewarne') or at least three capitalised name-like
+ * words (eg 'Richard John Lewarne'). Two-word names are left intact
+ * because a string like 'Hot Holdings' is indistinguishable from a
+ * personal name and must not be corrupted (PARITY 2.1.1).
  */
 function stripGivenNames(party: string): string {
   const trimmed = party.trim();
@@ -97,12 +110,13 @@ function stripGivenNames(party: string): string {
   // Check if any part is an initial (single letter optionally followed by a full stop)
   const hasInitials = parts.some((p) => /^[A-Z]\.?$/.test(p));
 
-  // If all parts look like name components (capitalised words or initials), treat as individual
-  const allNameLike = parts.every(
-    (p) => /^[A-Z][a-z]+$/.test(p) || /^[A-Z]\.?$/.test(p)
-  );
+  // All parts look like name components (capitalised words or initials)
+  const allNameLike = parts.every((p) => /^[A-Z][a-z]+$/.test(p) || /^[A-Z]\.?$/.test(p));
 
-  if (hasInitials || allNameLike) {
+  // Strip only on a strong individual signal: initials, or three or more
+  // name-like words. Two capitalised words alone (eg 'Hot Holdings') are
+  // ambiguous and must be left as typed.
+  if (hasInitials || (allNameLike && parts.length >= 3)) {
     // Return surname only (last part)
     return parts[parts.length - 1];
   }
@@ -118,29 +132,33 @@ function stripAnorOrs(name: string): string {
 }
 
 /**
- * Extracts only the first party from a potentially multi-party string
- * (parties separated by semicolons, "and", or "&").
+ * Extracts only the first action from a multi-action party string.
+ *
+ * AGLC4 Rule 2.1.1: where the case involves more than one action, cite
+ * only the first action (ex 3: 'Tame v New South Wales', not 'Tame v New
+ * South Wales; Annetts v Australian Stations Pty Ltd'). The guide
+ * separates actions with a semicolon, so that is the ONLY boundary this
+ * helper splits on. A single party's own name may legitimately contain
+ * 'and' or '&' ('Herald & Weekly Times Ltd', ex 66; 'Minister for
+ * Immigration and Ethnic Affairs', ex 110) and must never be truncated
+ * by string heuristics (PARITY 2.1.1).
  */
 function firstPartyOnly(name: string): string {
-  // Split on semicolons first
-  const semiParts = name.split(";");
-  let first = semiParts[0].trim();
-
-  // Then split on " and " (but not "& Anor"/"& Ors" which are already stripped)
-  const andParts = first.split(/\s+and\s+/i);
-  first = andParts[0].trim();
-
-  // Split on "&" (but preserve corporate names like "Smith & Co")
-  const ampParts = first.split(/\s*&\s*/);
-  if (ampParts.length > 1) {
-    // Only split if the part after & looks like another party name (capitalised word)
-    const afterAmp = ampParts[1].trim();
-    if (/^[A-Z][a-z]/.test(afterAmp) && !afterAmp.match(/^(Co|Sons|Partners)\b/)) {
-      first = ampParts[0].trim();
-    }
+  const segments = name.split(";");
+  if (segments.length === 1) {
+    return name.trim();
   }
-
-  return first;
+  // Extended case names such as 'Re McBain; Ex parte Australian Catholic
+  // Bishops Conference' (ex 27) or 'R v Kirby; Ex parte Boilermakers'
+  // Society of Australia' (ex 29) are a SINGLE case name — keep the
+  // 'Ex parte'/'Re' continuation rather than treating it as a second
+  // action. (Ex 26-style 'Re Palmer; George v McIntyre' compounds cannot
+  // be distinguished from multi-action strings and require the user to
+  // supply the full name.)
+  if (/^\s*(Ex parte|Re)\b/.test(segments[1])) {
+    return name.trim();
+  }
+  return segments[0].trim();
 }
 
 // ─── CASE-001 (Rule 2.1.1) ─────────────────────────────────────────────────
@@ -151,9 +169,12 @@ function firstPartyOnly(name: string): string {
  * Returns the formatted case name as an array of `FormattedRun` elements.
  * The case name is italicised. Given names and initials are stripped from
  * individual party names. `& Anor` and `& Ors` are removed. Only the
- * first plaintiff and first defendant are included.
+ * first plaintiff and first defendant are included, and only the first
+ * action where several actions are given.
  *
- * The separator (default `'v'`) is rendered in roman (non-italic) per Rule 2.1.11.
+ * AGLC4 Rule 2.1.11: the separator 'v' "should not be followed by a full
+ * stop and should be italicised" — it is part of the italicised case
+ * name, so the separator run is emitted italic.
  *
  * @param party1 - Plaintiff / applicant party name(s).
  * @param party2 - Defendant / respondent party name(s).
@@ -189,7 +210,8 @@ export function formatCaseName(
 
   return [
     { text: p1, italic: true },
-    { text: ` ${separator} `, italic: false },
+    // Rule 2.1.11: the 'v' is italicised as part of the case name.
+    { text: ` ${separator} `, italic: true },
     { text: p2, italic: true },
   ];
 }
@@ -197,16 +219,20 @@ export function formatCaseName(
 // ─── CASE-002 (Rule 2.1.2) ─────────────────────────────────────────────────
 
 /**
- * **AGLC4 Rule 2.1.2 — Corporate Party Abbreviations**
+ * **AGLC4 Rule 2.1.2 — Business Corporations and Firms**
  *
- * Auto-abbreviates standard corporate words:
- * Company→Co, Limited→Ltd, Proprietary→Pty, Incorporated→Inc,
- * Corporation→Corp, Association→Assn, Department→Dept, Authority→Auth,
- * Commission→Cmmn, University→Univ.
+ * Applies the rule's mandatory word abbreviations to corporate party
+ * names: Company→Co, Limited→Ltd, Proprietary→Pty, Incorporated→Inc, and
+ * and→& (the last only where the name shows corporate/firm indicators,
+ * since 'and' in non-corporate names — 'Minister for Immigration and
+ * Ethnic Affairs' — must be preserved). Corporate-status phrases are
+ * abbreviated per the rule's table: (in liq), (in prov liq),
+ * (admin apptd), (mgr apptd), (rec apptd).
  *
- * Removes full stops from abbreviations. Strips trading names (`t/as …`).
- * Strips ACN unless no other identifying name remains.
- * Preserves `The` when it is part of the company name.
+ * Removes full stops from abbreviations (Rule 1.6.1). Strips trading
+ * names (`t/as …`) and former names. Strips ACN unless no other
+ * identifying name remains (Rule 1.10.1). Preserves `The` when it is
+ * part of the company name.
  *
  * @param name - The corporate party name to abbreviate.
  * @returns The abbreviated corporate name.
@@ -230,6 +256,13 @@ export function abbreviateCorporateNames(name: string): string {
     result = result.replace(new RegExp(`\\b${full}\\b`, "g"), abbrev);
   }
 
+  // Rule 2.1.2 table: 'and' → '&' where the party is a business
+  // corporation or firm. Only applied when the name carries a corporate
+  // indicator so that non-corporate 'and's survive intact.
+  if (/\b(Pty|Ltd|Co|Inc)\b|&|\(in (?:prov )?liq\)/.test(result)) {
+    result = result.replace(/\band\b/g, "&");
+  }
+
   // Abbreviate corporate status phrases per Rule 2.1.2
   const STATUS_ABBREVIATIONS: [RegExp, string][] = [
     [/\(in provisional liquidation\)/gi, "(in prov liq)"],
@@ -248,41 +281,47 @@ export function abbreviateCorporateNames(name: string): string {
   return result.trim();
 }
 
-// ─── CASE-003 (Rules 2.1.3–2.1.7) ──────────────────────────────────────────
+// ─── CASE-003 (Rules 2.1.4–2.1.7) ──────────────────────────────────────────
 
 /**
- * **AGLC4 Rule 2.1.3 — Crown Parties in Criminal Cases**
+ * **AGLC4 Rule 2.1.4 — The Crown**
  *
- * Returns `'R'` for criminal proceedings where the Crown is a party.
- * The jurisdiction parameter is accepted for interface consistency but
- * the Crown is always cited as `R` regardless of jurisdiction.
+ * The Crown is abbreviated to `'R'` only where it is the *first-named*
+ * party (ex 11: 'R v Reid'). Where the Crown is the respondent it is
+ * written in full as `'The King'` or `'The Queen'` as appropriate
+ * (ex 12: 'Honeysett v The Queen').
  *
- * @param jurisdiction - Optional jurisdiction identifier (unused; Crown is always `R`).
- * @returns `'R'` representing the Crown.
+ * @param position - `'first'` (default) when the Crown is the first-named
+ *   party; `'respondent'` when the Crown responds.
+ * @param monarch - `'Queen'` (default) or `'King'`, per the reigning
+ *   monarch at the time of the decision. Only used for respondents.
+ * @returns The Crown party name.
  */
-export function formatCrownParty(jurisdiction?: string): string {
-  // Per Rule 2.1.3, the Crown is always cited as 'R' in criminal cases,
-  // regardless of the jurisdiction. The jurisdiction parameter is accepted
-  // for API consistency but is intentionally unused.
-  void jurisdiction;
+export function formatCrownParty(
+  position: "first" | "respondent" = "first",
+  monarch: "Queen" | "King" = "Queen"
+): string {
+  if (position === "respondent") {
+    return `The ${monarch}`;
+  }
   return "R";
 }
 
 /**
- * **AGLC4 Rule 2.1.4 — Government Department Parties**
+ * **AGLC4 Rule 2.1.6 — Ministers, Officers and Government Departments**
  *
- * Abbreviates government department names using standard corporate
- * abbreviations and returns the formatted name with optional
- * jurisdiction abbreviation.
+ * Formats a minister/officer/department party name, appending the
+ * jurisdiction in abbreviated form in parentheses where it is part of
+ * the title but not evident (ex 21: 'Treasurer (NSW)'). Department
+ * names are NOT abbreviated — ex 22 keeps 'Department of Industrial
+ * Relations and Technology (NSW)' in full; only Rule 2.1.2 corporate
+ * words would be abbreviated, and departments contain none.
  *
- * @param department - The government department name.
+ * @param department - The minister/officer/department title.
  * @param jurisdiction - Optional jurisdiction abbreviation (e.g. `'Cth'`, `'NSW'`).
- * @returns The abbreviated government department party name.
+ * @returns The formatted government party name.
  */
-export function formatGovernmentParty(
-  department: string,
-  jurisdiction?: string
-): string {
+export function formatGovernmentParty(department: string, jurisdiction?: string): string {
   const abbreviated = abbreviateCorporateNames(department);
   if (jurisdiction) {
     return `${abbreviated} (${jurisdiction})`;
@@ -291,9 +330,11 @@ export function formatGovernmentParty(
 }
 
 /**
- * **AGLC4 Rule 2.1.5 — Attorney-General**
+ * **AGLC4 Rule 2.1.7 — Attorneys-General**
  *
- * Returns the Attorney-General citation in the form `A-G (Jurisdiction)`.
+ * Returns the footnote-citation form `A-G (Jurisdiction)`. The
+ * jurisdiction always follows in abbreviated parentheses, even if not
+ * included in the report; 'The' does not precede 'A-G'.
  *
  * @param jurisdiction - The jurisdiction abbreviation (e.g. `'Cth'`, `'NSW'`).
  * @returns The formatted Attorney-General citation.
@@ -303,10 +344,11 @@ export function formatAttorneyGeneral(jurisdiction: string): string {
 }
 
 /**
- * **AGLC4 Rule 2.1.6 — Director of Public Prosecutions**
+ * **AGLC4 Rule 2.1.7 — Directors of Public Prosecutions**
  *
  * Returns `'DPP'` alone, or `'DPP (Jurisdiction)'` when a jurisdiction
- * is specified to distinguish between Commonwealth and state DPPs.
+ * is specified (the rule requires the abbreviated jurisdiction in
+ * parentheses, ex 23: 'DPP (Vic) v Finn').
  *
  * @param jurisdiction - Optional jurisdiction abbreviation.
  * @returns The formatted DPP citation.
@@ -321,7 +363,7 @@ export function formatDPP(jurisdiction?: string): string {
 // ─── CASE-004 (Rules 2.1.8–2.1.12) ─────────────────────────────────────────
 
 /**
- * **AGLC4 Rule 2.1.8 — Ex parte Case Names**
+ * **AGLC4 Rule 2.1.9 — Ex parte Case Names**
  *
  * Formats an *ex parte* case name. Both `Ex parte` and the party name
  * are italicised.
@@ -335,7 +377,7 @@ export function formatExParte(party: string): FormattedRun[] {
 }
 
 /**
- * **AGLC4 Rule 2.1.9 — Re (In the matter of) Case Names**
+ * **AGLC4 Rule 2.1.8 — Re (In the matter of) Case Names**
  *
  * Formats a case name beginning with `Re`. Both `Re` and the party
  * name are italicised.
@@ -349,11 +391,14 @@ export function formatRe(party: string): FormattedRun[] {
 }
 
 /**
- * **AGLC4 Rule 2.1.10 — Admiralty Cases**
+ * **AGLC4 Rule 2.1.12 — Admiralty Cases**
  *
- * Formats an admiralty case name. The ship name is italicised.
+ * Formats an in rem admiralty case name: the case name is the vessel's
+ * name only, italicised. The rule states 'The' *should be included* in
+ * names of vessels (ex 33: 'The Maria Luisa [No 2]'), so callers should
+ * pass the vessel name with its 'The'; it is emitted as given.
  *
- * @param shipName - The name of the ship (without `The`; it will not be added).
+ * @param shipName - The name of the ship, including `The`.
  * @returns Array of `FormattedRun` elements.
  */
 export function formatAdmiraltyCase(shipName: string): FormattedRun[] {
@@ -374,11 +419,7 @@ export function formatAdmiraltyCase(shipName: string): FormattedRun[] {
  * @param separator - The separator used (e.g. `'v'`).
  * @returns The suggested short title string.
  */
-export function suggestShortTitle(
-  party1: string,
-  party2: string,
-  separator: string
-): string {
+export function suggestShortTitle(party1: string, party2: string, separator: string): string {
   void separator;
 
   let cleanP1 = stripAnorOrs(party1);
@@ -387,8 +428,7 @@ export function suggestShortTitle(
   cleanP1 = abbreviateCorporateNames(cleanP1);
 
   // Extract [No 2], [No 3], etc. from the original party names
-  const noSuffix =
-    party1.match(/\[No\s+\d+\]/i) || party2.match(/\[No\s+\d+\]/i);
+  const noSuffix = party1.match(/\[No\s+\d+\]/i) || party2.match(/\[No\s+\d+\]/i);
 
   // If first party is the Crown, use second party
   if (cleanP1 === "R") {
@@ -425,8 +465,7 @@ export function formatCaseWithoutName(
   reportSeries: string,
   startingPage: number
 ): FormattedRun[] {
-  const yearStr =
-    yearType === "square" ? `[${year}]` : `(${year})`;
+  const yearStr = yearType === "square" ? `[${year}]` : `(${year})`;
 
   const parts = [yearStr];
   if (volume !== undefined) {

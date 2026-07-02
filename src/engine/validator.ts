@@ -7,12 +7,15 @@ import type { ValidationIssue } from "./types/validation";
 import { Citation } from "../types/citation";
 import type { ParallelCitation, SourceType } from "../types/citation";
 import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punctuation";
-import { checkDateFormatting } from "./rules/v4/general/dates";
+import { checkDateFormatting, checkDateSpans } from "./rules/v4/general/dates";
 import { checkNumberFormatting } from "./rules/v4/general/numbers";
 import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
-import { COURT_IDENTIFIERS } from "./data/court-identifiers";
 import { LATIN_TERMS_ITALICISED } from "./data/latin-terms";
-import type { WritingMode, ParallelCitationMode as ConfigParallelCitationMode, IbidSuppressionMode } from "./standards/types";
+import type {
+  WritingMode,
+  ParallelCitationMode as ConfigParallelCitationMode,
+  IbidSuppressionMode,
+} from "./standards/types";
 import {
   type CourtJurisdiction as PresetCourtJurisdiction,
   QLD_JURISDICTIONS,
@@ -49,12 +52,26 @@ export type UnreportedGate = "off" | "warn";
  * Court jurisdictional preset identifier used by court mode validation.
  */
 export type CourtJurisdiction =
-  | "HCA" | "FCA" | "FCFCOA"
-  | "NSWCA" | "NSWSC" | "NSW_DISTRICT"
-  | "VSCA" | "VSC" | "VIC_COUNTY"
-  | "QCA" | "QSC" | "QLD_DISTRICT"
-  | "WASC" | "SASC" | "TASCSC" | "ACTSC" | "NTSC"
-  | "ART" | "FWC" | "STATE_TRIBUNAL";
+  | "HCA"
+  | "FCA"
+  | "FCFCOA"
+  | "NSWCA"
+  | "NSWSC"
+  | "NSW_DISTRICT"
+  | "VSCA"
+  | "VSC"
+  | "VIC_COUNTY"
+  | "QCA"
+  | "QSC"
+  | "QLD_DISTRICT"
+  | "WASC"
+  | "SASC"
+  | "TASCSC"
+  | "ACTSC"
+  | "NTSC"
+  | "ART"
+  | "FWC"
+  | "STATE_TRIBUNAL";
 
 /**
  * Configuration for court mode validation, derived from the jurisdictional
@@ -112,7 +129,7 @@ export function validateDocument(
   courtJurisdiction?: string,
   parallelCitationMode?: ConfigParallelCitationMode,
   ibidSuppressionMode?: IbidSuppressionMode,
-  headings?: HeadingEntry[],
+  headings?: HeadingEntry[]
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
   const isCourtMode = writingMode === "court";
@@ -129,6 +146,7 @@ export function validateDocument(
       ...checkEllipsisFormat(footnoteTexts[i], i),
       ...checkLongQuotation(footnoteTexts[i], i),
       ...checkLatinTermsItalicised(footnoteTexts[i], i),
+      ...checkQuotationClauses(footnoteTexts[i], i),
     ];
     const fnText = footnoteTexts[i];
     for (const issue of fnIssues) {
@@ -171,18 +189,16 @@ export function validateDocument(
     allIssues.push(...checkHeadingFormat(headings));
   }
 
-  // Parallel citation checks (Rule 2.2.7 / court practice directions)
-  // MULTI-014: Court mode skips parallel citation warnings (parallels are
-  // emitted by default and are expected in court submissions)
+  // Parallel citation checks (Rule 2.2.7: prohibited for Australian cases
+  // in academic AGLC style). MULTI-014: Court mode skips this check —
+  // parallels are emitted by default and expected in court submissions.
   if (!isCourtMode) {
     allIssues.push(...checkParallelCitations(citations));
   }
 
   // COURT-FIX-003: Parallel citation enforcement based on config
   if (parallelCitationMode && parallelCitationMode !== "off") {
-    allIssues.push(
-      ...checkParallelCitationEnforcement(citations, parallelCitationMode),
-    );
+    allIssues.push(...checkParallelCitationEnforcement(citations, parallelCitationMode));
   }
 
   // COURT-010: Queensland subsequent-treatment validation
@@ -280,17 +296,19 @@ export function checkFootnoteNumberPosition(bodyText: string): ValidationIssue[]
  *
  * Flags:
  * 1. Missing closing punctuation — every footnote must end with a full stop
- *    (Rule 1.1.4).
+ *    or other appropriate closing punctuation (`?`/`!`) (Rule 1.1.4).
  * 2. Use of `and` between sources instead of `;` — multiple sources in a
  *    single footnote are separated by semicolons (Rule 1.1.3).
  *
  * @remarks AGLC4 Rule 1.1.3 — "Where more than one source is cited in a
  * single footnote, each source should be separated by a semicolon."
- * @remarks AGLC4 Rule 1.1.4 — "Each footnote should end with a full stop."
+ * @remarks AGLC4 Rule 1.1.4 — footnotes end with a full stop or other
+ * appropriate closing punctuation (the guide's own example ends a discursive
+ * footnote with a question mark).
  */
 export function checkFootnoteFormat(
   footnoteText: string,
-  footnoteIndex: number,
+  footnoteIndex: number
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
@@ -299,11 +317,11 @@ export function checkFootnoteFormat(
     return issues;
   }
 
-  // Rule 1.1.4: Missing closing punctuation (full stop)
-  if (!trimmed.endsWith(".")) {
+  // Rule 1.1.4: Missing closing punctuation (full stop, ? or !)
+  if (!/[.?!]$/.test(trimmed)) {
     issues.push({
       ruleNumber: "1.1.4",
-      message: `Footnote ${footnoteIndex + 1} does not end with a full stop`,
+      message: `Footnote ${footnoteIndex + 1} does not end with closing punctuation (full stop, question mark or exclamation mark)`,
       severity: "error",
       offset: trimmed.length - 1,
       length: 1,
@@ -466,15 +484,16 @@ export function checkTypography(text: string): ValidationIssue[] {
 /**
  * Checks text for date and number formatting issues per AGLC4.
  *
- * Delegates to existing `checkDateFormatting` (Rule 1.11.1) and
- * `checkNumberFormatting` (Rule 1.10.1).
+ * Delegates to existing `checkDateFormatting` (Rule 1.11.1),
+ * `checkDateSpans` (Rule 1.11.4) and `checkNumberFormatting` (Rule 1.10.1).
  *
- * @remarks AGLC4 Rules 1.10.1, 1.11.1
+ * @remarks AGLC4 Rules 1.10.1, 1.11.1, 1.11.4
  */
 export function checkDatesAndNumbers(text: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   issues.push(...checkDateFormatting(text));
+  issues.push(...checkDateSpans(text));
   issues.push(...checkNumberFormatting(text));
 
   return issues;
@@ -485,18 +504,21 @@ export function checkDatesAndNumbers(text: string): ValidationIssue[] {
 /**
  * Checks footnote text for incorrect ellipsis formatting.
  *
- * AGLC4 requires ellipses as `. . .` (three spaced dots). This function flags:
- * 1. `...` (three or more consecutive dots) — should be `. . .`
- * 2. `\u2026` (Unicode ellipsis character U+2026) — should be `. . .`
+ * AGLC4 marks omissions with the ellipsis character `…`, preceded and
+ * followed by a space (but no space between an ellipsis and a following
+ * footnote number, per Rule 1.1.2). This function flags:
+ * 1. `...` (three or more consecutive full stops) — should be `…`
+ * 2. `. . .` (three spaced full stops, Bluebook style) — should be `…`
+ * 3. `…` run directly against a letter (missing its surrounding space)
  *
- * Already-correct `. . .` patterns are not flagged.
+ * Already-correct ` … ` patterns are not flagged.
  *
- * @remarks AGLC4 Rule 1.5.3 — "An ellipsis should be indicated by three
- * full stops separated by spaces (. . .)."
+ * @remarks AGLC4 Rule 1.5.3 (PDF p 43) — omissions are indicated by an
+ * ellipsis ('…') with a space before and after.
  */
 export function checkEllipsisFormat(
   footnoteText: string,
-  footnoteIndex: number,
+  footnoteIndex: number
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
@@ -505,33 +527,152 @@ export function checkEllipsisFormat(
     return issues;
   }
 
-  // Flag three or more consecutive dots (not spaced)
+  // Flag three or more consecutive full stops
   const consecutiveDotsRegex = /\.{3,}/g;
   let match: RegExpExecArray | null;
 
   while ((match = consecutiveDotsRegex.exec(trimmed)) !== null) {
     issues.push({
       ruleNumber: "1.5.3",
-      message: `Footnote ${footnoteIndex + 1}: ellipsis should be formatted as '. . .' (spaced dots), not '${match[0]}'`,
+      message: `Footnote ${footnoteIndex + 1}: ellipsis should be the '…' character with a space either side, not '${match[0]}'`,
       severity: "warning",
       offset: match.index,
       length: match[0].length,
-      suggestion: ". . .",
+      suggestion: "…",
     });
   }
 
-  // Flag Unicode ellipsis character (U+2026)
-  const unicodeEllipsisRegex = /\u2026/g;
+  // Flag three spaced full stops '. . .' (Bluebook style, not AGLC4)
+  const spacedDotsRegex = /\. \. \./g;
 
-  while ((match = unicodeEllipsisRegex.exec(trimmed)) !== null) {
+  while ((match = spacedDotsRegex.exec(trimmed)) !== null) {
     issues.push({
       ruleNumber: "1.5.3",
-      message: `Footnote ${footnoteIndex + 1}: Unicode ellipsis '\u2026' should be replaced with '. . .' (spaced dots)`,
+      message: `Footnote ${footnoteIndex + 1}: ellipsis should be the '…' character with a space either side, not spaced full stops '. . .'`,
       severity: "warning",
       offset: match.index,
-      length: 1,
-      suggestion: ". . .",
+      length: match[0].length,
+      suggestion: "…",
     });
+  }
+
+  // Flag '…' missing its surrounding space (letter directly adjacent).
+  // A space is not required between an ellipsis and a footnote number
+  // (Rule 1.1.2), so trailing digits are not flagged.
+  const unspacedEllipsisRegex = /[A-Za-z]…|…[A-Za-z]/g;
+
+  while ((match = unspacedEllipsisRegex.exec(trimmed)) !== null) {
+    issues.push({
+      ruleNumber: "1.5.3",
+      message: `Footnote ${footnoteIndex + 1}: an ellipsis should be preceded and followed by a space`,
+      severity: "warning",
+      offset: match.index,
+      length: match[0].length,
+      suggestion: match[0].replace("…", " … ").replace(/ {2,}/g, " "),
+    });
+  }
+
+  return issues;
+}
+
+// ─── Rule 1.5.7: Quotation parenthetical clauses ──────────────────────────────
+
+/**
+ * The five fixed parenthetical clauses of AGLC4 Rule 1.5.7, in table order.
+ */
+const QUOTATION_CLAUSES: readonly string[] = [
+  "(emphasis in original)",
+  "(emphasis added)",
+  "(emphasis altered)",
+  "(emphasis omitted)",
+  "(citations omitted)",
+];
+
+/**
+ * Non-AGLC4 variants of the Rule 1.5.7 parenthetical clauses, mapped to the
+ * clause from the rule's closed table (or to no suggestion where the rule
+ * has no equivalent clause).
+ */
+const QUOTATION_CLAUSE_VARIANTS: ReadonlyArray<{ wrong: string; right?: string }> = [
+  { wrong: "(citation omitted)", right: "(citations omitted)" },
+  { wrong: "(internal citations omitted)", right: "(citations omitted)" },
+  { wrong: "(emphases added)", right: "(emphasis added)" },
+  { wrong: "(emphases in original)", right: "(emphasis in original)" },
+  { wrong: "(emphasis original)", right: "(emphasis in original)" },
+  { wrong: "(emphasis supplied)", right: "(emphasis added)" },
+  { wrong: "(footnotes omitted)" },
+  { wrong: "(footnote omitted)" },
+  { wrong: "(translation modified)" },
+];
+
+/**
+ * Checks footnote text for parenthetical clauses that deviate from the five
+ * fixed clauses of AGLC4 Rule 1.5.7 — '(emphasis in original)', '(emphasis
+ * added)', '(emphasis altered)', '(emphasis omitted)', '(citations
+ * omitted)' — and for multiple clauses given out of the table's order.
+ *
+ * @remarks AGLC4 Rule 1.5.7 (PDF p 46) — always the table's exact clause
+ * (eg never '(emphases added)' or '(citation omitted)'); multiple applicable
+ * clauses appear in the table's order, each in its own parentheses.
+ */
+export function checkQuotationClauses(
+  footnoteText: string,
+  footnoteIndex: number
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const trimmed = footnoteText.trim();
+
+  if (trimmed.length === 0) {
+    return issues;
+  }
+
+  const lower = trimmed.toLowerCase();
+
+  // Flag non-AGLC4 clause variants.
+  for (const variant of QUOTATION_CLAUSE_VARIANTS) {
+    let from = 0;
+    let idx: number;
+    while ((idx = lower.indexOf(variant.wrong, from)) !== -1) {
+      issues.push({
+        ruleNumber: "1.5.7",
+        message: variant.right
+          ? `Footnote ${footnoteIndex + 1}: '${variant.wrong}' is not an AGLC4 clause — use '${variant.right}'`
+          : `Footnote ${footnoteIndex + 1}: '${variant.wrong}' is not one of the five parenthetical clauses of Rule 1.5.7`,
+        severity: "warning",
+        offset: idx,
+        length: variant.wrong.length,
+        suggestion: variant.right,
+      });
+      from = idx + variant.wrong.length;
+    }
+  }
+
+  // Flag adjacent Rule 1.5.7 clauses given out of the table's order.
+  const found: Array<{ order: number; offset: number }> = [];
+  for (let order = 0; order < QUOTATION_CLAUSES.length; order++) {
+    let from = 0;
+    let idx: number;
+    while ((idx = lower.indexOf(QUOTATION_CLAUSES[order], from)) !== -1) {
+      found.push({ order, offset: idx });
+      from = idx + QUOTATION_CLAUSES[order].length;
+    }
+  }
+  found.sort((a, b) => a.offset - b.offset);
+  for (let i = 1; i < found.length; i++) {
+    // Only compare clauses adjacent in the text (applied to the same source).
+    const gap = trimmed.slice(
+      found[i - 1].offset + QUOTATION_CLAUSES[found[i - 1].order].length,
+      found[i].offset
+    );
+    if (found[i].order < found[i - 1].order && /^\s*$/.test(gap)) {
+      issues.push({
+        ruleNumber: "1.5.7",
+        message: `Footnote ${footnoteIndex + 1}: parenthetical clauses should appear in the order of the Rule 1.5.7 table (eg '(emphasis in original) (citations omitted)')`,
+        severity: "warning",
+        offset: found[i].offset,
+        length: QUOTATION_CLAUSES[found[i].order].length,
+      });
+    }
   }
 
   return issues;
@@ -543,21 +684,20 @@ export function checkEllipsisFormat(
  * Checks footnote text for long quotations that may need block quote
  * formatting.
  *
- * AGLC4 Rule 1.5.1 requires quotations of three or more lines to be
- * formatted as block quotes (indented, smaller font, no quotation marks).
- * This is a heuristic check: if text enclosed in matching quotation marks
- * exceeds 250 characters, it flags a suggestion.
+ * AGLC4 Rule 1.5.1: short quotations (three lines or less) are run into
+ * the text in single quotation marks; long quotations (four lines or more)
+ * are formatted as block quotes (indented, smaller font, no quotation
+ * marks). This is a heuristic check: if text enclosed in matching quotation
+ * marks exceeds ~4 lines (360 characters at roughly 90 characters a line),
+ * it flags a suggestion.
  *
  * Scans for text enclosed in single quotes (`\u2018...\u2019`) that exceeds
- * 250 characters.
+ * 360 characters.
  *
- * @remarks AGLC4 Rule 1.5.1 — "Quotations of three or more lines should
- * be set apart from the text by indentation."
+ * @remarks AGLC4 Rule 1.5.1 — long quotations (four lines or more) are
+ * indented, in a smaller font, without quotation marks.
  */
-export function checkLongQuotation(
-  footnoteText: string,
-  footnoteIndex: number,
-): ValidationIssue[] {
+export function checkLongQuotation(footnoteText: string, footnoteIndex: number): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
 
@@ -571,7 +711,7 @@ export function checkLongQuotation(
 
   while ((match = curlyQuoteRegex.exec(trimmed)) !== null) {
     const quotedContent = match[1];
-    if (quotedContent.length > 250) {
+    if (quotedContent.length > 360) {
       issues.push({
         ruleNumber: "1.5.1",
         message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
@@ -587,7 +727,7 @@ export function checkLongQuotation(
 
   while ((match = straightQuoteRegex.exec(trimmed)) !== null) {
     const quotedContent = match[1];
-    if (quotedContent.length > 250) {
+    if (quotedContent.length > 360) {
       issues.push({
         ruleNumber: "1.5.1",
         message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
@@ -608,7 +748,7 @@ export function checkLongQuotation(
  * phrases over shorter substrings (e.g. "obiter dictum" before "dictum").
  */
 const LATIN_TERMS_SORTED: readonly string[] = [...LATIN_TERMS_ITALICISED].sort(
-  (a, b) => b.length - a.length,
+  (a, b) => b.length - a.length
 );
 
 /**
@@ -623,12 +763,12 @@ const LATIN_TERMS_SORTED: readonly string[] = [...LATIN_TERMS_ITALICISED].sort(
  * - Skips terms inside square brackets (may be editorial)
  * - Limited to first 5 matches per footnote to avoid flooding
  *
- * @remarks AGLC4 Rule 1.8.3 — "Latin and foreign words that are not
- * commonly used in English should be italicised."
+ * @remarks AGLC4 Rule 1.8.3 — foreign words and phrases are italicised
+ * unless they appear in the Macquarie Dictionary.
  */
 export function checkLatinTermsItalicised(
   footnoteText: string,
-  footnoteIndex: number,
+  _footnoteIndex: number
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
@@ -1057,24 +1197,16 @@ export function checkTitlePresence(citation: Citation): ValidationIssue[] {
  * the point. Info severity only: the hybrid is a legitimate Rule 3.8 form, not
  * an error. See docs/decisions.md DECISION-008.
  */
-export function checkLegislativeHistoryHint(
-  citation: Citation,
-): ValidationIssue[] {
+export function checkLegislativeHistoryHint(citation: Citation): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!citation.sourceType.startsWith("legislation.")) {
     return issues;
   }
 
-  const history = citation.data.legislativeHistory as
-    | { connector?: string }
-    | undefined;
+  const history = citation.data.legislativeHistory as { connector?: string } | undefined;
   const connector = history?.connector;
-  const PASSIVE_AMENDMENT = new Set([
-    "as amended by",
-    "amended by",
-    "later amended by",
-  ]);
+  const PASSIVE_AMENDMENT = new Set(["as amended by", "amended by", "later amended by"]);
 
   if (connector && PASSIVE_AMENDMENT.has(connector)) {
     const label = citation.shortTitle || citation.id;
@@ -1133,9 +1265,7 @@ const MAORI_MACRON_TERMS: ReadonlyArray<{ plain: string; correct: string }> = [
 ];
 
 /** Subset of MAORI_MACRON_TERMS that actually require a macron correction. */
-const MAORI_TERMS_NEEDING_MACRONS = MAORI_MACRON_TERMS.filter(
-  (t) => t.plain !== t.correct,
-);
+const MAORI_TERMS_NEEDING_MACRONS = MAORI_MACRON_TERMS.filter((t) => t.plain !== t.correct);
 
 /**
  * OSCOLA-specific validation rules (VALID-EXT-001).
@@ -1151,7 +1281,7 @@ const MAORI_TERMS_NEEDING_MACRONS = MAORI_MACRON_TERMS.filter(
  */
 export function checkOscolaRules(
   citations: Citation[],
-  footnoteTexts: string[],
+  footnoteTexts: string[]
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -1210,8 +1340,7 @@ export function checkOscolaRules(
 
       // Heuristic: UK court identifiers start with UK, EW, or are EWHC etc.
       const isUkCase =
-        typeof courtId === "string" &&
-        /^(UK|EW|EWHC|EWCA|EWFC|UKSC|UKPC|UKUT|UKFTT)/.test(courtId);
+        typeof courtId === "string" && /^(UK|EW|EWHC|EWCA|EWFC|UKSC|UKPC|UKUT|UKFTT)/.test(courtId);
 
       if (isUkCase && typeof year === "number" && year >= 2001) {
         const hasMnc = typeof mnc === "string" && mnc.trim().length > 0;
@@ -1263,10 +1392,7 @@ export function checkOscolaRules(
  *
  * @remarks NZLSG 3rd ed Rules 2.3, 4.1, 1.1.2, 6.1
  */
-export function checkNzlsgRules(
-  citations: Citation[],
-  footnoteTexts: string[],
-): ValidationIssue[] {
+export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (let i = 0; i < footnoteTexts.length; i++) {
@@ -1409,36 +1535,22 @@ export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue
 // ─── VALID-007: Parallel citation checks ──────────────────────────────────────
 
 /**
- * Medium neutral citation pattern: [YYYY] CourtIdentifier Number
- * e.g. [2024] HCA 1, [2023] NSWCA 42
+ * Checks case citations for parallel citations, which AGLC4 prohibits for
+ * Australian cases.
+ *
+ * For each `case.reported` citation that has parallel citations recorded,
+ * flags a warning: only the most authoritative version of the case (chosen
+ * under Rule 2.2.2) should be cited.
+ *
+ * This check applies to academic (AGLC) mode only — court practice
+ * directions expect parallel citations, and court mode skips this check
+ * (see `validateDocument` / `checkParallelCitationEnforcement`).
+ *
+ * @remarks AGLC4 Rule 2.2.7 (PDF p 79) — "Parallel citations should never
+ * be given" for Australian cases; the guide's own example 80 rejects
+ * '(1999) 198 CLR 180; 164 ALR 606; [1999] HCA 36'.
  */
-const MNC_PATTERN = /^\[\d{4}]\s+[A-Z][A-Za-z]+\s+\d+$/;
-
-/** Set of known court identifier codes for fast lookup. */
-const COURT_ID_SET: ReadonlySet<string> = new Set(
-  COURT_IDENTIFIERS.map((c) => c.code),
-);
-
-/**
- * Checks case citations for missing parallel citations where court practice
- * directions require them.
- *
- * For each `case.reported` citation:
- * - If the citation has an MNC (via `data.mnc` matching the MNC pattern, or
- *   `data.courtId` matching a known court identifier) but no parallel
- *   citations, flags a warning per Rule 2.2.7.
- * - If the citation has an authorised report series but no MNC, flags an
- *   informational suggestion to include the MNC.
- *
- * Severity is "warning" (not "error") because AGLC4 itself does not mandate
- * parallel citations — court practice directions do (e.g., Supreme Court of
- * Queensland PD 1/2024).
- *
- * @remarks AGLC4 Rule 2.2.7 — Parallel citations.
- */
-export function checkParallelCitations(
-  citations: Citation[],
-): ValidationIssue[] {
+export function checkParallelCitations(citations: Citation[]): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   for (const citation of citations) {
@@ -1446,38 +1558,22 @@ export function checkParallelCitations(
       continue;
     }
 
-    const d = citation.data;
     const label = citation.shortTitle || citation.id;
-    const parallels = d.parallelCitations as ParallelCitation[] | undefined;
+    const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
     const hasParallels = Array.isArray(parallels) && parallels.length > 0;
 
-    // Determine whether the citation carries an MNC
-    const mncValue = d.mnc as string | undefined;
-    const courtId = d.courtId as string | undefined;
-    const hasMnc =
-      (typeof mncValue === "string" && MNC_PATTERN.test(mncValue.trim())) ||
-      (typeof courtId === "string" && COURT_ID_SET.has(courtId));
-
-    if (hasMnc && !hasParallels) {
+    if (hasParallels) {
       issues.push({
         ruleNumber: "2.2.7",
         message:
-          `Case '${label}': Rule 2.2.7: Consider adding parallel citation. ` +
-          "Court practice directions (e.g., Supreme Court of Queensland " +
-          "PD 1/2024) require both the MNC and authorised report citation.",
+          `Case '${label}': Rule 2.2.7 prohibits parallel citations for ` +
+          "Australian cases — cite only the most authoritative report " +
+          "(Rule 2.2.2). Remove the parallel citation(s), or switch to " +
+          "court mode if a court practice direction requires them.",
         severity: "warning",
         offset: 0,
         length: 0,
-      });
-    } else if (!hasMnc && !hasParallels) {
-      issues.push({
-        ruleNumber: "2.2.7",
-        message:
-          `Case '${label}': Consider including the medium neutral citation ` +
-          "alongside the authorised report.",
-        severity: "info",
-        offset: 0,
-        length: 0,
+        citationId: citation.id,
       });
     }
   }
@@ -1496,11 +1592,13 @@ export function checkParallelCitations(
  * - `"preferred"`: emits a **warning** for the same condition.
  * - `"off"`: caller should not invoke this function (no-op guard included).
  *
- * @remarks AGLC4 Rule 2.2.7 — Parallel citations; court practice directions.
+ * @remarks Court practice directions (eg Qld SC PD 1/2024). Note academic
+ * AGLC4 style prohibits parallel citations for Australian cases (Rule
+ * 2.2.7) — this enforcement applies to court-mode configurations only.
  */
 export function checkParallelCitationEnforcement(
   citations: Citation[],
-  mode: ConfigParallelCitationMode,
+  mode: ConfigParallelCitationMode
 ): ValidationIssue[] {
   if (mode === "off") {
     return [];
@@ -1542,8 +1640,12 @@ export function checkParallelCitationEnforcement(
  * Retained for reference only — not used in validation logic.
  */
 const _UNREPORTED_GATE_JURISDICTIONS_DEPRECATED: ReadonlySet<CourtJurisdiction> = new Set([
-  "NSWCA", "NSWSC", "NSW_DISTRICT",
-  "QCA", "QSC", "QLD_DISTRICT",
+  "NSWCA",
+  "NSWSC",
+  "NSW_DISTRICT",
+  "QCA",
+  "QSC",
+  "QLD_DISTRICT",
   "TASCSC",
 ]);
 
@@ -1552,7 +1654,9 @@ const _UNREPORTED_GATE_JURISDICTIONS_DEPRECATED: ReadonlySet<CourtJurisdiction> 
  * Source: Qld SC PD 1/2024 cl 4(c).
  */
 const SUBSEQUENT_TREATMENT_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set([
-  "QCA", "QSC", "QLD_DISTRICT",
+  "QCA",
+  "QSC",
+  "QLD_DISTRICT",
 ]);
 
 /**
@@ -1630,7 +1734,7 @@ export function validateCourtMode(
   footnoteTexts: string[],
   citations: Citation[],
   config: CourtModeConfig,
-  formatting?: DocumentFormattingMetrics,
+  formatting?: DocumentFormattingMetrics
 ): ValidationResult {
   const allIssues: ValidationIssue[] = [];
   const pdSource = getPracticeDirectionSource(config.jurisdiction);
@@ -1649,10 +1753,8 @@ export function validateCourtMode(
       const parallels = d.parallelCitations as ParallelCitation[] | undefined;
       const hasParallels = Array.isArray(parallels) && parallels.length > 0;
 
-      const hasReport =
-        typeof reportSeries === "string" && reportSeries.trim().length > 0;
-      const hasMnc =
-        typeof mncValue === "string" && mncValue.trim().length > 0;
+      const hasReport = typeof reportSeries === "string" && reportSeries.trim().length > 0;
+      const hasMnc = typeof mncValue === "string" && mncValue.trim().length > 0;
 
       // Both are available but no parallel citation structure recorded
       if (hasReport && hasMnc && !hasParallels) {
@@ -1713,7 +1815,8 @@ export function validateCourtMode(
       }
 
       const label = citation.shortTitle || citation.id;
-      const confirmed = citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
+      const confirmed =
+        citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
 
       if (!confirmed) {
         allIssues.push({
@@ -1757,7 +1860,7 @@ export function validateCourtMode(
 
   // ── Info: more than 30 authorities cited (proportionality) ─────────
   const authorityCount = citations.filter(
-    (c) => c.sourceType.startsWith("case.") || c.sourceType.startsWith("legislation."),
+    (c) => c.sourceType.startsWith("case.") || c.sourceType.startsWith("legislation.")
   ).length;
 
   if (authorityCount > 30) {
@@ -1843,10 +1946,9 @@ export function validateCourtMode(
  */
 export function checkSubmissionFormatting(
   config: CourtModeConfig,
-  formatting: DocumentFormattingMetrics,
+  formatting: DocumentFormattingMetrics
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const pdSource = getPracticeDirectionSource(config.jurisdiction);
 
   if (config.jurisdiction === "FCA" || config.jurisdiction === "FCFCOA") {
     // Page limit check
@@ -1866,10 +1968,7 @@ export function checkSubmissionFormatting(
     }
 
     // Font size check
-    if (
-      formatting.minFontSizePt !== undefined &&
-      formatting.minFontSizePt < 12
-    ) {
+    if (formatting.minFontSizePt !== undefined && formatting.minFontSizePt < 12) {
       issues.push({
         ruleNumber: "FCA Practice Note APP 2 (Dec 2025)",
         message:
@@ -1882,10 +1981,7 @@ export function checkSubmissionFormatting(
     }
 
     // Line spacing check
-    if (
-      formatting.minLineSpacing !== undefined &&
-      formatting.minLineSpacing < 1.5
-    ) {
+    if (formatting.minLineSpacing !== undefined && formatting.minLineSpacing < 1.5) {
       issues.push({
         ruleNumber: "FCA Practice Note APP 2 (Dec 2025)",
         message:
@@ -1901,10 +1997,7 @@ export function checkSubmissionFormatting(
   if (config.jurisdiction === "HCA") {
     // HCA Part 44 page limit (20 pages for written submissions)
     const hcaPageLimit = config.pageLimit ?? 20;
-    if (
-      formatting.pageCount !== undefined &&
-      formatting.pageCount > hcaPageLimit
-    ) {
+    if (formatting.pageCount !== undefined && formatting.pageCount > hcaPageLimit) {
       issues.push({
         ruleNumber: "HCA PD 2 of 2024, Part 44",
         message:

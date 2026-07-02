@@ -20,7 +20,9 @@ import type { Citation } from "../../src/types/citation";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeCitation(overrides: Partial<Citation> & Pick<Citation, "sourceType" | "data">): Citation {
+function makeCitation(
+  overrides: Partial<Citation> & Pick<Citation, "sourceType" | "data">
+): Citation {
   return {
     id: "test-001",
     aglcVersion: "4",
@@ -45,15 +47,13 @@ describe("VALID-011: checkHeadingFormat (Rule 1.12.2)", () => {
     const issues = checkHeadingFormat(headings);
     // All-caps Level I passes, capitalised Level II passes, correct numbering
     const caseIssues = issues.filter(
-      (i) => i.message.includes("uppercase") || i.message.includes("capitalised"),
+      (i) => i.message.includes("uppercase") || i.message.includes("capitalised")
     );
     expect(caseIssues).toHaveLength(0);
   });
 
   it("flags Level I heading that is not uppercase", () => {
-    const headings: HeadingEntry[] = [
-      { level: 1, text: "I Introduction" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 1, text: "I Introduction" }];
 
     const issues = checkHeadingFormat(headings);
     expect(issues.some((i) => i.message.includes("uppercase or small caps"))).toBe(true);
@@ -62,9 +62,7 @@ describe("VALID-011: checkHeadingFormat (Rule 1.12.2)", () => {
   });
 
   it("passes Level I heading that is all uppercase", () => {
-    const headings: HeadingEntry[] = [
-      { level: 1, text: "III ANALYSIS AND DISCUSSION" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 1, text: "III ANALYSIS AND DISCUSSION" }];
 
     const issues = checkHeadingFormat(headings);
     const caseIssues = issues.filter((i) => i.message.includes("uppercase"));
@@ -72,27 +70,21 @@ describe("VALID-011: checkHeadingFormat (Rule 1.12.2)", () => {
   });
 
   it("flags wrong numbering prefix for Level II (Arabic instead of letter)", () => {
-    const headings: HeadingEntry[] = [
-      { level: 2, text: "1 The First Issue" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 2, text: "1 The First Issue" }];
 
     const issues = checkHeadingFormat(headings);
     expect(issues.some((i) => i.message.includes("Uppercase letters"))).toBe(true);
   });
 
   it("flags wrong numbering prefix for Level I (Arabic instead of Roman)", () => {
-    const headings: HeadingEntry[] = [
-      { level: 1, text: "1 INTRODUCTION" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 1, text: "1 INTRODUCTION" }];
 
     const issues = checkHeadingFormat(headings);
     expect(issues.some((i) => i.message.includes("Roman numerals"))).toBe(true);
   });
 
   it("accepts correct Roman numeral prefix for Level I", () => {
-    const headings: HeadingEntry[] = [
-      { level: 1, text: "IV CONCLUSION" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 1, text: "IV CONCLUSION" }];
 
     const issues = checkHeadingFormat(headings);
     const prefixIssues = issues.filter((i) => i.message.includes("numbering"));
@@ -100,9 +92,7 @@ describe("VALID-011: checkHeadingFormat (Rule 1.12.2)", () => {
   });
 
   it("flags Level II heading that is not capitalised", () => {
-    const headings: HeadingEntry[] = [
-      { level: 2, text: "A the first issue" },
-    ];
+    const headings: HeadingEntry[] = [{ level: 2, text: "A the first issue" }];
 
     const issues = checkHeadingFormat(headings);
     expect(issues.some((i) => i.message.includes("capitalised"))).toBe(true);
@@ -160,12 +150,6 @@ describe("VALID-012: checkCitationCapitalisation (Rule 1.7)", () => {
   });
 
   it("does not flag lowercase 'v' in case names", () => {
-    const citation = makeCitation({
-      sourceType: "case.reported",
-      data: { party1: "Smith", party2: "Jones", year: 2020 },
-      shortTitle: "Smith v Jones",
-    });
-
     // "v" would only be flagged if it were party1 or party2
     // The check skips the value "v" explicitly
     const citationWithV = makeCitation({

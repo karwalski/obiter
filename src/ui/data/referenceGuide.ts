@@ -1,10 +1,10 @@
 export interface ReferenceGuideEntry {
-  id: string;           // e.g., "GEN-002"
-  ruleNumber: string;   // e.g., "1.1.2"
+  id: string; // e.g., "GEN-002"
+  ruleNumber: string; // e.g., "1.1.2"
   title: string;
-  summary: string;      // 2-3 sentence plain-text summary of the rule
-  examples: string[];   // Example citations or text demonstrating the rule
-  tips: string[];       // Practical tips for authors
+  summary: string; // 2-3 sentence plain-text summary of the rule
+  examples: string[]; // Example citations or text demonstrating the rule
+  tips: string[]; // Practical tips for authors
 }
 
 export const referenceGuideEntries: ReferenceGuideEntry[] = [
@@ -63,15 +63,16 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     ruleNumber: "1.5.3",
     title: "Ellipses in Quotations",
     summary:
-      "When omitting words from a quotation, use a spaced ellipsis to indicate the omission. The AGLC4 ellipsis consists of three full stops separated by spaces ( ... ) with a space before and after the ellipsis. An ellipsis should not be used at the beginning or end of a quotation.",
+      "When omitting words from a quotation, indicate the omission with an ellipsis (\u2026), preceded and followed by a space. No space separates an ellipsis from a footnote number. 'Leaders' (ellipses at the start of a quotation) should not be used.",
     examples: [
-      "The court held that 'the Act ... does not extend to such circumstances'.",
-      "'Freedom of expression ... is not an absolute right'.",
+      "The court held that 'the Act \u2026 does not extend to such circumstances'.",
+      "'Freedom of expression \u2026 is not an absolute right'.",
     ],
     tips: [
-      "Use three spaced full stops ( ... ) for ellipses, not the single ellipsis character (\u2026) or three unspaced periods (...).",
-      "Do not place an ellipsis at the very start or very end of a quotation.",
-      "If omitting material that spans one or more sentences, still use a single spaced ellipsis.",
+      "Use the ellipsis character (\u2026) with a space before and after \u2014 not three full stops (...) or spaced full stops (. . .).",
+      "Where the omitted text follows a complete sentence, keep that sentence's full stop before the ellipsis; never add a full stop after an ellipsis.",
+      "Do not place an ellipsis at the start of a quotation ('leaders' are prohibited).",
+      "If a long quotation does not end with appropriate closing punctuation, end it with an ellipsis; a footnote number follows the ellipsis with no space.",
     ],
   },
   {
@@ -114,18 +115,16 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     ruleNumber: "1.5.7",
     title: "Omitting Citations and Adding Emphasis",
     summary:
-      "When citations are omitted from quoted material, note this with '(citations omitted)' after the quotation. When emphasis is added to a quotation by the author, note this with '(emphasis added)' after the quotation. If the emphasis existed in the original, use '(emphasis in original)' to clarify.",
+      "Citations may be omitted from quotations and quoted words may be italicised for emphasis, provided the alteration is disclosed by a parenthetical clause in the citation (never within the text). Only five clauses exist, used in this order: '(emphasis in original)', '(emphasis added)', '(emphasis altered)', '(emphasis omitted)', '(citations omitted)'.",
     examples: [
-      "'The principle has been affirmed repeatedly' (citations omitted).",
-      "'The requirement is mandatory' (emphasis added).",
-      "'The requirement is absolutely mandatory' (emphasis in original).",
-      "'The test requires a causal connection' (citations omitted) (emphasis added).",
+      "Yanner v Eaton (1999) 201 CLR 351, 372 [37] (Gleeson CJ, Gaudron, Kirby and Hayne JJ) (emphasis in original) (citations omitted).",
+      "GE Dal Pont, Lawyers' Professional Responsibility (Lawbook, 6th ed, 2017) 141 [4.175] (emphasis added) (citations omitted).",
     ],
     tips: [
-      "Place parenthetical notations such as '(citations omitted)' and '(emphasis added)' after the closing quotation mark but before the footnote number.",
-      "Multiple notations can be combined in sequence, each in its own parentheses.",
-      "Always indicate when you have added emphasis (e.g., italics or bold) to quoted material.",
-      "If the original source already contained emphasis, use '(emphasis in original)' to make this clear.",
+      "Place the parenthetical clause(s) in the footnote citation immediately after the relevant pinpoint reference — not in the body text.",
+      "Use only the five clauses of the Rule 1.5.7 table, in the table's order; where several apply, each takes its own parentheses.",
+      "Use the exact singular/plural forms: '(emphasis added)', never '(emphases added)'; '(citations omitted)', never '(citation omitted)'.",
+      "Do not add '(emphasis added)' merely because a source title has been italicised in the text under Rule 1.8.2.",
     ],
   },
   {
@@ -264,10 +263,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Case Name Formatting",
     summary:
       "Case names are italicised in both footnotes and the text. Party names are separated by 'v' (italic, no full stop). Omit given names and use only surnames for individual parties. The Crown is cited as 'R' for criminal matters and 'The King' or 'The Queen' for civil matters involving the Crown.",
-    examples: [
-      "Mabo v Queensland (No 2) (1992) 175 CLR 1.",
-      "R v Tang (2008) 237 CLR 1.",
-    ],
+    examples: ["Mabo v Queensland (No 2) (1992) 175 CLR 1.", "R v Tang (2008) 237 CLR 1."],
     tips: [
       "Use a lowercase italic 'v' (not 'vs' or 'v.') to separate party names.",
       "Omit first names, initials, and titles of individual parties — use surnames only.",
@@ -294,10 +290,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Unreported Decisions (Medium Neutral Citations)",
     summary:
       "Unreported decisions use the medium neutral citation (MNC) format assigned by the court. The MNC consists of the case name, the year in square brackets, the court identifier, and the judgment number. No page or paragraph pinpoint uses 'p' — use the judgment number alone. Include the full date if no MNC is available.",
-    examples: [
-      "Kadir v The Queen [2020] HCA 1.",
-      "Smith v Jones [2023] NSWSC 456, [32].",
-    ],
+    examples: ["Kadir v The Queen [2020] HCA 1.", "Smith v Jones [2023] NSWSC 456, [32]."],
     tips: [
       "Always prefer the medium neutral citation for unreported decisions when one is available.",
       "Pinpoint references in MNC decisions use paragraph numbers in square brackets, e.g., [32].",
@@ -344,10 +337,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Statute Citation",
     summary:
       "Statutes are cited with their full title in italics, the year, and the jurisdiction abbreviation in round parentheses. The jurisdiction abbreviation is mandatory unless the jurisdiction is obvious from the context. Pinpoint references cite specific sections using 's' for a single section and 'ss' for multiple sections.",
-    examples: [
-      "Corporations Act 2001 (Cth) s 181.",
-      "Evidence Act 1995 (NSW) ss 135\u2013137.",
-    ],
+    examples: ["Corporations Act 2001 (Cth) s 181.", "Evidence Act 1995 (NSW) ss 135\u2013137."],
     tips: [
       "Always include the jurisdiction abbreviation in parentheses, e.g., (Cth), (Vic), (NSW).",
       "Use 's' for a single section and 'ss' for a range or multiple sections — do not use the section symbol (\u00a7).",
@@ -374,10 +364,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Constitutional Citations",
     summary:
       "The Australian Constitution is cited as 'Australian Constitution' in italics, with no year or jurisdiction abbreviation. References to specific sections, chapters or parts follow the title directly. State constitutions include the jurisdiction abbreviation.",
-    examples: [
-      "Australian Constitution s 51(xxxi).",
-      "Constitution Act 1975 (Vic) s 18.",
-    ],
+    examples: ["Australian Constitution s 51(xxxi).", "Constitution Act 1975 (Vic) s 18."],
     tips: [
       "Do not include a year or jurisdiction for the Australian Constitution — it is cited simply as 'Australian Constitution'.",
       "Use lowercase Roman numerals in parentheses for paragraph references within constitutional sections, e.g., s 51(xxxi).",
@@ -390,9 +377,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Bills",
     summary:
       "Bills before parliament are cited with the title in italics, the year, and the jurisdiction abbreviation in parentheses. Since bills are not yet enacted legislation, include the stage of the bill (e.g., as introduced, as passed) if relevant to the discussion.",
-    examples: [
-      "Privacy Legislation Amendment (Enforcement and Other Measures) Bill 2022 (Cth).",
-    ],
+    examples: ["Privacy Legislation Amendment (Enforcement and Other Measures) Bill 2022 (Cth)."],
     tips: [
       "Cite bills similarly to Acts but note they have not been enacted — do not refer to a bill as an Act.",
       "If discussing the bill at a particular stage, note this in parentheses, e.g., '(as introduced)'.",
@@ -408,10 +393,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Author Formatting",
     summary:
       "Authors are listed with their first name (or initial) followed by their surname. Post-nominals and titles are omitted. For two or three authors, list all names separated by commas with 'and' before the final author. For four or more authors, list the first author followed by 'et al'.",
-    examples: [
-      "Mark Aronson, Matthew Groves and Greg Weeks, ...",
-      "Jane Smith et al, ...",
-    ],
+    examples: ["Mark Aronson, Matthew Groves and Greg Weeks, ...", "Jane Smith et al, ..."],
     tips: [
       "Omit post-nominals (QC, SC, AM) and academic titles (Professor, Dr) from author names.",
       "Use 'et al' (not italicised) for works with four or more authors, listing only the first author.",
@@ -486,9 +468,7 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Forthcoming Journal Articles",
     summary:
       "Articles accepted for publication but not yet published are cited with '(forthcoming)' in place of the volume number and page number. Once published, the citation should be updated to include the final volume, issue, and page details.",
-    examples: [
-      "Anna Lee, 'Reforming Administrative Law' (forthcoming) Sydney Law Review.",
-    ],
+    examples: ["Anna Lee, 'Reforming Administrative Law' (forthcoming) Sydney Law Review."],
     tips: [
       "Use '(forthcoming)' after the year to indicate the article has been accepted but not yet assigned a volume or page number.",
       "Update the citation to the final published version once it becomes available.",
@@ -732,10 +712,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Footnotes and Citation Order",
     summary:
       "OSCOLA uses footnotes (not endnotes) numbered consecutively through the text. Each citation in a footnote ends with a full stop. Multiple sources in a single footnote are separated by semicolons. Pinpoints follow the citation without a comma for paragraphs, or with a comma for page numbers after a starting page.",
-    examples: [
-      "1 R v Smith [2020] UKSC 15, [45].",
-      "2 Human Rights Act 1998, s 6.",
-    ],
+    examples: ["1 R v Smith [2020] UKSC 15, [45].", "2 Human Rights Act 1998, s 6."],
     tips: [
       "Footnotes are numbered consecutively; do not restart numbering at chapters.",
       "Each footnote ends with a full stop.",
@@ -764,10 +741,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Subsequent References and Short Forms",
     summary:
       "In OSCOLA 5, ibid is formally deprecated. All subsequent references use the short-form cross-reference: author surname and '(n X)' where X is the footnote number of the first full citation. For cases, use the short case name and '(n X)'. For statutes, repeat the short title.",
-    examples: [
-      "Smith (n 3) 42.",
-      "R v Jones (n 7) [15].",
-    ],
+    examples: ["Smith (n 3) 42.", "R v Jones (n 7) [15]."],
     tips: [
       "Do not use 'ibid' in OSCOLA 5 — always use the short-form '(n X)' cross-reference.",
       "The short form is: Author surname (n X) pinpoint.",
@@ -1008,11 +982,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Subsequent References — No Ibid in OSCOLA 5",
     summary:
       "OSCOLA 5 formally deprecates 'ibid'. All subsequent references use the short-form cross-reference: the author surname (or short case name) followed by '(n X)' where X is the footnote number of the first full citation. A pinpoint follows directly after the cross-reference.",
-    examples: [
-      "Smith (n 3) 42.",
-      "R v Jones (n 7) [15].",
-      "Burrows (n 1) 55.",
-    ],
+    examples: ["Smith (n 3) 42.", "R v Jones (n 7) [15].", "Burrows (n 1) 55."],
     tips: [
       "Never use 'ibid' in OSCOLA 5 — always use the '(n X)' short-form cross-reference.",
       "The short form is: Author surname (n X) pinpoint.",
@@ -1145,9 +1115,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Scottish Cases — Neutral Citation",
     summary:
       "Scottish cases use the Session Cases (SC), Scots Law Times (SLT), and devolved court identifiers (CSIH for Inner House, CSOH for Outer House, HCJAC for High Court of Justiciary). Modern Scottish cases include a neutral citation followed by the best report.",
-    examples: [
-      "AXA General Insurance Ltd v Lord Advocate [2011] CSIH 31, 2011 SC 158.",
-    ],
+    examples: ["AXA General Insurance Ltd v Lord Advocate [2011] CSIH 31, 2011 SC 158."],
     tips: [
       "Scottish court identifiers: CSIH (Inner House), CSOH (Outer House), HCJAC (Justiciary Appeal Court).",
       "The neutral citation precedes the report citation, separated by a comma.",
@@ -1160,9 +1128,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Scottish Cases — Historical Series (Pre-1906)",
     summary:
       "Pre-1906 Scottish cases use historical Session Cases series identified by editor initial: S (Shaw), D (Dunlop), M (Macpherson), R (Rettie), F (Fraser). These are cited with the year in round brackets, followed by the volume number, series initial, and starting page.",
-    examples: [
-      "Balfour v Baird (1857) 19 D 534.",
-    ],
+    examples: ["Balfour v Baird (1857) 19 D 534."],
     tips: [
       "Pre-1906 Scottish series: S (Shaw), D (Dunlop), M (Macpherson), R (Rettie), F (Fraser).",
       "The year appears in round brackets followed by the volume and series letter.",
@@ -1175,10 +1141,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Northern Ireland Cases",
     summary:
       "Northern Ireland cases use neutral citation identifiers NICA (Court of Appeal), NIQB (High Court, Queen's Bench), NICh (Chancery), NIFam (Family). The NI report series is used as the best report where available. Court identifier is placed in parentheses if not apparent from the series or neutral citation.",
-    examples: [
-      "Re McFarland [2004] NICA 29, [2004] NI 380.",
-      "R v Magee [2001] NIQB 14.",
-    ],
+    examples: ["Re McFarland [2004] NICA 29, [2004] NI 380.", "R v Magee [2001] NIQB 14."],
     tips: [
       "NI court identifiers: NICA, NIQB, NICh, NIFam, NICC, NIMag.",
       "Include a parallel report citation (NI series) where available.",
@@ -1228,9 +1191,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Scottish Legislation (asp)",
     summary:
       "Acts of the Scottish Parliament are cited with the short title, year, and '(asp X)' suffix indicating the act number in the session. The format is otherwise identical to UK Acts. Legislation is in roman type.",
-    examples: [
-      "Adoption and Children (Scotland) Act 2007 (asp 4).",
-    ],
+    examples: ["Adoption and Children (Scotland) Act 2007 (asp 4)."],
     tips: [
       "Scottish Parliament Acts use the '(asp X)' suffix after the year.",
       "The title remains in roman type (not italic).",
@@ -1259,9 +1220,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Northern Ireland Legislation",
     summary:
       "Northern Ireland Acts of the Assembly are cited with the short title, year, and '(NI)' suffix. The format follows standard OSCOLA legislation conventions with roman type throughout. Pre-devolution legislation follows historical conventions.",
-    examples: [
-      "Justice (Northern Ireland) Act 2002 (NI).",
-    ],
+    examples: ["Justice (Northern Ireland) Act 2002 (NI)."],
     tips: [
       "NI Acts use '(NI)' suffix after the year.",
       "All in roman type (not italic).",
@@ -1343,9 +1302,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Parliamentary Select Committee Reports",
     summary:
       "Parliamentary select committee reports are cited with the committee name, the report title in italics, and the session identifier and paper number in parentheses. House of Commons papers use 'HC' and House of Lords papers use 'HL Paper'.",
-    examples: [
-      "House of Commons Justice Committee, The Coroner Service (2019-21, HC 68).",
-    ],
+    examples: ["House of Commons Justice Committee, The Coroner Service (2019-21, HC 68)."],
     tips: [
       "Include the full committee name at the start.",
       "Title is italic; session and paper number are in parentheses.",
@@ -1570,7 +1527,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "International Tribunal for the Law of the Sea cases are cited with the case name in italics, the phase of proceedings, the year in round brackets, 'ITLOS Reports', and the page number. The case number may be included where relevant.",
     examples: [
-      "The M/V \"Saiga\" (No 2) Case (Saint Vincent and the Grenadines v Guinea) (Merits) (1999) ITLOS Reports 10.",
+      'The M/V "Saiga" (No 2) Case (Saint Vincent and the Grenadines v Guinea) (Merits) (1999) ITLOS Reports 10.',
     ],
     tips: [
       "Case name in italics, including the parties in parentheses.",
@@ -1645,9 +1602,7 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "General Court Cases",
     summary:
       "General Court cases (formerly the Court of First Instance) use Case T- as the prefix, distinguishing them from Court of Justice cases (Case C-). The citation format is otherwise identical to CJEU cases, using either ECLI or ECR references.",
-    examples: [
-      "Case T-315/01 Kadi v Council of the European Union [2005] ECR II-3649.",
-    ],
+    examples: ["Case T-315/01 Kadi v Council of the European Union [2005] ECR II-3649."],
     tips: [
       "General Court cases use Case T- prefix.",
       "Court of Justice cases use Case C- prefix.",
@@ -1762,10 +1717,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Subsequent References — Commercial Style",
     summary:
       "In NZLSG commercial style (publisher), subsequent references use a short-form citation only: author/short title + pinpoint. No cross-reference numbering, no 'above n X', no ibid.",
-    examples: [
-      "Butler and Butler, at 55.",
-      "Couch v Attorney-General at [42].",
-    ],
+    examples: ["Butler and Butler, at 55.", "Couch v Attorney-General at [42]."],
     tips: [
       "Do not use '(n X)' or 'above n X' in commercial style.",
       "The short form is simply: Author, at pinpoint.",
@@ -1794,9 +1746,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Maori Land Court Citations",
     summary:
       "Maori Land Court decisions use a block/minute book format: Name (Year) BlockNumber CourtAbbrev MinuteBookPage (BlockNumber CourtAbbrev MinuteBookPage). Te reo Maori diacritics (macrons) must be preserved in all names and place names.",
-    examples: [
-      "Pomare \u2014 Peter Here Pomare (2015) 103 Taitokerau MB 95 (103 TTK 95).",
-    ],
+    examples: ["Pomare \u2014 Peter Here Pomare (2015) 103 Taitokerau MB 95 (103 TTK 95)."],
     tips: [
       "Use the full minute book reference followed by the abbreviated form in parentheses.",
       "Preserve macrons in all te reo Maori names and place names.",
@@ -1824,10 +1774,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "NZ Legislation",
     summary:
       "NZ legislation is cited: Short Title Year — in roman (not italic). No jurisdiction identifier for NZ Acts. Foreign legislation includes the jurisdiction in parentheses. Sections use 's' and 'ss'. Delegated legislation follows the same format.",
-    examples: [
-      "Privacy Act 2020, s 22.",
-      "Counter-Terrorism Act 2008 (UK), s 1.",
-    ],
+    examples: ["Privacy Act 2020, s 22.", "Counter-Terrorism Act 2008 (UK), s 1."],
     tips: [
       "NZ legislation titles are NEVER italic.",
       "Do not include a jurisdiction identifier for NZ domestic legislation.",
@@ -1840,9 +1787,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "NZ Parliamentary Debates (NZPD)",
     summary:
       "NZ Hansard is cited: (Date) Volume NZPD Page (Speaker). The date is in parentheses at the start. The speaker's name appears in parentheses at the end.",
-    examples: [
-      "(12 June 2019) 739 NZPD 12345 (Andrew Little).",
-    ],
+    examples: ["(12 June 2019) 739 NZPD 12345 (Andrew Little)."],
     tips: [
       "Date comes first in parentheses: (12 June 2019).",
       "Volume number precedes 'NZPD'.",
@@ -1872,7 +1817,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Journal articles in NZLSG: Author \"Title\" (Year) Volume Journal Starting Page at pinpoint. Note double quotation marks for the title and 'at' before the pinpoint. Journal abbreviations follow the LCANZ database.",
     examples: [
-      "Claudia Geiringer \"Tavita and All That: Confronting the Confusion Surrounding Unincorporated Treaties and Administrative Law\" (2004) 21 NZULR 66 at 70.",
+      'Claudia Geiringer "Tavita and All That: Confronting the Confusion Surrounding Unincorporated Treaties and Administrative Law" (2004) 21 NZULR 66 at 70.',
     ],
     tips: [
       "Use double quotation marks for article titles (not single).",
@@ -1917,10 +1862,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Treaty of Waitangi",
     summary:
       "The Treaty of Waitangi is cited by its English or te reo Maori name with article references. Both the English text (Treaty of Waitangi) and the Maori text (Te Tiriti o Waitangi) are available as citation forms.",
-    examples: [
-      "Treaty of Waitangi, art 2.",
-      "Te Tiriti o Waitangi, art 2.",
-    ],
+    examples: ["Treaty of Waitangi, art 2.", "Te Tiriti o Waitangi, art 2."],
     tips: [
       "Use 'Treaty of Waitangi' for the English text and 'Te Tiriti o Waitangi' for the Maori text.",
       "Preamble references are supported: 'Treaty of Waitangi, preamble'.",
@@ -1934,8 +1876,8 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "NZLSG uses double quotation marks for short quotations and titles of articles and chapters. Single quotation marks are used for quotations within quotations. This differs from AGLC4 and OSCOLA which use single quotation marks.",
     examples: [
-      "The court observed that \"the duty is non-delegable\".",
-      "Geiringer \"Tavita and All That\" (2004) 21 NZULR 66.",
+      'The court observed that "the duty is non-delegable".',
+      'Geiringer "Tavita and All That" (2004) 21 NZULR 66.',
     ],
     tips: [
       "Use double quotation marks (\u201C \u201D) for short quotations and titles.",
@@ -1966,10 +1908,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Footnote Closing Punctuation",
     summary:
       "Every NZLSG footnote ends with a full stop, regardless of whether the citation itself ends with a URL in angle brackets, a parenthetical, or a pinpoint reference. The full stop signals the end of the footnote.",
-    examples: [
-      "Couch v Attorney-General [2008] NZSC 45 at [42].",
-      "Privacy Act 2020, s 22.",
-    ],
+    examples: ["Couch v Attorney-General [2008] NZSC 45 at [42].", "Privacy Act 2020, s 22."],
     tips: [
       "Always terminate each footnote with a full stop.",
       "If the citation ends with a URL in angle brackets, the full stop still follows: <https://example.com>.",
@@ -2017,7 +1956,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     examples: [
       "Butler and Butler, above n 1, at 134.",
       "Couch v Attorney-General [2008] NZSC 45 at [42].",
-      "Geiringer \"Tavita and All That\" (2004) 21 NZULR 66 at 70.",
+      'Geiringer "Tavita and All That" (2004) 21 NZULR 66 at 70.',
     ],
     tips: [
       "Always use 'at' before pinpoints in NZLSG — never a bare comma.",
@@ -2067,9 +2006,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Pre-Neutral Citation Cases",
     summary:
       "NZ cases from before 2001 (when neutral citations were introduced) are cited with the case name, court abbreviation, registry, file number, and date. Registries are omitted for single-registry courts (NZCA, NZSC).",
-    examples: [
-      "Taylor v Beere HC Wellington CP 291/85, 7 November 1985.",
-    ],
+    examples: ["Taylor v Beere HC Wellington CP 291/85, 7 November 1985."],
     tips: [
       "Format: Case Name Court Registry FileNumber, Date.",
       "Omit registry for single-registry courts (NZCA does not have registries).",
@@ -2082,9 +2019,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Maori Appellate Court Citations",
     summary:
       "Maori Appellate Court decisions follow the same block/minute book format as the Maori Land Court. The court is identified by the minute book district. Te reo Maori diacritics (macrons) must be preserved in all names.",
-    examples: [
-      "Fenwick v Naera (2015) 50 Waikato Maniapoto ACMB 1 (50 WAMAC 1).",
-    ],
+    examples: ["Fenwick v Naera (2015) 50 Waikato Maniapoto ACMB 1 (50 WAMAC 1)."],
     tips: [
       "Use the same block/minute book format as the Maori Land Court.",
       "ACMB indicates Appellate Court Minute Book.",
@@ -2150,10 +2085,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "NZ Delegated Legislation",
     summary:
       "NZ delegated legislation (regulations, rules, orders) is cited in roman (not italic) with the title, year, and pinpoint. The format mirrors primary legislation. Common pinpoint abbreviations include 'reg' for regulation, 'cl' for clause, and 'r' for rule.",
-    examples: [
-      "Land Transfer Regulations 2002, reg 4.",
-      "District Court Rules 2014, r 3.5.",
-    ],
+    examples: ["Land Transfer Regulations 2002, reg 4.", "District Court Rules 2014, r 3.5."],
     tips: [
       "Delegated legislation titles are roman (not italic), same as primary legislation.",
       "Use 'reg' for regulation, 'cl' for clause, 'r' for rule, 'sch' for schedule.",
@@ -2221,7 +2153,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Select committee submissions are cited with the submitter, the submission title in double quotation marks (formatted as 'Submission to the [Committee] on the [Bill/Inquiry]'), and the date in parentheses.",
     examples: [
-      "New Zealand Law Society \"Submission to the Justice and Electoral Committee on the Search and Surveillance Bill\" (2009).",
+      'New Zealand Law Society "Submission to the Justice and Electoral Committee on the Search and Surveillance Bill" (2009).',
     ],
     tips: [
       "The submission title follows a standard formula: 'Submission to the [Committee] on the [Bill/Inquiry]'.",
@@ -2236,7 +2168,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Cabinet documents are cited with 'Cabinet Office' as the author, the document title in double quotation marks, and the cabinet reference number and date in parentheses.",
     examples: [
-      "Cabinet Office \"Power to Delay Commencement of the Search and Surveillance Act 2012\" (CAB Min (12) 14/11, 30 April 2012).",
+      'Cabinet Office "Power to Delay Commencement of the Search and Surveillance Act 2012" (CAB Min (12) 14/11, 30 April 2012).',
     ],
     tips: [
       "Use 'Cabinet Office' as the author.",
@@ -2250,9 +2182,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "New Zealand Gazette",
     summary:
       "Notices in the New Zealand Gazette are cited with the notice title in double quotation marks, the year in parentheses, followed by 'New Zealand Gazette' and the page number.",
-    examples: [
-      "\"Appointment of District Court Judge\" (2018) New Zealand Gazette 1234.",
-    ],
+    examples: ['"Appointment of District Court Judge" (2018) New Zealand Gazette 1234.'],
     tips: [
       "Title of the notice in double quotation marks.",
       "Year appears in parentheses before 'New Zealand Gazette'.",
@@ -2265,9 +2195,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Appendices to the Journals of the House (AJHR)",
     summary:
       "AJHR documents are cited with the author (if any), the title in italics, and the AJHR reference in the format 'AJHR Year Reference'. These are historical parliamentary papers.",
-    examples: [
-      "Department of Justice Reform of the Law of Contempt AJHR 1987 I.11.",
-    ],
+    examples: ["Department of Justice Reform of the Law of Contempt AJHR 1987 I.11."],
     tips: [
       "The AJHR reference includes year and alphanumeric code: 'AJHR 1987 I.11'.",
       "Title is italic.",
@@ -2283,7 +2211,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Theses in NZLSG use double quotation marks for the title (not italic). The degree type, university, and year appear in parentheses. The word 'Thesis' follows the degree abbreviation.",
     examples: [
-      "John Smith \"The Impact of Treaty Settlements\" (LLM Thesis, Victoria University of Wellington, 2015) at 45.",
+      'John Smith "The Impact of Treaty Settlements" (LLM Thesis, Victoria University of Wellington, 2015) at 45.',
     ],
     tips: [
       "Thesis titles use double quotation marks, NOT italics.",
@@ -2299,7 +2227,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Chapters in edited books are cited with the chapter author, chapter title in double quotation marks, 'in' followed by the editor name(s) with '(ed)' or '(eds)', the book title in italics, and publication details. The 'at' pinpoint prefix applies.",
     examples: [
-      "Grant Huscroft \"Rights, Bills of Rights, and the Role of Courts and Legislatures\" in Grant Huscroft and Paul Rishworth (eds) Litigating Rights (Hart Publishing, Oxford, 2002) at 1.",
+      'Grant Huscroft "Rights, Bills of Rights, and the Role of Courts and Legislatures" in Grant Huscroft and Paul Rishworth (eds) Litigating Rights (Hart Publishing, Oxford, 2002) at 1.',
     ],
     tips: [
       "Chapter title in double quotation marks; book title in italics.",
@@ -2315,7 +2243,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Internet materials in NZLSG use double quotation marks for titles and include the URL in angle brackets. The format is: Author \"Title\" (Year) Website <URL>. The 'at' prefix applies to pinpoints.",
     examples: [
-      "John Smith \"Legal Aid in New Zealand\" (2024) Ministry of Justice <https://example.govt.nz/legal-aid>.",
+      'John Smith "Legal Aid in New Zealand" (2024) Ministry of Justice <https://example.govt.nz/legal-aid>.',
     ],
     tips: [
       "Use double quotation marks for the page/article title.",
@@ -2331,7 +2259,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Newspaper articles use double quotation marks for the article title and italics for the newspaper name. The place of publication and date appear in parentheses. Pinpoints use 'at' before the page reference.",
     examples: [
-      "Jane Doe \"Courts Face Backlog\" The New Zealand Herald (Auckland, 15 March 2024) at A3.",
+      'Jane Doe "Courts Face Backlog" The New Zealand Herald (Auckland, 15 March 2024) at A3.',
     ],
     tips: [
       "Article title in double quotation marks.",
@@ -2348,10 +2276,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Treaty of Waitangi — English Version",
     summary:
       "The English text of the Treaty of Waitangi is cited as 'Treaty of Waitangi' followed by the article reference. Preamble references use 'preamble' after a comma. The Treaty is a primary source in the bibliography with its own dedicated section.",
-    examples: [
-      "Treaty of Waitangi art 2.",
-      "Treaty of Waitangi, preamble.",
-    ],
+    examples: ["Treaty of Waitangi art 2.", "Treaty of Waitangi, preamble."],
     tips: [
       "Use 'Treaty of Waitangi' for the English text.",
       "Article references: 'art 1', 'art 2', 'art 3'.",
@@ -2364,10 +2289,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Te Tiriti o Waitangi — Te Reo Maori Version",
     summary:
       "The te reo Maori text of the Treaty is cited as 'Te Tiriti o Waitangi' with the same article and preamble reference conventions. Both language versions are valid citation forms; the choice depends on which text is being discussed.",
-    examples: [
-      "Te Tiriti o Waitangi art 2.",
-      "Te Tiriti o Waitangi, preamble.",
-    ],
+    examples: ["Te Tiriti o Waitangi art 2.", "Te Tiriti o Waitangi, preamble."],
     tips: [
       "Use 'Te Tiriti o Waitangi' when citing the Maori-language text.",
       "The choice between English and Maori text is substantive — it depends on which version is being analysed.",
@@ -2485,7 +2407,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Blog posts in NZLSG are cited with the author, the post title in double quotation marks, the date in parentheses, the blog name, and the URL in angle brackets.",
     examples: [
-      "Andrew Geddis \"The Bill of Rights and Parliament\" (15 March 2024) Pundit <https://example.com>.",
+      'Andrew Geddis "The Bill of Rights and Parliament" (15 March 2024) Pundit <https://example.com>.',
     ],
     tips: [
       "Post title in double quotation marks.",
@@ -2501,7 +2423,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     summary:
       "Social media posts are cited with the author, optional handle in parentheses, a content excerpt in double quotation marks, the platform and date in parentheses, and the URL in angle brackets.",
     examples: [
-      "Andrew Little (@AndrewLittleMP) \"Justice reforms announced today\" (Twitter, 15 March 2024) <https://example.com>.",
+      'Andrew Little (@AndrewLittleMP) "Justice reforms announced today" (Twitter, 15 March 2024) <https://example.com>.',
     ],
     tips: [
       "Include the social media handle in parentheses after the author name.",
@@ -2515,9 +2437,7 @@ export const nzlsgReferenceGuideEntries: ReferenceGuideEntry[] = [
     title: "Broadcast Material",
     summary:
       "Broadcast material (radio, television) is cited with the programme title in double quotation marks, followed by production details in parentheses: director or presenter, broadcaster, and date.",
-    examples: [
-      "\"The Case for Justice\" (Kim Hill, RNZ, 15 March 2024).",
-    ],
+    examples: ['"The Case for Justice" (Kim Hill, RNZ, 15 March 2024).'],
     tips: [
       "Programme title in double quotation marks.",
       "Production details in parentheses: presenter/director, broadcaster, date.",

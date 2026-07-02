@@ -95,9 +95,7 @@ export function formatLegislation(data: NZLegislationData): FormattedRun[] {
  *   // Land Transfer Regulations 2002, reg 4
  *   formatDelegatedLegislation({ title: "Land Transfer Regulations", year: 2002, pinpoint: "reg 4" })
  */
-export function formatDelegatedLegislation(
-  data: NZDelegatedLegislationData,
-): FormattedRun[] {
+export function formatDelegatedLegislation(data: NZDelegatedLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title and year in roman

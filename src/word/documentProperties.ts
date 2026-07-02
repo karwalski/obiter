@@ -23,7 +23,7 @@ export async function writeObiterProperties(
   context: Word.RequestContext,
   version: string,
   standard: string,
-  mode: string,
+  mode: string
 ): Promise<void> {
   try {
     // Runtime-check for customProperties support (WordApi 1.6+)

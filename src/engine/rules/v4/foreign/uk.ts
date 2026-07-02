@@ -142,11 +142,7 @@ export function formatCase(data: UKCaseData): FormattedRun[] {
   }
 
   // Court identifier (omitted when apparent from series)
-  if (
-    data.courtId &&
-    !data.ewhcDivision &&
-    !UK_SERIES_IMPLIED_COURT.has(data.reportSeries)
-  ) {
+  if (data.courtId && !data.ewhcDivision && !UK_SERIES_IMPLIED_COURT.has(data.reportSeries)) {
     runs.push({ text: ` (${data.courtId})` });
   }
 
@@ -267,9 +263,7 @@ interface UKStatutoryInstrumentData {
  *     year: 1998, siNumber: "3132",
  *   })
  */
-export function formatStatutoryInstrument(
-  data: UKStatutoryInstrumentData,
-): FormattedRun[] {
+export function formatStatutoryInstrument(data: UKStatutoryInstrumentData): FormattedRun[] {
   const runs: FormattedRun[] = [];
   const jurisdiction = data.jurisdiction ?? "UK";
 
@@ -324,8 +318,7 @@ interface UKHansardData {
  */
 export function formatHansard(data: UKHansardData): FormattedRun[] {
   const runs: FormattedRun[] = [];
-  const chamberFull =
-    data.chamber === "HL" ? "House of Lords" : "House of Commons";
+  const chamberFull = data.chamber === "HL" ? "House of Lords" : "House of Commons";
 
   runs.push({
     text: "United Kingdom, Parliamentary Debates, ",

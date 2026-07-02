@@ -158,9 +158,7 @@ export function formatBook(data: NZBookData): FormattedRun[] {
  *     startPage: 613,
  *   })
  */
-export function formatJournalArticle(
-  data: NZJournalArticleData,
-): FormattedRun[] {
+export function formatJournalArticle(data: NZJournalArticleData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author
@@ -202,9 +200,7 @@ export function formatJournalArticle(
  *     pinpoint: "55",
  *   })
  */
-export function formatLawCommission(
-  data: NZLawCommissionData,
-): FormattedRun[] {
+export function formatLawCommission(data: NZLawCommissionData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author: Law Commission
@@ -282,9 +278,7 @@ export function formatThesis(data: NZThesisData): FormattedRun[] {
  *     publisher: "Brookers",
  *   })
  */
-export function formatOnlineLooseleaf(
-  data: NZOnlineLooseleafData,
-): FormattedRun[] {
+export function formatOnlineLooseleaf(data: NZOnlineLooseleafData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Editor with (ed) designation

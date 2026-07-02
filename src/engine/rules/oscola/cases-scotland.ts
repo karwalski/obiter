@@ -136,9 +136,7 @@ function renderCaseName(caseName: string): FormattedRun[] {
  *     historicalSeries: true,
  *   })
  */
-export function formatOscolaScottishCase(
-  data: OscolaScottishCaseData,
-): FormattedRun[] {
+export function formatOscolaScottishCase(data: OscolaScottishCaseData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name with 'v' in roman

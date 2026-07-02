@@ -39,11 +39,11 @@ function getHeadingLevel(styleName: string): 0 | 1 | 2 | 3 | 4 | 5 {
  * - Level 5 (Lower Roman in parens): (i), (ii), (iii), ...
  */
 const PREFIX_PATTERNS: ReadonlyArray<RegExp> = [
-  /^[IVXLCDM]+\s+/,       // Level 1: Upper Roman
-  /^[A-Z]\s+/,            // Level 2: Upper Letter
-  /^\d+\s+/,              // Level 3: Arabic
-  /^\([a-z]\)\s+/,        // Level 4: Lower letter in parens
-  /^\([ivxlcdm]+\)\s+/,   // Level 5: Lower Roman in parens
+  /^[IVXLCDM]+\s+/, // Level 1: Upper Roman
+  /^[A-Z]\s+/, // Level 2: Upper Letter
+  /^\d+\s+/, // Level 3: Arabic
+  /^\([a-z]\)\s+/, // Level 4: Lower letter in parens
+  /^\([ivxlcdm]+\)\s+/, // Level 5: Lower Roman in parens
 ];
 
 /**
@@ -69,9 +69,7 @@ function stripExistingPrefix(text: string, level: 1 | 2 | 3 | 4 | 5): string {
  * @param context - A Word.RequestContext from within a Word.run() callback.
  * @returns The count of headings that were renumbered.
  */
-export async function renumberHeadings(
-  context: Word.RequestContext,
-): Promise<number> {
+export async function renumberHeadings(context: Word.RequestContext): Promise<number> {
   const paragraphs = context.document.body.paragraphs;
   paragraphs.load("items/style,items/text");
   await context.sync();
@@ -91,7 +89,7 @@ export async function renumberHeadings(
   // text-prefix approach.
   void canUseListApi;
 
-  for (const paragraph of (paragraphs.items ?? [])) {
+  for (const paragraph of paragraphs.items ?? []) {
     const level = getHeadingLevel(paragraph.style);
     if (level === 0) continue;
 

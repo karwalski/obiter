@@ -214,9 +214,7 @@ interface GenericForeignLegislationData {
  *     pinpoint: "art 709",
  *   })
  */
-export function formatLegislation(
-  data: GenericForeignLegislationData,
-): FormattedRun[] {
+export function formatLegislation(data: GenericForeignLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Free-form citation overrides structured formatting

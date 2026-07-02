@@ -18,9 +18,7 @@ import { APP_VERSION } from "../constants";
  * document. These persist in the .docx file and are visible in Word's
  * File > Properties > Custom Properties.
  */
-export async function setDocumentMetadata(
-  context: Word.RequestContext,
-): Promise<void> {
+export async function setDocumentMetadata(context: Word.RequestContext): Promise<void> {
   const properties = context.document.properties;
   properties.load("author,title");
   await context.sync();
@@ -43,7 +41,7 @@ export async function setDocumentMetadata(
  * was not created with Obiter.
  */
 export async function getDocumentMetadata(
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<{ version: string; style: string; author: string } | null> {
   try {
     const custom = context.document.properties.customProperties;
@@ -54,7 +52,7 @@ export async function getDocumentMetadata(
     let style = "";
     let author = "";
 
-    for (const prop of (custom.items ?? [])) {
+    for (const prop of custom.items ?? []) {
       if (prop.key === "Obiter.Version") version = String(prop.value);
       if (prop.key === "Obiter.CitationStyle") style = String(prop.value);
       if (prop.key === "Obiter.Author") author = String(prop.value);
@@ -82,9 +80,7 @@ const NOTICE_TEXT =
  * add-in is not installed. The notice is wrapped in a content control
  * tagged so we can hide it when the add-in IS loaded.
  */
-export async function insertAddinNotice(
-  context: Word.RequestContext,
-): Promise<void> {
+export async function insertAddinNotice(context: Word.RequestContext): Promise<void> {
   // Check if notice already exists
   const existing = context.document.contentControls.getByTag(NOTICE_TAG);
   existing.load("items");
@@ -113,9 +109,7 @@ export async function insertAddinNotice(
  * Hides or removes the add-in notice. Called when the add-in loads —
  * the notice is only useful for users who open the doc without the add-in.
  */
-export async function hideAddinNotice(
-  context: Word.RequestContext,
-): Promise<void> {
+export async function hideAddinNotice(context: Word.RequestContext): Promise<void> {
   const controls = context.document.contentControls.getByTag(NOTICE_TAG);
   controls.load("items");
   await context.sync();
@@ -137,18 +131,18 @@ export async function hideAddinNotice(
 export interface TemplatePreferences {
   fontName: string;
   fontSize: number;
-  lineSpacing: number;  // in points
-  marginPt: number;     // in points (72 = 1 inch)
+  lineSpacing: number; // in points
+  marginPt: number; // in points (72 = 1 inch)
   includeTitle: boolean;
   includeAuthor: boolean;
   includeNotice: boolean;
 }
 
 const DEFAULT_PREFERENCES: TemplatePreferences = {
-  fontName: "",  // empty = don't override document's default font
+  fontName: "", // empty = don't override document's default font
   fontSize: 12,
-  lineSpacing: 24,   // double spacing for 12pt
-  marginPt: 72,      // 1 inch / 2.54 cm
+  lineSpacing: 24, // double spacing for 12pt
+  marginPt: 72, // 1 inch / 2.54 cm
   includeTitle: true,
   includeAuthor: true,
   includeNotice: true,
@@ -163,7 +157,9 @@ export function loadTemplatePreferences(): TemplatePreferences {
     if (saved) {
       return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) };
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { ...DEFAULT_PREFERENCES };
 }
 
@@ -173,7 +169,9 @@ export function loadTemplatePreferences(): TemplatePreferences {
 export function saveTemplatePreferences(prefs: TemplatePreferences): void {
   try {
     localStorage.setItem("obiter-templatePrefs", JSON.stringify(prefs));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 /**

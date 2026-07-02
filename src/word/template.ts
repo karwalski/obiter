@@ -23,7 +23,7 @@ import {
  */
 export async function applyAglc4Template(
   context: Word.RequestContext,
-  prefsOverride?: Partial<TemplatePreferences>,
+  prefsOverride?: Partial<TemplatePreferences>
 ): Promise<void> {
   const prefs = { ...loadTemplatePreferences(), ...prefsOverride };
 
@@ -48,6 +48,16 @@ export async function applyAglc4Template(
   }
   body.font.size = prefs.fontSize;
 
+  // ATAG Part B / WCAG 3.1.1: tag the document's editing language so screen readers
+  // pronounce content correctly and proofing uses Australian English. Best effort —
+  // languageId is only typed on newer Word API sets, so set it via a narrow cast and
+  // guard against runtimes where it is unavailable.
+  try {
+    (body.font as unknown as { languageId?: string }).languageId = "EnglishAUS";
+  } catch {
+    // languageId not settable on this runtime — skip.
+  }
+
   // 4. Set page margins
   const sections = context.document.sections;
   sections.load("items");
@@ -57,7 +67,6 @@ export async function applyAglc4Template(
   for (let i = 0; i < sectionItems.length; i++) {
     const section = sectionItems[i];
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sectionAny = section as any;
       if (typeof sectionAny.setMargins === "function") {
         sectionAny.setMargins(prefs.marginPt, prefs.marginPt, prefs.marginPt, prefs.marginPt);
@@ -75,8 +84,16 @@ export async function applyAglc4Template(
   for (let i = 0; i < bodyParaItems.length; i++) {
     const para = bodyParaItems[i];
     para.lineSpacing = prefs.lineSpacing;
-    try { para.lineUnitAfter = 0; } catch { /* not supported */ }
-    try { para.lineUnitBefore = 0; } catch { /* not supported */ }
+    try {
+      para.lineUnitAfter = 0;
+    } catch {
+      /* not supported */
+    }
+    try {
+      para.lineUnitBefore = 0;
+    } catch {
+      /* not supported */
+    }
   }
 
   // 6. Insert placeholders if document is empty
@@ -86,13 +103,14 @@ export async function applyAglc4Template(
   const bodyText = body.text.trim();
   if (bodyText.length === 0) {
     if (prefs.includeAuthor) {
-      const authorPara = body.insertParagraph(
-        "[Author Name]",
-        Word.InsertLocation.start,
-      );
+      const authorPara = body.insertParagraph("[Author Name]", Word.InsertLocation.start);
       // Apply the named style first, then direct formatting, so the centring
       // and small caps win even if the style is missing or stripped (Word Web).
-      try { authorPara.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+      try {
+        authorPara.style = "AGLC4 Author";
+      } catch {
+        /* style may not exist */
+      }
       authorPara.font.smallCaps = true;
       authorPara.alignment = Word.Alignment.centered;
       authorPara.font.size = prefs.fontSize;
@@ -102,11 +120,12 @@ export async function applyAglc4Template(
     }
 
     if (prefs.includeTitle) {
-      const titlePara = body.insertParagraph(
-        "[TITLE]",
-        Word.InsertLocation.start,
-      );
-      try { titlePara.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+      const titlePara = body.insertParagraph("[TITLE]", Word.InsertLocation.start);
+      try {
+        titlePara.style = "AGLC4 Title";
+      } catch {
+        /* style may not exist */
+      }
       titlePara.font.bold = true;
       // Rule 1.12.1: the title is capitalised. allCaps renders whatever the
       // author types into this placeholder in capitals, so the title stays
@@ -165,9 +184,13 @@ export function normalizeForSmallCaps(text: string): string {
 export async function insertTitleParagraph(
   context: Word.RequestContext,
   text: string,
-  smallCaps = false,
+  smallCaps = false
 ): Promise<void> {
-  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+  try {
+    await applyAglc4Styles(context);
+  } catch {
+    /* may already exist */
+  }
   const prefs = loadTemplatePreferences();
 
   // Rule 1.12.1: the title is "capitalised" — i.e. upper case (the AGLC4
@@ -177,8 +200,15 @@ export async function insertTitleParagraph(
   // styling produces its effect.
   const para = context.document
     .getSelection()
-    .insertParagraph(smallCaps ? normalizeForSmallCaps(text) : text.toUpperCase(), Word.InsertLocation.before);
-  try { para.style = "AGLC4 Title"; } catch { /* style may not exist */ }
+    .insertParagraph(
+      smallCaps ? normalizeForSmallCaps(text) : text.toUpperCase(),
+      Word.InsertLocation.before
+    );
+  try {
+    para.style = "AGLC4 Title";
+  } catch {
+    /* style may not exist */
+  }
   // Direct formatting after the style so it holds even if the style is missing
   // or stripped (e.g. on Word for Web, which ignores small caps).
   para.alignment = Word.Alignment.centered;
@@ -202,15 +232,23 @@ export async function insertTitleParagraph(
  */
 export async function insertAuthorParagraph(
   context: Word.RequestContext,
-  text: string,
+  text: string
 ): Promise<void> {
-  try { await applyAglc4Styles(context); } catch { /* may already exist */ }
+  try {
+    await applyAglc4Styles(context);
+  } catch {
+    /* may already exist */
+  }
   const prefs = loadTemplatePreferences();
 
   const para = context.document
     .getSelection()
     .insertParagraph(normalizeForSmallCaps(text), Word.InsertLocation.before);
-  try { para.style = "AGLC4 Author"; } catch { /* style may not exist */ }
+  try {
+    para.style = "AGLC4 Author";
+  } catch {
+    /* style may not exist */
+  }
   para.alignment = Word.Alignment.centered;
   para.font.smallCaps = true;
   para.font.size = prefs.fontSize;

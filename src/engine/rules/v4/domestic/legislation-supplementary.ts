@@ -14,11 +14,7 @@
 import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatPinpoint } from "../general/pinpoints";
-import {
-  formatLegislationPinpoint,
-  formatStatute,
-  formatBill,
-} from "./legislation";
+import { formatLegislationPinpoint, formatStatute, formatBill } from "./legislation";
 
 // ─── LEG-005: Order of Parallel Australian Statutes (Rule 3.3) — PLACEHOLDER ─
 
@@ -99,26 +95,36 @@ export function formatDelegatedLegislation(data: {
 /**
  * Formats a legislation short title for use immediately after the first citation.
  *
- * AGLC4 Rule 3.5: A short title may be introduced in italicised parentheses
- * immediately after the first full citation of a legislative instrument.
+ * AGLC4 Rule 3.5: A short title is introduced within single inverted commas
+ * inside parentheses after the initial citation. The short title itself is
+ * italicised according to this chapter's rules (italic for Acts and delegated
+ * legislation, roman for Bills); the parentheses and quotation marks are roman.
  *
- * @example
- *   formatLegislationShortTitle("CCA")
- *   => [{ text: " ('", italic: true }, { text: "CCA", italic: true }, { text: "')", italic: true }]
+ * AGLC4 Example 45: `Property Law Act 1958 (Vic) s 6 ('Property Act')` —
+ * only "Property Act" is italic.
+ *
+ * @param shortTitle - The short title being introduced
+ * @param italicTitle - Whether the short title is italicised (default true;
+ *   pass false for Bills per Rules 3.2 and 3.5)
  */
 export function formatLegislationShortTitle(
-  shortTitle: string
+  shortTitle: string,
+  italicTitle = true
 ): FormattedRun[] {
-  return [{ text: ` ('${shortTitle}')`, italic: true }];
+  if (!italicTitle) {
+    return [{ text: ` (‘${shortTitle}’)` }];
+  }
+  return [{ text: " (‘" }, { text: shortTitle, italic: true }, { text: "’)" }];
 }
 
 /**
  * Formats a subsequent reference to legislation using a previously
  * introduced short title.
  *
- * AGLC4 Rule 3.5: Subsequent references use the italicised short title
- * followed by a cross-reference to the footnote in which the legislation
- * was first cited, in the form `(n X)`, plus an optional pinpoint.
+ * AGLC4 Rule 3.5: Subsequent references use the short title (italicised per
+ * this chapter's rules: italic for Acts/delegated legislation, roman for
+ * Bills) followed by a cross-reference to the footnote in which the
+ * legislation was first cited, in the form `(n X)`, plus an optional pinpoint.
  *
  * @example
  *   formatLegislationSubsequentRef("CCA", 1, { type: "section", value: "52" })
@@ -126,13 +132,22 @@ export function formatLegislationShortTitle(
  *
  *   formatLegislationSubsequentRef("CCA", 1)
  *   => [{ text: "CCA", italic: true }, { text: " (n 1)" }]
+ *
+ * @param shortTitle - The previously introduced short title
+ * @param footnoteNumber - The footnote in which the material was first cited
+ * @param pinpoint - Optional pinpoint reference
+ * @param italicTitle - Whether the short title is italicised (default true;
+ *   pass false for Bills per Rules 3.2 and 3.5)
  */
 export function formatLegislationSubsequentRef(
   shortTitle: string,
   footnoteNumber: number,
-  pinpoint?: Pinpoint
+  pinpoint?: Pinpoint,
+  italicTitle = true
 ): FormattedRun[] {
-  const runs: FormattedRun[] = [{ text: shortTitle, italic: true }];
+  const runs: FormattedRun[] = italicTitle
+    ? [{ text: shortTitle, italic: true }]
+    : [{ text: shortTitle }];
 
   let refText = ` (n ${footnoteNumber})`;
 
@@ -163,12 +178,8 @@ export function formatLegislationSubsequentRef(
  *   formatCommonwealthConstitution()
  *   => [{ text: "Australian Constitution", italic: true }]
  */
-export function formatCommonwealthConstitution(
-  pinpoint?: Pinpoint
-): FormattedRun[] {
-  const runs: FormattedRun[] = [
-    { text: "Australian Constitution", italic: true },
-  ];
+export function formatCommonwealthConstitution(pinpoint?: Pinpoint): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: "Australian Constitution", italic: true }];
 
   if (pinpoint) {
     runs.push({ text: " " });
@@ -219,10 +230,13 @@ export function formatStateConstitution(data: {
  * Formats an explanatory memorandum citation.
  *
  * AGLC4 Rule 3.7: Explanatory memoranda, explanatory statements, and
- * explanatory notes are cited with the document type (not italicised),
- * followed by a comma and space, then the bill title and year in italics,
- * followed by the jurisdiction in parentheses (not italicised), and an
- * optional pinpoint.
+ * explanatory notes are cited as `Explanatory Memorandum, «Bill Citation»
+ * «Pinpoint»`. The document label is roman, and the Bill citation follows
+ * Rule 3.2 — so the bill title and year are NOT italicised. Pinpoints are
+ * to pages, or pages and paragraphs (Rules 1.1.6–1.1.7).
+ *
+ * AGLC4 Example 58: `Explanatory Memorandum, Charter of Human Rights and
+ * Responsibilities Bill 2006 (Vic).` — no italics anywhere.
  *
  * @example
  *   formatExplanatoryMemorandum({
@@ -234,7 +248,7 @@ export function formatStateConstitution(data: {
  *   })
  *   => [
  *     { text: "Explanatory Memorandum, " },
- *     { text: "Competition and Consumer Bill 2010", italic: true },
+ *     { text: "Competition and Consumer Bill 2010" },
  *     { text: " (Cth)" },
  *     { text: " 5" }
  *   ]
@@ -246,9 +260,10 @@ export function formatExplanatoryMemorandum(data: {
   jurisdiction: string;
   pinpoint?: Pinpoint;
 }): FormattedRun[] {
+  // Bill title and year roman per Rule 3.2 (imported by Rule 3.7)
   const runs: FormattedRun[] = [
     { text: `${data.type}, ` },
-    { text: `${data.billTitle} ${data.billYear}`, italic: true },
+    { text: `${data.billTitle} ${data.billYear}` },
     { text: ` (${data.jurisdiction})` },
   ];
 
@@ -352,7 +367,7 @@ export interface LegislativeHistory {
  */
 export function formatLegislativeHistory(
   lead: FormattedRun[],
-  history: LegislativeHistory,
+  history: LegislativeHistory
 ): FormattedRun[] {
   const runs: FormattedRun[] = [...lead];
 
@@ -401,35 +416,45 @@ export function formatLegislativeHistory(
 /**
  * Formats a government gazette citation.
  *
- * AGLC4 Rule 3.9.1: Government gazettes are cited with the jurisdiction,
- * gazette type, number (if applicable), date, and page (if applicable).
- * The gazette type is italicised.
+ * AGLC4 Rule 3.9.1: Gazettes are cited as `«Jurisdiction», «Gazette Title»,
+ * No «Gazette Number», «Full Date», «Pinpoint»`. Where multiple notices
+ * appear in the same gazette or on the same page, the notice's author (if
+ * available) and title are prepended: `«Author», '«Title of Notice»' in
+ * «Jurisdiction», «Gazette Title», No «Gazette Number», «Full Date»,
+ * «Starting Page», «Pinpoint»`. Only the gazette title is italicised; the
+ * notice title sits in roman inside single quotation marks.
  *
- * @example
- *   formatGazette({
- *     jurisdiction: "Commonwealth",
- *     gazetteType: "Government Gazette",
- *     number: "S 123",
- *     date: "5 March 2020",
- *     page: 42
- *   })
- *   => [
- *     { text: "Commonwealth, " },
- *     { text: "Government Gazette", italic: true },
- *     { text: ", No S 123, 5 March 2020, 42" }
- *   ]
+ * AGLC4 Example 69: `Commonwealth, Gazette: Special, No S 489, 1 December 2004.`
+ * AGLC4 Example 71 adds author, notice title, starting page 1142 and
+ * pinpoint 1143.
+ *
+ * @param data.noticeAuthor - Author of an individual notice (optional even
+ *   in the notice form — AGLC4 ex 70 has a notice title but no author)
+ * @param data.noticeTitle - Title of an individual notice, rendered in roman
+ *   within single quotation marks followed by ` in `
+ * @param data.page - Starting page of the notice (Rule 3.9.1)
+ * @param data.pinpoint - Page pinpoint following the starting page
  */
 export function formatGazette(data: {
   jurisdiction: string;
   gazetteType: string;
   number?: string;
   date: string;
-  page?: number;
+  page?: number | string;
+  pinpoint?: string;
+  noticeAuthor?: string;
+  noticeTitle?: string;
 }): FormattedRun[] {
-  const runs: FormattedRun[] = [
-    { text: `${data.jurisdiction}, ` },
-    { text: data.gazetteType, italic: true },
-  ];
+  const runs: FormattedRun[] = [];
+
+  // Individual-notice form: Author, 'Title of Notice' in Jurisdiction, ...
+  if (data.noticeTitle) {
+    const author = data.noticeAuthor ? `${data.noticeAuthor}, ` : "";
+    runs.push({ text: `${author}‘${data.noticeTitle}’ in ` });
+  }
+
+  runs.push({ text: `${data.jurisdiction}, ` });
+  runs.push({ text: data.gazetteType, italic: true });
 
   let suffix = "";
   if (data.number !== undefined) {
@@ -439,6 +464,9 @@ export function formatGazette(data: {
   if (data.page !== undefined) {
     suffix += `, ${data.page}`;
   }
+  if (data.pinpoint !== undefined) {
+    suffix += `, ${data.pinpoint}`;
+  }
 
   runs.push({ text: suffix });
 
@@ -446,46 +474,177 @@ export function formatGazette(data: {
 }
 
 /**
- * Formats a quasi-legislative material citation such as ASIC class orders,
- * ATO tax rulings, or practice directions.
+ * Trims a non-government issuing body's name per AGLC4 Rule 3.9.3: terms
+ * designating the body as a company (eg 'Pty', 'Ltd', 'Co', 'Inc') are
+ * omitted from its name, as is 'The' at the start of the name.
  *
- * AGLC4 Rules 3.9.2–3.9.4: Quasi-legislative materials are cited with
- * the issuing body, document type and number, title (if applicable),
- * and date. The title is italicised when present.
+ * AGLC4 Example 77: `Victorian Bar` — not `The Victorian Bar Inc`.
  *
- * @example
- *   formatQuasiLegislative({
- *     issuingBody: "Australian Taxation Office",
- *     documentType: "Taxation Ruling",
- *     number: "TR 2010/1",
- *     date: "14 July 2010",
- *     title: "Income Tax: Residency Tests"
- *   })
- *   => [
- *     { text: "Australian Taxation Office, Taxation Ruling TR 2010/1, " },
- *     { text: "Income Tax: Residency Tests", italic: true },
- *     { text: ", 14 July 2010" }
- *   ]
+ * @param name - The issuing body's name as supplied
+ * @returns The name with a leading 'The' and company-status designators removed
+ */
+export function trimIssuingBodyName(name: string): string {
+  return name
+    .replace(/^[Tt]he\s+/, "")
+    .replace(/\s+(Pty|Ltd|Co|Inc|NL)\b\.?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Formats an order or ruling of a government instrumentality or officer
+ * (Rule 3.9.2), or delegated legislation issued by a non-government entity
+ * (Rule 3.9.3), such as ASIC class orders, ATO taxation rulings, or ASX
+ * listing rules.
+ *
+ * AGLC4 Rule 3.9.2: cited as `«Instrumentality/Officer», «Instrument Title»
+ * («Document Number», «Full Date») «Pinpoint»` — the instrument title is
+ * italicised, and the document number (only if one appears on the
+ * instrument) and full date of effect sit together in roman parentheses.
+ * Where a government department or officer promulgates the instrument, the
+ * jurisdiction is added in parentheses after the department/officer name.
+ *
+ * AGLC4 Rule 3.9.3: non-government delegated legislation is cited in the
+ * same way, except that where there is no document number or the source is
+ * frequently updated, the parenthetical takes the version date as
+ * `(at «Full Date»)` (pass `atDate`), and company-status designators and a
+ * leading 'The' are omitted from the issuing body's name.
+ *
+ * AGLC4 Example 72: `Australian Taxation Office, Income Tax: Carrying on a
+ * Business as a Professional Artist (TR 2005/1, 12 January 2005).`
+ * AGLC4 Example 75: `ASX, Listing Rules (at 19 December 2016).`
+ *
+ * @param data.issuingBody - The instrumentality, officer, or issuing body
+ * @param data.bodyJurisdiction - Jurisdiction abbreviation appended in
+ *   parentheses after a department/officer name (Rule 3.9.2, ex 74)
+ * @param data.title - The instrument title (italicised)
+ * @param data.documentType - Legacy fallback: used as the italic title when
+ *   `title` is absent (older stored citations placed the title here)
+ * @param data.number - Document number as it appears on the instrument
+ * @param data.date - Full date the instrument takes effect
+ * @param data.atDate - Version date for the `(at «Full Date»)` form
+ *   (Rule 3.9.3); when present, `number`/`date` are not rendered and the
+ *   issuing body's name is trimmed per Rule 3.9.3
+ * @param data.pinpoint - Optional pinpoint following the parenthetical
  */
 export function formatQuasiLegislative(data: {
   issuingBody: string;
-  documentType: string;
-  number: string;
-  date: string;
+  bodyJurisdiction?: string;
   title?: string;
+  documentType?: string;
+  number?: string;
+  date?: string;
+  atDate?: string;
+  pinpoint?: Pinpoint;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  if (data.title) {
-    runs.push({
-      text: `${data.issuingBody}, ${data.documentType} ${data.number}, `,
-    });
-    runs.push({ text: data.title, italic: true });
+  // Rule 3.9.3: trim company designators and leading 'The' for the
+  // non-government `(at date)` form
+  const body = data.atDate ? trimIssuingBodyName(data.issuingBody) : data.issuingBody;
+  const bodyJurisdiction = data.bodyJurisdiction ? ` (${data.bodyJurisdiction})` : "";
+  runs.push({ text: `${body}${bodyJurisdiction}, ` });
+
+  // Instrument title in italics (title leads; documentType is a legacy alias)
+  const title = data.title ?? data.documentType ?? "";
+  if (title) {
+    runs.push({ text: title, italic: true });
+  }
+
+  // Parenthetical: (at Date) | (Number, Date) | (Number) | (Date)
+  let parenthetical = "";
+  if (data.atDate) {
+    parenthetical = `(at ${data.atDate})`;
+  } else if (data.number && data.date) {
+    parenthetical = `(${data.number}, ${data.date})`;
+  } else if (data.number) {
+    parenthetical = `(${data.number})`;
+  } else if (data.date) {
+    parenthetical = `(${data.date})`;
+  }
+  if (parenthetical) {
+    runs.push({ text: ` ${parenthetical}` });
+  }
+
+  if (data.pinpoint) {
+    runs.push({ text: " " });
+    // Paragraph pinpoints on rulings take the bracketed Rule 1.1.6 form
+    // (ex 73: "[4]") — the value is rendered directly; other subdivisions
+    // use the legislation abbreviations (ex 77: "rr 4–5").
+    if (data.pinpoint.type === "paragraph" || data.pinpoint.type === "page") {
+      runs.push(...formatPinpoint(data.pinpoint));
+    } else {
+      runs.push(...formatLegislationPinpoint(data.pinpoint));
+    }
+  }
+
+  return runs;
+}
+
+/**
+ * Formats a court practice direction or practice note citation (Rule 3.9.4).
+ *
+ * AGLC4 Rule 3.9.4: a practice direction/note reproduced in a report series
+ * is cited as `«Court», Practice Direction/Note «Number/Identifier»:
+ * «Title» «Citation to Report Series», «Pinpoint»`; one not in a report
+ * series as `«Court», Practice Direction/Note «Number/Identifier»: «Title»,
+ * «Full Date», «Pinpoint»`. The words 'Practice Direction'/'Practice Note',
+ * the number/identifier and the title are all italicised; the report
+ * citation or date is roman. Where the identifier is clearly specified as a
+ * number, 'No' is inserted before it, separated by a space.
+ *
+ * AGLC4 Example 78: `Supreme Court of Victoria, Practice Note No 8 of 2010:
+ * Management of Group Proceedings (2010) 30 VR 693.`
+ * AGLC4 Example 79: `Supreme Court of Victoria, Practice Note SC Gen 10:
+ * Conduct of Group Proceedings (Class Actions), 30 January 2017.` — no 'No'
+ * before a non-numeric identifier.
+ *
+ * @param data.court - The issuing court (roman)
+ * @param data.designation - 'Practice Direction' or 'Practice Note' (or the
+ *   court's own label, eg 'Central Practice Note' — AGLC4 ex 81)
+ * @param data.identifier - Number or identifier (eg "8 of 2010",
+ *   "SC Gen 10"); 'No' is inserted automatically for numeric identifiers;
+ *   omitted entirely for designation-only notes (ex 81)
+ * @param data.title - Title of the practice direction/note
+ * @param data.reportCitation - Report-series citation (eg "(2010) 30 VR
+ *   693") for the report-series form; takes precedence over `date`
+ * @param data.date - Full date for the non-report-series form
+ * @param data.pinpoint - Optional pinpoint (pages, or pages and paragraphs,
+ *   per Rules 1.1.6–1.1.7)
+ */
+export function formatPracticeDirection(data: {
+  court: string;
+  designation: string;
+  identifier?: string;
+  title: string;
+  reportCitation?: string;
+  date?: string;
+  pinpoint?: Pinpoint;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: `${data.court}, ` }];
+
+  // Insert 'No' before identifiers clearly specified as numbers (Rule 3.9.4);
+  // identifiers like "SC Gen 10" are reproduced as-is (ex 79).
+  let identifier = "";
+  if (data.identifier) {
+    const needsNo = /^\d/.test(data.identifier) && !/^No\s/i.test(data.identifier);
+    identifier = ` ${needsNo ? "No " : ""}${data.identifier}`;
+  }
+
+  // Designation, identifier and title are one italic unit
+  runs.push({ text: `${data.designation}${identifier}: ${data.title}`, italic: true });
+
+  if (data.reportCitation) {
+    // Report-series form (Rule 2.2.2 citation, roman)
+    runs.push({ text: ` ${data.reportCitation}` });
+  } else if (data.date) {
+    // Dated form
     runs.push({ text: `, ${data.date}` });
-  } else {
-    runs.push({
-      text: `${data.issuingBody}, ${data.documentType} ${data.number}, ${data.date}`,
-    });
+  }
+
+  if (data.pinpoint) {
+    runs.push({ text: ", " });
+    runs.push(...formatPinpoint(data.pinpoint));
   }
 
   return runs;

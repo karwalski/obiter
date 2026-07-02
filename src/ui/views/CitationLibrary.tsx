@@ -6,14 +6,12 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
-import { getSharedStore, resetSharedStore } from "../../store/singleton";
+import { getSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
-import { refreshAllCitations } from "../../word/citationRefresher";
 import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences, buildOccurrenceTitle } from "../../word/footnoteManager";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
-import type { RefreshResult } from "../../word/citationRefresher";
 import type { Citation, SourceType } from "../../types/citation";
 import { useCitationContext } from "../context/CitationContext";
 import CitationFinder from "../components/CitationFinder";
@@ -296,6 +294,9 @@ function BibTeXModal({
   }, [bibtexImporting, onClose]);
 
   return (
+    // Backdrop click is a redundant pointer affordance; the dialog is keyboard-closable
+    // via Escape (keydown handler) and the visible Close button. (WCAG 2.1.1 met.)
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div className="library-modal-overlay" onClick={(e) => {
       if (e.target === e.currentTarget && !bibtexImporting) onClose();
     }}>
@@ -367,9 +368,8 @@ export default function CitationLibrary(): JSX.Element {
   const [insertingId, setInsertingId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string | null>(null);
-  const [finderSignal, setFinderSignal] = useState(0);
+  const [finderSignal] = useState(0);
   const [bibtexModalOpen, setBibtexModalOpen] = useState(false);
   const [bibtexText, setBibtexText] = useState("");
   const [bibtexImporting, setBibtexImporting] = useState(false);
@@ -664,26 +664,6 @@ export default function CitationLibrary(): JSX.Element {
     [],
   );
 
-  const handleRefreshAll = useCallback(async () => {
-    setRefreshing(true);
-    setRefreshStatus(null);
-    try {
-      const result: RefreshResult = await Word.run(async (context) => {
-        return refreshAllCitations(context, store);
-      });
-      setCitations(store.getAll());
-      setFinderSignal((prev) => prev + 1);
-      setRefreshStatus(
-        `Refreshed: ${result.updated} updated, ${result.unchanged} unchanged`,
-      );
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to refresh citations";
-      setRefreshStatus(`Refresh failed: ${message}`);
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -890,13 +870,13 @@ export default function CitationLibrary(): JSX.Element {
               <div className="library-card-title">
                 {getCitationLabel(citation)}
               </div>
-              <div style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0" }}>
+              <div style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "2px 0" }}>
                 {getCitationDetail(citation)}
               </div>
               {(() => {
                 const dup = getDisambiguatedShortTitle(citation, citations);
                 return dup ? (
-                  <div style={{ fontSize: 10, color: "var(--colour-warning, #f59e0b)", margin: "2px 0" }}>
+                  <div style={{ fontSize: "var(--text-min)", color: "var(--colour-warning, #f59e0b)", margin: "2px 0" }}>
                     Duplicate short title — consider: {dup}
                   </div>
                 ) : null;

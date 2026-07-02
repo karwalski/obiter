@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCitationContext } from "../context/CitationContext";
-import { getSharedStore, resetSharedStore } from "../../store/singleton";
+import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
@@ -397,26 +397,6 @@ export default function EditCitation(): JSX.Element {
     return getFormattedPreview(previewCitation, courtConfig);
   }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
 
-  // UX-002: Re-initialise the store and reload all citations from the document.
-  const refreshCitations = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    setError(null);
-
-    try {
-      // Reset the singleton so initStore re-reads the Custom XML Part
-      resetSharedStore();
-      const store = await getSharedStore();
-      setAllCitations(store.getAll());
-      setSuccessMessage("Citations reloaded from document.");
-    } catch (err) {
-      setLoadError(
-        err instanceof Error ? err.message : "Failed to reload citations from the document."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   // Load all citations on mount AND when refresh counter changes (new
   // citations inserted, deleted, or settings changed).
@@ -1130,7 +1110,7 @@ export default function EditCitation(): JSX.Element {
               setSuccessMessage(null);
             }}
             disabled={loading}
-            style={{ fontSize: 10 }}
+            style={{ fontSize: "var(--text-min)" }}
           >
             Clear override
           </button>
@@ -1222,7 +1202,7 @@ export default function EditCitation(): JSX.Element {
                         {entry.isLocked && (
                           <span
                             className="edit-lock-badge"
-                            title="Frozen — Obiter will not reformat this footnote"
+                            aria-label="Frozen — Obiter will not reformat this footnote"
                           >
                             Locked
                           </span>
@@ -1273,7 +1253,7 @@ export default function EditCitation(): JSX.Element {
                               className="edit-btn edit-btn-danger edit-btn-small"
                               onClick={() => void handleUnlock(entry.footnoteIndex)}
                               disabled={isLockBusy}
-                              style={{ fontSize: 10 }}
+                              style={{ fontSize: "var(--text-min)" }}
                             >
                               {isLockBusy ? "Unlocking..." : "Unlock & reformat"}
                             </button>
@@ -1282,7 +1262,7 @@ export default function EditCitation(): JSX.Element {
                               className="edit-btn edit-btn-secondary edit-btn-small"
                               onClick={() => setUnlockConfirm(null)}
                               disabled={isLockBusy}
-                              style={{ fontSize: 10 }}
+                              style={{ fontSize: "var(--text-min)" }}
                             >
                               Cancel
                             </button>
@@ -1301,12 +1281,12 @@ export default function EditCitation(): JSX.Element {
                                     : void handleOpenLockedText(entry.footnoteIndex)
                                 }
                                 disabled={isLockBusy || loading}
-                                title={
+                                aria-label={
                                   isSingleCitation
                                     ? "View and edit this footnote's exact text"
                                     : "View this footnote's text (multiple citations — edit in Word)"
                                 }
-                                style={{ fontSize: 10 }}
+                                style={{ fontSize: "var(--text-min)" }}
                               >
                                 {isTextOpen ? "Close text" : isSingleCitation ? "Edit text" : "View text"}
                               </button>
@@ -1315,7 +1295,7 @@ export default function EditCitation(): JSX.Element {
                                 className="edit-btn edit-btn-secondary edit-btn-small"
                                 onClick={() => setUnlockConfirm(entry.footnoteIndex)}
                                 disabled={isLockBusy || loading}
-                                style={{ fontSize: 10 }}
+                                style={{ fontSize: "var(--text-min)" }}
                               >
                                 Unlock
                               </button>
@@ -1326,8 +1306,8 @@ export default function EditCitation(): JSX.Element {
                               className="edit-btn edit-btn-secondary edit-btn-small"
                               onClick={() => void handleLock(entry.footnoteIndex)}
                               disabled={isLockBusy || isSaving || isRemoving || loading}
-                              title="Freeze this footnote exactly as it reads — Obiter won't reformat it"
-                              style={{ fontSize: 10 }}
+                              aria-label="Lock: freeze this footnote exactly as it reads — Obiter won't reformat it"
+                              style={{ fontSize: "var(--text-min)" }}
                             >
                               {isLockBusy ? "Locking..." : "Lock"}
                             </button>
@@ -1337,7 +1317,7 @@ export default function EditCitation(): JSX.Element {
                             className="edit-btn edit-btn-primary edit-btn-small"
                             onClick={() => void handleSaveOccurrence(entry.footnoteIndex)}
                             disabled={!dirty || isSaving || isRemoving || loading || entry.isLocked}
-                            style={{ fontSize: 10 }}
+                            style={{ fontSize: "var(--text-min)" }}
                           >
                             {isSaving ? "Saving..." : "Save"}
                           </button>
@@ -1346,7 +1326,7 @@ export default function EditCitation(): JSX.Element {
                             className="edit-btn edit-btn-danger edit-btn-small"
                             onClick={() => void handleRemoveOccurrence(entry.footnoteIndex)}
                             disabled={isRemoving || isSaving || loading}
-                            style={{ fontSize: 10 }}
+                            style={{ fontSize: "var(--text-min)" }}
                           >
                             {isRemoving ? "..." : "Remove"}
                           </button>
@@ -1381,7 +1361,7 @@ export default function EditCitation(): JSX.Element {
                                 style={{ width: "100%", fontSize: 11, resize: "vertical" }}
                                 aria-label={`Locked text for footnote ${entry.footnoteIndex}`}
                               />
-                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: 10 }}>
+                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: "var(--text-min)" }}>
                                 Saved as plain text. Rich formatting (such as case-name
                                 italics) is not styled here — to keep formatting, edit the
                                 footnote directly in Word while it stays locked.
@@ -1392,7 +1372,7 @@ export default function EditCitation(): JSX.Element {
                                   className="edit-btn edit-btn-primary edit-btn-small"
                                   onClick={() => void handleSaveLockedText(entry.footnoteIndex)}
                                   disabled={lockedTextBusy}
-                                  style={{ fontSize: 10 }}
+                                  style={{ fontSize: "var(--text-min)" }}
                                 >
                                   {lockedTextBusy ? "Saving..." : "Save text"}
                                 </button>
@@ -1401,7 +1381,7 @@ export default function EditCitation(): JSX.Element {
                                   className="edit-btn edit-btn-secondary edit-btn-small"
                                   onClick={handleCloseLockedText}
                                   disabled={lockedTextBusy}
-                                  style={{ fontSize: 10 }}
+                                  style={{ fontSize: "var(--text-min)" }}
                                 >
                                   Cancel
                                 </button>
@@ -1415,7 +1395,7 @@ export default function EditCitation(): JSX.Element {
                               >
                                 {lockedTextDraft || "(empty)"}
                               </p>
-                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: 10 }}>
+                              <p className="edit-occurrences-note" style={{ margin: 0, fontSize: "var(--text-min)" }}>
                                 This footnote contains more than one citation. Edit its text
                                 directly in Word — it stays locked, so your changes are preserved.
                               </p>
@@ -1435,8 +1415,8 @@ export default function EditCitation(): JSX.Element {
                 className="edit-btn edit-btn-secondary edit-btn-small"
                 onClick={() => void handleLockAll()}
                 disabled={lockingFootnote !== null || loading}
-                style={{ fontSize: 10, marginTop: 4 }}
-                title="Freeze every footnote that uses this citation"
+                style={{ fontSize: "var(--text-min)", marginTop: 4 }}
+                aria-label="Lock all occurrences: freeze every footnote that uses this citation"
               >
                 {lockingFootnote === -1 ? "Locking all..." : "Lock all occurrences"}
               </button>

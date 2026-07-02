@@ -1475,14 +1475,14 @@ describe("NZ Court Identifiers — NZ_COURT_IDENTIFIERS array", () => {
     });
   });
 
-  test("NZHC has neutral citation from 2003", () => {
+  test("NZHC identifier applies from 2012 (AGLC4 rule 21.1.3 table)", () => {
     const hc = NZ_COURT_IDENTIFIERS.find((e) => e.code === "NZHC");
-    expect(hc?.neutralCitationFrom).toBe(2003);
+    expect(hc?.neutralCitationFrom).toBe(2012);
   });
 
-  test("NZSC has neutral citation from 2004", () => {
+  test("NZSC identifier applies from 2005 (AGLC4 rule 21.1.3 table)", () => {
     const sc = NZ_COURT_IDENTIFIERS.find((e) => e.code === "NZSC");
-    expect(sc?.neutralCitationFrom).toBe(2004);
+    expect(sc?.neutralCitationFrom).toBe(2005);
   });
 });
 

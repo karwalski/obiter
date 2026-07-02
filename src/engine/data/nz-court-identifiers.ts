@@ -21,7 +21,15 @@ export interface NZCourtIdentifier {
   code: string;
   fullName: string;
   level: NZCourtLevel;
-  /** Year neutral citation adopted (null if unknown or from inception) */
+  /**
+   * Year from which the identifier applies (null if unknown or from
+   * inception). For the six courts in the AGLC4 rule 21.1.3 table
+   * (PDF p.265) this is the AGLC4 year — rule 21.1.3 applies identifiers
+   * "only from the years indicated"; decisions outside those ranges are
+   * cited under rule 2.3.2. Note that NZLII assigns identifiers from
+   * earlier (real-world) dates; the AGLC4 table governs here — the
+   * divergence is logged for researchers (see docs/decisions.md, DATA-004).
+   */
   neutralCitationFrom: number | null;
 }
 
@@ -37,51 +45,199 @@ export const NZ_COURT_IDENTIFIERS: NZCourtIdentifier[] = [
   // =========================================================================
   // SUPERIOR COURTS
   // =========================================================================
-  { code: "NZSC", fullName: "Supreme Court of New Zealand", level: "supreme", neutralCitationFrom: 2004 },
-  { code: "NZCA", fullName: "Court of Appeal of New Zealand", level: "court_of_appeal", neutralCitationFrom: 2003 },
-  { code: "NZHC", fullName: "High Court of New Zealand", level: "high_court", neutralCitationFrom: 2003 },
+  {
+    code: "NZSC",
+    fullName: "Supreme Court of New Zealand",
+    level: "supreme",
+    neutralCitationFrom: 2005, // rule 21.1.3 table (PDF p.265)
+  },
+  {
+    code: "NZCA",
+    fullName: "Court of Appeal of New Zealand",
+    level: "court_of_appeal",
+    neutralCitationFrom: 2007, // rule 21.1.3 table (PDF p.265)
+  },
+  {
+    code: "NZHC",
+    fullName: "High Court of New Zealand",
+    level: "high_court",
+    neutralCitationFrom: 2012, // rule 21.1.3 table (PDF p.265)
+  },
 
   // =========================================================================
   // DISTRICT AND FAMILY COURTS
   // =========================================================================
-  { code: "NZDC", fullName: "District Court of New Zealand", level: "district", neutralCitationFrom: 2003 },
-  { code: "NZFC", fullName: "Family Court of New Zealand", level: "district", neutralCitationFrom: 2004 },
-  { code: "NZYC", fullName: "Youth Court of New Zealand", level: "district", neutralCitationFrom: 2004 },
+  {
+    // provisional: the District Court is absent from the AGLC4 rule 21.1.3
+    // table entirely — NZLSG-sourced, treat with caution (DATA-004).
+    code: "NZDC",
+    fullName: "District Court of New Zealand",
+    level: "district",
+    neutralCitationFrom: 2003,
+  },
+  {
+    code: "NZFC",
+    fullName: "Family Court of New Zealand",
+    level: "district",
+    neutralCitationFrom: 2012, // rule 21.1.3 table (PDF p.265)
+  },
+  {
+    code: "NZYC",
+    fullName: "Youth Court of New Zealand",
+    level: "district",
+    neutralCitationFrom: 2004,
+  },
 
   // =========================================================================
   // SPECIALIST COURTS
   // =========================================================================
-  { code: "NZEnvC", fullName: "Environment Court of New Zealand", level: "specialist", neutralCitationFrom: 2003 },
-  { code: "NZEmpC", fullName: "Employment Court of New Zealand", level: "specialist", neutralCitationFrom: 2003 },
-  { code: "NZCMA", fullName: "Courts Martial Appeal Court of New Zealand", level: "specialist", neutralCitationFrom: 2009 },
-  { code: "NZCM", fullName: "Court Martial of New Zealand", level: "specialist", neutralCitationFrom: 2009 },
+  {
+    code: "NZEnvC",
+    fullName: "Environment Court of New Zealand",
+    level: "specialist",
+    neutralCitationFrom: 2010, // rule 21.1.3 table (PDF p.265)
+  },
+  {
+    code: "NZEmpC",
+    fullName: "Employment Court of New Zealand",
+    level: "specialist",
+    neutralCitationFrom: 2010, // rule 21.1.3 table (PDF p.265)
+  },
+  {
+    code: "NZCMA",
+    fullName: "Courts Martial Appeal Court of New Zealand",
+    level: "specialist",
+    neutralCitationFrom: 2009,
+  },
+  {
+    code: "NZCM",
+    fullName: "Court Martial of New Zealand",
+    level: "specialist",
+    neutralCitationFrom: 2009,
+  },
 
   // =========================================================================
   // TRIBUNALS
   // =========================================================================
-  { code: "NZHRRT", fullName: "Human Rights Review Tribunal", level: "tribunal", neutralCitationFrom: 2003 },
-  { code: "NZIEAA", fullName: "Immigration and Protection Tribunal (formerly Immigration and Exclusion Appeal Authority)", level: "tribunal", neutralCitationFrom: 2003 },
-  { code: "NZIACDT", fullName: "Immigration Advisers Complaints and Disciplinary Tribunal", level: "tribunal", neutralCitationFrom: 2010 },
-  { code: "NZLCDT", fullName: "Lawyers and Conveyancers Disciplinary Tribunal", level: "tribunal", neutralCitationFrom: 2008 },
-  { code: "NZREADT", fullName: "Real Estate Agents Disciplinary Tribunal", level: "tribunal", neutralCitationFrom: 2009 },
-  { code: "NZDT", fullName: "Disputes Tribunal of New Zealand", level: "tribunal", neutralCitationFrom: null },
-  { code: "NZTRA", fullName: "Tenancy Tribunal of New Zealand", level: "tribunal", neutralCitationFrom: null },
-  { code: "NZACA", fullName: "Accident Compensation Appeal Authority", level: "tribunal", neutralCitationFrom: null },
-  { code: "NZBSA", fullName: "Broadcasting Standards Authority", level: "tribunal", neutralCitationFrom: null },
-  { code: "NZPSPLA", fullName: "Police Conduct Authority (formerly Police Complaints Authority)", level: "tribunal", neutralCitationFrom: null },
-  { code: "NZHDT", fullName: "Health Practitioners Disciplinary Tribunal", level: "tribunal", neutralCitationFrom: 2004 },
-  { code: "NZARB", fullName: "New Zealand Arbitration Tribunal", level: "tribunal", neutralCitationFrom: null },
+  {
+    code: "NZHRRT",
+    fullName: "Human Rights Review Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: 2003,
+  },
+  {
+    code: "NZIEAA",
+    fullName:
+      "Immigration and Protection Tribunal (formerly Immigration and Exclusion Appeal Authority)",
+    level: "tribunal",
+    neutralCitationFrom: 2003,
+  },
+  {
+    code: "NZIACDT",
+    fullName: "Immigration Advisers Complaints and Disciplinary Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: 2010,
+  },
+  {
+    code: "NZLCDT",
+    fullName: "Lawyers and Conveyancers Disciplinary Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: 2008,
+  },
+  {
+    code: "NZREADT",
+    fullName: "Real Estate Agents Disciplinary Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: 2009,
+  },
+  {
+    code: "NZDT",
+    fullName: "Disputes Tribunal of New Zealand",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
+  {
+    // Label corrected: NZTRA is the Taxation Review Authority (previously
+    // mislabelled "Tenancy Tribunal of New Zealand"). Non-AGLC4 identifier.
+    code: "NZTRA",
+    fullName: "Taxation Review Authority of New Zealand",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
+  {
+    code: "NZACA",
+    fullName: "Accident Compensation Appeal Authority",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
+  {
+    code: "NZBSA",
+    fullName: "Broadcasting Standards Authority",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
+  {
+    // Label corrected: NZPSPLA is the Private Security Personnel Licensing
+    // Authority (previously mislabelled "Police Conduct Authority").
+    // Non-AGLC4 identifier.
+    code: "NZPSPLA",
+    fullName: "Private Security Personnel Licensing Authority",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
+  {
+    code: "NZHDT",
+    fullName: "Health Practitioners Disciplinary Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: 2004,
+  },
+  {
+    code: "NZARB",
+    fullName: "New Zealand Arbitration Tribunal",
+    level: "tribunal",
+    neutralCitationFrom: null,
+  },
 
   // =========================================================================
   // MAORI LAND COURT — BLOCK ABBREVIATIONS
   // =========================================================================
-  { code: "NZMLC", fullName: "Maori Land Court", level: "maori_land_court", neutralCitationFrom: null },
-  { code: "NZMAC", fullName: "Maori Appellate Court", level: "maori_land_court", neutralCitationFrom: null },
+  {
+    code: "NZMLC",
+    fullName: "Maori Land Court",
+    level: "maori_land_court",
+    neutralCitationFrom: null,
+  },
+  {
+    code: "NZMAC",
+    fullName: "Maori Appellate Court",
+    level: "maori_land_court",
+    neutralCitationFrom: null,
+  },
 ];
 
 /**
- * Maori Land Court block abbreviations used in case references.
+ * AGLC4 rule 21.1.4 minute book abbreviations (PDF pp.265–266) for Māori
+ * Land Court and Māori Appellate Court decisions:
+ * `«Year») «Case Number» «Registry» «Minute Book Abbreviation» «Page»`.
+ * Registries are written out in full (eg '173 Aotea MB 114', ex 13) —
+ * do not abbreviate them in AGLC4 output.
+ */
+export const NZ_MINUTE_BOOKS: ReadonlyArray<{
+  abbreviation: string;
+  fullName: string;
+}> = [
+  { abbreviation: "MB", fullName: "Minute Book" },
+  { abbreviation: "ACMB", fullName: "Appellate Court Minute Book" },
+  { abbreviation: "CJMB", fullName: "Chief Judge's Minute Book" },
+];
+
+/**
+ * Maori Land Court registry abbreviations used in case references.
  * Each abbreviation corresponds to a geographic district of the Maori Land Court.
+ *
+ * NZLSG-scoped only: AGLC4 rule 21.1.4 examples spell registries out in
+ * full ('173 Aotea MB 114') — never apply these abbreviations on the AGLC4
+ * path.
  */
 export const MAORI_LAND_COURT_BLOCKS: Record<string, string> = {
   TTK: "Te Tai Tokerau",

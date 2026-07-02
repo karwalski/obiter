@@ -78,9 +78,7 @@ export function resetMigrationFlag(): void {
  * @param context - An active Word request context.
  * @returns The detected model version.
  */
-export async function detectModelVersion(
-  context: Word.RequestContext,
-): Promise<ModelVersion> {
+export async function detectModelVersion(context: Word.RequestContext): Promise<ModelVersion> {
   const footnotes = context.document.body.footnotes;
   footnotes.load("items");
   await context.sync();
@@ -167,9 +165,7 @@ interface LegacyCCInfo {
  * @param context - An active Word request context.
  * @returns The count of migrated footnotes.
  */
-export async function migrateToV2(
-  context: Word.RequestContext,
-): Promise<MigrationResult> {
+export async function migrateToV2(context: Word.RequestContext): Promise<MigrationResult> {
   const footnotes = context.document.body.footnotes;
   footnotes.load("items");
   await context.sync();
@@ -219,9 +215,7 @@ export async function migrateToV2(
       // Non-destructive: if migration fails for a single footnote, log
       // and continue. The legacy CCs remain in place.
       const msg = err instanceof Error ? err.message : String(err);
-      console.warn(
-        `[footnoteModelMigration] Failed to migrate footnote ${i + 1}: ${msg}`,
-      );
+      console.warn(`[footnoteModelMigration] Failed to migrate footnote ${i + 1}: ${msg}`);
     }
   }
 
@@ -244,7 +238,7 @@ export async function migrateToV2(
 async function migrateFootnote(
   context: Word.RequestContext,
   noteItem: Word.NoteItem,
-  legacyCCs: LegacyCCInfo[],
+  legacyCCs: LegacyCCInfo[]
 ): Promise<void> {
   // Step 1: Clean text for each legacy CC
   const cleanedEntries = legacyCCs.map((entry, index) => ({
@@ -315,11 +309,7 @@ async function migrateFootnote(
  * @param total - The total number of legacy CCs in this footnote.
  * @returns The cleaned text.
  */
-function stripInlinePunctuation(
-  text: string,
-  index: number,
-  total: number,
-): string {
+function stripInlinePunctuation(text: string, index: number, total: number): string {
   let cleaned = text;
 
   // Strip leading separator from non-first citations
@@ -381,7 +371,7 @@ function stripInlinePunctuation(
  */
 export async function ensureModelMigrated(
   context: Word.RequestContext,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<MigrationResult | null> {
   // Skip if already checked this session
   if (migrationCheckedThisSession) {

@@ -17,20 +17,25 @@ import { FormattedRun } from "../../../../types/formattedRun";
 /**
  * Formats a WTO document citation.
  *
- * AGLC4 Rule 13.1.2: WTO documents are cited with the title
- * (italicised), the WTO document number, and the date in parentheses.
+ * AGLC4 Rule 13.1.2: WTO documents (other than panel/Appellate Body/
+ * arbitrator decisions) are cited as:
+ *   *Title*, WTO Doc Document Number (Date) (Document Description) Pinpoint.
  *
- * Format:
- *   *Title*, WTO Doc Document Number (Date)
+ * The document description is included only where it appears in the
+ * document. Pinpoints follow the description with no separating
+ * punctuation (rules 3.1.4 or 1.1.6–1.1.7 as appropriate).
  *
  * @example
- *   Ministerial Declaration on the TRIPS Agreement and Public Health,
- *   WTO Doc WT/MIN(01)/DEC/2 (20 November 2001)
+ *   Doha Work Programme, WTO Doc WT/MIN(05)/DEC
+ *   (22 December 2005, adopted 18 December 2005) (Ministerial Declaration)
+ *   para 50(1)
  */
 export function formatWtoDocument(data: {
   title: string;
   documentNumber: string;
   date: string;
+  documentDescription?: string;
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -39,6 +44,16 @@ export function formatWtoDocument(data: {
 
   // WTO Doc number and date
   runs.push({ text: `, WTO Doc ${data.documentNumber} (${data.date})` });
+
+  // Document description — only where it appears in the document
+  if (data.documentDescription) {
+    runs.push({ text: ` (${data.documentDescription})` });
+  }
+
+  // Pinpoint — space-separated, no comma
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
 
   return runs;
 }
@@ -78,6 +93,7 @@ export function formatWtoDecision(data: {
   title: string;
   documentNumber: string;
   date: string;
+  dsrReference?: string;
   pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -91,9 +107,16 @@ export function formatWtoDecision(data: {
   // WTO Doc number and date
   runs.push({ text: `, WTO Doc ${data.documentNumber} (${data.date})` });
 
-  // Pinpoint — in square brackets, no preceding comma (Rule 13.1.3)
+  // Optional DSR reference after the full date (Rule 13.1.3),
+  // e.g. 'DSR 1998:IX, 3797'
+  if (data.dsrReference) {
+    runs.push({ text: ` ${data.dsrReference}` });
+  }
+
+  // Pinpoint — in square brackets; no preceding comma unless a DSR
+  // citation is included (Rule 13.1.3)
   if (data.pinpoint) {
-    runs.push({ text: ` ${data.pinpoint}` });
+    runs.push({ text: data.dsrReference ? `, ${data.pinpoint}` : ` ${data.pinpoint}` });
   }
 
   return runs;
@@ -104,27 +127,57 @@ export function formatWtoDecision(data: {
 /**
  * Formats a GATT document citation.
  *
- * AGLC4 Rule 13.2: GATT documents are cited with the title
- * (italicised), the GATT document number, and the date in parentheses.
+ * AGLC4 Rule 13.2.1: Official GATT documents are cited as:
+ *   *Title*, GATT Doc Document Number (Date) (Document Description)
+ *   GATT BISD Reference, Pinpoint.
  *
- * Format:
- *   *Title*, GATT Doc Document Number (Date)
+ * The document number is included only if it appears in the document; with
+ * no document number, no comma follows the title. The description is
+ * included only where it appears in the document. Where the document is
+ * reproduced in GATT BISD, the BISD citation follows the date, and a comma
+ * then precedes the pinpoint; otherwise the pinpoint follows with no
+ * punctuation. (The guide's example 16 omits that comma — an anomaly; the
+ * rule text governs per DECISION-012.)
  *
  * @example
- *   Accession of Guatemala, GATT Doc L/6826 (22 December 1990)
+ *   Waiver in Respect of the Trust Territory of the Pacific Islands
+ *   (8 September 1948) (Decision) GATT BISD II/9, para 2
  */
 export function formatGattDocument(data: {
   title: string;
-  documentNumber: string;
+  documentNumber?: string;
   date: string;
+  documentDescription?: string;
+  bisdReference?: string;
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Title — italicised per AGLC4 Rule 13.2
+  // Title — italicised per AGLC4 Rule 13.2.1
   runs.push({ text: data.title, italic: true });
 
-  // GATT Doc number and date
-  runs.push({ text: `, GATT Doc ${data.documentNumber} (${data.date})` });
+  // GATT Doc number — no comma after the title where there is none
+  if (data.documentNumber) {
+    runs.push({ text: `, GATT Doc ${data.documentNumber}` });
+  }
+
+  // Date in parentheses
+  runs.push({ text: ` (${data.date})` });
+
+  // Document description — only where it appears in the document
+  if (data.documentDescription) {
+    runs.push({ text: ` (${data.documentDescription})` });
+  }
+
+  // GATT BISD reference — after the full date (Rule 13.2.1)
+  if (data.bisdReference) {
+    runs.push({ text: ` ${data.bisdReference}` });
+  }
+
+  // Pinpoint — comma-preceded only where a BISD citation is included
+  if (data.pinpoint) {
+    runs.push({ text: data.bisdReference ? `, ${data.pinpoint}` : ` ${data.pinpoint}` });
+  }
 
   return runs;
 }

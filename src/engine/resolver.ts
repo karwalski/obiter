@@ -91,10 +91,7 @@ function formatPinpoint(pinpoint: Pinpoint): FormattedRun[] {
 /**
  * Returns true if two pinpoints are semantically equal.
  */
-function pinpointsEqual(
-  a: Pinpoint | undefined,
-  b: Pinpoint | undefined,
-): boolean {
+function pinpointsEqual(a: Pinpoint | undefined, b: Pinpoint | undefined): boolean {
   if (a === undefined && b === undefined) return true;
   if (a === undefined || b === undefined) return false;
   if (a.type !== b.type || a.value !== b.value) return false;
@@ -179,7 +176,7 @@ export function formatShortReference(
   firstFootnoteNumber: number,
   pinpoint?: Pinpoint,
   disambiguate?: boolean,
-  config?: CitationConfig,
+  config?: CitationConfig
 ): FormattedRun[] {
   const format = config?.subsequentReferenceFormat ?? "n";
   const pinpointPrefix = config?.pinpointPrefix ?? "";
@@ -196,7 +193,7 @@ export function formatShortReference(
       firstFootnoteNumber,
       pinpoint,
       disambiguate,
-      pinpointPrefix,
+      pinpointPrefix
     );
   }
 
@@ -265,7 +262,7 @@ function formatAboveNReference(
   firstFootnoteNumber: number,
   pinpoint?: Pinpoint,
   disambiguate?: boolean,
-  pinpointPrefix: string = "",
+  pinpointPrefix: string = ""
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -320,7 +317,7 @@ function formatAboveNReference(
 function formatCourtShortReference(
   citation: Citation,
   pinpoint?: Pinpoint,
-  disambiguate?: boolean,
+  disambiguate?: boolean
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -371,7 +368,7 @@ function formatCourtShortReference(
  */
 export function resolveIbid(
   currentPinpoint?: Pinpoint,
-  precedingPinpoint?: Pinpoint,
+  precedingPinpoint?: Pinpoint
 ): FormattedRun[] {
   if (pinpointsEqual(currentPinpoint, precedingPinpoint)) {
     return [{ text: "Ibid" }];
@@ -404,24 +401,16 @@ export function resolveIbid(
  */
 export function formatShortTitleIntroduction(
   shortTitle: string,
-  sourceType: SourceType,
+  sourceType: SourceType
 ): FormattedRun[] {
   if (isCase(sourceType)) {
     // Cases: ('Short Title') — title italic inside curly quotes, parens not italic
-    return [
-      { text: "(\u2018" },
-      { text: shortTitle, italic: true },
-      { text: "\u2019)" },
-    ];
+    return [{ text: "(\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019)" }];
   }
 
   if (isLegislation(sourceType)) {
     // Legislation: ('Short Title') — title italic
-    return [
-      { text: "(\u2018" },
-      { text: shortTitle, italic: true },
-      { text: "\u2019)" },
-    ];
+    return [{ text: "(\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019)" }];
   }
 
   // Secondary sources: ('Short Title') — not italic
@@ -438,9 +427,7 @@ export function formatShortTitleIntroduction(
  *
  * @param pinpoint - The pinpoint for the within-footnote reference
  */
-export function formatWithinFootnoteReference(
-  pinpoint: Pinpoint,
-): FormattedRun[] {
+export function formatWithinFootnoteReference(pinpoint: Pinpoint): FormattedRun[] {
   const pinpointRuns = formatPinpoint(pinpoint);
   return [{ text: "at " }, ...pinpointRuns];
 }
@@ -455,9 +442,7 @@ export function formatWithinFootnoteReference(
  *
  * @param abbreviation - The abbreviation to define
  */
-export function formatAbbreviationDefinition(
-  abbreviation: string,
-): FormattedRun[] {
+export function formatAbbreviationDefinition(abbreviation: string): FormattedRun[] {
   return [{ text: `(\u2018${abbreviation}\u2019)` }];
 }
 
@@ -472,10 +457,7 @@ export function formatAbbreviationDefinition(
  * @param footnoteNumber - The footnote number being referred to
  * @param pinpoint - Optional pinpoint for the cross-reference
  */
-export function formatAboveReference(
-  footnoteNumber: number,
-  pinpoint?: Pinpoint,
-): FormattedRun[] {
+export function formatAboveReference(footnoteNumber: number, pinpoint?: Pinpoint): FormattedRun[] {
   const runs: FormattedRun[] = [{ text: `above n ${footnoteNumber}` }];
 
   if (pinpoint) {
@@ -497,10 +479,7 @@ export function formatAboveReference(
  * @param footnoteNumber - The footnote number being referred to
  * @param pinpoint - Optional pinpoint for the cross-reference
  */
-export function formatBelowReference(
-  footnoteNumber: number,
-  pinpoint?: Pinpoint,
-): FormattedRun[] {
+export function formatBelowReference(footnoteNumber: number, pinpoint?: Pinpoint): FormattedRun[] {
   const runs: FormattedRun[] = [{ text: `below n ${footnoteNumber}` }];
 
   if (pinpoint) {
@@ -575,7 +554,7 @@ export interface SubsequentReferenceContext {
  */
 export function resolveSubsequentReference(
   citation: Citation,
-  context: SubsequentReferenceContext,
+  context: SubsequentReferenceContext
 ): FormattedRun[] | null {
   // Explanatory notes always render in full — no ibid or short ref
   if (citation.sourceType === "explanatory_note") {
@@ -604,7 +583,7 @@ export function resolveSubsequentReference(
             context.firstFootnoteNumber,
             context.currentPinpoint,
             context.disambiguate,
-            config,
+            config
           );
         }
         return resolveIbid(context.currentPinpoint, context.precedingPinpoint);
@@ -614,7 +593,7 @@ export function resolveSubsequentReference(
           context.firstFootnoteNumber,
           context.currentPinpoint,
           context.disambiguate,
-          config,
+          config
         );
     }
   }
@@ -666,6 +645,6 @@ export function resolveSubsequentReference(
     context.firstFootnoteNumber,
     context.currentPinpoint,
     context.disambiguate,
-    config,
+    config
   );
 }

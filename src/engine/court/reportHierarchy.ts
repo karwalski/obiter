@@ -63,7 +63,11 @@ export type ReportJurisdiction =
 export const REPORT_HIERARCHY: Record<ReportJurisdiction, readonly string[]> = {
   HCA: ["CLR", "ALJR", "ALR", "MNC"],
   FCA: ["FCR", "ALR", "MNC"],
-  FCFCOA: ["FamCAFC", "FLC", "ALR", "MNC"],
+  // FamCAFC removed: it is a medium neutral court identifier (rule 2.3.1),
+  // not a report series. Fam LR/FLC ordering is provisional: verify against
+  // Appendix A (DATA-004) — no family series appears in the in-chapter
+  // rule 2.2.3 table (Fam LR is a named unauthorised series in 2.2.3).
+  FCFCOA: ["Fam LR", "FLC", "ALR", "MNC"],
   NSW: ["NSWLR", "ALR", "MNC"],
   VIC: ["VR", "ALR", "MNC"],
   QLD: ["Qd R", "ALR", "MNC"],
@@ -71,7 +75,9 @@ export const REPORT_HIERARCHY: Record<ReportJurisdiction, readonly string[]> = {
   SA: ["SASR", "ALR", "MNC"],
   TAS: ["Tas R", "ALR", "MNC"],
   ACT: ["ACTLR", "ALR", "MNC"],
-  NT: ["NTR", "ALR", "MNC"],
+  // NTLR (1990–) is the current NT series per the rule 2.2.3 table; NTR
+  // ("NTR (in ALR)", 1979–91) ceased in 1991 and ranks behind it.
+  NT: ["NTLR", "NTR", "ALR", "MNC"],
 };
 
 // ─── Court-to-Jurisdiction Mapping ───────────────────────────────────────────
@@ -85,13 +91,16 @@ export const REPORT_HIERARCHY: Record<ReportJurisdiction, readonly string[]> = {
 const COURT_TO_JURISDICTION: Record<string, ReportJurisdiction> = {
   // Federal
   HCA: "HCA",
+  HCASL: "HCA",
   FCA: "FCA",
   FCAFC: "FCA",
   FCFCOA: "FCFCOA",
+  FamCA: "FCFCOA",
   FamCAFC: "FCFCOA",
 
   // New South Wales
   NSWCA: "NSW",
+  NSWCCA: "NSW",
   NSWSC: "NSW",
   NSWDC: "NSW",
   NSWLC: "NSW",
@@ -118,10 +127,15 @@ const COURT_TO_JURISDICTION: Record<string, ReportJurisdiction> = {
   SASC: "SA",
   SADC: "SA",
 
-  // Tasmania
+  // Tasmania — TASSC/TASCCA/TASFC per the rule 2.3.1 table. "TASCSC" is
+  // NOT an AGLC4 identifier (typo — no such code in any table); it is
+  // retained solely because it is the court-mode preset key in
+  // presets.ts/validator.ts. Never emit it in citations; rename pending
+  // (see handoff).
   TASFC: "TAS",
-  TASCSC: "TAS",
+  TASCCA: "TAS",
   TASSC: "TAS",
+  TASCSC: "TAS",
 
   // ACT
   ACTCA: "ACT",
@@ -129,6 +143,7 @@ const COURT_TO_JURISDICTION: Record<string, ReportJurisdiction> = {
 
   // NT
   NTCA: "NT",
+  NTCCA: "NT",
   NTSC: "NT",
 };
 
@@ -191,7 +206,7 @@ export function getPreferredReportOrder(jurisdiction: string): readonly string[]
  */
 export function suggestPreferredReport(
   jurisdiction: string,
-  availableSeries: string[],
+  availableSeries: string[]
 ): string | undefined {
   if (availableSeries.length === 0) {
     return undefined;
@@ -203,7 +218,7 @@ export function suggestPreferredReport(
     // Unknown jurisdiction — fall back to AGLC4 default tier ordering.
     // Sort by the generic preference rank from Rule 2.2.3.
     return [...availableSeries].sort(
-      (a, b) => getDefaultPreferenceRank(a) - getDefaultPreferenceRank(b),
+      (a, b) => getDefaultPreferenceRank(a) - getDefaultPreferenceRank(b)
     )[0];
   }
 
@@ -260,12 +275,40 @@ function getRankInHierarchy(series: string, hierarchy: readonly string[]): numbe
  * from cases.ts.
  */
 function getDefaultPreferenceRank(series: string): number {
+  // Authorised tier per the rule 2.2.2/2.2.3 tables. Previous fabricated
+  // "QR" removed (the AGLC4 abbreviation is "Qd R"); FLR moved to the
+  // generalist tier (a rule 2.2.2 generalist example); FCAFC/FamCAFC moved
+  // to the unreported tier (they are rule 2.3.1 medium neutral court
+  // identifiers, not report series).
   const authorised = new Set([
-    "CLR", "FCR", "FCAFC", "FLR", "NSWLR", "VR", "QR", "Qd R",
-    "SASR", "Tas R", "WAR", "ACTLR", "NTR", "FamCAFC", "FLC",
+    "CLR",
+    "FCR",
+    "NSWLR",
+    "NSWR",
+    "SR (NSW)",
+    "VR",
+    "VLR",
+    "Qd R",
+    "St R Qd",
+    "SASR",
+    "SALR",
+    "Tas R",
+    "Tas LR",
+    "Tas SR",
+    "WAR",
+    "WALR",
+    "ACTLR",
+    "NTR",
+    "NTLR",
+    // provisional: verify against Appendix A (DATA-004) — FLC has no
+    // in-chapter standing as an authorised series.
+    "FLC",
   ]);
-  const generalistUnauthorised = new Set(["ALJR", "ALR", "IR", "MVR"]);
-  const unreported = new Set(["MNC", "AustLII"]);
+  // IR removed from this tier: the rule 2.2.2 table lists IR as a
+  // subject-specific example (default rank 3). MVR retained here
+  // provisionally: verify against Appendix A (DATA-004).
+  const generalistUnauthorised = new Set(["ALJR", "ALR", "FLR", "ACTR", "MVR"]);
+  const unreported = new Set(["MNC", "AustLII", "FCAFC", "FamCAFC"]);
 
   if (authorised.has(series)) return 1;
   if (generalistUnauthorised.has(series)) return 2;

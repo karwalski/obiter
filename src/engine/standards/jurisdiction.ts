@@ -49,7 +49,7 @@
  */
 export function shouldShowJurisdiction(
   jurisdiction: string,
-  homeJurisdiction: string | null,
+  homeJurisdiction: string | null
 ): boolean {
   // When no home jurisdiction is set, always show (AGLC4 behaviour)
   if (homeJurisdiction === null) {

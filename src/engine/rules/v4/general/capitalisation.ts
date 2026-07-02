@@ -4,56 +4,109 @@
  */
 
 /**
- * AGLC4 Rule 1.7 — Capitalisation
+ * AGLC4 Rule 1.7 — Capitalisation (PDF pp 49–51)
  *
- * Titles of sources cited in footnotes should be capitalised according to
- * title-case conventions: capitalise the first letter of every word except
- * articles, short prepositions (4 or fewer letters), and coordinating
- * conjunctions — unless they are the first or last word of the title.
+ * In titles of all cited materials and in all headings, capitalise the
+ * first letter of: the first word of the title/heading (and of any
+ * subtitle/subheading); the word following the hyphen in a hyphenated
+ * word; and every other word except articles, conjunctions and
+ * prepositions. There is no length limit on lowercased prepositions (the
+ * rule's own examples include 'before' and 'within'), and no special rule
+ * for the last word of a title.
  */
 
-/** Articles that are lowercased in title-case (unless first/last word). */
+/** Articles that are lowercased in title-case (unless opening the title/subtitle). */
 const ARTICLES: ReadonlySet<string> = new Set(["a", "an", "the"]);
 
 /**
- * Prepositions of 4 or fewer letters that are lowercased in title-case
- * (unless first/last word).
+ * Prepositions that are lowercased in title-case (unless opening the
+ * title/subtitle). Rule 1.7 lowercases prepositions without a length
+ * limit — its own examples include 'before' and 'within'.
  */
-const SHORT_PREPOSITIONS: ReadonlySet<string> = new Set([
-  "in",
-  "on",
+const PREPOSITIONS: ReadonlySet<string> = new Set([
+  "aboard",
+  "about",
+  "above",
+  "across",
+  "after",
+  "against",
+  "along",
+  "amid",
+  "amidst",
+  "among",
+  "amongst",
+  "around",
+  "as",
   "at",
-  "to",
+  "before",
+  "behind",
+  "below",
+  "beneath",
+  "beside",
+  "besides",
+  "between",
+  "beyond",
+  "by",
+  "concerning",
+  "despite",
+  "down",
+  "during",
+  "except",
   "for",
   "from",
-  "with",
-  "by",
+  "in",
+  "inside",
+  "into",
+  "near",
   "of",
-  "as",
+  "off",
+  "on",
+  "onto",
+  "out",
+  "outside",
+  "over",
+  "past",
+  "per",
+  "regarding",
+  "since",
+  "through",
+  "throughout",
+  "to",
+  "toward",
+  "towards",
+  "under",
+  "underneath",
+  "until",
+  "unto",
+  "up",
+  "upon",
+  "via",
+  "with",
+  "within",
+  "without",
 ]);
 
-/** Coordinating conjunctions that are lowercased in title-case (unless first/last word). */
-const CONJUNCTIONS: ReadonlySet<string> = new Set([
-  "and",
-  "but",
-  "or",
-  "nor",
-  "yet",
-  "so",
-]);
+/** Conjunctions that are lowercased in title-case (unless opening the title/subtitle). */
+const CONJUNCTIONS: ReadonlySet<string> = new Set(["and", "but", "or", "nor", "yet", "so"]);
 
 /**
  * Returns true if the word should remain lowercase in AGLC4 title-case
- * (i.e. it is an article, short preposition, or conjunction).
+ * (i.e. it is an article, preposition, or conjunction).
  */
 function isMinorWord(word: string): boolean {
   const lower = word.toLowerCase();
-  return ARTICLES.has(lower) || SHORT_PREPOSITIONS.has(lower) || CONJUNCTIONS.has(lower);
+  return ARTICLES.has(lower) || PREPOSITIONS.has(lower) || CONJUNCTIONS.has(lower);
 }
 
 /**
- * Capitalise the first letter of a word, lowercasing the rest.
- * Preserves all-uppercase words of 2+ letters (likely acronyms, e.g. "UN", "EU", "ASIC").
+ * Capitalise the first letter of a word.
+ *
+ * - Preserves all-uppercase words of 2+ letters (likely acronyms, e.g.
+ *   "UN", "EU", "ASIC").
+ * - Preserves internal capitals (e.g. "McPherson", "eBay") — only an
+ *   all-lowercase remainder is normalised.
+ * - Capitalises the letter following a hyphen in a hyphenated word
+ *   (Rule 1.7, e.g. "Twenty-First", "Self-Determination").
  */
 function capitaliseWord(word: string): string {
   if (word.length === 0) return word;
@@ -61,56 +114,71 @@ function capitaliseWord(word: string): string {
   if (word.length >= 2 && word === word.toUpperCase() && /^[A-Z]+$/.test(word)) {
     return word;
   }
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  // Hyphenated words: capitalise the word following each hyphen (Rule 1.7)
+  if (word.includes("-")) {
+    return word
+      .split("-")
+      .map((part) => capitaliseWord(part))
+      .join("-");
+  }
+  // Capitalise the first LETTER (skipping leading quotes/parentheses).
+  const firstLetterIdx = word.search(/[A-Za-z]/);
+  if (firstLetterIdx === -1) return word;
+  const prefix = word.slice(0, firstLetterIdx);
+  const rest = word.slice(firstLetterIdx + 1);
+  // Preserve internal capitals (proper nouns like "McPherson")
+  const normalisedRest = /[A-Z]/.test(rest) ? rest : rest.toLowerCase();
+  return prefix + word.charAt(firstLetterIdx).toUpperCase() + normalisedRest;
 }
 
 /**
  * Converts text to AGLC4 title-case per Rule 1.7.
  *
- * Capitalises the first letter of all words except articles (a, an, the),
- * prepositions of 4 or fewer letters (in, on, at, to, for, from, with, by,
- * of, as), and conjunctions (and, but, or, nor, yet, so) — unless the word
- * is the first or last word.
+ * Capitalises the first letter of the first word of the title and of any
+ * subtitle (a word following ':', '—' or '–'), the word following the
+ * hyphen in a hyphenated word, and every other word except articles
+ * (a, an, the), prepositions (of any length — e.g. in, of, before,
+ * within), and conjunctions (and, but, or, nor, yet, so).
+ *
+ * There is no last-word capitalisation rule in AGLC4.
  *
  * @param text - The text to convert to title-case.
  * @returns The text converted to AGLC4 title-case.
  *
- * @see AGLC4, Rule 1.7.
+ * @see AGLC4, Rule 1.7 (PDF pp 49–51).
  */
 export function toTitleCase(text: string): string {
-  const words = text.split(/(\s+)/);
+  const segments = text.split(/(\s+)/);
 
-  // Find indices of actual words (not whitespace).
-  const wordIndices: number[] = [];
-  for (let i = 0; i < words.length; i++) {
-    if (words[i].trim().length > 0) {
-      wordIndices.push(i);
-    }
-  }
+  let atTitleStart = true; // start of title or subtitle → always capitalise
 
-  if (wordIndices.length === 0) return text;
-
-  const firstWordIndex = wordIndices[0];
-  const lastWordIndex = wordIndices[wordIndices.length - 1];
-
-  return words
-    .map((segment, index) => {
+  return segments
+    .map((segment) => {
       // Preserve whitespace segments as-is.
       if (segment.trim().length === 0) return segment;
 
-      // Always capitalise first and last words.
-      if (index === firstWordIndex || index === lastWordIndex) {
-        return capitaliseWord(segment);
+      // Standalone dash marks a subtitle boundary.
+      if (/^[—–]$/.test(segment)) {
+        atTitleStart = true;
+        return segment;
       }
 
-      // Lowercase minor words; capitalise everything else.
-      if (isMinorWord(segment)) {
+      const openingWord = atTitleStart;
+      // A word ending with ':' (or a dash) starts a subtitle after it.
+      atTitleStart = /[:—–]$/.test(segment);
+
+      if (!openingWord && isMinorWord(stripPunctuation(segment))) {
         return segment.toLowerCase();
       }
 
       return capitaliseWord(segment);
     })
     .join("");
+}
+
+/** Strips leading/trailing punctuation for minor-word comparison. */
+function stripPunctuation(word: string): string {
+  return word.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "");
 }
 
 /**

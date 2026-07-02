@@ -23,15 +23,6 @@ import { FormattedRun } from "../../../../types/formattedRun";
  * - BAG: Bundesarbeitsgericht (Federal Labour Court)
  * - BVerwG: Bundesverwaltungsgericht (Federal Administrative Court)
  */
-const COURT_ABBREVIATIONS: Record<string, string> = {
-  BVerfG: "Bundesverfassungsgericht",
-  BGH: "Bundesgerichtshof",
-  BAG: "Bundesarbeitsgericht",
-  BVerwG: "Bundesverwaltungsgericht",
-  BFH: "Bundesfinanzhof",
-  BSG: "Bundessozialgericht",
-};
-
 // ─── FRGN-004: German Cases (Rule 18.1) ─────────────────────────────────────
 
 /**
@@ -146,10 +137,7 @@ export function formatLegislation(data: {
  * @param data - German constitutional citation data
  * @returns An array of FormattedRun representing the formatted citation
  */
-export function formatConstitution(data: {
-  title: string;
-  pinpoint?: string;
-}): FormattedRun[] {
+export function formatConstitution(data: { title: string; pinpoint?: string }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title in italics

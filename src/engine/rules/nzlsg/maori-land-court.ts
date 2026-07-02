@@ -68,9 +68,7 @@ export interface MaoriLandCourtData {
  *     shortPage: 95,
  *   })
  */
-export function formatMaoriLandCourt(
-  data: MaoriLandCourtData,
-): FormattedRun[] {
+export function formatMaoriLandCourt(data: MaoriLandCourtData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name in italics

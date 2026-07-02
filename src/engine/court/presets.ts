@@ -64,7 +64,6 @@ export const NEGATIVE_TREATMENTS: ReadonlySet<SubsequentTreatment> = new Set([
   "overruled",
 ]);
 
-
 // ─── Court Jurisdiction IDs ─────────────────────────────────────────────────
 
 export type CourtJurisdiction =
@@ -345,8 +344,8 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
 /** Jurisdictions where the unreported-judgment gate is set to "warn". */
 export const UNREPORTED_GATE_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set(
   (Object.keys(COURT_PRESETS) as CourtJurisdiction[]).filter(
-    (id) => COURT_PRESETS[id].unreportedGate === "warn",
-  ),
+    (id) => COURT_PRESETS[id].unreportedGate === "warn"
+  )
 );
 
 // ─── COURT-010: Queensland subsequent-treatment helpers ──────────────────────
@@ -401,7 +400,7 @@ export function getCourtPreset(jurisdictionId: string): CourtPreset | undefined 
  */
 export function getJurisdictionsByGroup(group: CourtGroup): CourtJurisdiction[] {
   return (Object.keys(COURT_PRESETS) as CourtJurisdiction[]).filter(
-    (id) => COURT_PRESETS[id].group === group,
+    (id) => COURT_PRESETS[id].group === group
   );
 }
 

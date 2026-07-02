@@ -14,7 +14,6 @@ import {
   getCourtPreset,
   isCourtJurisdiction,
   type CourtJurisdiction,
-  type CourtPreset,
   type ParallelCitationMode,
   type PinpointStyle,
   type UnreportedGate,
@@ -43,6 +42,7 @@ import {
 import { getAdapterInstance, initialiseAdapters } from "../../api/adapterSearch";
 import { saveKey, getKey, removeKey, hasKey } from "../../api/keyVault";
 import { getDevicePref, setDevicePref } from "../../store/devicePreferences";
+import { useComfortMode } from "../hooks/useComfortMode";
 import {
   checkCorpusAvailable,
   getCorpusStatus,
@@ -58,7 +58,7 @@ import {
 import { registerCorpusAfterDownload } from "../../api/initializeAdapters";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
 import { useCitationContext } from "../context/CitationContext";
-import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, getTestResults, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
+import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
 
 type AglcVersion = "4" | "5";
 
@@ -145,13 +145,15 @@ export default function Settings(): JSX.Element {
   // before any state initialisation reads from it.
   initialiseAdapters();
 
-  const [version, setVersion] = useState<AglcVersion>("4");
+  const [comfortMode, setComfortMode] = useComfortMode();
+
+  const [, setVersion] = useState<AglcVersion>("4");
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [loading, setLoading] = useState(true);
   const [migrationNotice, setMigrationNotice] = useState(false);
   const [ackStatus, setAckStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formatStatus, setFormatStatus] = useState<string | null>(null);
+  const [, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
   // Confirmation shown when leaving Manual Citations Mode (resuming auto would
   // re-apply formatting and could overwrite manual edits).
@@ -387,17 +389,6 @@ export default function Settings(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const handleVersionChange = useCallback(async (newVersion: AglcVersion) => {
-    try {
-      const store = await getSharedStore();
-      await store.setAglcVersion(newVersion);
-      setVersion(newVersion);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to save version";
-      setError(message);
-    }
   }, []);
 
   const handleStandardChange = useCallback(async (newStandardId: CitationStandardId) => {
@@ -763,21 +754,37 @@ export default function Settings(): JSX.Element {
         </label>
       </fieldset>
 
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Accessibility</legend>
+        <label className="settings-toggle-row">
+          <input
+            type="checkbox"
+            checked={comfortMode}
+            onChange={(e) => setComfortMode(e.target.checked)}
+          />
+          <span>Comfort mode</span>
+        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          Larger buttons and text, wider spacing, and no motion. Stored on this device.
+        </p>
+      </fieldset>
+
       {standardId.startsWith("aglc") && (
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Writing Mode</legend>
 
-        <label style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+        <div style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
           <select
             className="ic-select"
             style={{ width: "100%", marginTop: 4 }}
+            aria-label="Writing mode"
             value={writingMode}
             onChange={(e) => void handleWritingModeChange(e.target.value as WritingMode)}
           >
             <option value="academic">Academic</option>
             <option value="court">Court Submission</option>
           </select>
-        </label>
+        </div>
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 0" }}>
           {writingMode === "court"
             ? "Court mode: no ibid, short case names without (n X), parallel citations by default, List of Authorities instead of bibliography."
@@ -1198,7 +1205,7 @@ export default function Settings(): JSX.Element {
             >
               Prepare as Template (.dotx)
             </button>
-            <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+            <p style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
               Sets up AGLC4 styles, formatting, and an install notice, then
               prompts you to save as a Word Template. New documents created
               from this template inherit all AGLC4 formatting.
@@ -1459,7 +1466,8 @@ export default function Settings(): JSX.Element {
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span
-                      title={healthDot === "green" ? "Healthy" : healthDot === "amber" ? "Degraded" : "Unavailable"}
+                      role="img"
+                      aria-label={`Status: ${healthDot === "green" ? "Healthy" : healthDot === "amber" ? "Degraded" : "Unavailable"}`}
                       style={{
                         display: "inline-block",
                         width: 8,
@@ -1529,17 +1537,17 @@ export default function Settings(): JSX.Element {
                       <span className="settings-badge" style={{ flexShrink: 0 }}>Requires key</span>
                     )}
                     {adapter.fragile && (
-                      <span className="settings-badge" title="Scraper — may break if the source site changes" style={{ flexShrink: 0 }}>
+                      <span className="settings-badge" aria-label="Scraper — may break if the source site changes" style={{ flexShrink: 0 }}>
                         {"\u26A0\uFE0F"} Fragile
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "2px 0 0 14px" }}>
+                  <p style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "2px 0 0 14px" }}>
                     {adapter.jurisdictions.join(", ")} — {adapter.licence}
                   </p>
 
                   {healthError && (
-                    <p style={{ fontSize: 10, color: "var(--colour-error)", margin: "4px 0 0 14px" }}>
+                    <p style={{ fontSize: "var(--text-min)", color: "var(--colour-error)", margin: "4px 0 0 14px" }}>
                       {healthError}
                     </p>
                   )}
@@ -1563,7 +1571,7 @@ export default function Settings(): JSX.Element {
                           />
                           <button
                             className="library-btn"
-                            style={{ fontSize: 10, padding: "2px 6px" }}
+                            style={{ fontSize: "var(--text-min)", padding: "2px 6px" }}
                             onClick={() =>
                               setKeyVisibility((prev) => ({
                                 ...prev,
@@ -1576,7 +1584,7 @@ export default function Settings(): JSX.Element {
                           {hasKey(adapter.id) && (
                             <button
                               className="library-btn"
-                              style={{ fontSize: 10, padding: "2px 6px" }}
+                              style={{ fontSize: "var(--text-min)", padding: "2px 6px" }}
                               onClick={() => {
                                 removeKey(adapter.id);
                                 setAdapterKeys((prev) => ({ ...prev, [adapter.id]: "" }));
@@ -1913,7 +1921,7 @@ export default function Settings(): JSX.Element {
             marginTop: 8,
             maxHeight: 200,
             overflow: "auto",
-            fontSize: 10,
+            fontSize: "var(--text-min)",
             fontFamily: "var(--font-mono)",
             background: "var(--colour-surface)",
             borderRadius: "var(--radius-md)",

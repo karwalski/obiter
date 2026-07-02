@@ -23,9 +23,7 @@ export function getStyleInstallPath(): string {
   if (platform === "windows") {
     // Resolve %USERNAME% from environment if available
     const username =
-      typeof process !== "undefined" && process.env?.USERNAME
-        ? process.env.USERNAME
-        : "%USERNAME%";
+      typeof process !== "undefined" && process.env?.USERNAME ? process.env.USERNAME : "%USERNAME%";
     return STYLE_PATHS.windows.replace("%USERNAME%", username) + XSL_FILENAME;
   }
   return STYLE_PATHS.mac + XSL_FILENAME;

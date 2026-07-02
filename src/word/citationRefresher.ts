@@ -34,28 +34,17 @@
  */
 
 import { CitationStore } from "../store/citationStore";
-import {
-  formatCitation,
-  applyLinkingPhrase,
-  getFormattedPreview,
-} from "../engine/engine";
+import { formatCitation, applyLinkingPhrase, getFormattedPreview } from "../engine/engine";
 import type { CitationContext } from "../engine/engine";
 import { resolveSubsequentReference } from "../engine/resolver";
 import type { SubsequentReferenceContext } from "../engine/resolver";
-import {
-  buildFootnoteMap,
-  updateFirstFootnoteNumbers,
-} from "./footnoteTracker";
+import { buildFootnoteMap, updateFirstFootnoteNumbers } from "./footnoteTracker";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
-import {
-  parseOccurrenceTitle,
-  buildOccurrenceTitle,
-  isFootnoteLocked,
-} from "./footnoteManager";
+import { parseOccurrenceTitle, buildOccurrenceTitle, isFootnoteLocked } from "./footnoteManager";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -183,7 +172,7 @@ function getSeparator(
   prevSignal: IntroductorySignal | undefined,
   currSignal: IntroductorySignal | undefined,
   prevIsNote?: boolean,
-  currIsNote?: boolean,
+  currIsNote?: boolean
 ): string {
   // Explanatory notes are separate sentences, not citation-list items
   if (prevIsNote || currIsNote) {
@@ -239,7 +228,7 @@ function getClosingPunctuation(lastCitationText: string): string {
  */
 export async function refreshAllCitations(
   context: Word.RequestContext,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<RefreshResult> {
   // Gate: Manual Citations Mode disables all auto-refresh
   if (getDevicePref("manualCitationMode") === true) {
@@ -280,9 +269,7 @@ export async function refreshAllCitations(
  * the insert makes the normalisation deterministic. No-op in Manual Citations
  * Mode, which `refreshAllCitations` gates on.
  */
-export async function refreshAllCitationsNow(
-  store: CitationStore,
-): Promise<RefreshResult> {
+export async function refreshAllCitationsNow(store: CitationStore): Promise<RefreshResult> {
   return Word.run((context) => refreshAllCitations(context, store));
 }
 
@@ -296,9 +283,7 @@ export async function refreshAllCitationsNow(
  * @param context - An active Word request context.
  * @returns An ordered array of FootnoteEntry objects.
  */
-async function scanFootnotes(
-  context: Word.RequestContext,
-): Promise<FootnoteEntry[]> {
+async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntry[]> {
   const footnotes = context.document.body.footnotes;
   footnotes.load("items");
   await context.sync();
@@ -316,7 +301,7 @@ async function scanFootnotes(
 
     // Find the parent CC with tag "obiter-fn"
     let parentCC: Word.ContentControl | undefined;
-    for (const cc of (contentControls.items ?? [])) {
+    for (const cc of contentControls.items ?? []) {
       if (cc.tag === PARENT_CC_TAG) {
         parentCC = cc;
         break;
@@ -334,7 +319,7 @@ async function scanFootnotes(
     await context.sync();
 
     const children: ChildEntry[] = [];
-    for (const childCC of (childCCs.items ?? [])) {
+    for (const childCC of childCCs.items ?? []) {
       if (childCC.tag && !childCC.tag.startsWith("obiter-")) {
         const ccTitle = childCC.title ?? "";
         const parsed = parseOccurrenceTitle(ccTitle);
@@ -384,7 +369,7 @@ async function renderAndRebuild(
   store: CitationStore,
   config: CitationConfig,
   footnoteMap: Map<string, number>,
-  footnoteEntries: FootnoteEntry[],
+  footnoteEntries: FootnoteEntry[]
 ): Promise<RefreshResult> {
   // Track which citation IDs have been seen for first vs subsequent
   const seenCitationIds = new Set<string>();
@@ -409,7 +394,7 @@ async function renderAndRebuild(
       currentFootnoteCitationIds,
       prevFootnoteNumber,
       prevFootnoteCitationIds,
-      prevFootnotePinpoint,
+      prevFootnotePinpoint
     );
 
     // If no valid citations were rendered for this footnote, skip rebuild
@@ -426,8 +411,7 @@ async function renderAndRebuild(
       prevFootnoteNumber = fnEntry.footnoteNumber;
       prevFootnoteCitationIds = [...currentFootnoteCitationIds];
       const lastCitationId = rendered[rendered.length - 1].citationId;
-      prevFootnotePinpoint = store.getById(lastCitationId)?.data
-        .pinpoint as Pinpoint | undefined;
+      prevFootnotePinpoint = store.getById(lastCitationId)?.data.pinpoint as Pinpoint | undefined;
       unchanged += rendered.length;
       continue;
     }
@@ -481,7 +465,7 @@ function renderFootnoteCitations(
   currentFootnoteCitationIds: string[],
   prevFootnoteNumber: number,
   prevFootnoteCitationIds: string[],
-  prevFootnotePinpoint: Pinpoint | undefined,
+  prevFootnotePinpoint: Pinpoint | undefined
 ): RenderedCitation[] {
   const rendered: RenderedCitation[] = [];
 
@@ -499,9 +483,7 @@ function renderFootnoteCitations(
     }
 
     const isFirstCitation = !seenCitationIds.has(child.citationId);
-    const isWithinSameFootnote = currentFootnoteCitationIds.includes(
-      child.citationId,
-    );
+    const isWithinSameFootnote = currentFootnoteCitationIds.includes(child.citationId);
 
     // Ibid eligibility: citation must appear in the preceding footnote
     const isSameAsPreceding =
@@ -509,8 +491,7 @@ function renderFootnoteCitations(
       prevFootnoteCitationIds.length > 0 &&
       prevFootnoteCitationIds.includes(child.citationId);
 
-    const firstFootnoteNumber =
-      footnoteMap.get(child.citationId) ?? fnEntry.footnoteNumber;
+    const firstFootnoteNumber = footnoteMap.get(child.citationId) ?? fnEntry.footnoteNumber;
     // Per-occurrence pinpoint from the CC title takes priority over
     // the citation's stored pinpoint (different footnotes can cite
     // different pages of the same source).
@@ -611,7 +592,12 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
 
   for (let j = 0; j < rendered.length; j++) {
     if (j > 0) {
-      const separator = getSeparator(rendered[j - 1].signal, rendered[j].signal, rendered[j - 1].isNote, rendered[j].isNote);
+      const separator = getSeparator(
+        rendered[j - 1].signal,
+        rendered[j].signal,
+        rendered[j - 1].isNote,
+        rendered[j].isNote
+      );
       parts.push(separator);
     }
     parts.push(runsToPlainText(rendered[j].runs));
@@ -646,7 +632,7 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
 async function rebuildParentCC(
   context: Word.RequestContext,
   parentCC: Word.ContentControl,
-  rendered: RenderedCitation[],
+  rendered: RenderedCitation[]
 ): Promise<void> {
   // Clear parent CC — removes all content including old child CCs
   parentCC.clear();
@@ -676,7 +662,12 @@ async function rebuildParentCC(
     // run (e.g. a short-form case name) can't bleed italics into the separator
     // or the following citation.
     if (j < rendered.length - 1) {
-      const separator = getSeparator(signal, rendered[j + 1].signal, rendered[j].isNote, rendered[j + 1].isNote);
+      const separator = getSeparator(
+        signal,
+        rendered[j + 1].signal,
+        rendered[j].isNote,
+        rendered[j + 1].isNote
+      );
       const sepRange = parentCC.insertText(separator, "End");
       sepRange.font.italic = false;
       sepRange.font.bold = false;

@@ -3,8 +3,6 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-/* global document */
-
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
@@ -20,6 +18,7 @@ import Settings from "./views/Settings";
 import Styling from "./views/Styling";
 import { CitationProvider } from "./context/CitationContext";
 import { InsertCitationProvider } from "./context/InsertCitationContext";
+import { StatusProvider } from "./context/StatusContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./styles/global.css";
 
@@ -49,6 +48,7 @@ function getInitialRoute(): string {
 
 async function executeRibbonAction(action: string): Promise<void> {
   const { applyHeadingLevel } = await import("../word/styles");
+  const { applyAglc4Styles } = await import("../word/styles");
   const { applyAglc4Template } = await import("../word/template");
   const { refreshAllCitations } = await import("../word/citationRefresher");
   const { renumberAllHeadings } = await import("../word/styles");
@@ -70,17 +70,34 @@ async function executeRibbonAction(action: string): Promise<void> {
         });
       }
     } else if (action === "action/blockquote") {
-      await Word.run(async (context) => {
-        const selection = context.document.getSelection();
-        selection.paragraphs.load("items");
-        await context.sync();
-        for (const para of (selection.paragraphs.items ?? [])) {
-          para.font.size = 10;
-          para.leftIndent = 36;
-          para.lineSpacing = 12;
-        }
-        await context.sync();
-      });
+      // ATAG Part B: apply the named "AGLC4 Block Quote" paragraph style so the quote
+      // is semantically a block quote (appears as such to AT and Word's style tools) and
+      // a reader can restyle it. Direct formatting is kept ONLY as a fallback for runtimes
+      // where the named style is unavailable (older API / Word for the web style stripping).
+      try {
+        await Word.run(async (context) => {
+          await applyAglc4Styles(context);
+          const selection = context.document.getSelection();
+          selection.paragraphs.load("items");
+          await context.sync();
+          for (const para of selection.paragraphs.items ?? []) {
+            para.style = "AGLC4 Block Quote";
+          }
+          await context.sync();
+        });
+      } catch {
+        await Word.run(async (context) => {
+          const selection = context.document.getSelection();
+          selection.paragraphs.load("items");
+          await context.sync();
+          for (const para of selection.paragraphs.items ?? []) {
+            para.font.size = 10;
+            para.leftIndent = 36;
+            para.lineSpacing = 12;
+          }
+          await context.sync();
+        });
+      }
     } else if (action === "action/template") {
       await Word.run(async (context) => {
         await applyAglc4Template(context);
@@ -109,6 +126,7 @@ function App(): JSX.Element {
     <InsertCitationProvider>
       <MemoryRouter initialEntries={[initialRoute]}>
         <CitationProvider>
+          <StatusProvider>
           <NavigateRegistrar />
           <ErrorBoundary label="Application">
             <Routes>
@@ -124,6 +142,7 @@ function App(): JSX.Element {
               </Route>
             </Routes>
           </ErrorBoundary>
+          </StatusProvider>
         </CitationProvider>
       </MemoryRouter>
     </InsertCitationProvider>

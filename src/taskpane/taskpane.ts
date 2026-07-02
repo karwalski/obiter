@@ -43,7 +43,9 @@ async function autoSetupDocument(): Promise<void> {
     try {
       const saved = localStorage.getItem("obiter-autoSetup");
       if (saved === "false") autoSetup = false;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     if (!autoSetup) return;
 
@@ -52,7 +54,9 @@ async function autoSetupDocument(): Promise<void> {
       // Apply styles (modifies built-in Heading 1-5 to AGLC4 formatting)
       try {
         await applyAglc4Styles(context);
-      } catch { /* styles may already exist */ }
+      } catch {
+        /* styles may already exist */
+      }
 
       // Apply template only if document is new (empty or just has placeholders)
       if (!alreadySetUp) {
@@ -92,9 +96,21 @@ Office.onReady((info) => {
 
     // Clean up notices and set metadata
     void Word.run(async (context) => {
-      try { await hideAddinNotice(context); } catch { /* non-critical */ }
-      try { await removeTemplateNotice(context); } catch { /* non-critical */ }
-      try { await setDocumentMetadata(context); } catch { /* non-critical */ }
+      try {
+        await hideAddinNotice(context);
+      } catch {
+        /* non-critical */
+      }
+      try {
+        await removeTemplateNotice(context);
+      } catch {
+        /* non-critical */
+      }
+      try {
+        await setDocumentMetadata(context);
+      } catch {
+        /* non-critical */
+      }
     });
 
     // Anonymous load ping — once per session, no PII
@@ -103,7 +119,9 @@ Office.onReady((info) => {
         // Generate or retrieve a random device ID (not derived from user data)
         let deviceHash = localStorage.getItem("obiter-deviceHash");
         if (!deviceHash) {
-          deviceHash = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+          deviceHash = crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).substring(2) + Date.now().toString(36);
           localStorage.setItem("obiter-deviceHash", deviceHash);
         }
 
@@ -116,7 +134,9 @@ Office.onReady((info) => {
         try {
           wordVersion = Office?.context?.diagnostics?.version;
           platform = Office?.context?.diagnostics?.platform?.toString();
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         await fetch("https://obiter.com.au/api/analytics/load", {
           method: "POST",
@@ -128,7 +148,9 @@ Office.onReady((info) => {
             deviceHash,
           }),
         });
-      } catch { /* non-critical — analytics failure must never affect UX */ }
+      } catch {
+        /* non-critical — analytics failure must never affect UX */
+      }
     })();
 
     // INFRA-008 Layer 1: Write document properties on startup
@@ -141,7 +163,9 @@ Office.onReady((info) => {
         await Word.run(async (context) => {
           await writeObiterProperties(context, APP_VERSION, stdId, mode);
         });
-      } catch { /* non-critical */ }
+      } catch {
+        /* non-critical */
+      }
     })();
   }
 });

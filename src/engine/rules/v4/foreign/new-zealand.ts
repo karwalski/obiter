@@ -47,10 +47,7 @@ interface NZCaseData {
  * When a case is reported in one of these series, the court identifier
  * is omitted.
  */
-const NZ_SERIES_IMPLIED_COURT: ReadonlySet<string> = new Set([
-  "NZLR",
-  "NZAR",
-]);
+const NZ_SERIES_IMPLIED_COURT: ReadonlySet<string> = new Set(["NZLR", "NZAR"]);
 
 // ─── FRGN-007-CASE: New Zealand Cases (Rule 21.1) ───────────────────────────
 
@@ -140,9 +137,7 @@ interface NZWaitangiTribunalData {
  *     pinpoint: "37 [5.1]",
  *   })
  */
-export function formatWaitangiTribunal(
-  data: NZWaitangiTribunalData,
-): FormattedRun[] {
+export function formatWaitangiTribunal(data: NZWaitangiTribunalData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author: Waitangi Tribunal
@@ -198,9 +193,7 @@ interface NZDelegatedLegislationData {
  *     pinpoint: "reg 4",
  *   })
  */
-export function formatDelegatedLegislation(
-  data: NZDelegatedLegislationData,
-): FormattedRun[] {
+export function formatDelegatedLegislation(data: NZDelegatedLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title and year in italics

@@ -128,38 +128,58 @@ export function formatStateArbitration(data: {
   return runs;
 }
 
-// ─── INTL-007b: ICSID Cases (Rules 11.2–11.3) ──────────────────────────────
+// ─── INTL-007b: Individual–State Decisions (Rule 11.2.2) ───────────────────
 
 /**
- * Formats an ICSID (International Centre for Settlement of Investment
- * Disputes) case citation.
+ * Formats an unreported individual–state (investor–state) arbitral decision
+ * per AGLC4 Rule 11.2.2.
  *
- * AGLC4 Rules 11.2–11.3: Investor–state arbitrations, including ICSID
- * cases, are cited with the case name (italicised), followed by the ICSID
- * case number, the type of award or decision, and the date.
+ * AGLC4 Rule 11.2.2: The form is:
+ *   *Parties' Names* (*Phase*) (Name of Arbitral Body or Tribunal,
+ *   Case No Number, Full Date) Pinpoint.
  *
- * Format:
- *   *Case Name* (ICSID Case No ARB/XX/XX, Award Type, Date)
+ * The phase (award type) is italicised in its own parentheses after the
+ * parties' names, and is included only where one appears in the decision.
+ * The tribunal name appears as on the decision (default 'ICSID Arbitral
+ * Tribunal'); the case number is included only where one appears; pinpoints
+ * follow rules 1.1.6–1.1.7, space-separated.
  *
- * @example
- *   Occidental Petroleum Corporation v Republic of Ecuador
- *   (ICSID Case No ARB/06/11, Award, 5 October 2012)
+ * @param data - The individual–state arbitration citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 11.2.2.
  */
 export function formatIcsidCase(data: {
   caseName: string;
   icsidNumber: string;
-  awardType: string;
+  awardType?: string;
   date: string;
+  tribunal?: string;
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Case name — italicised per AGLC4 Rules 11.2–11.3
+  // Parties' names — italicised (Rules 2.1, 11.2.2)
   runs.push({ text: data.caseName, italic: true });
 
-  // ICSID number, award type, and date in parentheses
-  runs.push({
-    text: ` (ICSID Case No ${data.icsidNumber}, ${data.awardType}, ${data.date})`,
-  });
+  // Phase — italicised in parentheses, only where present (Rule 11.2.2)
+  if (data.awardType) {
+    runs.push({ text: " " });
+    runs.push({ text: `(${data.awardType})`, italic: true });
+  }
+
+  // Tribunal, case number and full date in parentheses (Rules 11.1.2, 11.2.2)
+  const parts: string[] = [data.tribunal || "ICSID Arbitral Tribunal"];
+  if (data.icsidNumber) {
+    parts.push(`Case No ${data.icsidNumber}`);
+  }
+  parts.push(data.date);
+  runs.push({ text: ` (${parts.join(", ")})` });
+
+  // Pinpoint — space-separated (Rules 1.1.6–1.1.7)
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
 
   return runs;
 }

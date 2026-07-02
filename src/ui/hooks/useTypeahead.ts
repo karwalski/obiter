@@ -26,7 +26,7 @@ export function useTypeahead(
   searchFn: (query: string) => Promise<LookupResult[]>,
   query: string,
   minChars: number = 3,
-  debounceMs: number = 300,
+  debounceMs: number = 300
 ): TypeaheadState {
   const [results, setResults] = useState<LookupResult[]>([]);
   const [loading, setLoading] = useState(false);

@@ -6,14 +6,44 @@
  */
 
 import { formatPinpoint, formatPinpoints } from "../../src/engine/rules/v4/general/pinpoints";
-import { ensureClosingPunctuation, joinMultipleCitations } from "../../src/engine/rules/v4/general/footnotes";
-import { formatSignal, formatLinkingPhrase, joinLinkedSources } from "../../src/engine/rules/v4/general/signals";
+import {
+  ensureClosingPunctuation,
+  joinMultipleCitations,
+} from "../../src/engine/rules/v4/general/footnotes";
+import {
+  formatSignal,
+  formatLinkingPhrase,
+  joinLinkedSources,
+} from "../../src/engine/rules/v4/general/signals";
 import type { IntroductorySignal } from "../../src/engine/rules/v4/general/signals";
-import { toTitleCase, validateCapitalisation } from "../../src/engine/rules/v4/general/capitalisation";
-import { shouldItaliciseTitle, shouldQuoteTitle, wrapTitle } from "../../src/engine/rules/v4/general/italicisation";
-import { numberToWords, formatNumber, checkNumberFormatting } from "../../src/engine/rules/v4/general/numbers";
-import { formatDate, formatDateSpan, formatYearSpan, checkDateFormatting } from "../../src/engine/rules/v4/general/dates";
-import { checkAbbreviationFullStops, fixAbbreviationFullStops, checkDashes, fixDashes } from "../../src/engine/rules/v4/general/punctuation";
+import {
+  toTitleCase,
+  validateCapitalisation,
+} from "../../src/engine/rules/v4/general/capitalisation";
+import {
+  shouldItaliciseTitle,
+  shouldQuoteTitle,
+  wrapTitle,
+} from "../../src/engine/rules/v4/general/italicisation";
+import {
+  numberToWords,
+  formatNumber,
+  formatNumberSpan,
+  checkNumberFormatting,
+} from "../../src/engine/rules/v4/general/numbers";
+import {
+  formatDate,
+  formatDateSpan,
+  formatYearSpan,
+  checkDateFormatting,
+} from "../../src/engine/rules/v4/general/dates";
+import {
+  checkAbbreviationFullStops,
+  fixAbbreviationFullStops,
+  checkDashes,
+  fixDashes,
+} from "../../src/engine/rules/v4/general/punctuation";
+import { compareBibliographyOrder } from "../../src/engine/rules/v4/general/bibliography";
 import {
   resolveIbid,
   formatShortReference,
@@ -40,8 +70,12 @@ function isRunItalic(runs: FormattedRun[], index: number): boolean {
 
 describe("Rule 1.1.3 — Multiple sources in footnotes", () => {
   test("sources separated by semicolons (AGLC4 fn 21)", () => {
-    const citation1: FormattedRun[] = [{ text: "Muschinski v Dodds (1985) 160 CLR 583", italic: true }];
-    const citation2: FormattedRun[] = [{ text: "Baumgartner v Baumgartner (1987) 164 CLR 137", italic: true }];
+    const citation1: FormattedRun[] = [
+      { text: "Muschinski v Dodds (1985) 160 CLR 583", italic: true },
+    ];
+    const citation2: FormattedRun[] = [
+      { text: "Baumgartner v Baumgartner (1987) 164 CLR 137", italic: true },
+    ];
     const citation3: FormattedRun[] = [
       { text: "Bryson v Bryant", italic: true },
       { text: " (1992) 29 NSWLR 188, 194\u20135" },
@@ -56,14 +90,16 @@ describe("Rule 1.1.3 — Multiple sources in footnotes", () => {
 
   test("different introductory signal starts new sentence (AGLC4 fn 22)", () => {
     const citation1: FormattedRun[] = [{ text: "Spratt v Hermes (1965) 114 CLR 226" }];
-    const citation2: FormattedRun[] = [{ text: "Capital TV & Appliances Pty Ltd v Falconer (1971) 125 CLR 591" }];
+    const citation2: FormattedRun[] = [
+      { text: "Capital TV & Appliances Pty Ltd v Falconer (1971) 125 CLR 591" },
+    ];
     const citation3: FormattedRun[] = [{ text: "Kruger v Commonwealth (1997) 190 CLR 1" }];
     const citation4: FormattedRun[] = [{ text: "Cf R v Bernasconi (1915) 19 CLR 629" }];
 
     // First three share same signal (none), fourth has "Cf"
     const result = joinMultipleCitations(
       [citation1, citation2, citation3, citation4],
-      [undefined, undefined, undefined, "Cf"],
+      [undefined, undefined, undefined, "Cf"]
     );
     const text = runsToText(result);
 
@@ -208,21 +244,22 @@ describe("Rule 1.1.7 — Spans of pinpoint references", () => {
     expect(runsToText(result)).toBe("389\u201390 [196]\u2013[197]");
   });
 
-  test("footnote number span (AGLC4 fn 39: 348 nn 22\u20134)", () => {
-    // "nn" is for multiple footnotes; stored as value "22\u20134" with prefix "n"
-    // Per appendix C, "nn" is the plural of "n".
-    // The current model stores this as a single footnote pinpoint with value "22\u20134"
-    // which would render "n 22\u20134". AGLC4 uses "nn" for plural spans.
-    // This is a known limitation: the Pinpoint type doesn't distinguish singular/plural.
+  test("footnote span uses plural 'nn' per AGLC4 ex 39 (rule 1.1.7)", () => {
+    // Paul L Davies, Gower's Principles of Modern Company Law
+    // (Sweet & Maxwell, 6th ed, 1997) 348 nn 22\u20134.
     const pin: Pinpoint = {
       type: "page",
       value: "348",
       subPinpoint: { type: "footnote", value: "22\u20134" },
     };
     const result = formatPinpoint(pin);
-    // Current output: "348 n 22\u20134" — should ideally be "348 nn 22\u20134"
-    // but the type system has no plural concept. Test current behaviour.
-    expect(runsToText(result)).toBe("348 n 22\u20134");
+    expect(runsToText(result)).toBe("348 nn 22\u20134");
+  });
+
+  test("single footnote pinpoint keeps singular 'n' (rule 1.1.6)", () => {
+    const pin: Pinpoint = { type: "footnote", value: "6" };
+    const result = formatPinpoint(pin);
+    expect(runsToText(result)).toBe("n 6");
   });
 });
 
@@ -269,7 +306,13 @@ describe("Rule 1.2 — Introductory signals", () => {
 
   test("signals are not italicised (Rule 1.2)", () => {
     const signals: IntroductorySignal[] = [
-      "see", "see_also", "see_eg", "see_especially", "see_generally", "cf", "but_see",
+      "see",
+      "see_also",
+      "see_eg",
+      "see_especially",
+      "see_generally",
+      "cf",
+      "but_see",
     ];
     for (const sig of signals) {
       const result = formatSignal(sig);
@@ -522,7 +565,10 @@ describe("Rule 1.4.3 — Ibid", () => {
       id: "c1",
       aglcVersion: "4",
       sourceType: "book",
-      data: { authors: [{ givenNames: "Rosalyn", surname: "Higgins" }], title: "Problems and Process" },
+      data: {
+        authors: [{ givenNames: "Rosalyn", surname: "Higgins" }],
+        title: "Problems and Process",
+      },
       tags: [],
       createdAt: "",
       modifiedAt: "",
@@ -612,7 +658,11 @@ describe("Rule 1.4.6 — Within-footnote 'at' references", () => {
       isFirstCitation: false,
       isSameAsPreceding: true,
       precedingFootnoteCitationCount: 1,
-      currentPinpoint: { type: "page", value: "580", subPinpoint: { type: "paragraph", value: "[53]" } },
+      currentPinpoint: {
+        type: "page",
+        value: "580",
+        subPinpoint: { type: "paragraph", value: "[53]" },
+      },
       firstFootnoteNumber: 95,
       isWithinSameFootnote: true,
       formatPreference: "auto",
@@ -659,12 +709,37 @@ describe("Rule 1.6.3 — Dashes and hyphens", () => {
     expect(fixDashes("the result--whatever")).toBe("the result\u2014whatever");
   });
 
-  test("removes spaces around em-dashes", () => {
-    expect(fixDashes("the result \u2014 whatever")).toBe("the result\u2014whatever");
+  test("leaves spaced em-dashes untouched (DECISION-013; guide's own rule 1.8.2 example)", () => {
+    // The guide's rule 1.8.2 example uses spaced em-dashes:
+    // 'there is one key provision \u2014 s 39(1) \u2014 of the Charter'.
+    expect(fixDashes("one key provision \u2014 s 39(1) \u2014 of the Charter")).toBe(
+      "one key provision \u2014 s 39(1) \u2014 of the Charter"
+    );
+    const issues = checkDashes("one key provision \u2014 s 39(1) \u2014 of the Charter");
+    expect(issues).toHaveLength(0);
   });
 
   test("hyphens in number spans become en-dashes", () => {
     expect(fixDashes("pages 42-5")).toBe("pages 42\u20135");
+    expect(fixDashes("1986-87")).toBe("1986\u201387");
+  });
+
+  test("CCH pinpoint \u00b682-091 is not corrupted (guide's fn 151, rule 1.10.1)", () => {
+    // Wong v Aripin (2011) Aust Torts Reports \u00b682-091, 65,131 (Kenneth Martin J).
+    expect(fixDashes("(2011) Aust Torts Reports \u00b682-091, 65,131")).toBe(
+      "(2011) Aust Torts Reports \u00b682-091, 65,131"
+    );
+    const issues = checkDashes("(2011) Aust Torts Reports \u00b682-091, 65,131");
+    expect(issues).toHaveLength(0);
+  });
+
+  test("US session-law number keeps its hyphen (Pub L No 108-201)", () => {
+    expect(fixDashes("Pub L No 108-201")).toBe("Pub L No 108-201");
+    expect(checkDashes("Pub L No 108-201")).toHaveLength(0);
+  });
+
+  test("descending digit pairs (phone/docket numbers) keep hyphens", () => {
+    expect(fixDashes("call 9384-2211")).toBe("call 9384-2211");
   });
 });
 
@@ -673,20 +748,37 @@ describe("Rule 1.6.3 — Dashes and hyphens", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("Rule 1.7 — Capitalisation (title case)", () => {
-  test("capitalises first and last words regardless", () => {
-    expect(toTitleCase("the law of the")).toBe("The Law of The");
+  test("no last-word rule: a final minor word stays lowercase (rule 1.7)", () => {
+    expect(toTitleCase("the law of the")).toBe("The Law of the");
   });
 
   test("lowercases articles in mid-title", () => {
     expect(toTitleCase("a guide to the law")).toBe("A Guide to the Law");
   });
 
-  test("lowercases short prepositions", () => {
+  test("lowercases prepositions of any length (rule's own examples 'before', 'within')", () => {
     expect(toTitleCase("rights in rem and in personam")).toBe("Rights in Rem and in Personam");
+    expect(toTitleCase("equality before the law")).toBe("Equality before the Law");
+    expect(toTitleCase("federalism within the constitution")).toBe(
+      "Federalism within the Constitution"
+    );
   });
 
   test("lowercases conjunctions", () => {
     expect(toTitleCase("law and order")).toBe("Law and Order");
+  });
+
+  test("capitalises the word following a hyphen in a hyphenated word (rule 1.7)", () => {
+    expect(toTitleCase("the twenty-first century")).toBe("The Twenty-First Century");
+    expect(toTitleCase("self-determination in international law")).toBe(
+      "Self-Determination in International Law"
+    );
+  });
+
+  test("capitalises the first word of a subtitle after a colon (rule 1.7)", () => {
+    expect(toTitleCase("the failed solution: the high court and refugees")).toBe(
+      "The Failed Solution: The High Court and Refugees"
+    );
   });
 
   test("handles AGLC4-style title: journal article", () => {
@@ -777,19 +869,51 @@ describe("Rule 1.10.1 — Number formatting", () => {
     expect(numberToWords(42)).toBe("42");
   });
 
-  test("no comma separators in numbers", () => {
-    expect(formatNumber(10000)).toBe("10000");
-    expect(formatNumber(1000000)).toBe("1000000");
+  test("4+ digit numbers take comma grouping per AGLC4 example '4,150' (rule 1.10.1)", () => {
+    expect(formatNumber(4150)).toBe("4,150");
+    expect(formatNumber(10000)).toBe("10,000");
+    expect(formatNumber(1000000)).toBe("1,000,000");
+    expect(formatNumber(999)).toBe("999");
   });
 
-  test("detects comma-separated numbers", () => {
-    const issues = checkNumberFormatting("There were 10,000 cases");
-    expect(issues.some((i) => i.ruleNumber === "1.10.1" && i.suggestion === "10000")).toBe(true);
+  test("flags 4+ digit numbers missing commas (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("There were 10000 cases");
+    expect(issues.some((i) => i.ruleNumber === "1.10.1" && i.suggestion === "10,000")).toBe(true);
+  });
+
+  test("does not flag correctly comma-grouped numbers (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("There were 10,000 cases and 4,150 appeals");
+    expect(issues.filter((i) => i.message.includes("comma"))).toHaveLength(0);
+  });
+
+  test("comma exception: years are not flagged (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("In 1998 the Act commenced; (2011) 33 NTLR 65");
+    expect(issues.filter((i) => i.message.includes("comma"))).toHaveLength(0);
+  });
+
+  test("comma exception: identification and pinpoint numbers are not flagged (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("at 65131; ACN 004085330; No 108201; [2019] HCA 3");
+    expect(issues.filter((i) => i.message.includes("comma"))).toHaveLength(0);
   });
 
   test("detects standalone digits that should be words", () => {
     const issues = checkNumberFormatting("There were 3 cases");
     expect(issues.some((i) => i.suggestion === "three")).toBe(true);
+  });
+
+  test("numerals kept for percentages per AGLC4 example '5%' (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("The rate rose by 5% overall");
+    expect(issues).toHaveLength(0);
+  });
+
+  test("numerals kept for citation elements (rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("see s 5 and pt 7");
+    expect(issues).toHaveLength(0);
+  });
+
+  test("numerals kept for ratios (guide's example 'split 4:3', rule 1.10.1)", () => {
+    const issues = checkNumberFormatting("The High Court split 4:3");
+    expect(issues).toHaveLength(0);
   });
 });
 
@@ -826,7 +950,9 @@ describe("Rule 1.11.1 — Date formatting", () => {
     for (let m = 1; m <= 12; m++) {
       const result = formatDate({ month: m, year: 2020 });
       // Months should be at least 3 chars and not abbreviated
-      expect(result).not.toMatch(/\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b(?!uary|ruary|ch|il|e|y|ust|tember|ober|ember)/);
+      expect(result).not.toMatch(
+        /\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b(?!uary|ruary|ch|il|e|y|ust|tember|ober|ember)/
+      );
     }
   });
 
@@ -837,7 +963,9 @@ describe("Rule 1.11.1 — Date formatting", () => {
 
   test("detects ordinal indicators before month", () => {
     const issues = checkDateFormatting("14th July 2018");
-    expect(issues.some((i) => i.ruleNumber === "1.11.1" && i.message.includes("Ordinal"))).toBe(true);
+    expect(issues.some((i) => i.ruleNumber === "1.11.1" && i.message.includes("Ordinal"))).toBe(
+      true
+    );
   });
 
   test("detects abbreviated month names", () => {
@@ -847,10 +975,10 @@ describe("Rule 1.11.1 — Date formatting", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Rules 1.11.3 / 1.11.4 — Date and Year Spans
+// Rule 1.11.4 — Spans of Dates and Times
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("Rules 1.11.3/1.11.4 — Date and year spans", () => {
+describe("Rule 1.11.4 — Date and year spans", () => {
   test("same century year span abbreviated: 1986\u201387", () => {
     expect(formatYearSpan(1986, 1987)).toBe("1986\u201387");
   });
@@ -862,7 +990,7 @@ describe("Rules 1.11.3/1.11.4 — Date and year spans", () => {
   test("same month day span: 21\u201322 September 2018", () => {
     const result = formatDateSpan(
       { day: 21, month: 9, year: 2018 },
-      { day: 22, month: 9, year: 2018 },
+      { day: 22, month: 9, year: 2018 }
     );
     expect(result).toBe("21\u201322 September 2018");
   });
@@ -870,7 +998,7 @@ describe("Rules 1.11.3/1.11.4 — Date and year spans", () => {
   test("different month same year span: 21 September \u2013 3 October 2018", () => {
     const result = formatDateSpan(
       { day: 21, month: 9, year: 2018 },
-      { day: 3, month: 10, year: 2018 },
+      { day: 3, month: 10, year: 2018 }
     );
     expect(result).toBe("21 September \u2013 3 October 2018");
   });
@@ -917,5 +1045,125 @@ describe("Rule 1.12.2 — Heading prefixes", () => {
   test("Level V: lower Roman in parens", () => {
     expect(getHeadingPrefix(5, 1)).toBe("(i)");
     expect(getHeadingPrefix(5, 4)).toBe("(iv)");
+  });
+});
+
+// ─────────────────────────────────────────────
+// Rule 1.13 — Bibliography ordering cascade
+// ─────────────────────────────────────────────
+
+describe("Rule 1.13 — Bibliography ordering cascade", () => {
+  const makeWork = (
+    id: string,
+    authors: Array<{ givenNames: string; surname: string }>,
+    title: string
+  ): Citation => ({
+    id,
+    aglcVersion: "4",
+    sourceType: "book",
+    data: { authors, title },
+    tags: [],
+    createdAt: "",
+    modifiedAt: "",
+  });
+
+  test("orders by first author surname (rule 1.13 step 1)", () => {
+    const foster = makeWork("f", [{ givenNames: "Michelle", surname: "Foster" }], "A Title");
+    const hathaway = makeWork("h", [{ givenNames: "James C", surname: "Hathaway" }], "A Title");
+    expect(compareBibliographyOrder(foster, hathaway)).toBeLessThan(0);
+  });
+
+  test("same surname → first author first name (rule 1.13 step 2)", () => {
+    const anne = makeWork("a", [{ givenNames: "Anne", surname: "Smith" }], "Work");
+    const zoe = makeWork("z", [{ givenNames: "Zoe", surname: "Smith" }], "Work");
+    expect(compareBibliographyOrder(anne, zoe)).toBeLessThan(0);
+  });
+
+  test("single-author work precedes the same author with a co-author (rule 1.13 step 3, guide's Hathaway example)", () => {
+    // Hathaway, James C, The Rights of Refugees under International Law
+    // precedes Hathaway, James C and Audrey Macklin, 'Should We Presume
+    // State Protection?'
+    const solo = makeWork(
+      "s",
+      [{ givenNames: "James C", surname: "Hathaway" }],
+      "The Rights of Refugees under International Law"
+    );
+    const joint = makeWork(
+      "j",
+      [
+        { givenNames: "James C", surname: "Hathaway" },
+        { givenNames: "Audrey", surname: "Macklin" },
+      ],
+      "Should We Presume State Protection?"
+    );
+    expect(compareBibliographyOrder(solo, joint)).toBeLessThan(0);
+  });
+
+  test("same authors → title, excluding a leading 'The' (rule 1.13 step 4)", () => {
+    const alpha = makeWork(
+      "a",
+      [{ givenNames: "Kim", surname: "Rubenstein" }],
+      "The Australian Citizenship Law in Context"
+    );
+    const beta = makeWork(
+      "b",
+      [{ givenNames: "Kim", surname: "Rubenstein" }],
+      "Bounded Citizenship"
+    );
+    // 'The' is excluded: 'Australian…' precedes 'Bounded…'
+    expect(compareBibliographyOrder(alpha, beta)).toBeLessThan(0);
+  });
+
+  test("no author → title excluding a leading 'The' (rule 1.13 step 6)", () => {
+    const theReport = makeWork("t", [], "The Betrayal of an Ideal");
+    const anna = makeWork("a", [{ givenNames: "Anna", surname: "Cody" }], "Work");
+    // 'Betrayal…' (B) precedes 'Cody' (C) once 'The' is excluded
+    expect(compareBibliographyOrder(theReport, anna)).toBeLessThan(0);
+  });
+
+  test("middle-initial variants are different authors for ordering (rule 1.13)", () => {
+    const plain = makeWork("p", [{ givenNames: "James", surname: "Hathaway" }], "Work");
+    const withInitial = makeWork("i", [{ givenNames: "James C", surname: "Hathaway" }], "Work");
+    expect(compareBibliographyOrder(plain, withInitial)).toBeLessThan(0);
+  });
+});
+
+// ─────────────────────────────────────────────
+// Rule 1.10.1 — Number spans (minimum digits)
+// ─────────────────────────────────────────────
+
+describe("Rule 1.10.1 — Number span shortening", () => {
+  test("second number keeps minimum digits per AGLC4 examples '87\u20138' and '436\u201362'", () => {
+    expect(formatNumberSpan(87, 88)).toBe("87\u20138");
+    expect(formatNumberSpan(436, 462)).toBe("436\u201362");
+  });
+
+  test("keeps both digits when the last two fall in 10\u201319 per AGLC4 examples '11\u201314', '215\u201319'", () => {
+    expect(formatNumberSpan(11, 14)).toBe("11\u201314");
+    expect(formatNumberSpan(215, 219)).toBe("215\u201319");
+  });
+
+  test("page span '121\u20137' per rule 1.1.7 example", () => {
+    expect(formatNumberSpan(121, 127)).toBe("121\u20137");
+  });
+
+  test("numbers of different digit counts are not shortened", () => {
+    expect(formatNumberSpan(98, 102)).toBe("98\u2013102");
+  });
+});
+
+// ─────────────────────────────────────────────
+// Rule 1.11.5 — Decades and centuries
+// ─────────────────────────────────────────────
+
+describe("Rule 1.11.5 — Decades", () => {
+  test("flags an apostrophe in a decade ('1970's' \u2192 '1970s')", () => {
+    const issues = checkDateFormatting("Throughout the 1970's the doctrine developed.");
+    expect(issues.some((i) => i.ruleNumber === "1.11.5" && i.suggestion === "1970s")).toBe(true);
+  });
+
+  test("does not flag the correct decade form '1970s'", () => {
+    const issues = checkDateFormatting("Throughout the 1970s the doctrine developed.");
+    expect(issues.filter((i) => i.ruleNumber === "1.11.5")).toHaveLength(0);
   });
 });

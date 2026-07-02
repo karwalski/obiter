@@ -51,9 +51,7 @@ export interface CommercialSubsequentData {
  *     pinpoint: "134",
  *   })
  */
-export function formatGeneralSubsequent(
-  data: GeneralSubsequentData,
-): FormattedRun[] {
+export function formatGeneralSubsequent(data: GeneralSubsequentData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author/title, above n X
@@ -83,9 +81,7 @@ export function formatGeneralSubsequent(
  *     pinpoint: "134",
  *   })
  */
-export function formatCommercialSubsequent(
-  data: CommercialSubsequentData,
-): FormattedRun[] {
+export function formatCommercialSubsequent(data: CommercialSubsequentData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author or short title

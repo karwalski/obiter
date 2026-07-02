@@ -29,8 +29,8 @@ describe("COURT-006: Report Hierarchy Data", () => {
     expect(REPORT_HIERARCHY.FCA).toEqual(["FCR", "ALR", "MNC"]);
   });
 
-  test("FCFCOA hierarchy: FamCAFC > FLC > ALR > MNC", () => {
-    expect(REPORT_HIERARCHY.FCFCOA).toEqual(["FamCAFC", "FLC", "ALR", "MNC"]);
+  test("FCFCOA hierarchy: Fam LR > FLC > ALR > MNC (FamCAFC is a rule 2.3.1 identifier, not a series)", () => {
+    expect(REPORT_HIERARCHY.FCFCOA).toEqual(["Fam LR", "FLC", "ALR", "MNC"]);
   });
 
   test("NSW hierarchy: NSWLR > ALR > MNC", () => {
@@ -61,8 +61,8 @@ describe("COURT-006: Report Hierarchy Data", () => {
     expect(REPORT_HIERARCHY.ACT).toEqual(["ACTLR", "ALR", "MNC"]);
   });
 
-  test("NT hierarchy: NTR > ALR > MNC", () => {
-    expect(REPORT_HIERARCHY.NT).toEqual(["NTR", "ALR", "MNC"]);
+  test("NT hierarchy: NTLR > NTR > ALR > MNC (rule 2.2.3 table: NTLR is the current series)", () => {
+    expect(REPORT_HIERARCHY.NT).toEqual(["NTLR", "NTR", "ALR", "MNC"]);
   });
 
   test("every hierarchy ends with MNC", () => {
@@ -117,8 +117,24 @@ describe("COURT-006: getPreferredReportOrder", () => {
     expect(getPreferredReportOrder("SASC")).toEqual(["SASR", "ALR", "MNC"]);
   });
 
-  test("resolves TASCSC to TAS hierarchy", () => {
+  test("resolves TASSC to TAS hierarchy (rule 2.3.1 identifier)", () => {
+    expect(getPreferredReportOrder("TASSC")).toEqual(["Tas R", "ALR", "MNC"]);
+  });
+
+  test("resolves TASCCA to TAS hierarchy (rule 2.3.1 identifier, 2010–)", () => {
+    expect(getPreferredReportOrder("TASCCA")).toEqual(["Tas R", "ALR", "MNC"]);
+  });
+
+  test("resolves legacy TASCSC preset key to TAS hierarchy", () => {
     expect(getPreferredReportOrder("TASCSC")).toEqual(["Tas R", "ALR", "MNC"]);
+  });
+
+  test("resolves HCASL to HCA hierarchy (rule 2.3.1 identifier, 2008–)", () => {
+    expect(getPreferredReportOrder("HCASL")).toEqual(["CLR", "ALJR", "ALR", "MNC"]);
+  });
+
+  test("resolves NTCCA to NT hierarchy (rule 2.3.1 identifier, 2000–)", () => {
+    expect(getPreferredReportOrder("NTCCA")).toEqual(["NTLR", "NTR", "ALR", "MNC"]);
   });
 
   test("resolves ACTSC to ACT hierarchy", () => {
@@ -126,7 +142,7 @@ describe("COURT-006: getPreferredReportOrder", () => {
   });
 
   test("resolves NTSC to NT hierarchy", () => {
-    expect(getPreferredReportOrder("NTSC")).toEqual(["NTR", "ALR", "MNC"]);
+    expect(getPreferredReportOrder("NTSC")).toEqual(["NTLR", "NTR", "ALR", "MNC"]);
   });
 
   test("resolves FCAFC to FCA hierarchy", () => {
@@ -256,6 +272,24 @@ describe("COURT-006: Unknown jurisdiction falls back to AGLC4 default ordering",
 
   test("unknown jurisdiction: subject-specific preferred over MNC", () => {
     expect(suggestPreferredReport("UNKNOWN", ["MNC", "IPR"])).toBe("IPR");
+  });
+
+  test("FLR is generalist unauthorised, not authorised (rule 2.2.2 table)", () => {
+    expect(suggestPreferredReport("UNKNOWN", ["FLR", "CLR"])).toBe("CLR");
+    expect(suggestPreferredReport("UNKNOWN", ["FLR", "IPR"])).toBe("FLR");
+  });
+
+  test("IR is subject-specific, not generalist (rule 2.2.2 table)", () => {
+    expect(suggestPreferredReport("UNKNOWN", ["IR", "ALR"])).toBe("ALR");
+  });
+
+  test("FCAFC/FamCAFC rank as medium neutral identifiers below report series (rule 2.2.2)", () => {
+    expect(suggestPreferredReport("UNKNOWN", ["FCAFC", "IPR"])).toBe("IPR");
+    expect(suggestPreferredReport("UNKNOWN", ["FamCAFC", "IPR"])).toBe("IPR");
+  });
+
+  test("Qd R is the authorised Queensland series (rule 2.2.3 table; 'QR' is not AGLC4)", () => {
+    expect(suggestPreferredReport("UNKNOWN", ["Qd R", "ALR"])).toBe("Qd R");
   });
 
   test("unknown jurisdiction: authorised report preferred over MNC", () => {

@@ -11,8 +11,6 @@ import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
 
-/** Single shared list ID — prevents the dual-list bug. */
-let aglcHeadingListId: number | undefined;
 
 interface HeadingDef {
   level: 1 | 2 | 3 | 4 | 5;
@@ -93,13 +91,18 @@ const SAMPLE_TEXTS: Record<number, string> = {
   5: "Procedural history",
 };
 
-/** QUOTE-005 annotation options (Rule 1.5.7). */
+/**
+ * QUOTE-005 annotation options — the five fixed parenthetical clauses of
+ * AGLC4 Rule 1.5.7, in the rule's table order. Where more than one clause
+ * applies to a source, they are inserted in this order, each in its own
+ * parentheses.
+ */
 const ANNOTATIONS = [
-  "(emphasis added)",
   "(emphasis in original)",
+  "(emphasis added)",
+  "(emphasis altered)",
+  "(emphasis omitted)",
   "(citations omitted)",
-  "(footnotes omitted)",
-  "(translation modified)",
 ];
 
 export default function Styling(): JSX.Element {
@@ -119,16 +122,12 @@ export default function Styling(): JSX.Element {
         const store = await getSharedStore();
         setStandardId(store.getStandardId());
 
-        // Restore persisted heading list ID
+        // If no heading list ID is persisted yet, scan the document for one and persist it.
         const savedListId = store.getHeadingListId();
-        if (savedListId !== undefined) {
-          aglcHeadingListId = savedListId;
-        } else {
-          // Fallback: scan document for existing heading list
+        if (savedListId === undefined) {
           await Word.run(async (context) => {
             const foundId = await findExistingHeadingListId(context);
             if (foundId !== undefined) {
-              aglcHeadingListId = foundId;
               await store.setHeadingListId(foundId);
             }
           });
@@ -277,7 +276,10 @@ export default function Styling(): JSX.Element {
 
   /**
    * QUOTE-001: Auto-Format Quotation (Rule 1.5.1)
-   * If 3+ paragraphs, apply block quote style. Otherwise wrap in curly single quotes.
+   * Short quotations (three lines or less) are wrapped in curly single
+   * quotes; long quotations (four lines or more) take the block quote
+   * style. Multi-paragraph selections are treated as long (heuristic —
+   * paragraph count only approximates line count).
    */
   const handleFormatQuotation = useCallback(async () => {
     setApplying(true);
@@ -327,7 +329,7 @@ export default function Styling(): JSX.Element {
             lastPara.insertText(lastText.replace(closeQuotes, ""), "Replace");
           }
           await context.sync();
-          setStatus("Applied block quote formatting (3+ line quotation).");
+          setStatus("Applied block quote formatting (long quotation).");
         } else {
           // Short quotation: wrap in curly single quotes
           const text = selection.text ?? "";
@@ -349,7 +351,8 @@ export default function Styling(): JSX.Element {
 
   /**
    * QUOTE-002: Insert Ellipsis (Rule 1.5.3)
-   * AGLC4 ellipsis is ` . . . ` (three dots with spaces).
+   * The AGLC4 ellipsis is the '…' character, preceded and followed by a
+   * space (no space before a footnote number).
    */
   const handleInsertEllipsis = useCallback(async () => {
     setApplying(true);
@@ -358,7 +361,7 @@ export default function Styling(): JSX.Element {
       setError(null);
       await Word.run(async (context) => {
         const selection = context.document.getSelection();
-        selection.insertText(" . . . ", "Replace");
+        selection.insertText(" … ", "Replace");
         await context.sync();
       });
       setStatus("Inserted AGLC4 ellipsis.");
@@ -553,7 +556,7 @@ export default function Styling(): JSX.Element {
             {applying ? "Adding..." : "Add Author"}
           </button>
 
-          <p style={{ fontSize: 10, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
+          <p style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
             Place your cursor where the lines should go (usually the top of the
             document), then add the title and the author. The author renders in
             small capitals with a full-size initial (Albert Author) — type the
@@ -607,7 +610,7 @@ export default function Styling(): JSX.Element {
                   </span>
                   <span style={{
                     flex: "0 0 auto",
-                    fontSize: 10,
+                    fontSize: "var(--text-min)",
                     color: "var(--colour-text-secondary)",
                     textAlign: "right",
                     whiteSpace: "nowrap",

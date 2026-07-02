@@ -76,16 +76,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
 // ─── API Version Detection ───────────────────────────────────────────────────
 
 /** WordApi versions to probe, from newest to oldest. */
-const WORDAPI_VERSIONS = [
-  "1.8",
-  "1.7",
-  "1.6",
-  "1.5",
-  "1.4",
-  "1.3",
-  "1.2",
-  "1.1",
-];
+const WORDAPI_VERSIONS = ["1.8", "1.7", "1.6", "1.5", "1.4", "1.3", "1.2", "1.1"];
 
 /**
  * Returns the highest WordApi version supported by the current host.

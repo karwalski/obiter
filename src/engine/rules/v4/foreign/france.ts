@@ -22,12 +22,6 @@ import { FormattedRun } from "../../../../types/formattedRun";
  * - CE: Conseil d'Etat (highest administrative court)
  * - CC: Conseil constitutionnel (constitutional court)
  */
-const COURT_ABBREVIATIONS: Record<string, string> = {
-  Cass: "Cour de cassation",
-  CE: "Conseil d'Etat",
-  CC: "Conseil constitutionnel",
-};
-
 // ─── FRGN-003: French Cases (Rule 17.1) ─────────────────────────────────────
 
 /**
@@ -139,10 +133,7 @@ export function formatLegislation(data: {
  * @param data - French constitutional citation data
  * @returns An array of FormattedRun representing the formatted citation
  */
-export function formatConstitution(data: {
-  title: string;
-  pinpoint?: string;
-}): FormattedRun[] {
+export function formatConstitution(data: { title: string; pinpoint?: string }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title in italics

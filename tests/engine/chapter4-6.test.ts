@@ -27,13 +27,13 @@ import {
 import {
   formatJournalArticle,
   formatJournalArticlePart,
-  formatSymposiumArticle,
   formatOnlineJournalArticle,
   formatForthcomingArticle,
 } from "../../src/engine/rules/v4/secondary/journals";
 import {
   formatBook,
   formatEdition,
+  formatEditionRuns,
   formatMultiVolumeBook,
   formatBookChapter,
   formatTranslatedBook,
@@ -82,7 +82,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
     });
 
     it("should strip honorific titles (Dr, Professor, The Hon)", () => {
-      // AGLC4 Rule 4.1.1 Example: "Associate Professor Katy Barnett" → "Katy Barnett"
+      // AGLC4 Rule 4.1.1 Example: "Professor Ian Malkin" → "Ian Malkin"
       const prof: Author = {
         givenNames: "Professor Ian",
         surname: "Malkin",
@@ -93,6 +93,39 @@ describe("Chapter 4 — Secondary Sources General", () => {
       // In AGLC4 the author name in citation is "John Cockburn"
       // but if givenNames only has "Dr", stripping yields surname only
       expect(formatAuthorName(dr)).toBe("Cockburn");
+    });
+
+    it("should strip 'Associate Professor' per AGLC4 rule 4.1.1 example table", () => {
+      // AGLC4 rule 4.1.1: "Associate Professor Katy Barnett" → "Katy Barnett"
+      const author: Author = {
+        givenNames: "Associate Professor Katy",
+        surname: "Barnett",
+      };
+      expect(formatAuthorName(author)).toBe("Katy Barnett");
+    });
+
+    it("should strip conventional titles Ms/Mr per AGLC4 rule 4.1.1 example table", () => {
+      // AGLC4 rule 4.1.1: "Ms Sharon Rodrick" → "Sharon Rodrick"
+      const ms: Author = { givenNames: "Ms Sharon", surname: "Rodrick" };
+      expect(formatAuthorName(ms)).toBe("Sharon Rodrick");
+
+      // AGLC4 rule 4.1.1: "Mr Gageler SC" → "Stephen Gageler"
+      const mr: Author = { givenNames: "Mr Stephen", surname: "Gageler SC" };
+      expect(formatAuthorName(mr)).toBe("Stephen Gageler");
+    });
+
+    it("should not mistake all-caps initials for a conventional title", () => {
+      // 'MS' here is a pair of initials, not the title 'Ms'
+      const author: Author = { givenNames: "MS", surname: "Jacobs" };
+      expect(formatAuthorName(author)).toBe("MS Jacobs");
+    });
+
+    it("should strip stacked honorific titles ('The Hon Dr') per rule 4.1.1", () => {
+      const author: Author = {
+        givenNames: "The Hon Dr John",
+        surname: "Cockburn",
+      };
+      expect(formatAuthorName(author)).toBe("John Cockburn");
     });
 
     it("should retain Sir, Dame, Lord, Lady, Viscount, Baron, Baroness", () => {
@@ -269,21 +302,55 @@ describe("Chapter 4 — Secondary Sources General", () => {
       });
       expect(toPlainText(runs)).toBe("Department for Women (NSW)");
     });
+
+    it("should strip corporate designators and a leading 'The' from company names (rule 4.1.4)", () => {
+      // AGLC4 rule 4.1.4: 'Pty', 'Ltd', 'Co', 'Inc' and a leading 'the'
+      // are stripped from company-author names.
+      const runs = formatBodyAuthor({ body: "The Smith Group Pty Ltd" });
+      expect(toPlainText(runs)).toBe("Smith Group");
+    });
   });
 
   // ── Rule 4.1.5: Judicial Authors ────────────────────────────────────────
 
   describe("Rule 4.1.5 — Judicial authors", () => {
-    it("should include judicial title before name", () => {
-      // AGLC4 Example 1: "Justice KM Hayne"
+    it("should include the judicial title when it appears on the source (AGLC4 ex 19, rule 4.1.5)", () => {
+      // Extra-curial writing where the title IS printed on the source:
+      // 'Justice Michael Kirby, "Transnational Judicial Dialogue…"' —
+      // callers set judicialTitle only in that case.
       const author: Author = {
-        givenNames: "K.M.",
-        surname: "Hayne",
+        givenNames: "Michael",
+        surname: "Kirby",
         isJudge: true,
         judicialTitle: "Justice",
       };
       const runs = formatJudicialAuthor(author);
-      expect(toPlainText(runs)).toBe("Justice KM Hayne");
+      expect(toPlainText(runs)).toBe("Justice Michael Kirby");
+    });
+
+    it("should omit the judicial title when it is not on the source (AGLC4 ex 18, rule 4.1.5)", () => {
+      // A serving judge whose source carries no judicial title is cited by
+      // plain name (James Edelman and Elise Bant, Unjust Enrichment):
+      // judicialTitle is left unset, so no title is emitted.
+      const author: Author = {
+        givenNames: "James",
+        surname: "Edelman",
+        isJudge: true,
+      };
+      const runs = formatJudicialAuthor(author);
+      expect(toPlainText(runs)).toBe("James Edelman");
+    });
+
+    it("should omit the former judicial title of a former judicial officer (AGLC4 ex 20, rule 4.1.5)", () => {
+      // 'Michael Kirby, "The Dreyfus Affair…" (Speech, …)' — former
+      // officers lose the former title, so judicialTitle stays unset.
+      const author: Author = {
+        givenNames: "Michael",
+        surname: "Kirby",
+        isJudge: true,
+      };
+      const runs = formatJudicialAuthor(author);
+      expect(toPlainText(runs)).toBe("Michael Kirby");
     });
   });
 
@@ -305,8 +372,9 @@ describe("Chapter 4 — Secondary Sources General", () => {
         "A Personal Journey through the Law of Torts",
         "journal.article"
       );
+      // 'through' stays lowercase: rule 1.7 lowercases prepositions.
       expect(runs[0].text).toBe(
-        "\u2018A Personal Journey Through the Law of Torts\u2019"
+        "\u2018A Personal Journey through the Law of Torts\u2019"
       );
       expect(runs[0].italic).toBeFalsy();
     });
@@ -317,6 +385,44 @@ describe("Chapter 4 — Secondary Sources General", () => {
         "book"
       );
       expect(runs[0].text).toBe("The UN Convention");
+    });
+
+    it("should standardise a colon between title and subtitle (AGLC4 ex 25, rule 4.2)", () => {
+      // Original title: 'Sharing Water from Transboundary Rivers in
+      // Australia — An Interstate Common Law?' — the em dash becomes a colon.
+      const runs = formatSecondaryTitle(
+        "Sharing Water from Transboundary Rivers in Australia — An Interstate Common Law?",
+        "journal.article"
+      );
+      expect(runs[0].text).toBe(
+        "‘Sharing Water from Transboundary Rivers in Australia: An Interstate Common Law?’"
+      );
+    });
+
+    it("should keep only the first subtitle (AGLC4 ex 24, rule 4.2)", () => {
+      const runs = formatSecondaryTitle(
+        "The Constitution of Malaysia: Further Perspectives and Developments: Essays in Honour of Tun Mohamed Suffian",
+        "book"
+      );
+      expect(runs[0].text).toBe(
+        "The Constitution of Malaysia: Further Perspectives and Developments"
+      );
+    });
+
+    it("should keep a second subtitle that is a span of dates (rule 4.2)", () => {
+      const runs = formatSecondaryTitle(
+        "A History: The Law of the Sea: 1945–75",
+        "book"
+      );
+      expect(runs[0].text).toBe("A History: The Law of the Sea: 1945–75");
+    });
+
+    it("should lowercase prepositions and capitalise after hyphens (rule 1.7 via 4.2)", () => {
+      const runs = formatSecondaryTitle(
+        "Inquiry into the office of governor-general",
+        "book"
+      );
+      expect(runs[0].text).toBe("Inquiry into the Office of Governor-General");
     });
   });
 
@@ -390,8 +496,9 @@ describe("Chapter 5 — Journal Articles", () => {
         pinpoint: { type: "page", value: "400" },
       });
       const text = toPlainText(runs);
+      // 'through' stays lowercase: rule 1.7 lowercases prepositions.
       expect(text).toBe(
-        "Harold Luntz, \u2018A Personal Journey Through the Law of Torts\u2019 (2005) 27(3) Sydney Law Review 393, 400"
+        "Harold Luntz, \u2018A Personal Journey through the Law of Torts\u2019 (2005) 27(3) Sydney Law Review 393, 400"
       );
       // Journal name should be italic
       expect(italicText(runs)).toBe("Sydney Law Review");
@@ -433,9 +540,8 @@ describe("Chapter 5 — Journal Articles", () => {
       );
     });
 
-    it("should format article with season issue identifier (AGLC4 5.4 Example 6)", () => {
-      // AP Simester, 'Accessory Liability and Common Unlawful Purposes'
-      // (2017) 133 (January) Law Quarterly Review 73.
+    it("should format article with month issue identifier per AGLC4 ex 6 (rule 5.4)", () => {
+      // A non-numeric issue is preceded by a space: '133 (January)'.
       const runs = formatJournalArticle({
         authors: [{ givenNames: "A.P.", surname: "Simester" }],
         title: "Accessory Liability and Common Unlawful Purposes",
@@ -447,7 +553,27 @@ describe("Chapter 5 — Journal Articles", () => {
       });
       const text = toPlainText(runs);
       expect(text).toBe(
-        "AP Simester, \u2018Accessory Liability and Common Unlawful Purposes\u2019 (2017) 133(January) Law Quarterly Review 73"
+        "AP Simester, \u2018Accessory Liability and Common Unlawful Purposes\u2019 (2017) 133 (January) Law Quarterly Review 73"
+      );
+    });
+
+    it("should format combined issues without a space per AGLC4 ex 8 (rule 5.4)", () => {
+      // James Boyle, 'The Second Enclosure Movement and the Construction of
+      // the Public Domain' (2003) 66(1\u20132) Law and Contemporary Problems 33, 37.
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "James", surname: "Boyle" }],
+        title:
+          "The Second Enclosure Movement and the Construction of the Public Domain",
+        year: 2003,
+        volume: 66,
+        issue: "1\u20132",
+        journal: "Law and Contemporary Problems",
+        startingPage: 33,
+        pinpoint: { type: "page", value: "37" },
+      });
+      const text = toPlainText(runs);
+      expect(text).toBe(
+        "James Boyle, \u2018The Second Enclosure Movement and the Construction of the Public Domain\u2019 (2003) 66(1\u20132) Law and Contemporary Problems 33, 37"
       );
     });
 
@@ -505,15 +631,112 @@ describe("Chapter 5 — Journal Articles", () => {
     });
   });
 
+  // ── Rule 5.3: Year (year-organised journals) ────────────────────────────
+
+  describe("Rule 5.3 — Year-organised journals", () => {
+    it("formats a year-organised journal per AGLC4 ex 4 (rule 5.3)", () => {
+      // John Kleinig, 'Paternalism and Personal Integrity' [1983] (3)
+      // Bulletin of the Australian Society of Legal Philosophy 27.
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "John", surname: "Kleinig" }],
+        title: "Paternalism and Personal Integrity",
+        year: 1983,
+        issue: "3",
+        journal: "Bulletin of the Australian Society of Legal Philosophy",
+        startingPage: 27,
+      });
+      expect(toPlainText(runs)).toBe(
+        "John Kleinig, ‘Paternalism and Personal Integrity’ [1983] (3) Bulletin of the Australian Society of Legal Philosophy 27"
+      );
+    });
+
+    it("formats a year-organised journal with season issue per AGLC4 ch 5 header example (rules 5.3–5.4)", () => {
+      // Lord Woolf, 'Droit Public: English Style' [1995] (Spring)
+      // Public Law 57, 60.
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "Lord", surname: "Woolf" }],
+        title: "Droit Public: English Style",
+        year: 1995,
+        issue: "Spring",
+        journal: "Public Law",
+        startingPage: 57,
+        pinpoint: { type: "page", value: "60" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "Lord Woolf, ‘Droit Public: English Style’ [1995] (Spring) Public Law 57, 60"
+      );
+    });
+
+    it("supports a year span for a year-organised volume (rules 5.3, 1.11.4)", () => {
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Article",
+        year: "1992–93",
+        issue: "1",
+        journal: "Cambridge Law Journal",
+        startingPage: 1,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Test Author, ‘Test Article’ [1992–93] (1) Cambridge Law Journal 1"
+      );
+    });
+
+    it("an explicit yearOrganised flag overrides the derived default", () => {
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Article",
+        year: 2000,
+        yearOrganised: false,
+        journal: "Some Journal",
+        startingPage: 10,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Test Author, ‘Test Article’ (2000) Some Journal 10"
+      );
+    });
+  });
+
+  // ── Rule 5.5: Journal title ─────────────────────────────────────────────
+
+  describe("Rule 5.5 — Journal title", () => {
+    it("drops a leading 'The' from the journal title per AGLC4 ex 9 (rule 5.5)", () => {
+      // … Australian Law Journal … [Not: … The Australian Law Journal …]
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "R.J.", surname: "Ellicott" }],
+        title: "The Autochthonous Expedient and the Federal Court",
+        year: 2008,
+        volume: 82,
+        issue: "10",
+        journal: "The Australian Law Journal",
+        startingPage: 700,
+      });
+      expect(italicText(runs)).toBe("Australian Law Journal");
+    });
+
+    it("preserves '&' in a journal title as on the title page (DECISION-014)", () => {
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Article",
+        year: 2010,
+        volume: 22,
+        issue: "1",
+        journal: "Yale Journal of Law & the Humanities",
+        startingPage: 100,
+      });
+      expect(italicText(runs)).toBe("Yale Journal of Law & the Humanities");
+    });
+  });
+
   // ── Rule 5.8: Articles Published in Parts ───────────────────────────────
 
   describe("Rule 5.8 — Articles published in parts", () => {
-    it("should insert (Pt N) between title and year (AGLC4 5.8 Example 17)", () => {
-      // Jacobus tenBroek, 'California's Dual System of Family Law…' (Pt 1)
-      // (1964) 16(2) Stanford Law Review 257.
+    it("inserts (Pt N) between title and year per AGLC4 ex 17 (rule 5.8)", () => {
+      // The in-title part reference ('— Part I') is stripped and '(Pt 1)'
+      // sits between the title and the year.
       const runs = formatJournalArticlePart({
         authors: [{ givenNames: "Jacobus", surname: "tenBroek" }],
-        title: "California's Dual System of Family Law",
+        title:
+          "California's Dual System of Family Law: Its Origin, Development, and Present Status — Part I",
         year: 1964,
         volume: 16,
         issue: "2",
@@ -521,23 +744,36 @@ describe("Chapter 5 — Journal Articles", () => {
         startingPage: 257,
         partNumber: 1,
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("(Part 1)");
-      expect(text).toContain("(1964)");
-      // Part should appear between title and year
-      const ptIdx = text.indexOf("(Part 1)");
-      const yearIdx = text.indexOf("(1964)");
-      expect(ptIdx).toBeLessThan(yearIdx);
+      expect(toPlainText(runs)).toBe(
+        "Jacobus tenBroek, ‘California's Dual System of Family Law: Its Origin, Development, and Present Status’ (Pt 1) (1964) 16(2) Stanford Law Review 257"
+      );
+    });
+
+    it("formats a part of a year-organised journal per AGLC4 ex 15 (rules 5.8, 5.3)", () => {
+      // RN Gooderson, 'Claim of Right and Dispute of Title' (Pt 1) [1966]
+      // (1) Cambridge Law Journal 90.
+      const runs = formatJournalArticlePart({
+        authors: [{ givenNames: "R.N.", surname: "Gooderson" }],
+        title: "Claim of Right and Dispute of Title",
+        year: 1966,
+        issue: "1",
+        journal: "Cambridge Law Journal",
+        startingPage: 90,
+        partNumber: 1,
+      });
+      expect(toPlainText(runs)).toBe(
+        "RN Gooderson, ‘Claim of Right and Dispute of Title’ (Pt 1) [1966] (1) Cambridge Law Journal 90"
+      );
     });
   });
 
   // ── Rule 5.9: Symposia ──────────────────────────────────────────────────
 
   describe("Rule 5.9 — Symposia", () => {
-    it("should include symposium title after 'in' (AGLC4 5.9 Examples 20-21)", () => {
-      // Symposium, 'Contemporary Human Rights in Australia'
-      // (2002) 26(2) Melbourne University Law Review 251.
-      const runs = formatSymposiumArticle({
+    it("cites a symposium as a whole with 'Symposium' as the author per AGLC4 ex 20 (rule 5.9)", () => {
+      // A symposium cited as a whole is an ordinary journal-article citation
+      // with 'Symposium' in the author position — no special format exists.
+      const runs = formatJournalArticle({
         authors: [{ givenNames: "", surname: "Symposium" }],
         title: "Contemporary Human Rights in Australia",
         year: 2002,
@@ -545,31 +781,59 @@ describe("Chapter 5 — Journal Articles", () => {
         issue: "2",
         journal: "Melbourne University Law Review",
         startingPage: 251,
-        symposiumTitle: "Contemporary Human Rights in Australia",
       });
-      const text = toPlainText(runs);
-      expect(text).toContain(" in Contemporary Human Rights in Australia");
+      expect(toPlainText(runs)).toBe(
+        "Symposium, ‘Contemporary Human Rights in Australia’ (2002) 26(2) Melbourne University Law Review 251"
+      );
     });
   });
 
   // ── Rule 5.10: Online Journal Articles ──────────────────────────────────
 
   describe("Rule 5.10 — Online journal articles", () => {
-    it("should include URL in angle brackets at end", () => {
+    it("formats an article number with pinpoint per AGLC4 ex 22 (rule 5.10)", () => {
+      // Azzurra Annunziata et al, '\u2026' (2016) 8(7) Nutrients 416:1\u201319, 8.
+      const runs = formatOnlineJournalArticle({
+        authors: [
+          { givenNames: "Azzurra", surname: "Annunziata" },
+          { givenNames: "Second", surname: "Author" },
+          { givenNames: "Third", surname: "Author" },
+          { givenNames: "Fourth", surname: "Author" },
+        ],
+        title:
+          "Do Consumers Want More Nutritional and Health Information on Wine Labels? Insights from the EU and USA",
+        year: 2016,
+        volume: 8,
+        issue: "7",
+        journal: "Nutrients",
+        articleNumber: "416:1\u201319",
+        pinpoint: { type: "page", value: "8" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "Azzurra Annunziata et al, \u2018Do Consumers Want More Nutritional and Health Information on Wine Labels? Insights from the EU and USA\u2019 (2016) 8(7) Nutrients 416:1\u201319, 8"
+      );
+    });
+
+    it("formats an online article with page numbers and pinpoint per AGLC4 ex 24 (rule 5.10)", () => {
+      // Kate Lewins, '\u2026' (2006) 13(1) eLaw Journal: Murdoch University
+      // Electronic Journal of Law 58, 59.
       const runs = formatOnlineJournalArticle({
         authors: [{ givenNames: "Kate", surname: "Lewins" }],
-        title: "What's the Trade Practices Act Got to Do with It",
+        title:
+          "What's the Trade Practices Act Got to Do with It? Section 74 and Towage Contracts in Australia",
         year: 2006,
         volume: 13,
         issue: "1",
         journal: "eLaw Journal: Murdoch University Electronic Journal of Law",
-        url: "https://example.com/article",
+        startingPage: 58,
+        pinpoint: { type: "page", value: "59" },
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("<https://example.com/article>");
+      expect(toPlainText(runs)).toBe(
+        "Kate Lewins, \u2018What's the Trade Practices Act Got to Do with It? Section 74 and Towage Contracts in Australia\u2019 (2006) 13(1) eLaw Journal: Murdoch University Electronic Journal of Law 58, 59"
+      );
     });
 
-    it("should include article number when provided", () => {
+    it("appends an optional URL in angle brackets (rules 5.10, 4.4)", () => {
       const runs = formatOnlineJournalArticle({
         authors: [{ givenNames: "Test", surname: "Author" }],
         title: "Test Article",
@@ -577,18 +841,19 @@ describe("Chapter 5 — Journal Articles", () => {
         volume: 8,
         issue: "7",
         journal: "Nutrients",
-        articleNumber: "416:1\u201319",
-        url: "https://example.com",
+        articleNumber: "416",
+        url: "https://example.com/article",
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("416:1\u201319");
+      expect(toPlainText(runs)).toBe(
+        "Test Author, \u2018Test Article\u2019 (2016) 8(7) Nutrients 416 <https://example.com/article>"
+      );
     });
   });
 
-  // ── Rule 5.11: Forthcoming Articles ─────────────────────────────────────
+  // ── Rule 5.11: Forthcoming and Advance Articles ─────────────────────────
 
-  describe("Rule 5.11 — Forthcoming articles", () => {
-    it("should include (forthcoming) after journal name (AGLC4 5.11 Example 26)", () => {
+  describe("Rule 5.11 — Forthcoming and advance articles", () => {
+    it("keeps known year and volume with (forthcoming) per AGLC4 ex 26 (rule 5.11)", () => {
       // Geneviève Helleringer and Anne-Lise Sibony, … (2017) 23
       // Columbia Journal of European Law (forthcoming).
       const runs = formatForthcomingArticle({
@@ -597,12 +862,43 @@ describe("Chapter 5 — Journal Articles", () => {
           { givenNames: "Anne-Lise", surname: "Sibony" },
         ],
         title: "European Consumer Protection through the Behavioral Lens",
+        year: 2017,
+        volume: 23,
         journal: "Columbia Journal of European Law",
       });
       const text = toPlainText(runs);
-      expect(text).toContain("(forthcoming)");
-      expect(text).toContain("Columbia Journal of European Law");
+      expect(text).toBe(
+        "Genevi\u00e8ve Helleringer and Anne-Lise Sibony, \u2018European Consumer Protection through the Behavioral Lens\u2019 (2017) 23 Columbia Journal of European Law (forthcoming)"
+      );
       expect(italicText(runs)).toBe("Columbia Journal of European Law");
+    });
+
+    it("formats an advance article per AGLC4 ex 27 (rule 5.11)", () => {
+      // Michael Crommelin, 'Powers of the Head of State' (2015) 38(3)
+      // Melbourne University Law Review (advance).
+      const runs = formatForthcomingArticle({
+        authors: [{ givenNames: "Michael", surname: "Crommelin" }],
+        title: "Powers of the Head of State",
+        year: 2015,
+        volume: 38,
+        issue: "3",
+        journal: "Melbourne University Law Review",
+        advance: true,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Michael Crommelin, \u2018Powers of the Head of State\u2019 (2015) 38(3) Melbourne University Law Review (advance)"
+      );
+    });
+
+    it("omits unavailable elements while keeping (forthcoming) (rule 5.11)", () => {
+      const runs = formatForthcomingArticle({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Article",
+        journal: "Columbia Journal of European Law",
+      });
+      expect(toPlainText(runs)).toBe(
+        "Test Author, \u2018Test Article\u2019 Columbia Journal of European Law (forthcoming)"
+      );
     });
   });
 });
@@ -780,28 +1076,135 @@ describe("Chapter 6 — Books", () => {
       expect(formatEdition(3, true)).toBe("3rd rev ed");
     });
 
+    it("should format an unnumbered revised edition as bare 'rev ed' (rule 6.3.3)", () => {
+      expect(formatEdition(1, true)).toBe("rev ed");
+      expect(formatEdition(0, true)).toBe("rev ed");
+    });
+
     it("should not include edition for edition <= 1", () => {
       expect(formatEdition(0)).toBe("");
       expect(formatEdition(1)).toBe("");
+    });
+
+    it("sets the ordinal indicator in superscript (rule 6.3.2)", () => {
+      // AGLC4 rule 6.3.2: "The ordinal indicator ('th', 'nd', etc) is superscript."
+      expect(formatEditionRuns(7)).toEqual([
+        { text: "7" },
+        { text: "th", superscript: true },
+        { text: " ed" },
+      ]);
+      expect(formatEditionRuns(2)).toEqual([
+        { text: "2" },
+        { text: "nd", superscript: true },
+        { text: " ed" },
+      ]);
+      expect(formatEditionRuns(3, true)).toEqual([
+        { text: "3" },
+        { text: "rd", superscript: true },
+        { text: " rev ed" },
+      ]);
+      expect(formatEditionRuns(1)).toEqual([]);
+      expect(formatEditionRuns(1, true)).toEqual([{ text: "rev ed" }]);
+    });
+
+    it("emits a superscript ordinal within a book citation (rule 6.3.2)", () => {
+      const runs = formatBook({
+        authors: [{ givenNames: "Malcolm N", surname: "Shaw" }],
+        title: "International Law",
+        publisher: "Cambridge University Press",
+        edition: 7,
+        year: 2014,
+      });
+      const superscriptRun = runs.find((r) => r.superscript);
+      expect(superscriptRun).toEqual({ text: "th", superscript: true });
+    });
+  });
+
+  // ── Rule 6.3.1: Publisher ───────────────────────────────────────────────
+
+  describe("Rule 6.3.1 — Publisher", () => {
+    it("omits the publisher where it is the same as the author per AGLC4 ex 12 (rule 6.3.1)", () => {
+      // Law Institute of Victoria, Legal Directory 2006 (2005).
+      // [Not: … (Law Institute of Victoria, 2005).]
+      const runs = formatBook({
+        authors: [{ givenNames: "", surname: "Law Institute of Victoria" }],
+        title: "Legal Directory 2006",
+        publisher: "Law Institute of Victoria",
+        year: 2005,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Law Institute of Victoria, Legal Directory 2006 (2005)"
+      );
+    });
+
+    it("drops a leading 'The' from the publisher's name per AGLC4 ex 7 (rule 6.3.1)", () => {
+      // … (Federation Press, 2012). [Not: … The Federation Press …]
+      const runs = formatBook({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Book",
+        publisher: "The Federation Press",
+        year: 2012,
+      });
+      expect(toPlainText(runs)).toBe("Test Author, Test Book (Federation Press, 2012)");
+    });
+  });
+
+  // ── Rule 6.3.3: Revised editions ────────────────────────────────────────
+
+  describe("Rule 6.3.3 — Revised editions", () => {
+    it("formats an unnumbered revised edition per AGLC4 ex 17 (rule 6.3.3)", () => {
+      // Ernest J Weinrib, The Idea of Private Law (Oxford University Press,
+      // rev ed, 2012) 55.
+      const runs = formatBook({
+        authors: [{ givenNames: "Ernest J", surname: "Weinrib" }],
+        title: "The Idea of Private Law",
+        publisher: "Oxford University Press",
+        revised: true,
+        year: 2012,
+        pinpoint: { type: "page", value: "55" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "Ernest J Weinrib, The Idea of Private Law (Oxford University Press, rev ed, 2012) 55"
+      );
     });
   });
 
   // ── Rule 6.5: Multi-Volume Books ───────────────────────────────────────
 
   describe("Rule 6.5 — Multi-volume books", () => {
-    it("should include volume after publication details (AGLC4 6.5 Example 26)", () => {
+    it("formats a multi-volume book with year span per AGLC4 ex 26 (rules 6.5, 6.3.4)", () => {
       // Joel Feinberg, The Moral Limits of the Criminal Law
       // (Oxford University Press, 1984–88) vol 4, 45.
       const runs = formatMultiVolumeBook({
         authors: [{ givenNames: "Joel", surname: "Feinberg" }],
         title: "The Moral Limits of the Criminal Law",
         publisher: "Oxford University Press",
-        year: 1984,
+        year: "1984–88",
         volume: 4,
         pinpoint: { type: "page", value: "45" },
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("vol 4, 45");
+      expect(toPlainText(runs)).toBe(
+        "Joel Feinberg, The Moral Limits of the Criminal Law (Oxford University Press, 1984–88) vol 4, 45"
+      );
+    });
+
+    it("uses 'bk' where the source styles volumes as books per AGLC4 ex 27 (rule 6.5)", () => {
+      // Evan C Lewis and DI Cassidy, Tenancy Law of New South Wales
+      // (Butterworths, 1966) bk 2.
+      const runs = formatMultiVolumeBook({
+        authors: [
+          { givenNames: "Evan C", surname: "Lewis" },
+          { givenNames: "D.I.", surname: "Cassidy" },
+        ],
+        title: "Tenancy Law of New South Wales",
+        publisher: "Butterworths",
+        year: 1966,
+        volume: 2,
+        volumeLabel: "bk",
+      });
+      expect(toPlainText(runs)).toBe(
+        "Evan C Lewis and DI Cassidy, Tenancy Law of New South Wales (Butterworths, 1966) bk 2"
+      );
     });
 
     it("should format multi-volume without pinpoint", () => {
@@ -815,6 +1218,60 @@ describe("Chapter 6 — Books", () => {
       const text = toPlainText(runs);
       expect(text).toContain("1978) vol 1");
       expect(text).not.toContain("vol 1,");
+    });
+
+    it("supports an open year span for a work in progress (rule 6.3.4)", () => {
+      // Cf AGLC4 6.3.4 ex 21: … (Department of Foreign Affairs and Trade,
+      // 1975–) vol 16, 159.
+      const runs = formatMultiVolumeBook({
+        authors: [{ givenNames: "Test", surname: "Author" }],
+        title: "Test Series",
+        publisher: "Test Publisher",
+        year: "1975–",
+        volume: 16,
+        pinpoint: { type: "page", value: "159" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "Test Author, Test Series (Test Publisher, 1975–) vol 16, 159"
+      );
+    });
+  });
+
+  // ── Rule 6.6.2: Books with an Author and Editor ─────────────────────────
+
+  describe("Rule 6.6.2 — Books with an author and editor", () => {
+    it("inserts ', ed Editor' after the title per AGLC4 ex 34 (rule 6.6.2)", () => {
+      // JS Mill, Utilitarianism, ed Roger Crisp (Oxford University Press, 1998) 14.
+      const runs = formatBook({
+        authors: [{ givenNames: "J.S.", surname: "Mill" }],
+        title: "Utilitarianism",
+        editors: [{ givenNames: "Roger", surname: "Crisp" }],
+        publisher: "Oxford University Press",
+        year: 1998,
+        pinpoint: { type: "page", value: "14" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "JS Mill, Utilitarianism, ed Roger Crisp (Oxford University Press, 1998) 14"
+      );
+    });
+
+    it("uses 'ed' (never 'eds') for multiple editors, with translator, per AGLC4 ex 35 (rules 6.6.2, 6.7)", () => {
+      // Ludwig Wittgenstein, On Certainty, ed GEM Anscombe and GH von
+      // Wright, tr Denis Paul and GEM Anscombe (Harper Torchbooks, 1972).
+      const runs = formatTranslatedBook({
+        authors: [{ givenNames: "Ludwig", surname: "Wittgenstein" }],
+        title: "On Certainty",
+        editors: [
+          { givenNames: "G.E.M.", surname: "Anscombe" },
+          { givenNames: "G.H. von", surname: "Wright" },
+        ],
+        translator: "Denis Paul and GEM Anscombe",
+        publisher: "Harper Torchbooks",
+        year: 1972,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Ludwig Wittgenstein, On Certainty, ed GEM Anscombe and GH von Wright, tr Denis Paul and GEM Anscombe (Harper Torchbooks, 1972)"
+      );
     });
   });
 
@@ -898,46 +1355,111 @@ describe("Chapter 6 — Books", () => {
   // ── Rule 6.7: Translated Books ─────────────────────────────────────────
 
   describe("Rule 6.7 — Translated books", () => {
-    it("should include translator in publication details preceded by 'tr'", () => {
+    it("places ', tr Translator' after the title per AGLC4 ex 36 (rule 6.7)", () => {
+      // Sigmund Freud, Civilization and its Discontents, tr Joan Riviere
+      // (Hogarth Press, 1930). (The guide prints 'its' lowercase; rule 1.7
+      // title case capitalises the non-preposition 'Its'.)
       const runs = formatTranslatedBook({
-        authors: [{ givenNames: "Test", surname: "Author" }],
-        title: "Test Book",
-        publisher: "Publisher",
-        year: 2020,
-        translator: "Jane Smith",
+        authors: [{ givenNames: "Sigmund", surname: "Freud" }],
+        title: "Civilization and Its Discontents",
+        publisher: "Hogarth Press",
+        year: 1930,
+        translator: "Joan Riviere",
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("(tr Jane Smith, Publisher, 2020)");
+      expect(toPlainText(runs)).toBe(
+        "Sigmund Freud, Civilization and Its Discontents, tr Joan Riviere (Hogarth Press, 1930)"
+      );
+    });
+
+    it("appends the optional '[trans of: …]' segment per AGLC4 ex 39 (rule 6.7)", () => {
+      // Jean-Paul Sartre, Being and Nothingness: An Essay on
+      // Phenomenological Ontology, tr Hazel E Barns (Methuen, 1969) 151
+      // [trans of: L'Etre et le Néant (1943)]
+      const runs = formatTranslatedBook({
+        authors: [{ givenNames: "Jean-Paul", surname: "Sartre" }],
+        title: "Being and Nothingness: An Essay on Phenomenological Ontology",
+        publisher: "Methuen",
+        year: 1969,
+        translator: "Hazel E Barns",
+        originalTitle: "L'Etre et le Néant",
+        originalYear: 1943,
+        pinpoint: { type: "page", value: "151" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "Jean-Paul Sartre, Being and Nothingness: An Essay on Phenomenological Ontology, tr Hazel E Barns (Methuen, 1969) 151 [trans of: L'Etre et le Néant (1943)]"
+      );
+      // The original title within the segment is italic
+      expect(italicText(runs)).toContain("L'Etre et le Néant");
     });
   });
 
   // ── Rule 6.8: Forthcoming Books ────────────────────────────────────────
 
   describe("Rule 6.8 — Forthcoming books", () => {
-    it("should replace year with 'forthcoming'", () => {
+    it("replaces the year with 'forthcoming' per AGLC4 ex 40 (rule 6.8)", () => {
+      // Quentin Bryce, Dear Quentin: Letters of a Governor-General
+      // (Miegunyah Press, forthcoming).
       const runs = formatForthcomingBook({
-        authors: [{ givenNames: "Test", surname: "Author" }],
-        title: "Test Book",
-        publisher: "Publisher",
+        authors: [{ givenNames: "Quentin", surname: "Bryce" }],
+        title: "Dear Quentin: Letters of a Governor-General",
+        publisher: "Miegunyah Press",
       });
-      const text = toPlainText(runs);
-      expect(text).toContain("(Publisher, forthcoming)");
+      expect(toPlainText(runs)).toBe(
+        "Quentin Bryce, Dear Quentin: Letters of a Governor-General (Miegunyah Press, forthcoming)"
+      );
     });
   });
 
   // ── Rule 6.9: Audiobooks ───────────────────────────────────────────────
 
   describe("Rule 6.9 — Audiobooks", () => {
-    it("should include narrator after publication details", () => {
+    it("opens the parenthetical with 'Audiobook' per AGLC4 ex 41 (rule 6.9)", () => {
+      // George Orwell, 1984 (Audiobook, Blackstone Audio, 2007) 11:15:05.
       const runs = formatAudiobook({
         authors: [{ givenNames: "George", surname: "Orwell" }],
-        title: "Nineteen Eighty-Four",
-        publisher: "Penguin Books",
-        year: 2011,
+        title: "1984",
+        publisher: "Blackstone Audio",
+        year: 2007,
+        pinpoint: { type: "page", value: "11:15:05" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "George Orwell, 1984 (Audiobook, Blackstone Audio, 2007) 11:15:05"
+      );
+    });
+
+    it("formats a time-span pinpoint per AGLC4 ex 42 (rules 6.9, 1.11.4)", () => {
+      // William Ury, Roger Fisher and Bruce Patton, Getting to Yes:
+      // Negotiating an Agreement Without Giving In (Audiobook, Random
+      // House, 2012) 0:05:00–1:01:00. (Guide ex 42 capitalises 'Without'
+      // and 'In', contra rule 1.7's lowercase-preposition rule; per
+      // DECISION-012 the rule text is implemented, so both are lowercase.)
+      const runs = formatAudiobook({
+        authors: [
+          { givenNames: "William", surname: "Ury" },
+          { givenNames: "Roger", surname: "Fisher" },
+          { givenNames: "Bruce", surname: "Patton" },
+        ],
+        title: "Getting to Yes: Negotiating an Agreement Without Giving In",
+        publisher: "Random House",
+        year: 2012,
+        pinpoint: { type: "page", value: "0:05:00–1:01:00" },
+      });
+      expect(toPlainText(runs)).toBe(
+        "William Ury, Roger Fisher and Bruce Patton, Getting to Yes: Negotiating an Agreement without Giving in (Audiobook, Random House, 2012) 0:05:00–1:01:00"
+      );
+    });
+
+    it("does not emit a narrator element (rule 6.9)", () => {
+      const runs = formatAudiobook({
+        authors: [{ givenNames: "George", surname: "Orwell" }],
+        title: "1984",
+        publisher: "Blackstone Audiobooks",
+        year: 2007,
         narrator: "Stephen Fry",
       });
       const text = toPlainText(runs);
-      expect(text).toContain("(audiobook, narrated by Stephen Fry)");
+      expect(text).toBe("George Orwell, 1984 (Audiobook, Blackstone, 2007)");
+      expect(text).not.toContain("narrated");
     });
   });
 });

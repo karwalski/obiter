@@ -21,13 +21,16 @@ import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
 import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCitationContext";
+import { useStatus } from "../context/StatusContext";
+import { insertCitation } from "../../actions/citationService";
+import { getVersionForStandard } from "../../actions/citationRequest";
 import { searchViaAdapters } from "../../api/adapterSearch";
 import { isMasterEnabled } from "../../api/sourceRegistry";
 import { checkCorpusAvailable } from "../../api/corpus/corpusDownload";
 import { LookupResult } from "../../api/types";
 import { loadLlmConfig, LLMConfig } from "../../llm/config";
-import { classifySourceType, ClassificationResult } from "../../llm/classifySource";
-import { parseCitationText, ParsedCitation } from "../../llm/parseCitation";
+import { classifySourceType } from "../../llm/classifySource";
+import { parseCitationText } from "../../llm/parseCitation";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
 import {
@@ -311,11 +314,6 @@ function filterCategoriesForStandard(
 /**
  * SWITCH-004: Returns the aglcVersion string for a given standard.
  */
-function getVersionForStandard(standardId: CitationStandardId): "4" | "5" {
-  if (standardId === "aglc5" || standardId === "oscola5") return "5";
-  return "4";
-}
-
 // ─── Core Source Types (with dedicated forms) ────────────────────────────────
 
 const CORE_SOURCE_TYPES: SourceType[] = [
@@ -482,41 +480,6 @@ function buildPreviewCitation(
  * Finds an existing citation in the store that matches the new citation by
  * source type and key identifying fields (e.g. case name + year, title + year).
  */
-function findMatchingCitation(newCitation: Citation, existing: Citation[]): Citation | undefined {
-  const st = newCitation.sourceType;
-  const d = newCitation.data;
-
-  return existing.find((c) => {
-    if (c.sourceType !== st) return false;
-    const cd = c.data;
-
-    if (st.startsWith("case.")) {
-      return (
-        asString(cd.party1) === asString(d.party1) &&
-        asString(cd.party2) === asString(d.party2) &&
-        asString(cd.year) === asString(d.year)
-      );
-    }
-    if (st.startsWith("legislation.")) {
-      return (
-        asString(cd.title) === asString(d.title) &&
-        asString(cd.year) === asString(d.year) &&
-        asString(cd.jurisdiction) === asString(d.jurisdiction)
-      );
-    }
-    // Secondary/international sources: match on title + year
-    return (
-      asString(cd.title) === asString(d.title) &&
-      asString(cd.year) === asString(d.year)
-    );
-  });
-}
-
-/** Safely coerce an unknown value to string for comparison. */
-function asString(val: unknown): string {
-  return typeof val === "string" ? val : "";
-}
-
 // ─── Adapter-Based Search Functions ──────────────────────────────────────────
 
 /**
@@ -660,6 +623,8 @@ export default function InsertCitation(): JSX.Element {
     resetForm,
   } = useInsertCitationContext();
 
+  const { announce } = useStatus();
+
   // Transient states — remain local, reset on unmount is fine
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [inserting, setInserting] = useState(false);
@@ -730,7 +695,7 @@ export default function InsertCitation(): JSX.Element {
           }
         }
       } catch {
-        // Silently fail
+        // Background load with a safe default (no court jurisdiction); nothing to surface.
       }
     })();
     return () => { cancelled = true; };
@@ -809,7 +774,7 @@ export default function InsertCitation(): JSX.Element {
           .slice(0, 5);
         if (!cancelled) setRecentCitations(sorted);
       } catch {
-        // Silently fail
+        // Background load with a safe default (empty recent list); nothing to surface.
       }
     })();
     return () => { cancelled = true; };
@@ -1046,9 +1011,11 @@ export default function InsertCitation(): JSX.Element {
     setClassifyLoading(true);
     setClassifyResult(null);
     setClassifyError(null);
+    announce("Identifying the source type…");
     try {
       const result = await classifySourceType(classifyDescription.trim(), llmConfig);
       setClassifyResult(result);
+      announce("Source type identified.", "success");
       // Auto-select the identified source type in the dropdowns
       const match = findCategoryForSourceType(result.sourceType);
       if (match) {
@@ -1069,10 +1036,11 @@ export default function InsertCitation(): JSX.Element {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to classify source type.";
       setClassifyError(message);
+      announce(message, "error");
     } finally {
       setClassifyLoading(false);
     }
-  }, [llmConfig, classifyDescription]);
+  }, [llmConfig, classifyDescription, announce]);
 
   // ─── AI-ENH-001: Paste Citation Handler ─────────────────────────────────
 
@@ -1081,9 +1049,11 @@ export default function InsertCitation(): JSX.Element {
     setPasteCitationLoading(true);
     setPasteCitationResult(null);
     setPasteCitationError(null);
+    announce("Reading the citation…");
     try {
       const result = await parseCitationText(pasteCitationText.trim(), llmConfig);
       setPasteCitationResult(result);
+      announce("Citation parsed. Review the fields before inserting.", "success");
 
       // Auto-select category and source type in the dropdowns
       const match = findCategoryForSourceType(result.sourceType);
@@ -1130,10 +1100,11 @@ export default function InsertCitation(): JSX.Element {
       const message =
         err instanceof Error ? err.message : "Could not parse citation. Please fill in the fields manually.";
       setPasteCitationError(message);
+      announce(message, "error");
     } finally {
       setPasteCitationLoading(false);
     }
-  }, [llmConfig, pasteCitationText]);
+  }, [llmConfig, pasteCitationText, announce]);
 
   // ─── COURT-007: Unreported-judgment gate check ──────────────────────────
 
@@ -1221,46 +1192,34 @@ export default function InsertCitation(): JSX.Element {
     setFeedback(null);
 
     try {
-      const id = typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-          });
-      const now = new Date().toISOString();
-      const citation: Citation = {
-        id,
-        aglcVersion: getVersionForStandard(standardId),
-        sourceType: selectedSourceType as SourceType,
-        data: { ...formData },
-        shortTitle: shortTitle || undefined,
-        signal: signal || undefined,
-        commentaryBefore: commentaryBefore || undefined,
-        commentaryAfter: commentaryAfter || undefined,
-        // Persist the manual override on the Citation itself so the refresher
-        // does not overwrite the footnote with auto-formatted text.
-        overrideText: overrideText || undefined,
-        tags: [],
-        createdAt: now,
-        modifiedAt: now,
-      };
-
-      const store = await getStore();
-
       // BUGS-013: Determine if we should append to an existing footnote.
       const appendIndex = appendToFootnote && selectedFootnoteIndex > 0
         ? selectedFootnoteIndex
         : undefined;
 
-      // Handle override mode — user typed citation text directly
-      if (overrideText) {
-        const overrideRuns: FormattedRun[] = [{ text: overrideText }];
-        await store.add(citation);
-        const title = shortTitle || citation.sourceType;
-        await insertCitationFootnote(id, title, overrideRuns, appendIndex);
-        await refreshAllCitationsNow(store);
-        triggerRefresh();
+      // One code path (COPILOT-001): the pane and any future Copilot skill action
+      // both insert through the headless citation service.
+      const result = await insertCitation(
+        {
+          sourceType: selectedSourceType as SourceType,
+          data: { ...formData },
+          shortTitle: shortTitle || undefined,
+          signal: signal || undefined,
+          commentaryBefore: commentaryBefore || undefined,
+          commentaryAfter: commentaryAfter || undefined,
+          overrideText: overrideText || undefined,
+          aglcVersion: getVersionForStandard(standardId),
+          appendToFootnoteIndex: appendIndex,
+        },
+        courtConfig,
+      );
+
+      // BUG-003: Signal the Citation Library to refresh
+      triggerRefresh();
+
+      if (result.mode === "override") {
         setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
+        // Override keeps the source type selected (matching the prior behaviour).
         setFormData({});
         setAuthors([{ givenNames: "", surname: "" }]);
         setShortTitle("");
@@ -1268,46 +1227,11 @@ export default function InsertCitation(): JSX.Element {
         setSignal("");
         setCommentaryBefore("");
         setCommentaryAfter("");
-        setInserting(false);
         return;
       }
 
-      // BUG-009: Check if a matching citation already exists in the store
-      const existingCitations = store.getAll();
-      const existingMatch = findMatchingCitation(citation, existingCitations);
-
-      let runsToInsert: FormattedRun[];
-
-      if (existingMatch) {
-        // BUGS-011: Always insert as full citation — refreshAllCitations will
-        // rescan footnotes in document order and assign the correct format
-        // (full for earliest, short/ibid for subsequent) regardless of where
-        // the cursor is positioned relative to existing occurrences.
-        runsToInsert = getFormattedPreview(existingMatch, courtConfig);
-
-        // Don't add duplicate to store; use existing citation ID for the footnote
-        const existingTitle = shortTitle || existingMatch.shortTitle || existingMatch.sourceType;
-        await insertCitationFootnote(existingMatch.id, existingTitle, runsToInsert, appendIndex);
-      } else {
-        // First citation of this source — use full format from the engine
-        runsToInsert = getFormattedPreview(citation, courtConfig);
-
-        await store.add(citation);
-
-        const title = shortTitle || citation.sourceType;
-        await insertCitationFootnote(id, title, runsToInsert, appendIndex);
-      }
-
-      // Normalise separators and closing punctuation immediately so a second
-      // citation appended to the same footnote reads "A; B." rather than the
-      // raw "A.B" left until the debounced auto-refresh happens to run.
-      await refreshAllCitationsNow(store);
-
-      // BUG-003: Signal the Citation Library to refresh
-      triggerRefresh();
-
-      const successMsg = appendIndex
-        ? `Citation appended to footnote ${appendIndex} (Rule 1.1.3).`
+      const successMsg = result.appendedToFootnote
+        ? `Citation appended to footnote ${result.appendedToFootnote} (Rule 1.1.3).`
         : "Citation inserted as footnote.";
       setFeedback({ type: "success", message: successMsg });
 
@@ -1482,7 +1406,7 @@ export default function InsertCitation(): JSX.Element {
             </div>
           )}
           {classifyError && (
-            <div className="ic-classify-error">
+            <div className="ic-classify-error" role="alert">
               {classifyError}
             </div>
           )}
@@ -1549,7 +1473,7 @@ export default function InsertCitation(): JSX.Element {
                 </div>
               )}
               {pasteCitationError && (
-                <div className="ic-paste-citation-error">
+                <div className="ic-paste-citation-error" role="alert">
                   Could not parse citation. Please fill in the fields manually.
                 </div>
               )}
@@ -1881,7 +1805,8 @@ export default function InsertCitation(): JSX.Element {
                     setShortTitle(suggestion);
                     setShortTitleTouched(true);
                   } catch {
-                    // Silently fail — user can still type manually
+                    // Surface the failure; the user can still type a short title manually.
+                    announce("Could not generate a short title. You can type one manually.", "error");
                   } finally {
                     setAiSuggestLoading(false);
                   }
@@ -3178,13 +3103,14 @@ function renderConstitutionForm(
   return (
     <div className="ic-form-fields">
       <div className="ic-field">
-        <label className="ic-label">
+        {/* Group caption for the radio row below; each radio carries its own label. */}
+        <div className="ic-label">
           Constitution type
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "3.6" } : {})}
             description="Commonwealth Constitution uses the fixed title 'Australian Constitution'. State/Territory constitutions require a title and year."
           />
-        </label>
+        </div>
         <div className="ic-field-row" style={{ gap: "1rem", marginTop: "0.25rem" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
             <input
@@ -3438,13 +3364,14 @@ function renderQuasiLegislativeForm(
   return (
     <div className="ic-form-fields">
       <div className="ic-field">
-        <label className="ic-label">
+        {/* Group caption for the radio row below; each radio carries its own label. */}
+        <div className="ic-label">
           Variant
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "3.9" } : {})}
             description="Select Gazette for official government gazettes (Rule 3.9.1), or Other for ASIC class orders, ATO rulings, practice directions, etc. (Rules 3.9.2-3.9.4)."
           />
-        </label>
+        </div>
         <div className="ic-field-row" style={{ gap: "1rem", marginTop: "0.25rem" }}>
           <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", cursor: "pointer" }}>
             <input

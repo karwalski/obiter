@@ -16,12 +16,59 @@ import { formatSecondaryTitle } from "./general";
 import { formatPinpoint } from "../general/pinpoints";
 import { formatUrl } from "./general";
 
+// ─── Shared data shape ──────────────────────────────────────────────────────
+
+/**
+ * Elements common to all journal article citations (Rules 5.1–5.7).
+ */
+interface JournalCore {
+  authors: Author[];
+  title: string;
+  /** Year of publication; a string admits year spans (eg '1992–93'). */
+  year: number | string;
+  volume?: number;
+  issue?: string;
+  journal: string;
+  /**
+   * Rule 5.3: a journal is organised by year exactly when it lacks a volume
+   * number. When true (or when no volume is given), the year is set in
+   * square brackets. Explicit value overrides the derived default.
+   */
+  yearOrganised?: boolean;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Builds the volume/issue portion of a journal citation.
+ * Whether the journal is treated as year-organised (Rule 5.3): explicitly
+ * flagged, or — per the rule's note — lacking a volume number.
+ */
+function isYearOrganised(data: Pick<JournalCore, "volume" | "yearOrganised">): boolean {
+  return data.yearOrganised ?? data.volume === undefined;
+}
+
+/**
+ * Formats the year element (Rule 5.3).
  *
- * Format: ` Volume(Issue) ` or ` Volume ` or ` (Issue) ` or ` `.
+ * Volume-organised journals take the year in parentheses '(Year)';
+ * year-organised journals take square brackets '[Year]' (spans per
+ * rule 1.11.4, eg '[1992–93]').
+ */
+function formatJournalYear(year: number | string, yearOrganised: boolean): string {
+  return yearOrganised ? `[${year}]` : `(${year})`;
+}
+
+/** A purely numeric issue identifier, including combined issues '2–3'. */
+const NUMERIC_ISSUE = /^\d+(\s*[–-]\s*\d+)?$/;
+
+/**
+ * Builds the volume/issue portion of a journal citation (Rule 5.4).
+ *
+ * - Numeric issue after a volume: no space — '40(1)', '66(1–2)'.
+ * - Non-numeric issue (season/month): preceded by a space — '133 (January)'.
+ * - Year-organised journals (no volume): the issue follows the year,
+ *   preceded by a space — '[2000] (1)', '[1982] (Summer)'.
+ *
  * Leading and trailing spaces are included for seamless concatenation.
  */
 function formatVolumeAndIssue(volume?: number, issue?: string): string {
@@ -30,6 +77,13 @@ function formatVolumeAndIssue(volume?: number, issue?: string): string {
     result += String(volume);
   }
   if (issue) {
+    // A space precedes the parenthesis when there is no volume (the issue
+    // follows the bracketed year) or the issue is non-numeric.
+    if (volume === undefined || !NUMERIC_ISSUE.test(issue)) {
+      if (!result.endsWith(" ")) {
+        result += " ";
+      }
+    }
     result += `(${issue})`;
   }
   if (volume !== undefined || issue) {
@@ -38,69 +92,95 @@ function formatVolumeAndIssue(volume?: number, issue?: string): string {
   return result;
 }
 
+/**
+ * Formats the journal title element (Rule 5.5): italicised in full as on the
+ * journal's title page, less a leading 'The'.
+ *
+ * An ampersand in the journal title is preserved as-is per the rule text
+ * ('as it appears on the title page') — see DECISION-014; the contrary
+ * example 10 ('&' → 'and') is not encoded.
+ */
+function journalTitleRun(journal: string): FormattedRun {
+  return { text: journal.trim().replace(/^The\s+/i, ""), italic: true };
+}
+
+/**
+ * Pushes the elements shared by every chapter-5 citation form up to and
+ * including the journal title: author, quoted title, year, volume/issue,
+ * italic journal (Rules 5.1–5.5).
+ */
+function pushCoreElements(runs: FormattedRun[], data: JournalCore): void {
+  // Author (Rule 5.1 via 4.1)
+  runs.push(...formatAuthors(data.authors));
+  runs.push({ text: ", " });
+
+  // Title — quoted, not italicised (Rule 5.2 / 4.2)
+  runs.push(...formatSecondaryTitle(data.title, "journal.article"));
+
+  // Year (Rule 5.3)
+  runs.push({ text: ` ${formatJournalYear(data.year, isYearOrganised(data))}` });
+
+  // Volume and issue (Rule 5.4)
+  runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
+
+  // Journal title — italicised (Rule 5.5)
+  runs.push(journalTitleRun(data.journal));
+}
+
+/**
+ * Strips a part reference from within an article title (Rule 5.8), eg a
+ * trailing '— Part I' / ': Part 1' or a leading 'Part One:'.
+ */
+function stripPartFromTitle(title: string): string {
+  return title
+    .replace(/\s*[—–:,-]?\s*[([]?\s*Part\s+(\d+|[IVXLC]+|One|Two|Three|Four|Five)\s*[)\]]?\s*$/i, "")
+    .replace(/^Part\s+(\d+|[IVXLC]+|One|Two|Three|Four|Five)\s*[:.—–-]\s*/i, "")
+    .trim();
+}
+
 // ─── JOUR-001: Journal Article (Rules 5.1–5.7) ─────────────────────────────
 
 /**
  * Formats a journal article citation per AGLC4 Rules 5.1–5.7.
  *
- * AGLC4 Rule 5.1: The general form for a journal article citation is:
- *   Author, 'Title' (Year) Volume(Issue) *Journal* StartingPage, Pinpoint.
+ * AGLC4 Rule 5.1: the author is formatted per the general secondary source
+ * author rules (Rules 4.1.1–4.1.5). For a symposium cited as a whole,
+ * 'Symposium' stands in the author position (Rule 5.9) — enter it as the
+ * author surname.
  *
- * AGLC4 Rule 5.2: The author is formatted per the general secondary source
- * author rules (Rules 4.1.1–4.1.5).
+ * AGLC4 Rule 5.2: the title is enclosed in single quotation marks and
+ * formatted per Rule 4.2.
  *
- * AGLC4 Rule 5.3: The title is enclosed in single curly quotation marks
- * and formatted per Rule 4.2.
+ * AGLC4 Rule 5.3: volume-organised journals take the year in parentheses;
+ * year-organised journals (those lacking a volume number) take square
+ * brackets.
  *
- * AGLC4 Rule 5.4: The year of publication appears in round brackets.
+ * AGLC4 Rule 5.4: the issue number follows the volume in parentheses with
+ * no space ('40(1)'); non-numeric issues and issues of year-organised
+ * journals are preceded by a space.
  *
- * AGLC4 Rule 5.5: The volume number appears after the year. If an issue
- * number is present, it follows the volume in parentheses.
+ * AGLC4 Rule 5.5: the journal title is italicised, unabbreviated, less a
+ * leading 'The'.
  *
- * AGLC4 Rule 5.6: The journal name is italicised and should not be
- * abbreviated unless the abbreviation is the journal's conventional name.
- *
- * AGLC4 Rule 5.7: The starting page number follows the journal name.
- * A pinpoint reference, if any, follows the starting page after a comma.
+ * AGLC4 Rules 5.6–5.7: the starting page follows the journal title; a
+ * pinpoint follows the starting page after a comma.
  *
  * @param data - The journal article citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
  *
- * @see AGLC4, Rules 5.1–5.7.
+ * @see AGLC4, Rules 5.1–5.7, 5.9.
  */
-export function formatJournalArticle(data: {
-  authors: Author[];
-  title: string;
-  year: number;
-  volume?: number;
-  issue?: string;
-  journal: string;
-  startingPage: number;
-  pinpoint?: Pinpoint;
-}): FormattedRun[] {
+export function formatJournalArticle(
+  data: JournalCore & {
+    startingPage: number;
+    pinpoint?: Pinpoint;
+  }
+): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Author
-  const authorRuns = formatAuthors(data.authors);
-  runs.push(...authorRuns);
+  pushCoreElements(runs, data);
 
-  // Separator between author and title
-  runs.push({ text: ", " });
-
-  // Title — journal articles are quoted, not italicised (Rule 5.3 / 4.2)
-  const titleRuns = formatSecondaryTitle(data.title, "journal.article");
-  runs.push(...titleRuns);
-
-  // Year in round brackets (Rule 5.4)
-  runs.push({ text: ` (${data.year})` });
-
-  // Volume and issue (Rule 5.5)
-  runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
-
-  // Journal name — italicised (Rule 5.6)
-  runs.push({ text: data.journal, italic: true });
-
-  // Starting page (Rule 5.7)
+  // Starting page (Rule 5.6)
   runs.push({ text: ` ${data.startingPage}` });
 
   // Pinpoint (Rule 5.7)
@@ -117,49 +197,42 @@ export function formatJournalArticle(data: {
 /**
  * Formats a multi-part journal article citation per AGLC4 Rule 5.8.
  *
- * AGLC4 Rule 5.8: Where a journal article is published in parts, the part
- * number should be indicated after the title, preceded by '(Part' and
- * followed by ')'. The format is otherwise identical to a standard journal
- * article citation.
+ * AGLC4 Rule 5.8: '(Pt «Number»)' is inserted between the title and the
+ * year; any reference to the part within the article title itself is
+ * stripped (eg a trailing '— Part I').
  *
  * @param data - The multi-part journal article citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
  *
  * @see AGLC4, Rule 5.8.
  */
-export function formatJournalArticlePart(data: {
-  authors: Author[];
-  title: string;
-  year: number;
-  volume?: number;
-  issue?: string;
-  journal: string;
-  startingPage: number;
-  pinpoint?: Pinpoint;
-  partNumber: number;
-}): FormattedRun[] {
+export function formatJournalArticlePart(
+  data: JournalCore & {
+    startingPage: number;
+    pinpoint?: Pinpoint;
+    partNumber: number;
+  }
+): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author
   runs.push(...formatAuthors(data.authors));
-
-  // Separator
   runs.push({ text: ", " });
 
-  // Title (quoted)
-  runs.push(...formatSecondaryTitle(data.title, "journal.article"));
+  // Title (quoted), with any in-title part reference stripped (Rule 5.8)
+  runs.push(...formatSecondaryTitle(stripPartFromTitle(data.title), "journal.article"));
 
-  // Part indicator (Rule 5.8)
-  runs.push({ text: ` (Part ${data.partNumber})` });
+  // Part indicator between title and year (Rule 5.8)
+  runs.push({ text: ` (Pt ${data.partNumber})` });
 
-  // Year
-  runs.push({ text: ` (${data.year})` });
+  // Year (Rule 5.3)
+  runs.push({ text: ` ${formatJournalYear(data.year, isYearOrganised(data))}` });
 
-  // Volume and issue
+  // Volume and issue (Rule 5.4)
   runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
 
-  // Journal name — italicised
-  runs.push({ text: data.journal, italic: true });
+  // Journal title — italicised (Rule 5.5)
+  runs.push(journalTitleRun(data.journal));
 
   // Starting page
   runs.push({ text: ` ${data.startingPage}` });
@@ -173,136 +246,73 @@ export function formatJournalArticlePart(data: {
   return runs;
 }
 
-// ─── JOUR-003: Symposium Article (Rule 5.9) ─────────────────────────────────
-
-/**
- * Formats a symposium article citation per AGLC4 Rule 5.9.
- *
- * AGLC4 Rule 5.9: Where a journal article appears as part of a symposium
- * or special issue, the symposium title should be included after the article
- * title, preceded by 'in'. The symposium title is not enclosed in quotation
- * marks and is not italicised. The rest of the citation follows the standard
- * journal article format.
- *
- * @param data - The symposium article citation data.
- * @returns An array of FormattedRun objects representing the formatted citation.
- *
- * @see AGLC4, Rule 5.9.
- */
-export function formatSymposiumArticle(data: {
-  authors: Author[];
-  title: string;
-  year: number;
-  volume?: number;
-  issue?: string;
-  journal: string;
-  startingPage: number;
-  pinpoint?: Pinpoint;
-  symposiumTitle: string;
-}): FormattedRun[] {
-  const runs: FormattedRun[] = [];
-
-  // Author
-  runs.push(...formatAuthors(data.authors));
-
-  // Separator
-  runs.push({ text: ", " });
-
-  // Article title (quoted)
-  runs.push(...formatSecondaryTitle(data.title, "journal.article"));
-
-  // Symposium title (Rule 5.9)
-  runs.push({ text: ` in ${data.symposiumTitle}` });
-
-  // Year
-  runs.push({ text: ` (${data.year})` });
-
-  // Volume and issue
-  runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
-
-  // Journal name — italicised
-  runs.push({ text: data.journal, italic: true });
-
-  // Starting page
-  runs.push({ text: ` ${data.startingPage}` });
-
-  // Pinpoint
-  if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
-  }
-
-  return runs;
-}
+// NOTE (Rule 5.9 — Symposia): a symposium cited as a whole is an ordinary
+// journal article citation with 'Symposium' in the author position; there is
+// no separate format. The former formatSymposiumArticle (which appended the
+// symposium title after the article title, preceded by 'in') encoded a rule
+// that does not exist in AGLC4 and has been removed. Use
+// formatJournalArticle with `authors: [{ surname: 'Symposium' }]`.
 
 // ─── JOUR-004: Online Journal Article (Rule 5.10) ──────────────────────────
 
 /**
  * Formats an online journal article citation per AGLC4 Rule 5.10.
  *
- * AGLC4 Rule 5.10: Where a journal article is available only online,
- * the URL should be included in angle brackets at the end of the citation.
- * If the journal uses article numbers instead of page numbers, the article
- * number replaces the starting page. The format is otherwise identical to
- * a standard journal article citation.
+ * AGLC4 Rule 5.10: articles in online-only journals are cited like printed
+ * journal articles as far as possible. An article number or other
+ * identifier replaces the starting page; pinpoints follow the identifier
+ * after a comma (Rules 1.1.6–1.1.7). A URL is optional per Rule 4.4.
  *
  * @param data - The online journal article citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
  *
  * @see AGLC4, Rule 5.10.
  */
-export function formatOnlineJournalArticle(data: {
-  authors: Author[];
-  title: string;
-  year: number;
-  volume?: number;
-  issue?: string;
-  journal: string;
-  articleNumber?: string;
-  url: string;
-}): FormattedRun[] {
+export function formatOnlineJournalArticle(
+  data: JournalCore & {
+    articleNumber?: string;
+    startingPage?: number;
+    pinpoint?: Pinpoint;
+    url?: string;
+  }
+): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Author
-  runs.push(...formatAuthors(data.authors));
+  pushCoreElements(runs, data);
 
-  // Separator
-  runs.push({ text: ", " });
-
-  // Title (quoted)
-  runs.push(...formatSecondaryTitle(data.title, "journal.online"));
-
-  // Year
-  runs.push({ text: ` (${data.year})` });
-
-  // Volume and issue
-  runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
-
-  // Journal name — italicised
-  runs.push({ text: data.journal, italic: true });
-
-  // Article number (if applicable)
+  // Article number/identifier in place of the starting page (Rule 5.10)
   if (data.articleNumber) {
     runs.push({ text: ` ${data.articleNumber}` });
+  } else if (data.startingPage !== undefined) {
+    runs.push({ text: ` ${data.startingPage}` });
   }
 
-  // URL in angle brackets (Rule 5.10 / 4.4)
-  runs.push({ text: " " });
-  runs.push(...formatUrl(data.url));
+  // Pinpoint after the identifier, preceded by a comma (Rule 5.10)
+  if (data.pinpoint) {
+    runs.push({ text: ", " });
+    runs.push(...formatPinpoint(data.pinpoint));
+  }
+
+  // Optional URL in angle brackets (Rule 4.4)
+  if (data.url) {
+    runs.push({ text: " " });
+    runs.push(...formatUrl(data.url));
+  }
 
   return runs;
 }
 
-// ─── JOUR-005: Forthcoming Article (Rule 5.11) ─────────────────────────────
+// ─── JOUR-005: Forthcoming and Advance Articles (Rule 5.11) ────────────────
 
 /**
- * Formats a forthcoming journal article citation per AGLC4 Rule 5.11.
+ * Formats a forthcoming or advance journal article citation per AGLC4
+ * Rule 5.11.
  *
- * AGLC4 Rule 5.11: Where a journal article has been accepted for publication
- * but has not yet been published, '(forthcoming)' should appear after the
- * journal name. No volume, issue, or page numbers are included.
+ * AGLC4 Rule 5.11: '(forthcoming)' — or '(advance)' for an advance
+ * version — replaces the starting page; as much of the remaining citation
+ * information (year, volume, issue) as is available is included.
  *
- * @param data - The forthcoming article citation data.
+ * @param data - The forthcoming/advance article citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
  *
  * @see AGLC4, Rule 5.11.
@@ -311,24 +321,36 @@ export function formatForthcomingArticle(data: {
   authors: Author[];
   title: string;
   journal: string;
+  year?: number | string;
+  volume?: number;
+  issue?: string;
+  yearOrganised?: boolean;
+  /** Emits '(advance)' instead of '(forthcoming)'. */
+  advance?: boolean;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author
   runs.push(...formatAuthors(data.authors));
-
-  // Separator
   runs.push({ text: ", " });
 
   // Title (quoted)
   runs.push(...formatSecondaryTitle(data.title, "journal.forthcoming"));
 
-  // Journal name — italicised
-  runs.push({ text: " " });
-  runs.push({ text: data.journal, italic: true });
+  // Year (Rule 5.3), where known
+  if (data.year !== undefined && data.year !== "") {
+    runs.push({ text: ` ${formatJournalYear(data.year, isYearOrganised(data))}` });
+    // Volume and issue (Rule 5.4), where known
+    runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
+  } else {
+    runs.push({ text: " " });
+  }
 
-  // Forthcoming indicator (Rule 5.11)
-  runs.push({ text: " (forthcoming)" });
+  // Journal title — italicised (Rule 5.5)
+  runs.push(journalTitleRun(data.journal));
+
+  // Status marker in place of the starting page (Rule 5.11)
+  runs.push({ text: data.advance ? " (advance)" : " (forthcoming)" });
 
   return runs;
 }

@@ -162,11 +162,9 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
  * Returns an empty array when no links are registered for the jurisdiction.
  */
 export function getPracticeDirectionsForJurisdiction(
-  jurisdictionId: string,
+  jurisdictionId: string
 ): PracticeDirectionLink[] {
-  return PRACTICE_DIRECTION_LINKS.filter(
-    (pd) => pd.jurisdiction === jurisdictionId,
-  );
+  return PRACTICE_DIRECTION_LINKS.filter((pd) => pd.jurisdiction === jurisdictionId);
 }
 
 /**

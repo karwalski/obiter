@@ -47,16 +47,11 @@ export interface TreatyOfWaitangiData {
  *   // Treaty of Waitangi, preamble
  *   formatTreatyOfWaitangi({ language: "english", preamble: true })
  */
-export function formatTreatyOfWaitangi(
-  data: TreatyOfWaitangiData,
-): FormattedRun[] {
+export function formatTreatyOfWaitangi(data: TreatyOfWaitangiData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Treaty name based on language version
-  const treatyName =
-    data.language === "english"
-      ? "Treaty of Waitangi"
-      : "Te Tiriti o Waitangi";
+  const treatyName = data.language === "english" ? "Treaty of Waitangi" : "Te Tiriti o Waitangi";
 
   runs.push({ text: treatyName });
 

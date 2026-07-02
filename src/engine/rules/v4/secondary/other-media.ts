@@ -5,7 +5,7 @@
 
 import { Author, Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
-import { formatAuthors, formatAuthorName } from "./authors";
+import { formatAuthors, normaliseBodyName } from "./authors";
 
 // ─── Data Interfaces ────────────────────────────────────────────────────────
 
@@ -13,7 +13,10 @@ export interface ParliamentaryEvidenceData {
   title: string;
   committee: string;
   parliament: string;
-  jurisdiction: string;
+  /** Location of the hearing (eg 'Canberra'). */
+  location?: string;
+  /** @deprecated Legacy alias for `location` (the slot never held a jurisdiction). */
+  jurisdiction?: string;
   date: string;
   page?: string;
   witness?: string;
@@ -23,24 +26,41 @@ export interface ConstitutionalConventionData {
   conventionName: string;
   location: string;
   date: string;
+  /** @deprecated Not an AGLC4 element (Rule 7.5.4); accepted but not emitted. */
   volume?: string;
   page?: string;
+  /** Name of the speaker, in trailing parentheses (Rule 7.5.4). */
+  speaker?: string;
 }
 
 export interface DictionaryData {
   title: string;
+  /** @deprecated Not an AGLC4 element (Rule 7.6); accepted but not emitted. */
   publisher?: string;
   edition?: string;
   year: string;
+  /** Date of retrieval — presence selects the online form (Rule 7.6). */
+  retrievedDate?: string;
   entry: string;
+  /**
+   * The dictionary's own entry marker distinguishing homographs (eg 'v²',
+   * 'adj'), emitted before the definition number (Rule 7.6).
+   */
+  entryType?: string;
   definitionNumber?: string;
 }
 
 export interface LegalEncyclopediaData {
+  /** Publisher of the encyclopedia (Rule 7.7, eg 'LexisNexis'). */
+  publisher?: string;
   title: string;
   date: string;
+  /** Date of retrieval — presence selects the online form (Rule 7.7). */
+  retrievedDate?: string;
   volume?: string;
   titleNumber?: string;
+  /** Name of the title (eg 'Insurance'), following the title number. */
+  titleName?: string;
   topic: string;
   paragraph: string;
 }
@@ -49,28 +69,53 @@ export interface LooseleafData {
   authors: Author[];
   title: string;
   publisher: string;
+  /** Most recent service number or full date for the '(at …)' element. */
   date: string;
+  /** Date of retrieval — presence selects the online form (Rule 7.8). */
+  retrievedDate?: string;
   volume?: string;
   paragraph?: string;
 }
 
 export interface IpMaterialData {
+  /** WIPO ST.3 jurisdiction code (eg 'US', 'AU'). */
+  jurisdictionCode?: string;
   ipType: string;
+  /** Word(s) qualifying the number (eg 'Registration', 'Application'). */
+  numberQualifier?: string;
   number: string;
+  /** 'filed' (default) or 'lodged'. */
+  filedTerm?: "filed" | "lodged";
+  /** Full date of filing/lodging. */
+  filingDate?: string;
+  /** Latest registration status change (eg 'Registered', 'Granted'). */
+  status?: string;
+  /** Full date of the latest status change. */
+  statusDate?: string;
+  /** @deprecated Not an AGLC4 element (Rule 7.9); accepted but not emitted. */
   title?: string;
+  /** @deprecated Not an AGLC4 element (Rule 7.9); accepted but not emitted. */
   applicant?: string;
+  /** @deprecated Legacy alias for `filingDate`. */
   date?: string;
 }
 
 export interface ConstitutiveDocumentData {
   companyName: string;
   documentType: string;
+  /** Date of last update, or of retrieval, for the '(at …)' element. */
+  date?: string;
   pinpoint?: Pinpoint;
 }
 
 export interface NewspaperData {
   authors?: Author[];
   title: string;
+  /**
+   * When true, `title` is a description of an untitled piece (eg 'Letter
+   * to the Editor') and is not placed in quotation marks (Rule 7.11.4).
+   */
+  titleIsDescription?: boolean;
   newspaper: string;
   place: string;
   date: string;
@@ -98,6 +143,8 @@ export interface CorrespondenceData {
 
 export interface InterviewData {
   interviewee: string;
+  /** Format of the exchange: 'Interview' (default) or eg 'Conversation'. */
+  interviewType?: string;
   interviewer?: string;
   location?: string;
   date: string;
@@ -105,22 +152,45 @@ export interface InterviewData {
 
 export interface FilmData {
   title: string;
-  director: string;
+  /** First-listed studio/production company/producer (Rule 7.14.1). */
+  productionCompany?: string;
+  /** Version details (eg "Director's Cut"), only for non-standard versions. */
+  versionDetails?: string;
+  /** @deprecated AGLC4 has no director element (Rule 7.14.2); used only as
+   * a fallback for the production-company slot for legacy data. */
+  director?: string;
   year: string;
+  /** Point or span of time in the recording (Rules 1.11.3–1.11.4). */
+  timePinpoint?: string;
 }
 
 export interface TvSeriesData {
-  episodeTitle: string;
+  /** Episode title; built from season/episode numbers when untitled. */
+  episodeTitle?: string;
   seriesTitle: string;
+  /** Untitled episodes: season number for 'Season X, Episode Y' (Rule 7.14.3). */
+  seasonNumber?: string;
+  /** Untitled episodes: episode number. */
+  episodeNumber?: string;
+  /** Version details (eg 'Extended Version'), non-standard versions only. */
+  versionDetails?: string;
   network: string;
   date: string;
+  /** Point or span of time in the recording (Rules 1.11.3–1.11.4). */
+  timePinpoint?: string;
+  url?: string;
 }
 
 export interface PodcastData {
   episodeTitle?: string;
   seriesTitle: string;
+  /** Studio, production company or producer (Rule 7.14.4). */
+  producer?: string;
+  /** @deprecated Legacy alias for `producer`. */
   host?: string;
   date: string;
+  /** Point or span of time in the recording (Rules 1.11.3–1.11.4). */
+  timePinpoint?: string;
   url?: string;
 }
 
@@ -128,6 +198,8 @@ export interface InternetMaterialData {
   authors?: Author[];
   title: string;
   website: string;
+  /** Document type (eg 'Web Page', 'Blog Post') opening the parenthetical. */
+  documentType?: string;
   date: string;
   url: string;
 }
@@ -138,6 +210,8 @@ export interface SocialMediaData {
   title?: string;
   date: string;
   time?: string;
+  /** For videos: point or span of time (Rules 1.11.3–1.11.4). */
+  timePinpoint?: string;
   url: string;
 }
 
@@ -170,33 +244,41 @@ function formatPinpointValue(pinpoint: Pinpoint): string {
   return result;
 }
 
+/** Joins parenthetical parts with commas, skipping empties. */
+function joinParen(parts: Array<string | undefined>): string {
+  return parts.filter((p) => p && p.trim().length > 0).join(", ");
+}
+
+/**
+ * Wraps a paragraph pinpoint in square brackets unless it already carries
+ * them or uses the service's own paragraph symbol '¶' (Rules 7.7–7.8).
+ */
+function bracketParagraph(paragraph: string): string {
+  const trimmed = paragraph.trim();
+  if (trimmed.startsWith("[") || trimmed.startsWith("¶")) return trimmed;
+  return `[${trimmed}]`;
+}
+
 // ─── OTHER-014 ──────────────────────────────────────────────────────────────
 
 /**
  * AGLC4 Rule 7.5.3 — Evidence to Parliamentary Committees
  *
- * Format: Evidence to Committee, Parliament, Jurisdiction, Date, Page (Witness).
+ * Format: `Evidence to «Committee», «Legislature», «Location», «Full Date»,
+ * «Pinpoint» («Name of Speaker»)`. The third element is the location of
+ * the hearing (eg 'Canberra'), not a jurisdiction.
  *
  * @param data - Parliamentary evidence metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
  * @see AGLC4, Rule 7.5.3.
  */
-export function formatParliamentaryEvidence(
-  data: ParliamentaryEvidenceData,
-): FormattedRun[] {
+export function formatParliamentaryEvidence(data: ParliamentaryEvidenceData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
+  const location = data.location ?? data.jurisdiction ?? "";
   runs.push({
-    text:
-      "Evidence to " +
-      data.committee +
-      ", " +
-      data.parliament +
-      ", " +
-      data.jurisdiction +
-      ", " +
-      data.date,
+    text: `Evidence to ${joinParen([data.committee, data.parliament, location, data.date])}`,
   });
 
   if (data.page) {
@@ -213,33 +295,35 @@ export function formatParliamentaryEvidence(
 // ─── OTHER-015 ──────────────────────────────────────────────────────────────
 
 /**
- * AGLC4 Rule 7.5.4 — Constitutional Conventions
+ * AGLC4 Rule 7.5.4 — Australian Constitutional Convention Debates
  *
- * Format: Convention Name, Location, Date, Volume, Page.
+ * Format: `«*Title*», «Location», «Full Date», «Page» («Name of Speaker»)`.
+ * The convention record's title is italic; the speaker (first and last
+ * names, titles omitted except 'Sir'/'Dame'/peerages) follows in
+ * parentheses.
  *
  * @param data - Constitutional convention metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
  * @see AGLC4, Rule 7.5.4.
  */
-export function formatConstitutionalConvention(
-  data: ConstitutionalConventionData,
-): FormattedRun[] {
-  const parts: string[] = [
-    data.conventionName,
-    data.location,
-    data.date,
-  ];
+export function formatConstitutionalConvention(data: ConstitutionalConventionData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
 
-  if (data.volume) {
-    parts.push("vol " + data.volume);
+  // Title of the convention record — italic (Rule 7.5.4)
+  runs.push({ text: data.conventionName, italic: true });
+
+  const tail = joinParen([data.location, data.date, data.page]);
+  if (tail) {
+    runs.push({ text: `, ${tail}` });
   }
 
-  if (data.page) {
-    parts.push(data.page);
+  // Speaker in trailing parentheses
+  if (data.speaker) {
+    runs.push({ text: ` (${data.speaker})` });
   }
 
-  return [{ text: parts.join(", ") }];
+  return runs;
 }
 
 // ─── OTHER-016 ──────────────────────────────────────────────────────────────
@@ -247,8 +331,10 @@ export function formatConstitutionalConvention(
 /**
  * AGLC4 Rule 7.6 — Dictionaries
  *
- * Format: Dictionary Title (Publisher, Ed, Year) 'entry' (def no).
- * The dictionary title is italic.
+ * Hard copy: `«*Title*» («Edition» ed, «Year») '«Entry»' («Marker», def «N»)`.
+ * Online: `«*Title*» (online at «Date of Retrieval») '«Entry»' …`.
+ * There is no publisher element. The dictionary's own homograph marker
+ * (eg 'v²') precedes the definition number.
  *
  * @param data - Dictionary citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -260,20 +346,20 @@ export function formatDictionary(data: DictionaryData): FormattedRun[] {
 
   runs.push({ text: data.title, italic: true });
 
-  const parentheticalParts: string[] = [];
-  if (data.publisher) {
-    parentheticalParts.push(data.publisher);
+  // Parenthetical: online form takes precedence (Rule 7.6)
+  if (data.retrievedDate) {
+    runs.push({ text: ` (online at ${data.retrievedDate})` });
+  } else {
+    runs.push({ text: ` (${joinParen([data.edition, data.year])})` });
   }
-  if (data.edition) {
-    parentheticalParts.push(data.edition);
-  }
-  parentheticalParts.push(data.year);
 
-  runs.push({ text: " (" + parentheticalParts.join(", ") + ")" });
-  runs.push({ text: " \u2018" + data.entry + "\u2019" });
+  runs.push({ text: " ‘" + data.entry + "’" });
 
-  if (data.definitionNumber) {
-    runs.push({ text: " (def " + data.definitionNumber + ")" });
+  // Entry marker and definition number
+  const defPart = data.definitionNumber ? `def ${data.definitionNumber}` : undefined;
+  const marker = joinParen([data.entryType, defPart]);
+  if (marker) {
+    runs.push({ text: ` (${marker})` });
   }
 
   return runs;
@@ -284,31 +370,53 @@ export function formatDictionary(data: DictionaryData): FormattedRun[] {
 /**
  * AGLC4 Rule 7.7 — Legal Encyclopedias
  *
- * Format: Title (italic), at Date, Volume, Title Number, 'Topic', Paragraph.
+ * Hard copy: `«Publisher», «*Title*», vol «N» (at «Full Date») «Title No»
+ * «Title Name», '«Chapter»' [«Paragraph»]` (guide ex 64).
+ * Online: `«Publisher», «*Title*» (online at «Date of Retrieval») …`.
  *
  * @param data - Legal encyclopedia citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
  * @see AGLC4, Rule 7.7.
  */
-export function formatLegalEncyclopedia(
-  data: LegalEncyclopediaData,
-): FormattedRun[] {
+export function formatLegalEncyclopedia(data: LegalEncyclopediaData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
+  // Publisher first (Rule 7.7, per rule 6.3.1)
+  if (data.publisher) {
+    runs.push({ text: `${data.publisher}, ` });
+  }
+
   runs.push({ text: data.title, italic: true });
-  runs.push({ text: " (at " + data.date + ")" });
 
-  if (data.volume) {
-    runs.push({ text: " vol " + data.volume });
+  if (data.retrievedDate) {
+    // Online form: no volume element (Rule 7.7)
+    runs.push({ text: ` (online at ${data.retrievedDate})` });
+  } else {
+    // Volume precedes the '(at Date)' parenthetical (Rule 7.7)
+    if (data.volume) {
+      runs.push({ text: `, vol ${data.volume}` });
+    }
+    runs.push({ text: ` (at ${data.date})` });
   }
 
-  if (data.titleNumber) {
-    runs.push({ text: ", " + data.titleNumber });
+  // Title number and name
+  const titleRef = [data.titleNumber, data.titleName]
+    .filter((p) => p && p.trim().length > 0)
+    .join(" ");
+  if (titleRef) {
+    runs.push({ text: ` ${titleRef}` });
   }
 
-  runs.push({ text: " \u2018" + data.topic + "\u2019" });
-  runs.push({ text: " " + data.paragraph });
+  // Chapter number and name, quoted
+  if (data.topic) {
+    runs.push({ text: `, ‘${data.topic}’` });
+  }
+
+  // Paragraph pinpoint in square brackets
+  if (data.paragraph) {
+    runs.push({ text: ` ${bracketParagraph(data.paragraph)}` });
+  }
 
   return runs;
 }
@@ -318,7 +426,10 @@ export function formatLegalEncyclopedia(
 /**
  * AGLC4 Rule 7.8 — Looseleaf Services
  *
- * Format: Author, Title (italic), (Publisher, Date) vol Volume, Paragraph.
+ * Print: `«Author», «Publisher», «*Title*», vol «N» (at «Service No or Full
+ * Date») «[Paragraph]»` (guide ex 67). Online: `«Publisher», «*Title*»
+ * (online at «Date of Retrieval») «Pinpoint»`. A paragraph identified with
+ * the service's own '¶' symbol is not bracketed.
  *
  * @param data - Looseleaf service citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -328,23 +439,35 @@ export function formatLegalEncyclopedia(
 export function formatLooseleaf(data: LooseleafData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
+  // Clearly identified author precedes the publisher (Rule 7.8)
   const authorRuns = formatAuthors(data.authors);
   if (authorRuns.length > 0) {
     runs.push(...authorRuns);
     runs.push({ text: ", " });
   }
 
-  runs.push({ text: data.title, italic: true });
-  runs.push({
-    text: " (" + data.publisher + ", " + data.date + ")",
-  });
-
-  if (data.volume) {
-    runs.push({ text: " vol " + data.volume });
+  // Publisher before the italic title
+  if (data.publisher) {
+    runs.push({ text: `${data.publisher}, ` });
   }
 
+  runs.push({ text: data.title, italic: true });
+
+  if (data.retrievedDate) {
+    // Online form: no volume element (Rule 7.8)
+    runs.push({ text: ` (online at ${data.retrievedDate})` });
+  } else {
+    if (data.volume) {
+      runs.push({ text: `, vol ${data.volume}` });
+    }
+    if (data.date) {
+      runs.push({ text: ` (at ${data.date})` });
+    }
+  }
+
+  // Paragraph pinpoint
   if (data.paragraph) {
-    runs.push({ text: ", " + data.paragraph });
+    runs.push({ text: ` ${bracketParagraph(data.paragraph)}` });
   }
 
   return runs;
@@ -355,7 +478,12 @@ export function formatLooseleaf(data: LooseleafData): FormattedRun[] {
 /**
  * AGLC4 Rule 7.9 — Intellectual Property Materials
  *
- * Format: IP Type No Number, Title, Applicant, Date.
+ * Format: `«*Jurisdiction Code*» «*IP Type*» «*Qualifier*» *No* «*Number*»,
+ * filed/lodged on «Full Date» («Status Change» on «Full Date»)` — the
+ * identifier segment is italicised (guide ex 71: *US Trademark
+ * Registration No 4938522*, filed on 6 December 2013 (Registered on 12
+ * April 2016)). The status parenthetical is omitted where nothing has
+ * happened since filing.
  *
  * @param data - IP material citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -363,45 +491,64 @@ export function formatLooseleaf(data: LooseleafData): FormattedRun[] {
  * @see AGLC4, Rule 7.9.
  */
 export function formatIpMaterial(data: IpMaterialData): FormattedRun[] {
-  const parts: string[] = [data.ipType + " No " + data.number];
+  const runs: FormattedRun[] = [];
 
-  if (data.title) {
-    parts.push(data.title);
+  // Italic identifier: Jurisdiction Code + IP Type + Qualifier + No + Number
+  const identifier = [data.jurisdictionCode, data.ipType, data.numberQualifier, "No", data.number]
+    .filter((p) => p && p.trim().length > 0)
+    .join(" ");
+  runs.push({ text: identifier, italic: true });
+
+  // ', filed on «date»' (or 'lodged')
+  const filingDate = data.filingDate ?? data.date;
+  if (filingDate) {
+    runs.push({ text: `, ${data.filedTerm ?? "filed"} on ${filingDate}` });
   }
 
-  if (data.applicant) {
-    parts.push(data.applicant);
+  // Latest status change parenthetical
+  if (data.status && data.statusDate) {
+    runs.push({ text: ` (${data.status} on ${data.statusDate})` });
   }
 
-  if (data.date) {
-    parts.push(data.date);
-  }
-
-  return [{ text: parts.join(", ") }];
+  return runs;
 }
 
 // ─── OTHER-020 ──────────────────────────────────────────────────────────────
 
 /**
- * AGLC4 Rule 7.10 — Constitutive Documents
+ * AGLC4 Rule 7.10 — Constitutive Documents of a Corporation
  *
- * Format: Company Name, Document Type, Pinpoint.
+ * Format: `«*Document Type*», «Company Name» (at «Full Date») «Pinpoint»`
+ * (guide ex 78: *Constitution*, ASX (at 5 October 2012) cl 1.1). The
+ * document type is italic; the company name loses corporate-status
+ * designators and a leading 'The'; pinpoints follow rule 3.1.4 (never
+ * pages).
  *
  * @param data - Constitutive document citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
  * @see AGLC4, Rule 7.10.
  */
-export function formatConstitutiveDocument(
-  data: ConstitutiveDocumentData,
-): FormattedRun[] {
-  const parts: string[] = [data.companyName, data.documentType];
+export function formatConstitutiveDocument(data: ConstitutiveDocumentData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
 
-  if (data.pinpoint) {
-    parts.push(formatPinpointValue(data.pinpoint));
+  // Document type — italic, first (Rule 7.10)
+  runs.push({ text: data.documentType, italic: true });
+
+  // Company name, stripped of corporate designators and a leading 'The'
+  runs.push({ text: `, ${normaliseBodyName(data.companyName)}` });
+
+  // Date of last update or retrieval
+  if (data.date) {
+    runs.push({ text: ` (at ${data.date})` });
   }
 
-  return [{ text: parts.join(", ") }];
+  // Pinpoint (Rule 3.1.4 forms, eg 'cl 1.1'; never pages)
+  if (data.pinpoint) {
+    runs.push({ text: ` ${formatPinpointValue(data.pinpoint)}` });
+  }
+
+  return runs;
 }
 
 // ─── OTHER-021 ──────────────────────────────────────────────────────────────
@@ -409,8 +556,11 @@ export function formatConstitutiveDocument(
 /**
  * AGLC4 Rules 7.11.1–7.11.4 — Newspaper Articles
  *
- * Printed format: Author, 'Title', Newspaper (Place, Date) Page.
- * Electronic format adds: (online, Date) <URL>.
+ * Printed format: `Author, '«Title»', «*Newspaper*» («Place», «Full Date»)
+ * «Pinpoint»`. Electronic format: `(online, «Full Date») «Pinpoint» <URL>`.
+ * An untitled piece takes an unquoted description in the title slot
+ * (Rule 7.11.4, `titleIsDescription`); unsigned articles simply omit the
+ * author.
  *
  * @param data - Newspaper article citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -426,7 +576,12 @@ export function formatNewspaper(data: NewspaperData): FormattedRun[] {
     runs.push({ text: ", " });
   }
 
-  runs.push({ text: "\u2018" + data.title + "\u2019" });
+  // Title: quoted, or an unquoted description for untitled pieces (7.11.4)
+  if (data.titleIsDescription) {
+    runs.push({ text: data.title });
+  } else {
+    runs.push({ text: "‘" + data.title + "’" });
+  }
   runs.push({ text: ", " });
   runs.push({ text: data.newspaper, italic: true });
 
@@ -454,26 +609,28 @@ export function formatNewspaper(data: NewspaperData): FormattedRun[] {
 }
 
 /**
- * AGLC4 Rules 7.11.1–7.11.4 — Editorials and Unsigned Newspaper Articles
+ * AGLC4 Rule 7.11.4 — Editorials
  *
- * Editorials are cited without an author. If the editorial has a title,
- * it is included in single quotes. Otherwise, 'Editorial' is used.
+ * 'Editorial' replaces the author's name while the quoted title (where the
+ * editorial has one) is retained: `Editorial, '«Title»', «*Newspaper*» …`
+ * (guide ex 91).
  *
  * @param data - Editorial citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
- * @see AGLC4, Rules 7.11.1–7.11.4.
+ * @see AGLC4, Rule 7.11.4.
  */
 export function formatEditorial(data: EditorialData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
+  // 'Editorial' stands in the author position (Rule 7.11.4)
+  runs.push({ text: "Editorial, " });
+
   if (data.title) {
-    runs.push({ text: "\u2018" + data.title + "\u2019" });
-  } else {
-    runs.push({ text: "Editorial" });
+    runs.push({ text: "‘" + data.title + "’" });
+    runs.push({ text: ", " });
   }
 
-  runs.push({ text: ", " });
   runs.push({ text: data.newspaper, italic: true });
 
   if (data.isElectronic) {
@@ -511,19 +668,10 @@ export function formatEditorial(data: EditorialData): FormattedRun[] {
  *
  * @see AGLC4, Rule 7.12.
  */
-export function formatCorrespondence(
-  data: CorrespondenceData,
-): FormattedRun[] {
+export function formatCorrespondence(data: CorrespondenceData): FormattedRun[] {
   return [
     {
-      text:
-        data.type +
-        " from " +
-        data.sender +
-        " to " +
-        data.recipient +
-        ", " +
-        data.date,
+      text: data.type + " from " + data.sender + " to " + data.recipient + ", " + data.date,
     },
   ];
 }
@@ -531,9 +679,11 @@ export function formatCorrespondence(
 // ─── OTHER-023 ──────────────────────────────────────────────────────────────
 
 /**
- * AGLC4 Rule 7.13 — Interviews
+ * AGLC4 Rule 7.13 — Interviews and Similar Formats
  *
- * Format: Interview with Interviewee (Interviewer, Location, Date).
+ * Format: `Interview with «Interviewee» («Interviewer», «Forum», «Full
+ * Date»)`. 'Interview' may be swapped for the format actually used (eg
+ * 'Conversation') via `interviewType`.
  *
  * @param data - Interview citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -553,14 +703,10 @@ export function formatInterview(data: InterviewData): FormattedRun[] {
 
   parentheticalParts.push(data.date);
 
+  const label = data.interviewType ?? "Interview";
   return [
     {
-      text:
-        "Interview with " +
-        data.interviewee +
-        " (" +
-        parentheticalParts.join(", ") +
-        ")",
+      text: `${label} with ${data.interviewee} (${parentheticalParts.join(", ")})`,
     },
   ];
 }
@@ -568,75 +714,124 @@ export function formatInterview(data: InterviewData): FormattedRun[] {
 // ─── OTHER-024 ──────────────────────────────────────────────────────────────
 
 /**
- * AGLC4 Rules 7.14.1–7.14.4 — Films
+ * AGLC4 Rules 7.14.1–7.14.2 — Films and Audiovisual Recordings
  *
- * Format: Title (italic) (Director, Year).
+ * Format: `«*Title*» («Version Details», «Studio/Production Company»,
+ * «Year») «Time Pinpoint»` (guide ex 100: *The Dark Knight* (Warner
+ * Brothers Pictures, 2008) 0:54:58–0:55:11). AGLC4 has no director
+ * element; version details appear only for non-standard versions.
  *
  * @param data - Film citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
- * @see AGLC4, Rules 7.14.1–7.14.4.
+ * @see AGLC4, Rules 7.14.1–7.14.2.
  */
 export function formatFilm(data: FilmData): FormattedRun[] {
-  return [
+  const runs: FormattedRun[] = [
     { text: data.title, italic: true },
     {
-      text:
-        " (Directed by " + data.director + ", " + data.year + ")",
+      // The production-company slot falls back to legacy `director` data.
+      text: ` (${joinParen([data.versionDetails, data.productionCompany ?? data.director, data.year])})`,
     },
   ];
+
+  if (data.timePinpoint) {
+    runs.push({ text: ` ${data.timePinpoint}` });
+  }
+
+  return runs;
 }
 
 /**
- * AGLC4 Rules 7.14.1–7.14.4 — Television Series
+ * AGLC4 Rule 7.14.3 — Television Series
  *
- * Format: 'Episode Title', Series Title (italic) (Network, Date).
+ * Format: `'«Episode Title»', «*Series Title*» («Version Details»,
+ * «Studio/Network», «Year/Date») «Time Pinpoint» <URL>`. Untitled episodes
+ * are identified in the episode-title slot as 'Episode «N»' or 'Season
+ * «X», Episode «Y»' (guide ex 103); a series cited as a whole has no
+ * episode element (ex 105).
  *
  * @param data - Television series citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
- * @see AGLC4, Rules 7.14.1–7.14.4.
+ * @see AGLC4, Rule 7.14.3.
  */
 export function formatTvSeries(data: TvSeriesData): FormattedRun[] {
-  return [
-    { text: "\u2018" + data.episodeTitle + "\u2019" },
-    { text: ", " },
-    { text: data.seriesTitle, italic: true },
-    { text: " (" + data.network + ", " + data.date + ")" },
-  ];
-}
-
-/**
- * AGLC4 Rules 7.14.1–7.14.4 — Podcasts
- *
- * Format: 'Episode Title', Series Title (italic) (Host, Date) <URL>.
- * If no episode title, just the series title.
- *
- * @param data - Podcast citation metadata.
- * @returns FormattedRun[] representing the formatted citation.
- *
- * @see AGLC4, Rules 7.14.1–7.14.4.
- */
-export function formatPodcast(data: PodcastData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  if (data.episodeTitle) {
-    runs.push({ text: "\u2018" + data.episodeTitle + "\u2019" });
+  // Episode title slot: explicit title, or 'Season X, Episode Y' built from
+  // numbers for untitled episodes (Rule 7.14.3).
+  let episodeTitle = data.episodeTitle ?? "";
+  if (!episodeTitle) {
+    const parts: string[] = [];
+    if (data.seasonNumber) parts.push(`Season ${data.seasonNumber}`);
+    if (data.episodeNumber) parts.push(`Episode ${data.episodeNumber}`);
+    episodeTitle = parts.join(", ");
+  }
+  if (episodeTitle) {
+    runs.push({ text: "‘" + episodeTitle + "’" });
     runs.push({ text: ", " });
   }
 
   runs.push({ text: data.seriesTitle, italic: true });
 
-  const parentheticalParts: string[] = [];
-  if (data.host) {
-    parentheticalParts.push(data.host);
+  // Production parenthetical — empty elements are skipped (no dangling comma)
+  const paren = joinParen([data.versionDetails, data.network, data.date]);
+  if (paren) {
+    runs.push({ text: ` (${paren})` });
   }
-  parentheticalParts.push(data.date);
 
-  runs.push({ text: " (" + parentheticalParts.join(", ") + ")" });
+  if (data.timePinpoint) {
+    runs.push({ text: ` ${data.timePinpoint}` });
+  }
 
   if (data.url) {
-    runs.push({ text: " <" + data.url + ">" });
+    runs.push({ text: ` <${data.url}>` });
+  }
+
+  return runs;
+}
+
+/**
+ * AGLC4 Rule 7.14.4 — Radio Segments and Podcasts
+ *
+ * Format: `'«Episode Title»', «*Series Title*» («Producer», «Full Date»)
+ * «Time Pinpoint» <URL>` (guide ex 108). The episode title is reproduced
+ * exactly as on the source; the producer/production company is omitted
+ * where it is the same as the series title.
+ *
+ * @param data - Podcast/radio segment citation metadata.
+ * @returns FormattedRun[] representing the formatted citation.
+ *
+ * @see AGLC4, Rule 7.14.4.
+ */
+export function formatPodcast(data: PodcastData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  if (data.episodeTitle) {
+    runs.push({ text: "‘" + data.episodeTitle + "’" });
+    runs.push({ text: ", " });
+  }
+
+  runs.push({ text: data.seriesTitle, italic: true });
+
+  // Producer, omitted where the same as the series title (Rule 7.14.4)
+  let producer = data.producer ?? data.host;
+  if (producer && producer.trim().toLowerCase() === data.seriesTitle.trim().toLowerCase()) {
+    producer = undefined;
+  }
+
+  const paren = joinParen([producer, data.date]);
+  if (paren) {
+    runs.push({ text: ` (${paren})` });
+  }
+
+  if (data.timePinpoint) {
+    runs.push({ text: ` ${data.timePinpoint}` });
+  }
+
+  if (data.url) {
+    runs.push({ text: ` <${data.url}>` });
   }
 
   return runs;
@@ -647,34 +842,49 @@ export function formatPodcast(data: PodcastData): FormattedRun[] {
 /**
  * AGLC4 Rule 7.15 — Internet Materials
  *
- * Format: Author, 'Title', Website (Date) <URL>.
+ * Format: `«Author», '«Document Title»', «*Web Page Title*» («Document
+ * Type», «Full Date») «Pinpoint» <«URL»>`. The parenthetical carries the
+ * document type (eg 'Web Page', 'Blog Post') and as much of the date as
+ * the page shows — `(Web Page)` alone where no date appears (guide ex
+ * 112). The author is omitted where identical to the web page title.
  *
  * @param data - Internet material citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
  *
  * @see AGLC4, Rule 7.15.
  */
-export function formatInternetMaterial(
-  data: InternetMaterialData,
-): FormattedRun[] {
+export function formatInternetMaterial(data: InternetMaterialData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   if (data.authors && data.authors.length > 0) {
     const authorRuns = formatAuthors(data.authors);
-    runs.push(...authorRuns);
-    runs.push({ text: ", " });
+    const authorText = authorRuns
+      .map((r) => r.text)
+      .join("")
+      .trim();
+    // Rule 7.15: omit the author where identical to the web page title.
+    if (authorText.toLowerCase() !== data.website.trim().toLowerCase()) {
+      runs.push(...authorRuns);
+      runs.push({ text: ", " });
+    }
   }
 
   if (data.title) {
-    runs.push({ text: `\u2018${data.title}\u2019` });
+    runs.push({ text: `‘${data.title}’` });
   }
   if (data.website) {
     if (runs.length > 0) runs.push({ text: ", " });
     runs.push({ text: data.website, italic: true });
   }
-  if (data.date) {
-    runs.push({ text: ` (${data.date})` });
+
+  // Parenthetical: (Document Type, Full Date) / (Document Type) / (Date).
+  // A bare date without a type is legacy data entered before the
+  // documentType field existed.
+  const paren = joinParen([data.documentType, data.date]);
+  if (paren) {
+    runs.push({ text: ` (${paren})` });
   }
+
   if (data.url) {
     runs.push({ text: ` <${data.url}>` });
   }
@@ -687,9 +897,10 @@ export function formatInternetMaterial(
 /**
  * AGLC4 Rule 7.16 — Social Media
  *
- * Format: Username, 'Title' (Social Media Platform, Full Date, Time) <URL>.
- * If no title, omit the title portion.
- * If a time is provided, include it after the date separated by a comma.
+ * Format: `«Username», '«Title»' («Platform», «Full Date», «Time») «Time
+ * Pinpoint» <«URL»>`. The title is omitted where the post has none; a time
+ * disambiguates multiple same-day posts; video pinpoints are points or
+ * spans of time (Rules 1.11.3–1.11.4).
  *
  * @param data - Social media citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -704,7 +915,7 @@ export function formatSocialMedia(data: SocialMediaData): FormattedRun[] {
 
   // Title (optional, in single quotes)
   if (data.title) {
-    runs.push({ text: ", \u2018" + data.title + "\u2019" });
+    runs.push({ text: ", ‘" + data.title + "’" });
   }
 
   // Parenthetical: (Platform, Date[, Time])
@@ -713,6 +924,11 @@ export function formatSocialMedia(data: SocialMediaData): FormattedRun[] {
     parenParts.push(data.time);
   }
   runs.push({ text: " (" + parenParts.join(", ") + ")" });
+
+  // Video time pinpoint (Rules 1.11.3–1.11.4)
+  if (data.timePinpoint) {
+    runs.push({ text: ` ${data.timePinpoint}` });
+  }
 
   // URL
   runs.push({ text: " <" + data.url + ">" });

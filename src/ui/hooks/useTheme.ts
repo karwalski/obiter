@@ -6,7 +6,7 @@
  * to the document element via a data-theme attribute.
  */
 
-/* global document, Office */
+/* global document, Office, window, MediaQueryList */
 
 import { useEffect, useState } from "react";
 
@@ -28,18 +28,28 @@ function isDarkColour(hex: string): boolean {
 }
 
 /**
- * Reads the current Office theme and returns "dark" or "light".
+ * Reads the current theme and returns "dark" or "light". The Office theme is
+ * authoritative when present (Word desktop); otherwise (Word for the web, or
+ * before Office.js resolves) the OS/browser `prefers-color-scheme` is honoured.
  */
 function detectTheme(): ThemeMode {
   try {
-    if (Office?.context?.officeTheme) {
-      const bg = Office.context.officeTheme.bodyBackgroundColor;
-      if (bg && isDarkColour(bg)) {
-        return "dark";
-      }
+    const bg = Office?.context?.officeTheme?.bodyBackgroundColor;
+    if (bg) {
+      return isDarkColour(bg) ? "dark" : "light";
     }
   } catch {
-    // Office.js not available or officeTheme not supported — fall back to light
+    // Office.js not available or officeTheme not supported — fall through.
+  }
+  try {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches
+    ) {
+      return "dark";
+    }
+  } catch {
+    // matchMedia unavailable — fall back to light.
   }
   return "light";
 }
@@ -57,28 +67,38 @@ export function useTheme(): ThemeMode {
   }, [theme]);
 
   useEffect(() => {
-    function onThemeChanged(): void {
+    // Re-detect when the OS/browser colour scheme or forced-colors mode changes.
+    // (Word has no task-pane theme-changed event, so we listen to the platform
+    // media queries instead of abusing DocumentSelectionChanged.)
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+
+    function onChange(): void {
       setTheme(detectTheme());
     }
 
-    try {
-      if (Office?.context?.officeTheme) {
-        Office.context.document.addHandlerAsync(
-          Office.EventType.DocumentSelectionChanged,
-          onThemeChanged
-        );
+    const queries: MediaQueryList[] = [
+      window.matchMedia("(prefers-color-scheme: dark)"),
+      window.matchMedia("(forced-colors: active)"),
+    ];
+
+    for (const mq of queries) {
+      // addEventListener is the modern API; addListener is the Safari/WebView fallback.
+      if (mq.addEventListener) {
+        mq.addEventListener("change", onChange);
+      } else if (mq.addListener) {
+        mq.addListener(onChange);
       }
-    } catch {
-      // Theme change handler not supported — static theme only
     }
 
     return () => {
-      try {
-        Office.context.document.removeHandlerAsync(Office.EventType.DocumentSelectionChanged, {
-          handler: onThemeChanged,
-        });
-      } catch {
-        // Cleanup best-effort
+      for (const mq of queries) {
+        if (mq.removeEventListener) {
+          mq.removeEventListener("change", onChange);
+        } else if (mq.removeListener) {
+          mq.removeListener(onChange);
+        }
       }
     };
   }, []);

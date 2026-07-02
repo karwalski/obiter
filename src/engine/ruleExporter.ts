@@ -143,7 +143,8 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     category: "domestic.case",
     requiredFields: ["party1", "court", "fullDate"],
     optionalFields: ["party2", "caseNumber", "pinpoint", "separator"],
-    formatTemplate: "Transcript of Proceedings, Party1 v Party2 (Court, CaseNumber, FullDate) Pinpoint.",
+    formatTemplate:
+      "Transcript of Proceedings, Party1 v Party2 (Court, CaseNumber, FullDate) Pinpoint.",
   },
   {
     type: "case.submission",
@@ -253,9 +254,18 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     ruleNumber: "6.6.1",
     label: "Book Chapter",
     category: "secondary",
-    requiredFields: ["authors", "chapterTitle", "editors", "bookTitle", "publisher", "year", "startingPage"],
+    requiredFields: [
+      "authors",
+      "chapterTitle",
+      "editors",
+      "bookTitle",
+      "publisher",
+      "year",
+      "startingPage",
+    ],
     optionalFields: ["edition", "pinpoint"],
-    formatTemplate: "Author, 'ChapterTitle' in Editor (ed), BookTitle (Publisher, Edition, Year) StartingPage, Pinpoint.",
+    formatTemplate:
+      "Author, 'ChapterTitle' in Editor (ed), BookTitle (Publisher, Edition, Year) StartingPage, Pinpoint.",
   },
   {
     type: "book.translated",
@@ -318,7 +328,8 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     category: "secondary",
     requiredFields: ["title", "catalogueNumber", "year"],
     optionalFields: ["pinpoint"],
-    formatTemplate: "Australian Bureau of Statistics, Title (Catalogue No CatalogueNumber, Year) Pinpoint.",
+    formatTemplate:
+      "Australian Bureau of Statistics, Title (Catalogue No CatalogueNumber, Year) Pinpoint.",
   },
   {
     type: "research_paper",
@@ -381,7 +392,8 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     category: "secondary",
     requiredFields: ["jurisdiction", "chamber", "fullDate", "startingPage"],
     optionalFields: ["speaker", "pinpoint"],
-    formatTemplate: "Jurisdiction, Parliamentary Debates, Chamber, FullDate, StartingPage (Speaker) Pinpoint.",
+    formatTemplate:
+      "Jurisdiction, Parliamentary Debates, Chamber, FullDate, StartingPage (Speaker) Pinpoint.",
   },
   {
     type: "submission.government",
@@ -526,8 +538,18 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Treaty",
     category: "international",
     requiredFields: ["title", "treatySeries"],
-    optionalFields: ["parties", "openedDate", "signedDate", "seriesVolume", "startingPage", "entryIntoForceDate", "notYetInForce", "pinpoint"],
-    formatTemplate: "Title, opened for signature OpenedDate, SeriesVolume TreatySeries StartingPage (entered into force EntryIntoForceDate) Pinpoint.",
+    optionalFields: [
+      "parties",
+      "openedDate",
+      "signedDate",
+      "seriesVolume",
+      "startingPage",
+      "entryIntoForceDate",
+      "notYetInForce",
+      "pinpoint",
+    ],
+    formatTemplate:
+      "Title, opened for signature OpenedDate, SeriesVolume TreatySeries StartingPage (entered into force EntryIntoForceDate) Pinpoint.",
   },
   {
     type: "un.document",
@@ -681,7 +703,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Canadian Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 15 for format details.",
   },
   {
@@ -717,7 +747,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Hong Kong Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 19 for format details.",
   },
   {
@@ -726,7 +764,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Malaysian Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 20 for format details.",
   },
   {
@@ -735,7 +781,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "New Zealand Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 21 for format details.",
   },
   {
@@ -744,7 +798,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Singaporean Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 22 for format details.",
   },
   {
@@ -753,7 +815,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "South African Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 23 for format details.",
   },
   {
@@ -762,7 +832,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "United Kingdom Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 24 for format details.",
   },
   {
@@ -771,7 +849,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "United States Source",
     category: "foreign",
     requiredFields: ["title"],
-    optionalFields: ["authors", "year", "reportSeries", "volume", "startingPage", "pinpoint", "court"],
+    optionalFields: [
+      "authors",
+      "year",
+      "reportSeries",
+      "volume",
+      "startingPage",
+      "pinpoint",
+      "court",
+    ],
     formatTemplate: "See AGLC4 Rule 25 for format details.",
   },
   {

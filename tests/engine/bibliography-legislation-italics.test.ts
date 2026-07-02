@@ -32,7 +32,7 @@ const romanText = (runs: FormattedRun[]): string =>
 describe("bibliography legislation italics (Rule 3.1.1)", () => {
   const statute = makeCitation({
     id: "leg-crimes",
-    sourceType: "legislation.act" as SourceType,
+    sourceType: "legislation.statute",
     data: { title: "Crimes Act", year: 1900, jurisdiction: "NSW" },
   });
 

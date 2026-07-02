@@ -73,7 +73,7 @@ const SA_MEDIUM_NEUTRAL_PREFIXES: ReadonlyArray<string> = [
 
 function isMediumNeutral(series: string): boolean {
   return SA_MEDIUM_NEUTRAL_PREFIXES.some(
-    (prefix) => series === prefix || series.startsWith(prefix),
+    (prefix) => series === prefix || series.startsWith(prefix)
   );
 }
 
@@ -194,9 +194,7 @@ interface SouthAfricaLegislationData {
  *     year: 2000,
  *   })
  */
-export function formatLegislation(
-  data: SouthAfricaLegislationData,
-): FormattedRun[] {
+export function formatLegislation(data: SouthAfricaLegislationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Title in italics

@@ -19,9 +19,7 @@ const CLOSING_PUNCTUATION = [".", "!", "?"];
  * @param runs - The formatted runs comprising the footnote content
  * @returns A new array of FormattedRun with closing punctuation ensured
  */
-export function ensureClosingPunctuation(
-  runs: FormattedRun[]
-): FormattedRun[] {
+export function ensureClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
   if (runs.length === 0) {
     return runs;
   }
@@ -72,8 +70,7 @@ export function joinMultipleCitations(
     const prevSignal = signals?.[i - 1];
     const currSignal = signals?.[i];
 
-    const signalChanged =
-      currSignal !== undefined && currSignal !== prevSignal;
+    const signalChanged = currSignal !== undefined && currSignal !== prevSignal;
 
     if (signalChanged) {
       // Different introductory signal: start a new sentence.

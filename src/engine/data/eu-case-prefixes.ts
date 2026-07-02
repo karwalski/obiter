@@ -28,11 +28,32 @@ export interface EUCasePrefix {
  * Source: CURIA website (curia.europa.eu) — public case law search documentation
  */
 export const EU_CASE_PREFIXES: EUCasePrefix[] = [
-  { prefix: "C-", court: "CJEU", fullName: "Court of Justice of the European Union", active: true, note: "References for preliminary rulings, direct actions, appeals" },
-  { prefix: "T-", court: "General Court", fullName: "General Court (formerly Court of First Instance)", active: true, note: "Direct actions, intellectual property, competition" },
-  { prefix: "F-", court: "Civil Service Tribunal", fullName: "European Union Civil Service Tribunal", active: false, note: "Staff cases (dissolved 1 September 2016, jurisdiction transferred to General Court)" },
-  { prefix: "P-", court: "CJEU", fullName: "Court of Justice (Appeals)", active: true, note: "Appeals from the General Court" },
-  { prefix: "C-", court: "CJEU (Opinion)", fullName: "Court of Justice (Opinions of Advocates General)", active: true, note: "AG opinions use same prefix as the main case" },
+  {
+    // AG opinions use the same prefix as the main case. Appeals from the
+    // General Court keep the C- prefix with a ' P' suffix after the case
+    // number (eg 'C-413/06 P') — there is no 'P-' prefix. (A fabricated
+    // "P-" entry and a duplicate "C-" row previously sat in this list;
+    // duplicate keys shadow entries in getEUCasePrefixByPrefix.)
+    prefix: "C-",
+    court: "CJEU",
+    fullName: "Court of Justice of the European Union",
+    active: true,
+    note: "References for preliminary rulings, direct actions, appeals ('C-…/… P') and AG opinions",
+  },
+  {
+    prefix: "T-",
+    court: "General Court",
+    fullName: "General Court (formerly Court of First Instance)",
+    active: true,
+    note: "Direct actions, intellectual property, competition",
+  },
+  {
+    prefix: "F-",
+    court: "Civil Service Tribunal",
+    fullName: "European Union Civil Service Tribunal",
+    active: false,
+    note: "Staff cases (dissolved 1 September 2016, jurisdiction transferred to General Court)",
+  },
 ];
 
 // =============================================================================
@@ -103,12 +124,42 @@ export interface OJSeries {
  * Source: EUR-Lex (eur-lex.europa.eu) — public documentation on OJ structure
  */
 export const OJ_SERIES: OJSeries[] = [
-  { code: "L", fullName: "Official Journal L (Legislation)", description: "EU legislation: regulations, directives, decisions, recommendations, opinions", active: true },
-  { code: "C", fullName: "Official Journal C (Information and Notices)", description: "Non-binding acts, information, notices, preparatory acts, CJEU case summaries", active: true },
-  { code: "CE", fullName: "Official Journal C E (Electronic edition)", description: "Electronic-only edition of the C series (discontinued — merged into C)", active: false },
-  { code: "LI", fullName: "Official Journal L I (Legislation — immediately applicable)", description: "Legislation requiring immediate publication", active: true },
-  { code: "CI", fullName: "Official Journal C I (Information — urgent)", description: "Urgent information and notices", active: true },
-  { code: "S", fullName: "Supplement to the Official Journal (Public procurement)", description: "Public procurement notices (Tenders Electronic Daily)", active: true },
+  {
+    code: "L",
+    fullName: "Official Journal L (Legislation)",
+    description: "EU legislation: regulations, directives, decisions, recommendations, opinions",
+    active: true,
+  },
+  {
+    code: "C",
+    fullName: "Official Journal C (Information and Notices)",
+    description: "Non-binding acts, information, notices, preparatory acts, CJEU case summaries",
+    active: true,
+  },
+  {
+    code: "CE",
+    fullName: "Official Journal C E (Electronic edition)",
+    description: "Electronic-only edition of the C series (discontinued — merged into C)",
+    active: false,
+  },
+  {
+    code: "LI",
+    fullName: "Official Journal L I (Legislation — immediately applicable)",
+    description: "Legislation requiring immediate publication",
+    active: true,
+  },
+  {
+    code: "CI",
+    fullName: "Official Journal C I (Information — urgent)",
+    description: "Urgent information and notices",
+    active: true,
+  },
+  {
+    code: "S",
+    fullName: "Supplement to the Official Journal (Public procurement)",
+    description: "Public procurement notices (Tenders Electronic Daily)",
+    active: true,
+  },
 ];
 
 // =============================================================================

@@ -15,9 +15,7 @@ import { CitationStore } from "../store/citationStore";
  * @param context - An active Word request context.
  * @returns A map of citation ID to its first (lowest) footnote number.
  */
-export async function buildFootnoteMap(
-  context: Word.RequestContext,
-): Promise<Map<string, number>> {
+export async function buildFootnoteMap(context: Word.RequestContext): Promise<Map<string, number>> {
   const map = new Map<string, number>();
 
   const footnotes = context.document.body.footnotes;
@@ -33,7 +31,7 @@ export async function buildFootnoteMap(
 
     const footnoteNumber = i + 1; // 1-based footnote numbering
 
-    for (const cc of (contentControls.items ?? [])) {
+    for (const cc of contentControls.items ?? []) {
       if (cc.tag && !cc.tag.startsWith("obiter-")) {
         const existing = map.get(cc.tag);
         if (existing === undefined || footnoteNumber < existing) {
@@ -52,9 +50,7 @@ export async function buildFootnoteMap(
  * @param context - An active Word request context.
  * @returns The total footnote count.
  */
-export async function getFootnoteCount(
-  context: Word.RequestContext,
-): Promise<number> {
+export async function getFootnoteCount(context: Word.RequestContext): Promise<number> {
   const footnotes = context.document.body.footnotes;
   footnotes.load("items");
   await context.sync();
@@ -73,7 +69,7 @@ export async function getFootnoteCount(
  */
 export async function getPrecedingFootnoteCitations(
   context: Word.RequestContext,
-  currentFootnoteIndex: number,
+  currentFootnoteIndex: number
 ): Promise<string[]> {
   if (currentFootnoteIndex <= 1) {
     return [];
@@ -95,7 +91,7 @@ export async function getPrecedingFootnoteCitations(
   await context.sync();
 
   const citationIds: string[] = [];
-  for (const cc of (contentControls.items ?? [])) {
+  for (const cc of contentControls.items ?? []) {
     if (cc.tag) {
       citationIds.push(cc.tag);
     }
@@ -113,7 +109,7 @@ export async function getPrecedingFootnoteCitations(
  */
 export async function updateFirstFootnoteNumbers(
   store: CitationStore,
-  footnoteMap: Map<string, number>,
+  footnoteMap: Map<string, number>
 ): Promise<void> {
   const citations = store.getAll();
 
@@ -139,7 +135,7 @@ export async function updateFirstFootnoteNumbers(
  */
 export async function rebuildAllFootnoteTracking(
   context: Word.RequestContext,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<void> {
   const footnoteMap = await buildFootnoteMap(context);
   await updateFirstFootnoteNumbers(store, footnoteMap);

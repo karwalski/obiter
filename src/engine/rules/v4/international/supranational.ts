@@ -19,34 +19,41 @@ import { FormattedRun } from "../../../../types/formattedRun";
 /**
  * Formats a citation to the Official Journal of the European Union.
  *
- * AGLC4 Rule 14.2.1: EU legislative instruments published in the
- * Official Journal are cited with the instrument type and number,
- * the title (italicised), the year, the OJ series, and the page number.
+ * AGLC4 Rule 14.2.1: EU documents published in the Official Journal are
+ * cited as:
+ *   *Document Title* [Year] OJ Series Issue/StartingPage, Pinpoint.
  *
- * Format:
- *   Instrument Type and Number, *Title* [Year] OJ Series Page
+ * The instrument designation (e.g. 'Regulation (EEC) No 2005/70 of the
+ * Commission …') forms part of the italicised title — there is no separate
+ * leading instrument-type element. Pinpoints are preceded by a comma
+ * (rules 1.1.6–1.1.7).
  *
  * @example
- *   Regulation (EC) No 139/2004, Council Regulation on the Control of
- *   Concentrations between Undertakings [2004] OJ L 24/1
+ *   Commission Decision of 18 December 2002 Relating to National
+ *   Provisions on Limiting the Importation … [2003] OJ L 1/72, 79
  */
 export function formatEuOfficialJournal(data: {
-  instrumentType: string;
+  /** @deprecated The instrument designation belongs in the italic title
+   * (Rule 14.2.1); this field is ignored. */
+  instrumentType?: string;
   title: string;
   year: number;
   ojSeries: string;
   page: string;
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Instrument type and number
-  runs.push({ text: `${data.instrumentType}, ` });
-
-  // Title — italicised per AGLC4 Rule 14.2.1
+  // Title — italicised, includes any instrument designation (Rule 14.2.1)
   runs.push({ text: data.title, italic: true });
 
-  // Year, OJ series, and page
+  // Year, OJ series, and issue/page
   runs.push({ text: ` [${data.year}] OJ ${data.ojSeries} ${data.page}` });
+
+  // Pinpoint — comma-preceded (Rule 14.2.1)
+  if (data.pinpoint) {
+    runs.push({ text: `, ${data.pinpoint}` });
+  }
 
   return runs;
 }
@@ -105,19 +112,19 @@ export function formatEuTreaty(data: {
 // ─── INTL-010c: CJEU Cases (Rule 14.2.3) ───────────────────────────────────
 
 /**
- * Formats a Court of Justice of the European Union (CJEU) case citation.
+ * Formats a reported Court of Justice of the European Union (CJEU) case
+ * citation.
  *
- * AGLC4 Rule 14.2.3: CJEU cases are cited with the case name
- * (italicised), the case number, the report series reference (ECR),
- * and the court designation if not the Grand Chamber.
+ * AGLC4 Rule 14.2.3: Reported EU court decisions are cited as:
+ *   *Parties' Names* (Case Number) [Year] Report Series StartingPage,
+ *   Pinpoint.
  *
- * Format:
- *   *Case Name* (Case Number) [Year] ECR Page
- *   *Case Name* (Case Number) [Year] ECR Page (Court)
+ * The case number keeps its prefix ('C-' Court of Justice, 'T-' General
+ * Court, 'F-' Civil Service Tribunal). Rule 14.2.3 defines no trailing
+ * court element for reported decisions, so none is emitted.
  *
  * @example
- *   Kadi v Council of the European Union (Joined Cases C-402/05 P
- *   and C-415/05 P) [2008] ECR I-6351
+ *   Grad v Finanzamt Traunstein (C-9/70) [1970] 2 ECR 825, 833
  */
 export function formatCjeuCase(data: {
   caseName: string;
@@ -125,6 +132,9 @@ export function formatCjeuCase(data: {
   year: number;
   reportSeries: string;
   page: string;
+  /** @deprecated Rule 14.2.3 has no court element in the reported form;
+   * this field is ignored. Use formatCjeuUnreportedCase for the unreported
+   * form, which names the court. */
   court?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -138,9 +148,48 @@ export function formatCjeuCase(data: {
   // Report series reference
   runs.push({ text: ` [${data.year}] ${data.reportSeries} ${data.page}` });
 
-  // Optional court designation
-  if (data.court) {
-    runs.push({ text: ` (${data.court})` });
+  return runs;
+}
+
+/**
+ * Formats an unreported EU court decision per AGLC4 Rule 14.2.3.
+ *
+ * AGLC4 Rule 14.2.3: Decisions not reported in the ECR/ECR-SC are cited as:
+ *   *Parties' Names* (Name of Court/Tribunal, Case Number, ECLI, Full Date)
+ *   Pinpoint.
+ *
+ * The court's name appears as on the decision; the ECLI (if available)
+ * follows the case number, preceded and followed by a comma; pinpoints
+ * should be to paragraphs.
+ *
+ * @example
+ *   Huawei Technologies Co Ltd v ZTE Corporation (Court of Justice of the
+ *   European Union, C-170/13, ECLI:EU:C:2015:477, 16 July 2015) [9]
+ */
+export function formatCjeuUnreportedCase(data: {
+  caseName: string;
+  court: string;
+  caseNumber: string;
+  ecli?: string;
+  date: string;
+  pinpoint?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Case name — italicised per AGLC4 Rule 14.2.3
+  runs.push({ text: data.caseName, italic: true });
+
+  // Court, case number, ECLI and full date in parentheses
+  const parts: string[] = [data.court, data.caseNumber];
+  if (data.ecli) {
+    parts.push(data.ecli);
+  }
+  parts.push(data.date);
+  runs.push({ text: ` (${parts.join(", ")})` });
+
+  // Pinpoint — to paragraphs, space-separated
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
   }
 
   return runs;
@@ -171,13 +220,24 @@ export function formatCjeuCase(data: {
  *   Grand Chamber, Application No 35763/97, ECHR 2001-XI)
  */
 /**
- * Formats a reported ECtHR case citation per AGLC4 Rule 14.3.2.
+ * Formats a reported ECtHR or European Commission of Human Rights case
+ * citation per AGLC4 Rules 14.3.2–14.3.3.
  *
- * Pre-1996 (ser A): Parties (Year) Volume Eur Court HR (ser A) No
- * Post-1996: Parties [Year] Volume Eur Court HR StartingPage, Pinpoint
+ * AGLC4 Rule 14.3.2:
+ *   Decisions to end 1995: *Parties* (Year) Volume Eur Court HR (ser A)
+ *   Pinpoint — round-bracket year (volume-organised), no starting page;
+ *   the pinpoint follows with no punctuation.
+ *   Decisions from 1996: *Parties* [Year] Volume Eur Court HR StartingPage,
+ *   Pinpoint — square-bracket year (year-organised), Roman-numeral volume.
  *
- * @param data - The ECtHR reported case data.
+ * AGLC4 Rule 14.3.3 (European Commission of Human Rights):
+ *   *Parties* (Year) Volume Eur Comm HR StartingPage, Pinpoint — round
+ *   brackets (volume-organised); volume and starting page always included.
+ *
+ * @param data - The ECtHR/Eur Comm HR reported case data.
  * @returns An array of FormattedRun objects.
+ *
+ * @see AGLC4, Rules 14.3.2–14.3.3.
  */
 export function formatEchrReportedCase(data: {
   caseName: string;
@@ -187,19 +247,21 @@ export function formatEchrReportedCase(data: {
   startingPage?: number;
   pinpoint?: string;
   judge?: string;
+  /** Overrides the bracket style inferred from the report series. */
+  yearBrackets?: "round" | "square";
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name — italicised (Rule 14.3.2)
   runs.push({ text: data.caseName, italic: true });
 
-  // Year — round brackets for pre-1996 (ser A), square brackets post-1996
+  // Year — round brackets for volume-organised series (ser A to 1995,
+  // Eur Comm HR); square brackets for the year-organised Eur Court HR
+  // reports from 1996 (Rules 14.3.2–14.3.3)
   const isSerA = data.reportSeries.includes("(ser A)");
-  if (isSerA) {
-    runs.push({ text: ` (${data.year})` });
-  } else {
-    runs.push({ text: ` [${data.year}]` });
-  }
+  const isVolumeOrganised = isSerA || /\bEur Comm HR\b/.test(data.reportSeries);
+  const round = data.yearBrackets ? data.yearBrackets === "round" : isVolumeOrganised;
+  runs.push({ text: round ? ` (${data.year})` : ` [${data.year}]` });
 
   // Volume (Roman numeral for post-1996)
   if (data.volume) {
@@ -209,17 +271,21 @@ export function formatEchrReportedCase(data: {
   // Report series
   runs.push({ text: ` ${data.reportSeries}` });
 
-  // Starting page (post-1996 only)
+  // Starting page (not used for ser A citations)
   if (data.startingPage !== undefined) {
     runs.push({ text: ` ${data.startingPage}` });
   }
 
-  // Pinpoint
+  // Pinpoint — ser A citations have no starting page, so the pinpoint
+  // follows the series with a space and no comma (Rule 14.3.2 ex 32);
+  // otherwise the pinpoint follows the starting page after a comma.
   if (data.pinpoint) {
-    runs.push({ text: `, ${data.pinpoint}` });
+    runs.push({
+      text: isSerA && data.startingPage === undefined ? ` ${data.pinpoint}` : `, ${data.pinpoint}`,
+    });
   }
 
-  // Judge
+  // Judge — after pinpoints (Rule 10.2.8)
   if (data.judge) {
     runs.push({ text: ` (${data.judge})` });
   }
@@ -230,15 +296,23 @@ export function formatEchrReportedCase(data: {
 /**
  * Formats an unreported ECtHR case citation per AGLC4 Rule 14.3.2.
  *
- * Format: Parties (European Court of Human Rights, Chamber,
+ * Format: *Parties* (European Court of Human Rights, Chamber,
  *         Application No Number, Full Date) Pinpoint.
+ *
+ * The chamber element is the Court's configuration for the case — the rule
+ * recognises only 'Grand Chamber' or 'Chamber'. 'Application Nos' (plural)
+ * is used where multiple application numbers are joined with 'and'
+ * (ex 33). Pinpoints are to paragraphs.
  *
  * @param data - The ECtHR unreported case data.
  * @returns An array of FormattedRun objects.
+ *
+ * @see AGLC4, Rule 14.3.2.
  */
 export function formatEchrCase(data: {
   caseName: string;
   applicationNumber: string;
+  /** 'Grand Chamber' or 'Chamber' (Rule 14.3.2). */
   chamber?: string;
   reportSeries?: string;
   date: string;
@@ -256,7 +330,8 @@ export function formatEchrCase(data: {
     parts.push(data.chamber);
   }
 
-  parts.push(`Application No ${data.applicationNumber}`);
+  const appLabel = /\band\b/.test(data.applicationNumber) ? "Application Nos" : "Application No";
+  parts.push(`${appLabel} ${data.applicationNumber}`);
 
   if (data.reportSeries) {
     parts.push(data.reportSeries);
@@ -312,36 +387,60 @@ export function formatSupranationalDecision(data: {
 // ─── INTL-012b: Other Supranational Documents (Rule 14.5) ────────────────────
 
 /**
- * Formats a document of a supranational body not covered by specific rules.
+ * Formats a document of a supranational parliament, council or other body
+ * not covered by specific rules.
  *
- * AGLC4 Rule 14.5: Documents of other supranational bodies are cited
- * with the body name, the title (italicised), the document number,
- * and the date.
+ * AGLC4 Rule 14.5: All elements are comma-separated — the date is not
+ * parenthesised:
+ *   Body, *Title*, Doc No Number, Session, Full Date, Pinpoint.
  *
- * Format:
- *   Body, *Title*, Document Number (Date)
+ * The document number is labelled 'Doc No' (added here where the supplied
+ * value does not already carry it). The session element carries any
+ * parliament/session/meeting information (e.g. '25th ord sess'). The title
+ * may be omitted where the document has none.
  *
  * @example
- *   Inter-American Commission on Human Rights, Report on the Situation
- *   of Human Rights in Haiti, OEA/Ser.L/V/II.77, rev 1, Doc 18
- *   (8 May 1990)
+ *   Assembly of the African Union, Decision on the Scale of Assessment and
+ *   Alternative Sources of Financing the African Union,
+ *   Doc No Assembly/AU/Dec.578(XXV), 25th ord sess, 14–15 June 2015
  */
 export function formatSupranationalDocument(data: {
   body: string;
-  title: string;
+  title?: string;
   documentNumber: string;
+  session?: string;
   date: string;
+  pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Body name
+  // Body name (organisation omitted where already in the body's name)
   runs.push({ text: `${data.body}, ` });
 
-  // Title — italicised per AGLC4 Rule 14.5
-  runs.push({ text: data.title, italic: true });
+  // Title — italicised, omitted where the document has none (Rule 14.5)
+  if (data.title) {
+    runs.push({ text: data.title, italic: true });
+    runs.push({ text: ", " });
+  }
 
-  // Document number and date
-  runs.push({ text: `, ${data.documentNumber} (${data.date})` });
+  // Document number — 'Doc No' label
+  const docNo = /^Doc No\b/i.test(data.documentNumber)
+    ? data.documentNumber
+    : `Doc No ${data.documentNumber}`;
+  runs.push({ text: docNo });
+
+  // Parliament, council, session, meeting, etc
+  if (data.session) {
+    runs.push({ text: `, ${data.session}` });
+  }
+
+  // Full date — comma-separated, not parenthesised (Rule 14.5)
+  runs.push({ text: `, ${data.date}` });
+
+  // Pinpoint — comma-separated (Rule 14.5)
+  if (data.pinpoint) {
+    runs.push({ text: `, ${data.pinpoint}` });
+  }
 
   return runs;
 }

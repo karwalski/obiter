@@ -531,8 +531,25 @@ describe("Validator Orchestration — validateDocument court mode routing", () =
     expect(courtParallel).toHaveLength(0);
   });
 
-  test("validateDocument emits parallel citation warnings in academic mode", () => {
-    const result = validateDocument([], [reportedCase], undefined, "academic");
+  test("validateDocument flags rule 2.2.7 breaches (parallels present) in academic mode", () => {
+    // Rule 2.2.7 prohibits parallel citations for Australian cases; a case
+    // cited only to CLR is compliant, one carrying parallels is flagged.
+    const clean = validateDocument([], [reportedCase], undefined, "academic");
+    const cleanIssues = [
+      ...clean.warnings.filter((w) => w.ruleNumber === "2.2.7"),
+      ...clean.info.filter((i) => i.ruleNumber === "2.2.7"),
+    ];
+    expect(cleanIssues).toHaveLength(0);
+
+    const caseWithParallels: Citation = {
+      ...reportedCase,
+      id: "int-case-parallel",
+      data: {
+        ...reportedCase.data,
+        parallelCitations: [{ volume: 164, reportSeries: "ALR", startingPage: 606 }],
+      },
+    };
+    const result = validateDocument([], [caseWithParallels], undefined, "academic");
     const parallelIssues = [
       ...result.warnings.filter((w) => w.ruleNumber === "2.2.7"),
       ...result.info.filter((i) => i.ruleNumber === "2.2.7"),

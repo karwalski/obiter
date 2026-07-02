@@ -89,7 +89,7 @@ export function addCalendarDays(from: Date, days: number): Date {
  */
 export function calculateDeadlines(
   hearingDate: Date,
-  jurisdiction: DeadlineJurisdiction,
+  jurisdiction: DeadlineJurisdiction
 ): FilingDeadline[] {
   const deadlines: FilingDeadline[] = [];
 
@@ -128,7 +128,8 @@ export function calculateDeadlines(
       const emailDeadline = subtractBusinessDays(hearingDate, 2);
       emailDeadline.setHours(10, 0, 0, 0);
       deadlines.push({
-        label: "NSWCA: Email LOA to President's Researcher (2 business days before hearing, by 10am)",
+        label:
+          "NSWCA: Email LOA to President's Researcher (2 business days before hearing, by 10am)",
         deadline: emailDeadline,
         jurisdiction: "NSWCA",
       });
@@ -136,7 +137,8 @@ export function calculateDeadlines(
       const hardcopyDeadline = subtractBusinessDays(hearingDate, 1);
       hardcopyDeadline.setHours(10, 0, 0, 0);
       deadlines.push({
-        label: "NSWCA: Hardcopy LOA to authorities box, level 12 (1 business day before hearing, by 10am)",
+        label:
+          "NSWCA: Hardcopy LOA to authorities box, level 12 (1 business day before hearing, by 10am)",
         deadline: hardcopyDeadline,
         jurisdiction: "NSWCA",
       });

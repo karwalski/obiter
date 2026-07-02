@@ -107,6 +107,9 @@ export default function ErrorReporter({
 
   if (sent) {
     return (
+      // Backdrop click is a redundant pointer affordance; the dialog is keyboard-closable
+      // via Escape (keydown handler) and the visible Close button. (WCAG 2.1.1 met.)
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
       <div
         className="error-reporter-overlay"
         onClick={(e) => {
@@ -135,6 +138,9 @@ export default function ErrorReporter({
   }
 
   return (
+    // Backdrop click is a redundant pointer affordance; the dialog is keyboard-closable
+    // via Escape (keydown handler) and the visible Close button. (WCAG 2.1.1 met.)
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div
       className="error-reporter-overlay"
       onClick={(e) => {

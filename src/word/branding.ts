@@ -21,7 +21,7 @@ export async function hasAttribution(context: Word.RequestContext): Promise<bool
  */
 export async function insertAcknowledgment(
   context: Word.RequestContext,
-  standardLabel: string,
+  standardLabel: string
 ): Promise<void> {
   const text = `Citations managed with Obiter (obiter.com.au), a free, open-source ${standardLabel} citation engine.`;
   const selection = context.document.getSelection();
@@ -80,7 +80,7 @@ export async function removeAttribution(context: Word.RequestContext): Promise<v
   controls.load("items/tag");
   await context.sync();
 
-  for (const cc of (controls.items ?? [])) {
+  for (const cc of controls.items ?? []) {
     if (cc.tag === ATTRIBUTION_TAG) {
       cc.delete(false);
     }

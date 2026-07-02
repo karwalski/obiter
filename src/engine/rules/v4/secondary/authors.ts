@@ -76,12 +76,16 @@ const RETAINED_TITLES: ReadonlySet<string> = new Set([
 
 /**
  * Honorific prefixes to strip when they appear at the start of givenNames.
+ * Matched case-insensitively (Rule 4.1.1, eg 'Associate Professor Katy
+ * Barnett' → 'Katy Barnett').
  */
 const STRIPPED_TITLE_PREFIXES: ReadonlyArray<string> = [
   "The Honourable",
   "The Hon",
   "Honourable",
   "Hon",
+  "Associate Professor",
+  "Assistant Professor",
   "Professor",
   "Prof",
   "Doctor",
@@ -89,7 +93,16 @@ const STRIPPED_TITLE_PREFIXES: ReadonlyArray<string> = [
   "The Right Honourable",
   "The Rt Hon",
   "Rt Hon",
+  "Reverend",
+  "Rev",
 ];
+
+/**
+ * Conventional titles stripped from citations (Rule 4.1.1, eg 'Ms Sharon
+ * Rodrick' → 'Sharon Rodrick'). Matched case-sensitively so that initials
+ * such as 'MS' are never mistaken for a title.
+ */
+const CONVENTIONAL_TITLE_PREFIXES: ReadonlyArray<string> = ["Mrs", "Miss", "Ms", "Mr"];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -111,22 +124,38 @@ function stripPostNominals(name: string): string {
 }
 
 /**
- * Strips non-retained honorific titles from the start of a given-names string.
+ * Strips non-retained honorific and conventional titles from the start of a
+ * given-names string, repeating until no title remains so that stacked
+ * titles (eg 'The Hon Dr John Cockburn') are fully stripped (Rule 4.1.1).
  * Retained titles (Sir, Dame, Lord, Lady, Viscount, Baron, Baroness) are kept.
  */
 function stripHonorifics(givenNames: string): string {
   let result = givenNames.trim();
 
-  // Try stripping known non-retained prefixes (longest first for greedy match)
-  const sorted = [...STRIPPED_TITLE_PREFIXES].sort(
-    (a, b) => b.length - a.length,
-  );
-  for (const prefix of sorted) {
-    const re = new RegExp(`^${prefix}\\b\\s*`, "i");
-    if (re.test(result)) {
-      result = result.replace(re, "").trim();
-      // Only strip one prefix layer, then re-check
-      break;
+  // Try stripping known non-retained prefixes (longest first for greedy
+  // match), looping so stacked titles all come off.
+  const sorted = [...STRIPPED_TITLE_PREFIXES].sort((a, b) => b.length - a.length);
+  let stripped = true;
+  while (stripped && result.length > 0) {
+    stripped = false;
+    for (const prefix of sorted) {
+      const re = new RegExp(`^${prefix}\\b\\s*`, "i");
+      if (re.test(result)) {
+        result = result.replace(re, "").trim();
+        stripped = true;
+        break;
+      }
+    }
+    if (!stripped) {
+      // Conventional titles (Ms, Mr, Mrs, Miss) are matched case-sensitively
+      // so initials such as 'MS' survive.
+      for (const prefix of CONVENTIONAL_TITLE_PREFIXES) {
+        if (result === prefix || result.startsWith(prefix + " ")) {
+          result = result.slice(prefix.length).trim();
+          stripped = true;
+          break;
+        }
+      }
     }
   }
 
@@ -239,10 +268,7 @@ function processGivenNames(givenNames: string): string {
 function extractRetainedTitle(givenNames: string): [string | null, string] {
   const trimmed = givenNames.trim();
   for (const title of RETAINED_TITLES) {
-    if (
-      trimmed === title ||
-      trimmed.startsWith(title + " ")
-    ) {
+    if (trimmed === title || trimmed.startsWith(title + " ")) {
       return [title, trimmed.slice(title.length).trim()];
     }
   }
@@ -322,10 +348,7 @@ export function invertAuthorName(author: Author): string {
  *
  * @returns FormattedRun[] — plain text (no italic, no bold)
  */
-export function formatAuthors(
-  authors: Author[],
-  isEditor?: boolean,
-): FormattedRun[] {
+export function formatAuthors(authors: Author[], isEditor?: boolean): FormattedRun[] {
   if (authors.length === 0) {
     return [];
   }
@@ -360,6 +383,9 @@ export function formatAuthors(
  * follow in parentheses. If a subdivision of the body is relevant, it
  * should be listed before the body name, separated by a comma.
  *
+ * Company names lose their corporate-status designators ('Pty', 'Ltd',
+ * 'Co', 'Inc') and a leading 'The' (Rule 4.1.4).
+ *
  * @returns FormattedRun[] — plain text
  */
 export function formatBodyAuthor(data: {
@@ -372,9 +398,9 @@ export function formatBodyAuthor(data: {
   if (data.subdivision) {
     parts.push(data.subdivision);
   }
-  parts.push(data.body);
+  parts.push(normaliseBodyName(data.body));
 
-  let text = parts.join(", ");
+  let text = parts.filter(Boolean).join(", ");
 
   if (data.jurisdiction) {
     text += ` (${data.jurisdiction})`;
@@ -383,12 +409,34 @@ export function formatBodyAuthor(data: {
   return [{ text }];
 }
 
+/** Corporate-status designators dropped from company names (Rule 4.1.4). */
+const CORPORATE_DESIGNATORS: ReadonlySet<string> = new Set(["Pty", "Ltd", "Co", "Inc"]);
+
+/**
+ * Normalises a body-author name per Rule 4.1.4: drops corporate-status
+ * designator tokens ('Pty', 'Ltd', 'Co', 'Inc') and a leading 'The'.
+ * Exported for reuse by publisher/company normalisation (Rules 6.3.1, 7.10).
+ */
+export function normaliseBodyName(body: string): string {
+  let result = body.trim().replace(/^The\s+/, "");
+  result = result
+    .split(/\s+/)
+    .filter((token) => !CORPORATE_DESIGNATORS.has(token.replace(/[,.]+$/, "")))
+    .join(" ");
+  return result.trim();
+}
+
 /**
  * Formats a judicial author (Rule 4.1.5).
  *
- * AGLC4 Rule 4.1.5: Where a judge is cited as the author of a secondary
- * source, the judicial title should be included before the name. The title
- * is retained in subsequent references.
+ * AGLC4 Rule 4.1.5: For extra-curial writing the judicial title is OMITTED
+ * unless it appears on the source itself; former judicial officers lose the
+ * former title. 'Sir', 'Dame' and peerage titles are always retained.
+ *
+ * Accordingly, callers must populate `judicialTitle` only when the title is
+ * actually printed on the source being cited (eg 'Justice Michael Kirby' on
+ * the article, AGLC4 ex 19 under rule 4.1.5); a serving judge whose source
+ * carries no title is cited by plain name (eg James Edelman, ex 18).
  *
  * @returns FormattedRun[] — plain text
  */

@@ -11,13 +11,7 @@
  * reference resolution, and ensures closing punctuation.
  */
 
-import type {
-  Citation,
-  Pinpoint,
-  SourceType,
-  Author,
-  IntroductorySignal,
-} from "../types/citation";
+import type { Citation, Pinpoint, SourceType, Author } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import { formatCaseName } from "./rules/v4/domestic/case-names";
 import { formatReportedCase } from "./rules/v4/domestic/cases";
@@ -36,7 +30,11 @@ import {
   formatHcaTranscript,
   formatSubmission,
 } from "./rules/v4/domestic/cases-supplementary";
-import { formatStatute, formatBill, formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
+import {
+  formatStatute,
+  formatBill,
+  formatLegislationPinpoint,
+} from "./rules/v4/domestic/legislation";
 import {
   formatDelegatedLegislation,
   formatCommonwealthConstitution,
@@ -45,8 +43,17 @@ import {
   formatGazette,
   formatQuasiLegislative,
 } from "./rules/v4/domestic/legislation-supplementary";
-import { formatJournalArticle, formatOnlineJournalArticle, formatForthcomingArticle } from "./rules/v4/secondary/journals";
-import { formatBook, formatBookChapter, formatTranslatedBook, formatAudiobook } from "./rules/v4/secondary/books";
+import {
+  formatJournalArticle,
+  formatOnlineJournalArticle,
+  formatForthcomingArticle,
+} from "./rules/v4/secondary/journals";
+import {
+  formatBook,
+  formatBookChapter,
+  formatTranslatedBook,
+  formatAudiobook,
+} from "./rules/v4/secondary/books";
 import { formatTreaty } from "./rules/v4/international/treaties";
 import { formatGenaiOutput } from "./rules/v4/secondary/genai";
 import {
@@ -80,11 +87,23 @@ import {
   formatInternetMaterial,
   formatSocialMedia,
 } from "./rules/v4/secondary/other-media";
-import { formatUnDocument, formatUnCommunication, formatUnYearbook } from "./rules/v4/international/un";
+import {
+  formatUnDocument,
+  formatUnCommunication,
+  formatUnYearbook,
+} from "./rules/v4/international/un";
 import { formatIcjDecision, formatIcjPleading } from "./rules/v4/international/icj";
-import { formatStateArbitrationReported, formatStateArbitration, formatIcsidCase } from "./rules/v4/international/arbitral";
+import {
+  formatStateArbitrationReported,
+  formatStateArbitration,
+  formatIcsidCase,
+} from "./rules/v4/international/arbitral";
 import { formatIccCase } from "./rules/v4/international/icc-tribunals";
-import { formatWtoDocument, formatWtoDecision, formatGattDocument } from "./rules/v4/international/economic";
+import {
+  formatWtoDocument,
+  formatWtoDecision,
+  formatGattDocument,
+} from "./rules/v4/international/economic";
 import {
   formatEuOfficialJournal,
   formatCjeuCase,
@@ -98,10 +117,7 @@ import {
   formatAbbreviationDefinition,
   type SubsequentReferenceContext,
 } from "./resolver";
-import {
-  shouldItaliciseTitle,
-  shouldQuoteTitle,
-} from "./rules/v4/general/italicisation";
+import { shouldItaliciseTitle, shouldQuoteTitle } from "./rules/v4/general/italicisation";
 import type { CitationConfig } from "./standards/types";
 import { getStandardConfig } from "./standards";
 import { formatLinkingPhrase } from "./rules/v4/general/signals";
@@ -109,12 +125,23 @@ import { formatLinkingPhrase } from "./rules/v4/general/signals";
 // ─── OSCOLA Formatter Imports (OSC-ENH-001) ─────────────────────────────────
 
 import { formatOscolaCase } from "./rules/oscola/cases";
-import type { OscolaCaseData, OscolaNeutralCitation, OscolaReportCitation } from "./rules/oscola/cases";
+import type {
+  OscolaCaseData,
+  OscolaNeutralCitation,
+  OscolaReportCitation,
+} from "./rules/oscola/cases";
 import { formatOscolaScottishCase } from "./rules/oscola/cases-scotland";
-import type { OscolaScottishCaseData, ScottishNeutralCitation } from "./rules/oscola/cases-scotland";
+import type {
+  OscolaScottishCaseData,
+  ScottishNeutralCitation,
+} from "./rules/oscola/cases-scotland";
 import { SCOTTISH_COURT_IDS } from "./rules/oscola/cases-scotland";
 import { formatOscolaNICase } from "./rules/oscola/cases-ni";
-import type { OscolaNICaseData, NINeutralCitation, NIReportCitation } from "./rules/oscola/cases-ni";
+import type {
+  OscolaNICaseData,
+  NINeutralCitation,
+  NIReportCitation,
+} from "./rules/oscola/cases-ni";
 import { NI_COURT_IDS } from "./rules/oscola/cases-ni";
 import {
   formatOscolaPrimaryLegislation,
@@ -334,7 +361,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
-    (d.separator as string) ?? "v",
+    (d.separator as string) ?? "v"
   );
 
   let parallelCitations = d.parallelCitations as
@@ -385,7 +412,11 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
 
   // AUDIT2-005: Append judicial officers (Rule 2.4) if present
   const judicialOfficers = d.judicialOfficers as
-    | Array<{ name: string; title: string; role?: "majority" | "concurring" | "dissenting" | "agreeing" | "during_argument" }>
+    | Array<{
+        name: string;
+        title: string;
+        role?: "majority" | "concurring" | "dissenting" | "agreeing" | "during_argument";
+      }>
     | undefined;
   if (judicialOfficers && judicialOfficers.length > 0) {
     const joRuns = formatJudicialOfficers(judicialOfficers);
@@ -473,7 +504,10 @@ function dispatchTreaty(citation: Citation): FormattedRun[] {
   if (Array.isArray(d.parties)) {
     parties = d.parties as string[];
   } else if (typeof d.parties === "string" && d.parties.trim()) {
-    parties = (d.parties as string).split(",").map((p) => p.trim()).filter(Boolean);
+    parties = (d.parties as string)
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
   }
 
   return formatTreaty({
@@ -547,7 +581,7 @@ function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.party1 as string) ?? (d.caseName as string) ?? "",
     (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
   return formatUnreportedMnc({
     caseName,
@@ -555,10 +589,7 @@ function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
     // Accept any of the aliases that callers (parser, corpus, edit form,
     // older docs) may have stored.
     courtIdentifier:
-      (d.court as string) ??
-      (d.courtIdentifier as string) ??
-      (d.courtId as string) ??
-      "",
+      (d.court as string) ?? (d.courtIdentifier as string) ?? (d.courtId as string) ?? "",
     caseNumber: toNumber(d.caseNumber ?? d.mnc ?? d.judgmentNumber, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     judicialOfficer: d.judicialOfficer as string | undefined,
@@ -574,7 +605,7 @@ function dispatchUnreportedNoMnc(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
   return formatUnreportedNoMnc({
     caseName,
@@ -593,7 +624,7 @@ function dispatchProceeding(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
   return formatProceeding({
     caseName,
@@ -612,7 +643,7 @@ function dispatchCourtOrder(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
   return formatCourtOrder({
     caseName,
@@ -660,7 +691,7 @@ function dispatchTranscript(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.party1 as string) ?? "",
     (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
 
   // Rule 2.7.2: HCA transcripts use a special format with [Year] HCATrans Number
@@ -690,7 +721,7 @@ function dispatchSubmission(citation: Citation): FormattedRun[] {
   const caseName = formatCaseName(
     (d.caseParty1 as string) ?? (d.party1 as string) ?? "",
     (d.caseParty2 as string) ?? (d.party2 as string) ?? "",
-    d.separator as string | undefined,
+    d.separator as string | undefined
   );
   return formatSubmission({
     partyName: (d.partyName as string) ?? "",
@@ -711,10 +742,7 @@ function dispatchSubmission(citation: Citation): FormattedRun[] {
 function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const platformRaw = (d.platform as string) ?? "";
-  const platform =
-    platformRaw === "__other__"
-      ? ((d.platformCustom as string) ?? "")
-      : platformRaw;
+  const platform = platformRaw === "__other__" ? ((d.platformCustom as string) ?? "") : platformRaw;
   return formatGenaiOutput({
     platform,
     model: (d.model as string) ?? "",
@@ -1147,9 +1175,10 @@ function dispatchThesis(citation: Citation): FormattedRun[] {
   const d = citation.data;
   // formatThesis expects a single Author, not Author[]
   const authors = d.authors as Author[] | undefined;
-  const singleAuthor: Author = authors && authors.length > 0
-    ? authors[0]
-    : { givenNames: "", surname: (d.author as string) ?? "" };
+  const singleAuthor: Author =
+    authors && authors.length > 0
+      ? authors[0]
+      : { givenNames: "", surname: (d.author as string) ?? "" };
   return formatThesis({
     author: singleAuthor,
     title: (d.title as string) ?? "",
@@ -1196,7 +1225,8 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
   return formatNewspaper({
     authors: d.authors as Author[] | undefined,
     title: (d.title as string) ?? "",
-    newspaper: (d.newspaper as string) ?? (d.newspaperName as string) ?? (d.publication as string) ?? "",
+    newspaper:
+      (d.newspaper as string) ?? (d.newspaperName as string) ?? (d.publication as string) ?? "",
     place: (d.place as string) ?? (d.location as string) ?? (d.city as string) ?? "",
     date: (d.date as string) ?? "",
     page: (d.page as string) ?? (d.startingPage as string) ?? undefined,
@@ -1285,7 +1315,8 @@ function dispatchInterview(citation: Citation): FormattedRun[] {
   return formatInterview({
     interviewee: pickString(d.interviewee, d.author, d.name),
     interviewer: (d.interviewer as string) ?? (d.host as string) ?? undefined,
-    location: (d.location as string) ?? (d.program as string) ?? (d.publication as string) ?? undefined,
+    location:
+      (d.location as string) ?? (d.program as string) ?? (d.publication as string) ?? undefined,
     date: (d.date as string) ?? "",
   });
 }
@@ -1530,7 +1561,11 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
   return formatUnDocument({
     author: d.author as string | undefined,
     title: (d.title as string) ?? "",
-    resolutionNumber: (d.resolutionNumber as string) ?? (d.resolutionOrDocumentNumber as string) ?? (d.resolutionOrDecisionNumber as string) ?? undefined,
+    resolutionNumber:
+      (d.resolutionNumber as string) ??
+      (d.resolutionOrDocumentNumber as string) ??
+      (d.resolutionOrDecisionNumber as string) ??
+      undefined,
     officialRecords: d.officialRecords as string | undefined,
     session: d.session as string | undefined,
     meetingNumber: d.meetingNumber as string | undefined,
@@ -1556,11 +1591,13 @@ function dispatchUnCommunication(citation: Citation): FormattedRun[] {
   // Form field: "committee" (e.g. "Human Rights Committee")
   const committee = toStr(d.committee) || toStr(d.body) || toStr(d.commission) || toStr(d.organ);
   // Form field: "docNumber" (e.g. "CCPR/C/95/D/1457/2006")
-  const docNumber = toStr(d.docNumber) || toStr(d.documentNumber) || toStr(d.documentSymbol) || toStr(d.unDoc);
+  const docNumber =
+    toStr(d.docNumber) || toStr(d.documentNumber) || toStr(d.documentSymbol) || toStr(d.unDoc);
   // Build the title: "Views: Communication No X" or just "Communication No X"
   const titlePrefix = toStr(d.decisionType) || toStr(d.documentType) || toStr(d.views);
   const commLabel = commNo ? `Communication No ${commNo}` : "";
-  const title = titlePrefix && commLabel ? `${titlePrefix}: ${commLabel}` : commLabel || titlePrefix;
+  const title =
+    titlePrefix && commLabel ? `${titlePrefix}: ${commLabel}` : commLabel || titlePrefix;
   // If no author, committee acts as the author — don't repeat it
   const effectiveAuthor = author || committee;
   const effectiveCommittee = author ? committee : "";
@@ -1711,7 +1748,8 @@ function dispatchWtoDocument(citation: Citation): FormattedRun[] {
 function dispatchWtoDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatWtoDecision({
-    documentDescription: (d.documentDescription as string) ?? (d.reportType as string) ?? "Panel Report",
+    documentDescription:
+      (d.documentDescription as string) ?? (d.reportType as string) ?? "Panel Report",
     title: (d.title as string) ?? "",
     documentNumber: (d.documentNumber as string) ?? "",
     date: (d.date as string) ?? "",
@@ -1786,18 +1824,24 @@ function dispatchEchrDecision(citation: Citation): FormattedRun[] {
 function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
   // Case name: try every possible field name the AI or form might use
-  let caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? (d.parties as string) ?? "";
+  let caseName =
+    (d.caseTitle as string) ??
+    (d.caseName as string) ??
+    (d.title as string) ??
+    (d.parties as string) ??
+    "";
   if (!caseName && d.applicant) {
     caseName = d.respondent ? `${d.applicant} v ${d.respondent}` : (d.applicant as string);
   }
   // Court/body
-  const court = pickString(
-    d.court, d.tribunal, d.courtTribunal, d.body, d.commission, d.committee,
-  );
+  const court = pickString(d.court, d.tribunal, d.courtTribunal, d.body, d.commission, d.committee);
   // Case/communication number
   const caseNumber = pickString(
-    d.caseNumber, d.communicationNumber, d.communicationNo, d.number,
-    d.applicationNumber,
+    d.caseNumber,
+    d.communicationNumber,
+    d.communicationNo,
+    d.number,
+    d.applicationNumber
   );
   const seriesNo = (d.seriesNumber as string) ?? (d.series as string) ?? "";
   const date = (d.date as string) ?? "";
@@ -1847,8 +1891,12 @@ function dispatchForeign(citation: Citation): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name / title — try every possible field name
-  const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string)
-    ?? (d.parties as string) ?? "";
+  const caseName =
+    (d.caseTitle as string) ??
+    (d.caseName as string) ??
+    (d.title as string) ??
+    (d.parties as string) ??
+    "";
 
   // For case-like foreign citations (has "v" in name), format like a case
   const isCase = caseName.includes(" v ") || (d.foreignSubType as string)?.toLowerCase() === "case";
@@ -2051,7 +2099,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     const isPreNeutral = Boolean(d.fileNumber);
     if (isPreNeutral) {
       return nzlsgFormatPreNeutralCase({
-        caseName: (d.caseName as string) ?? `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`,
+        caseName:
+          (d.caseName as string) ?? `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`,
         court: (d.court as string) ?? "",
         registry: d.registry as string | undefined,
         fileNumber: (d.fileNumber as string) ?? "",
@@ -2061,16 +2110,18 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     }
 
     // Neutral citation format
-    const caseName = (d.caseName as string) ??
-      `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`;
+    const caseName =
+      (d.caseName as string) ?? `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`;
 
     // Build parallel report from data if present
-    const parallelReport = d.parallelReport as {
-      year: number;
-      volume?: number;
-      reportSeries: string;
-      startPage: number;
-    } | undefined;
+    const parallelReport = d.parallelReport as
+      | {
+          year: number;
+          volume?: number;
+          reportSeries: string;
+          startPage: number;
+        }
+      | undefined;
 
     return nzlsgFormatNeutralCitation({
       caseName,
@@ -2201,8 +2252,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "book") {
     return nzlsgFormatBook({
-      author: (d.author as string) ??
-        formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
       title: (d.title as string) ?? "",
       edition: d.edition as string | undefined,
       publisher: (d.publisher as string) ?? "",
@@ -2214,8 +2264,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "journal.article") {
     return nzlsgFormatJournalArticle({
-      author: (d.author as string) ??
-        formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
       volume: toOptionalNumber(d.volume),
@@ -2237,8 +2286,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "thesis") {
     return nzlsgFormatThesis({
-      author: (d.author as string) ??
-        formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
       title: (d.title as string) ?? "",
       degree: (d.degree as string) ?? "",
       university: (d.university as string) ?? "",
@@ -2307,12 +2355,11 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
  */
 function resolveNzlsgSubsequent(
   citation: Citation,
-  context: CitationContext,
+  context: CitationContext
 ): FormattedRun[] | null {
   if (context.isFirstCitation) return null;
 
-  const nzlsgStyle: NZLSGStyle =
-    (citation.data.nzlsgStyle as NZLSGStyle) ?? "general";
+  const nzlsgStyle: NZLSGStyle = (citation.data.nzlsgStyle as NZLSGStyle) ?? "general";
 
   // Determine the author/title string for the subsequent reference
   const authorOrTitle =
@@ -2323,9 +2370,7 @@ function resolveNzlsgSubsequent(
     (citation.data.title as string | undefined) ??
     "";
 
-  const pinpointStr = context.currentPinpoint
-    ? extractNzlsgPinpoint(citation.data)
-    : undefined;
+  const pinpointStr = context.currentPinpoint ? extractNzlsgPinpoint(citation.data) : undefined;
 
   if (nzlsgStyle === "commercial") {
     return nzlsgFormatCommercialSubsequent({
@@ -2526,11 +2571,13 @@ function dispatchOscolaNICase(citation: Citation): FormattedRun[] {
 function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
 
-  const neutralCitation = d.neutralCitation as {
-    year: number;
-    court: IrishCourtIdentifier;
-    number: number;
-  } | undefined;
+  const neutralCitation = d.neutralCitation as
+    | {
+        year: number;
+        court: IrishCourtIdentifier;
+        number: number;
+      }
+    | undefined;
 
   let nc = neutralCitation;
   if (!nc) {
@@ -2546,19 +2593,21 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
     }
   }
 
-  const reportCitation = d.reportCitation as {
-    year: number;
-    volume?: number;
-    series: IrishReportSeries;
-    page: number;
-  } | undefined;
+  const reportCitation = d.reportCitation as
+    | {
+        year: number;
+        volume?: number;
+        series: IrishReportSeries;
+        page: number;
+      }
+    | undefined;
 
   let rc = reportCitation;
   if (!rc && d.reportSeries) {
     rc = {
       year: toNumber(d.year, 0),
       volume: toOptionalNumber(d.volume),
-      series: (d.reportSeries as string) as IrishReportSeries,
+      series: d.reportSeries as string as IrishReportSeries,
       page: toNumber(d.startingPage, 0),
     };
   }
@@ -2583,9 +2632,10 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaReportedCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  const courtId = (d.courtId as string) ??
+  const courtId =
+    (d.courtId as string) ??
     (d.neutralCitationCourt as string) ??
-    ((d.neutralCitation as { court?: string } | undefined)?.court) ??
+    (d.neutralCitation as { court?: string } | undefined)?.court ??
     "";
   const jurisdiction = (d.jurisdiction as string) ?? "";
 
@@ -2949,7 +2999,8 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
 
   // Author(s) — structured array or plain string
   const authors = Array.isArray(d.authors) ? (d.authors as Author[]) : undefined;
-  const plainAuthor = toStr(d.author) || toStr(d.institutionalAuthor) || toStr(d.speaker) || toStr(d.witness) || "";
+  const plainAuthor =
+    toStr(d.author) || toStr(d.institutionalAuthor) || toStr(d.speaker) || toStr(d.witness) || "";
 
   if (authors && authors.length > 0) {
     const authorText = authors
@@ -3084,10 +3135,7 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
  * @param citation - The citation containing optional signal/commentary fields.
  * @returns A new array of FormattedRun with signal/commentary prepended/appended.
  */
-export function applySignalAndCommentary(
-  runs: FormattedRun[],
-  citation: Citation,
-): FormattedRun[] {
+export function applySignalAndCommentary(runs: FormattedRun[], citation: Citation): FormattedRun[] {
   const { signal, commentaryBefore, commentaryAfter } = citation;
 
   // If nothing to add, return runs unchanged
@@ -3125,7 +3173,7 @@ export function applySignalAndCommentary(
 export function applyLinkingPhrase(
   primaryRuns: FormattedRun[],
   linkingPhrase: Citation["linkingPhrase"],
-  secondaryRuns: FormattedRun[],
+  secondaryRuns: FormattedRun[]
 ): FormattedRun[] {
   if (!linkingPhrase || secondaryRuns.length === 0) {
     return primaryRuns;
@@ -3152,7 +3200,7 @@ export function applyLinkingPhrase(
 export function formatCitation(
   citation: Citation,
   context?: CitationContext,
-  config?: CitationConfig,
+  config?: CitationConfig
 ): FormattedRun[] {
   // Manual override: when the user chose "Use as-is" in the Preview editor,
   // the override text is rendered verbatim and structured formatting is
@@ -3190,10 +3238,7 @@ export function formatCitation(
       config: standardConfig,
     };
 
-    const subsequentRuns = resolveSubsequentReference(
-      citation,
-      resolverContext,
-    );
+    const subsequentRuns = resolveSubsequentReference(citation, resolverContext);
 
     if (subsequentRuns !== null) {
       return subsequentRuns;
@@ -3214,14 +3259,15 @@ export function formatCitation(
     // citation text — no point adding ('Watt v R') when the case name
     // is already "Watt v R".
     if (citation.shortTitle) {
-      const fullText = result.map((r) => r.text).join("").toLowerCase().trim();
+      const fullText = result
+        .map((r) => r.text)
+        .join("")
+        .toLowerCase()
+        .trim();
       const shortLower = citation.shortTitle.toLowerCase().trim();
       const isRedundant = fullText.startsWith(shortLower) || fullText.includes(shortLower);
       if (!isRedundant) {
-        const intro = formatShortTitleIntroduction(
-          citation.shortTitle,
-          citation.sourceType,
-        );
+        const intro = formatShortTitleIntroduction(citation.shortTitle, citation.sourceType);
         result = [...result, { text: " " }, ...intro];
       }
     }
@@ -3264,9 +3310,7 @@ export function formatCitation(
 
   // Dispatch to the source-type-specific formatter, or fallback to generic.
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
-  let runs = dispatcher
-    ? dispatcher(citation, standardConfig)
-    : formatGenericCitation(citation);
+  let runs = dispatcher ? dispatcher(citation, standardConfig) : formatGenericCitation(citation);
   runs = appendFirstCitationSuffixes(runs);
 
   return applySignalAndCommentary(runs, citation);
@@ -3299,7 +3343,7 @@ function ensurePreviewClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
 export function getFormattedPreview(
   citation: Citation,
   config?: CitationConfig,
-  linkedCitationRuns?: FormattedRun[],
+  linkedCitationRuns?: FormattedRun[]
 ): FormattedRun[] {
   // Manual override: render verbatim and skip every formatter / signal /
   // linking phrase path. The user has explicitly told us their text is
@@ -3332,9 +3376,7 @@ export function getFormattedPreview(
   }
 
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];
-  let runs = dispatcher
-    ? dispatcher(citation, standardConfig)
-    : formatGenericCitation(citation);
+  let runs = dispatcher ? dispatcher(citation, standardConfig) : formatGenericCitation(citation);
 
   runs = applySignalAndCommentary(runs, citation);
   runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);

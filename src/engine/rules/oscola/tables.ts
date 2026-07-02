@@ -59,16 +59,8 @@ export interface LegislationEntry {
  * @param cases - Array of case entries to include in the table.
  * @returns Array of BibliographySection objects, one per jurisdiction.
  */
-export function generateTableOfCases(
-  cases: CaseEntry[]
-): BibliographySection[] {
-  const jurisdictionOrder = [
-    "UK",
-    "EU",
-    "ECtHR",
-    "International",
-    "Foreign",
-  ];
+export function generateTableOfCases(cases: CaseEntry[]): BibliographySection[] {
+  const jurisdictionOrder = ["UK", "EU", "ECtHR", "International", "Foreign"];
 
   // Group cases by jurisdiction
   const grouped = new Map<string, CaseEntry[]>();
@@ -149,9 +141,7 @@ function getCaseSortKey(caseName: string): string {
  * @param legislation - Array of legislation entries to include.
  * @returns Array of BibliographySection objects, one per category.
  */
-export function generateTableOfLegislation(
-  legislation: LegislationEntry[]
-): BibliographySection[] {
+export function generateTableOfLegislation(legislation: LegislationEntry[]): BibliographySection[] {
   const categoryConfig: Array<{
     key: LegislationEntry["category"];
     heading: string;
@@ -171,9 +161,7 @@ export function generateTableOfLegislation(
     }
 
     // Sort alphabetically by title
-    const sorted = [...entries].sort((a, b) =>
-      a.title.localeCompare(b.title)
-    );
+    const sorted = [...entries].sort((a, b) => a.title.localeCompare(b.title));
 
     // Format entries — all roman (not italic) per OSCOLA
     const formattedEntries: FormattedRun[][] = sorted.map((entry) => {

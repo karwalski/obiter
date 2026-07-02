@@ -173,3 +173,76 @@ export function formatIcjPleading(data: {
 
   return runs;
 }
+
+// ─── PARITY: Unreported ICJ Materials (Rules 10.4.1–10.4.2) ──────────────────
+
+/**
+ * Formats an unreported ICJ decision, pleading or other document per AGLC4
+ * Rules 10.4.1–10.4.2.
+ *
+ * AGLC4 Rule 10.4.1 (decisions):
+ *   *Case Name* (*Parties*) (*Phase*) (International Court of Justice,
+ *   General List No N, Full Date) Pinpoint (Judge).
+ *
+ * AGLC4 Rule 10.4.2 (pleadings and other documents):
+ *   'Document Title', *Case Name* (*Parties*) (International Court of
+ *   Justice, General List No N, Full Date) Pinpoint (Speaker).
+ *
+ * The general list number appears as on the page where the judgment
+ * commences; pinpoints should be to paragraphs; judges'/speakers' names may
+ * follow pinpoints.
+ *
+ * @param data - The unreported ICJ citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rules 10.4.1–10.4.2.
+ */
+export function formatIcjUnreported(data: {
+  caseName: string;
+  parties?: string;
+  phase?: string;
+  generalListNumber: string;
+  date: string;
+  documentTitle?: string;
+  pinpoint?: string;
+  judge?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Document title — pleadings and other documents only (Rule 10.4.2)
+  if (data.documentTitle) {
+    runs.push({ text: `'${data.documentTitle}', ` });
+  }
+
+  // Case name — italicised (Rule 10.2.1)
+  runs.push({ text: data.caseName, italic: true });
+
+  // Parties — italicised in parentheses (Rule 10.2.2)
+  if (data.parties) {
+    runs.push({ text: " " });
+    runs.push({ text: `(${data.parties})`, italic: true });
+  }
+
+  // Phase — italicised in parentheses (Rules 10.4.1, 10.2.3)
+  if (data.phase) {
+    runs.push({ text: " " });
+    runs.push({ text: `(${data.phase})`, italic: true });
+  }
+
+  // Court, general list number and full date (Rule 10.4.1)
+  runs.push({
+    text: ` (International Court of Justice, General List No ${data.generalListNumber}, ${data.date})`,
+  });
+
+  // Pinpoint — space-separated, to paragraphs (Rules 1.1.6–1.1.7)
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
+
+  // Judge or speaker — after pinpoints (Rules 10.2.8, 2.4.4)
+  if (data.judge) {
+    runs.push({ text: ` (${data.judge})` });
+  }
+
+  return runs;
+}

@@ -6,13 +6,34 @@
 import { ValidationIssue } from "../../../types/validation";
 
 const MONTHS: readonly string[] = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 const MONTH_ABBREVS: readonly string[] = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Sept", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Sept",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 // ─── GEN-031: Date formatting (Rule 1.11.1) ────────────────────────────────
@@ -27,9 +48,7 @@ const MONTH_ABBREVS: readonly string[] = [
  * 'Day Month Year' (eg '14 July 2018'). Do not use commas, ordinal indicators
  * or abbreviations for the month."
  */
-export function formatDate(
-  date: Date | { day?: number; month: number; year: number },
-): string {
+export function formatDate(date: Date | { day?: number; month: number; year: number }): string {
   let day: number | undefined;
   let month: number;
   let year: number;
@@ -59,17 +78,15 @@ export function formatDate(
  * 1. US-style dates with commas (e.g. "July 14, 2018").
  * 2. Ordinal indicators on days (e.g. "14th July", "1st January").
  * 3. Abbreviated month names (e.g. "Jul", "Sept").
+ * 4. Apostrophes in decades (e.g. "1970's" — Rule 1.11.5 requires "1970s").
  *
- * @remarks AGLC4 Rule 1.11.1
+ * @remarks AGLC4 Rules 1.11.1, 1.11.5
  */
 export function checkDateFormatting(text: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   // US-style dates with commas: "Month Day, Year"
-  const usDateRegex = new RegExp(
-    `\\b((?:${MONTHS.join("|")})\\s+\\d{1,2},\\s*\\d{4})\\b`,
-    "g",
-  );
+  const usDateRegex = new RegExp(`\\b((?:${MONTHS.join("|")})\\s+\\d{1,2},\\s*\\d{4})\\b`, "g");
   let match: RegExpExecArray | null;
 
   while ((match = usDateRegex.exec(text)) !== null) {
@@ -83,10 +100,7 @@ export function checkDateFormatting(text: string): ValidationIssue[] {
   }
 
   // Ordinal indicators: "14th", "1st", "2nd", "3rd" before a month name
-  const ordinalRegex = new RegExp(
-    `\\b(\\d{1,2}(?:st|nd|rd|th))\\s+(${MONTHS.join("|")})\\b`,
-    "gi",
-  );
+  const ordinalRegex = new RegExp(`\\b(\\d{1,2}(?:st|nd|rd|th))\\s+(${MONTHS.join("|")})\\b`, "gi");
 
   while ((match = ordinalRegex.exec(text)) !== null) {
     const fullMatch = match[0];
@@ -104,17 +118,12 @@ export function checkDateFormatting(text: string): ValidationIssue[] {
 
   // Abbreviated month names (exclude "May" which is a full month name)
   const abbrevsWithoutMay = MONTH_ABBREVS.filter((a) => a !== "May");
-  const abbrevRegex = new RegExp(
-    `\\b(${abbrevsWithoutMay.join("|")})\\b(?!\\w)`,
-    "g",
-  );
+  const abbrevRegex = new RegExp(`\\b(${abbrevsWithoutMay.join("|")})\\b(?!\\w)`, "g");
 
   while ((match = abbrevRegex.exec(text)) !== null) {
     const abbrev = match[1];
     // Find the full month name for this abbreviation
-    const fullMonth = MONTHS.find((m) =>
-      m.toLowerCase().startsWith(abbrev.toLowerCase()),
-    );
+    const fullMonth = MONTHS.find((m) => m.toLowerCase().startsWith(abbrev.toLowerCase()));
     issues.push({
       ruleNumber: "1.11.1",
       message: `Abbreviated month "${abbrev}" should be written in full`,
@@ -125,10 +134,24 @@ export function checkDateFormatting(text: string): ValidationIssue[] {
     });
   }
 
+  // Rule 1.11.5: decades take no apostrophe ('1970s', never '1970's')
+  const decadeApostropheRegex = /\b(\d{3}0)['’]s\b/g;
+
+  while ((match = decadeApostropheRegex.exec(text)) !== null) {
+    issues.push({
+      ruleNumber: "1.11.5",
+      message: `Decade "${match[0]}" should not use an apostrophe`,
+      severity: "warning",
+      offset: match.index,
+      length: match[0].length,
+      suggestion: `${match[1]}s`,
+    });
+  }
+
   return issues;
 }
 
-// ─── GEN-033: Date and time spans (Rules 1.11.3, 1.11.4) ───────────────────
+// ─── GEN-033: Date and time spans (Rule 1.11.4) ────────────────────────────
 
 const EN_DASH = "\u2013";
 
@@ -139,7 +162,7 @@ const EN_DASH = "\u2013";
  * last two digits (e.g. `1986–87`). Otherwise the full end year is used
  * (e.g. `1999–2009`).
  *
- * @remarks AGLC4 Rule 1.11.3 / 1.11.4
+ * @remarks AGLC4 Rule 1.11.4 — spans of dates and times.
  */
 export function formatYearSpan(startYear: number, endYear: number): string {
   const startCentury = Math.floor(startYear / 100);
@@ -161,11 +184,11 @@ export function formatYearSpan(startYear: number, endYear: number): string {
  * - Different years (no day/month): abbreviate end year if same century
  *   (`1986–87`), otherwise full (`1999–2009`)
  *
- * @remarks AGLC4 Rules 1.11.3, 1.11.4
+ * @remarks AGLC4 Rule 1.11.4 — spans of dates and times.
  */
 export function formatDateSpan(
   start: { day?: number; month?: number; year: number },
-  end: { day?: number; month?: number; year: number },
+  end: { day?: number; month?: number; year: number }
 ): string {
   // Year-only span
   if (
@@ -228,7 +251,8 @@ export function formatDateSpan(
  * Flags patterns like `1986-87`, `2010-2015`, or `21-22 September` where a
  * hyphen is used but an en-dash is required.
  *
- * @remarks AGLC4 Rules 1.11.3, 1.11.4
+ * @remarks AGLC4 Rule 1.11.4 — spans of dates and times (1.11.3 concerns
+ * points in time within audiovisual sources, eg '0:43:00').
  */
 export function checkDateSpans(text: string): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -250,9 +274,7 @@ export function checkDateSpans(text: string): ValidationIssue[] {
     // Avoid false positives on things that aren't year spans
     // (e.g. phone numbers, ISBNs). End part should be a plausible year suffix.
     const endYear =
-      endPart.length === 2
-        ? Math.floor(startYear / 100) * 100 + Number(endPart)
-        : Number(endPart);
+      endPart.length === 2 ? Math.floor(startYear / 100) * 100 + Number(endPart) : Number(endPart);
 
     if (endYear <= startYear) {
       continue;
@@ -260,7 +282,7 @@ export function checkDateSpans(text: string): ValidationIssue[] {
 
     const suggestion = full.replace("-", EN_DASH);
     issues.push({
-      ruleNumber: "1.11.3",
+      ruleNumber: "1.11.4",
       message: `Year span "${full}" should use an en-dash, not a hyphen`,
       severity: "warning",
       offset: match.index,
@@ -270,16 +292,13 @@ export function checkDateSpans(text: string): ValidationIssue[] {
   }
 
   // Day spans with hyphen before a month name: "21-22 September"
-  const daySpanRegex = new RegExp(
-    `\\b(\\d{1,2})-(\\d{1,2})\\s+(${MONTHS.join("|")})\\b`,
-    "g",
-  );
+  const daySpanRegex = new RegExp(`\\b(\\d{1,2})-(\\d{1,2})\\s+(${MONTHS.join("|")})\\b`, "g");
 
   while ((match = daySpanRegex.exec(text)) !== null) {
     const full = match[0];
     const suggestion = full.replace("-", EN_DASH);
     issues.push({
-      ruleNumber: "1.11.3",
+      ruleNumber: "1.11.4",
       message: `Date span "${full}" should use an en-dash, not a hyphen`,
       severity: "warning",
       offset: match.index,

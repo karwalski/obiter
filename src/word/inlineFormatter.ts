@@ -45,9 +45,7 @@ function getSearchTerms(citation: Citation): string[] {
     terms.push(caseName);
   } else if (Array.isArray(caseName)) {
     // caseName may be an array of FormattedRun objects — concatenate text.
-    const joined = (caseName as Array<{ text: string }>)
-      .map((r) => r.text)
-      .join("");
+    const joined = (caseName as Array<{ text: string }>).map((r) => r.text).join("");
     if (joined.length > 0) {
       terms.push(joined);
     }
@@ -93,7 +91,7 @@ function getSearchTerms(citation: Citation): string[] {
  */
 async function isInsideQuotationMarks(
   context: Word.RequestContext,
-  range: Word.Range,
+  range: Word.Range
 ): Promise<boolean> {
   // Get the range's parent paragraph text and check if this term is
   // surrounded by quotation marks in the paragraph context.
@@ -115,9 +113,7 @@ async function isInsideQuotationMarks(
 
     const charBefore = idx > 0 ? paraText[idx - 1] : "";
     const charAfter =
-      idx + termText.length < paraText.length
-        ? paraText[idx + termText.length]
-        : "";
+      idx + termText.length < paraText.length ? paraText[idx + termText.length] : "";
 
     if (QUOTE_CHARS.includes(charBefore) || QUOTE_CHARS.includes(charAfter)) {
       return true;
@@ -147,7 +143,7 @@ async function isInsideQuotationMarks(
  */
 export async function scanAndFormatInlineReferences(
   context: Word.RequestContext,
-  citations: Citation[],
+  citations: Citation[]
 ): Promise<FormatResult> {
   let formatted = 0;
   let skipped = 0;
@@ -161,9 +157,7 @@ export async function scanAndFormatInlineReferences(
   }
 
   // Deduplicate and sort longest-first so we match the most specific term.
-  const uniqueTerms = [...new Set(allTerms)].sort(
-    (a, b) => b.length - a.length,
-  );
+  const uniqueTerms = [...new Set(allTerms)].sort((a, b) => b.length - a.length);
 
   for (const term of uniqueTerms) {
     // Search in the document body (excludes footnotes by default).
@@ -174,7 +168,7 @@ export async function scanAndFormatInlineReferences(
     results.load("items/font");
     await context.sync();
 
-    for (const range of (results.items ?? [])) {
+    for (const range of results.items ?? []) {
       // Check whether this range is already italic.
       if (range.font.italic) {
         skipped++;
@@ -208,9 +202,7 @@ export async function scanAndFormatInlineReferences(
  *
  * @see AGLC4, Rule 1.8.3.
  */
-export async function scanAndFormatLatinTerms(
-  context: Word.RequestContext,
-): Promise<FormatResult> {
+export async function scanAndFormatLatinTerms(context: Word.RequestContext): Promise<FormatResult> {
   let formatted = 0;
   let skipped = 0;
 
@@ -230,7 +222,7 @@ export async function scanAndFormatLatinTerms(
     results.load("items/font,items/text");
     await context.sync();
 
-    for (const range of (results.items ?? [])) {
+    for (const range of results.items ?? []) {
       // Skip if already italic.
       if (range.font.italic) {
         skipped++;
@@ -270,7 +262,7 @@ export async function scanAndFormatLatinTerms(
  */
 export async function refreshInlineReferences(
   context: Word.RequestContext,
-  store: CitationStore,
+  store: CitationStore
 ): Promise<FormatResult> {
   const citations = store.getAll();
   return scanAndFormatInlineReferences(context, citations);
@@ -287,7 +279,7 @@ export async function refreshInlineReferences(
  */
 export async function clearInlineFormatting(
   context: Word.RequestContext,
-  citations: Citation[],
+  citations: Citation[]
 ): Promise<number> {
   let cleared = 0;
 
@@ -298,9 +290,7 @@ export async function clearInlineFormatting(
     allTerms.push(...getSearchTerms(citation));
   }
 
-  const uniqueTerms = [...new Set(allTerms)].sort(
-    (a, b) => b.length - a.length,
-  );
+  const uniqueTerms = [...new Set(allTerms)].sort((a, b) => b.length - a.length);
 
   for (const term of uniqueTerms) {
     const results = context.document.body.search(term, {
@@ -310,7 +300,7 @@ export async function clearInlineFormatting(
     results.load("items/font");
     await context.sync();
 
-    for (const range of (results.items ?? [])) {
+    for (const range of results.items ?? []) {
       if (range.font.italic) {
         range.font.italic = false;
         cleared++;
@@ -332,7 +322,7 @@ export async function clearInlineFormatting(
     results.load("items/font");
     await context.sync();
 
-    for (const range of (results.items ?? [])) {
+    for (const range of results.items ?? []) {
       if (range.font.italic) {
         range.font.italic = false;
         cleared++;

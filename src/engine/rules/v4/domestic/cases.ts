@@ -17,24 +17,164 @@ import { getPreferredReportOrder } from "../../../court/reportHierarchy";
 // ─── Court-to-Series Mapping ─────────────────────────────────────────────────
 
 /**
- * Map of authorised report series abbreviations to the court they imply.
+ * Map of report series abbreviations to the court they imply.
  * When a citation uses one of these series, the court identifier is omitted
  * because it is apparent from the series itself (Rule 2.2.6).
+ *
+ * FLR (Federal Law Reports) is deliberately absent: it is a generalist
+ * unauthorised series reporting several courts, so it makes no court
+ * apparent. FCAFC is a court identifier, not a report series.
  */
 const SERIES_TO_COURT: Record<string, string> = {
   CLR: "HCA",
   ALJR: "HCA",
   FCR: "FCA",
-  FCAFC: "FCA",
-  FLR: "FCA",
   VR: "VSC",
   NSWLR: "NSWSC",
+  "Qd R": "QSC",
+  // Legacy alias for 'Qd R' tolerated in stored documents (Rule 2.2.3
+  // prescribes 'Qd R'; older Obiter data used 'QR').
   QR: "QSC",
   SASR: "SASC",
   "Tas R": "TASSC",
   WAR: "WASC",
   ACTLR: "ACTSC",
+  NTLR: "NTSC",
   NTR: "NTSC",
+};
+
+/**
+ * Display metadata for the unique court identifiers used in Rule 2.2.6
+ * court parentheticals. AGLC4 Rule 2.2.6 requires the court's *name*
+ * (ex 77: '(Court of Appeal)'), never the Appendix B identifier code.
+ * `unqualifiedName` is the form with the jurisdiction suppressed, used
+ * when the jurisdiction is already apparent from the report series
+ * (ex 77: '(Court of Appeal)', not '(Queensland Court of Appeal)').
+ */
+const COURT_DISPLAY: Record<
+  string,
+  { name: string; unqualifiedName?: string; jurisdiction: string }
+> = {
+  HCA: { name: "High Court of Australia", jurisdiction: "Cth" },
+  FCA: { name: "Federal Court of Australia", jurisdiction: "Cth" },
+  FCAFC: { name: "Full Court of the Federal Court of Australia", jurisdiction: "Cth" },
+  FamCA: { name: "Family Court of Australia", jurisdiction: "Cth" },
+  FamCAFC: { name: "Full Court of the Family Court of Australia", jurisdiction: "Cth" },
+  NSWSC: {
+    name: "Supreme Court of New South Wales",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "NSW",
+  },
+  NSWCA: {
+    name: "New South Wales Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "NSW",
+  },
+  NSWCCA: {
+    name: "New South Wales Court of Criminal Appeal",
+    unqualifiedName: "Court of Criminal Appeal",
+    jurisdiction: "NSW",
+  },
+  VSC: {
+    name: "Supreme Court of Victoria",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "Vic",
+  },
+  VSCA: {
+    name: "Victorian Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "Vic",
+  },
+  QSC: {
+    name: "Supreme Court of Queensland",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "Qld",
+  },
+  QCA: {
+    name: "Queensland Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "Qld",
+  },
+  SASC: {
+    name: "Supreme Court of South Australia",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "SA",
+  },
+  SASCFC: {
+    name: "Full Court of the Supreme Court of South Australia",
+    unqualifiedName: "Full Court",
+    jurisdiction: "SA",
+  },
+  WASC: {
+    name: "Supreme Court of Western Australia",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "WA",
+  },
+  WASCA: {
+    name: "Western Australian Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "WA",
+  },
+  TASSC: {
+    name: "Supreme Court of Tasmania",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "Tas",
+  },
+  TASFC: {
+    name: "Full Court of the Supreme Court of Tasmania",
+    unqualifiedName: "Full Court",
+    jurisdiction: "Tas",
+  },
+  TASCCA: {
+    name: "Tasmanian Court of Criminal Appeal",
+    unqualifiedName: "Court of Criminal Appeal",
+    jurisdiction: "Tas",
+  },
+  ACTSC: {
+    name: "Supreme Court of the Australian Capital Territory",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "ACT",
+  },
+  ACTCA: {
+    name: "Australian Capital Territory Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "ACT",
+  },
+  NTSC: {
+    name: "Supreme Court of the Northern Territory",
+    unqualifiedName: "Supreme Court",
+    jurisdiction: "NT",
+  },
+  NTCA: {
+    name: "Northern Territory Court of Appeal",
+    unqualifiedName: "Court of Appeal",
+    jurisdiction: "NT",
+  },
+  NTCCA: {
+    name: "Northern Territory Court of Criminal Appeal",
+    unqualifiedName: "Court of Criminal Appeal",
+    jurisdiction: "NT",
+  },
+};
+
+/**
+ * Jurisdiction implied by each report series, for Rule 2.2.6
+ * jurisdiction suppression in the court parenthetical.
+ */
+const SERIES_JURISDICTION: Record<string, string> = {
+  CLR: "Cth",
+  ALJR: "Cth",
+  FCR: "Cth",
+  NSWLR: "NSW",
+  VR: "Vic",
+  "Qd R": "Qld",
+  QR: "Qld",
+  SASR: "SA",
+  WAR: "WA",
+  "Tas R": "Tas",
+  ACTLR: "ACT",
+  NTLR: "NT",
+  NTR: "NT",
 };
 
 // ─── CASE-007: Year and Volume (Rule 2.2.1) ─────────────────────────────────
@@ -84,11 +224,11 @@ export function formatReportSeries(series: string): FormattedRun[] {
 /**
  * Returns the preference rank of a report series for citation selection.
  *
- * AGLC4 Rule 2.2.3: When a case is reported in multiple series,
- * preference is given in this order:
- *   1. Authorised reports (e.g. CLR, FCR)
- *   2. Generalist unauthorised reports (e.g. ALJR)
- *   3. Subject-specific unauthorised reports
+ * AGLC4 Rule 2.2.2: The authorised report must always be used where
+ * available; otherwise versions are preferred in this order:
+ *   1. Authorised reports (e.g. CLR, FCR, VR, NSWLR)
+ *   2. Generalist unauthorised reports (e.g. ALR, ALJR, FLR, ACTR)
+ *   3. Subject-specific unauthorised reports (e.g. A Crim R, ACSR, IR)
  *   4. Unreported (medium neutral citation)
  *
  * COURT-006: When a jurisdiction is provided, the preference rank is
@@ -107,10 +247,7 @@ export function formatReportSeries(series: string): FormattedRun[] {
  *   With jurisdiction: 0-based index in the hierarchy list, with unknown
  *   series ranked just below the last named series.
  */
-export function getReportSeriesPreference(
-  series: string,
-  jurisdiction?: string,
-): number {
+export function getReportSeriesPreference(series: string, jurisdiction?: string): number {
   // COURT-006: jurisdiction-aware ordering when jurisdiction is provided
   if (jurisdiction !== undefined) {
     const hierarchy = getPreferredReportOrder(jurisdiction);
@@ -129,29 +266,41 @@ export function getReportSeriesPreference(
     // Unrecognised jurisdiction — fall through to AGLC4 defaults
   }
 
-  // AGLC4 Rule 2.2.3: generic tier ordering
+  // AGLC4 Rule 2.2.2 tier 1 examples + the Rule 2.2.3 table of authorised
+  // (or preferred) Australian series, including the historical series for
+  // each jurisdiction. FLR is expressly a *generalist unauthorised*
+  // example in the Rule 2.2.2 table; FCAFC is a court identifier, not a
+  // report series — neither belongs here.
   const authorised = new Set([
     "CLR",
     "FCR",
-    "FCAFC",
-    "FLR",
-    "NSWLR",
-    "VR",
-    "QR",
-    "SASR",
-    "Tas R",
-    "WAR",
     "ACTLR",
+    "SR (NSW)",
+    "NSWR",
+    "NSWLR",
     "NTR",
+    "NTLR",
+    "St R Qd",
+    "Qd R",
+    // Legacy alias for 'Qd R' in stored documents.
+    "QR",
+    "SALR",
+    "SASR",
+    "Tas LR",
+    "Tas SR",
+    "Tas R",
+    "VLR",
+    "VR",
+    "WALR",
+    "WAR",
   ]);
 
-  const generalistUnauthorised = new Set([
-    "ALJR",
-    "ALR",
-    "IR",
-    "FLC",
-    "MVR",
-  ]);
+  // Rule 2.2.2 tier 2 examples: ALR, ALJR, FLR, ACTR. (ACTR also appears
+  // in the Rule 2.2.3 'authorised or preferred' table for the ACT
+  // 1973–2008; the explicit Rule 2.2.2 tier table is followed here.)
+  // IR is a *subject-specific* example in the Rule 2.2.2 table, as are
+  // FLC and MVR, so they fall through to rank 3.
+  const generalistUnauthorised = new Set(["ALR", "ALJR", "FLR", "ACTR"]);
 
   if (authorised.has(series)) {
     return 1;
@@ -191,7 +340,10 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  * Formats the starting page number and optional pinpoint reference.
  *
  * AGLC4 Rule 2.2.4: The starting page of the case follows the report series
- * abbreviation, separated by a space.
+ * abbreviation, separated by a space. Where the case is identified by a
+ * unique reference rather than a starting page (common in CCH series),
+ * that reference — including any accompanying symbols — is used instead
+ * (ex 67: '(2002) EOC ¶93-198'), so a string is accepted.
  *
  * AGLC4 Rule 2.2.5: A pinpoint reference follows the starting page.
  * - Page pinpoints are separated by a comma and space: `1, 6`.
@@ -215,7 +367,7 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  *     => [{ text: "420, [45]–[46]" }]
  */
 export function formatStartingPageAndPinpoint(
-  startingPage: number,
+  startingPage: number | string,
   pinpoint?: Pinpoint,
   pinpointStyle: PinpointStyle = "page-only"
 ): FormattedRun[] {
@@ -284,30 +436,51 @@ export function isCourtApparentFromSeries(reportSeries: string): boolean {
 }
 
 /**
- * Formats a court identifier in parentheses, unless the court is already
+ * Formats a Rule 2.2.6 court parenthetical, unless the court is already
  * apparent from the report series.
  *
- * AGLC4 Rule 2.2.6: The court identifier appears in parentheses at the
- * end of the citation, unless the court can be determined from the
- * report series abbreviation alone.
+ * AGLC4 Rule 2.2.6: where identifying the court is important and not
+ * otherwise apparent, the court's *name* may be added in parentheses.
+ * The parenthetical uses the court's name, never the Appendix B code
+ * (ex 77: '(Court of Appeal)'). The court's jurisdiction must not be
+ * stated where it is already apparent — authorised state reports make
+ * the jurisdiction apparent, so '(Court of Appeal)' is used rather than
+ * '(Queensland Court of Appeal)'.
+ *
+ * @param courtId - The unique court identifier (eg 'QCA'), or an
+ *   already-spelt-out court name, which is emitted as given.
+ * @param reportSeries - The report series of the citation, used both to
+ *   omit the parenthetical when the court is apparent and to suppress
+ *   the jurisdiction when it is apparent.
  *
  * @example
- *   formatCourtIdentifier("HCA", "CLR") => []  // court apparent from CLR
- *   formatCourtIdentifier("HCA")        => [{ text: " (HCA)" }]
+ *   formatCourtIdentifier("HCA", "CLR")    => []  // court apparent from CLR
+ *   formatCourtIdentifier("QCA", "Qd R")   => [{ text: " (Court of Appeal)" }]
+ *   formatCourtIdentifier("QCA", "A Crim R") => [{ text: " (Queensland Court of Appeal)" }]
  */
-export function formatCourtIdentifier(
-  courtId: string,
-  reportSeries?: string
-): FormattedRun[] {
+export function formatCourtIdentifier(courtId: string, reportSeries?: string): FormattedRun[] {
   if (reportSeries && reportSeries in SERIES_TO_COURT) {
     // Only omit the court when the actual court matches the court implied
-    // by the report series. E.g. QR implies QSC, so if the actual court
-    // is QCA the identifier must be shown (AUDIT2-018, Rule 2.2.6).
+    // by the report series. E.g. Qd R implies QSC, so if the actual court
+    // is QCA the parenthetical must be shown (AUDIT2-018, Rule 2.2.6).
     if (SERIES_TO_COURT[reportSeries] === courtId) {
       return [];
     }
   }
-  return [{ text: ` (${courtId})` }];
+
+  const display = COURT_DISPLAY[courtId];
+  if (!display) {
+    // Unknown identifier — assume the caller supplied a court name
+    // (eg 'Court of Appeal') and emit it as given.
+    return [{ text: ` (${courtId})` }];
+  }
+
+  const seriesJurisdiction = reportSeries ? SERIES_JURISDICTION[reportSeries] : undefined;
+  const name =
+    seriesJurisdiction === display.jurisdiction && display.unqualifiedName
+      ? display.unqualifiedName
+      : display.name;
+  return [{ text: ` (${name})` }];
 }
 
 // ─── CASE-011: Parallel Citations (Rule 2.2.7) ──────────────────────────────
@@ -329,10 +502,13 @@ function formatSingleParallel(parallel: ParallelCitation): string {
 /**
  * Formats parallel citations, joined with a configurable separator.
  *
- * AGLC4 Rule 2.2.7: When a case is reported in more than one report
- * series, parallel citations are provided, separated by semicolons.
- * Authorised reports are cited first, followed by unauthorised reports
- * in order of preference (Rule 2.2.3).
+ * AGLC4 Rule 2.2.7: parallel citations should NEVER be used for
+ * Australian cases — only the most authoritative version (Rule 2.2.2)
+ * is cited (ex 80 expressly rejects '(1999) 198 CLR 180; 164 ALR 606;
+ * [1999] HCA 36'). This formatter therefore exists only for non-AGLC
+ * contexts: court writing mode (practice directions), UK Nominate
+ * Reports (Rule 24.1.3) and early US Supreme Court decisions
+ * (Rule 25.1.3). Callers in AGLC academic mode must not pass parallels.
  *
  * OSCOLA Rule 2.1.3 / NZLSG Rule 3.2.10: Use comma separator instead.
  *
@@ -369,28 +545,44 @@ interface ReportedCaseData {
   year: number;
   volume?: number;
   reportSeries: string;
-  startingPage: number;
+  /**
+   * Rule 2.2.4: the starting page, or a unique reference (with symbols,
+   * eg '¶93-198') for series that use one instead of a starting page.
+   */
+  startingPage: number | string;
   pinpoint?: Pinpoint;
   courtId?: string;
+  /**
+   * Rule 2.2.7: must be empty in AGLC academic mode (parallel citations
+   * are never used for Australian cases); populated only for court
+   * writing mode and foreign-style contexts.
+   */
   parallelCitations?: ParallelCitation[];
   /** COURT-005: Pinpoint style override. Defaults to "page-only". */
   pinpointStyle?: PinpointStyle;
+  /**
+   * Rule 2.4: pre-formatted judicial officer runs. Emitted after the
+   * pinpoint but BEFORE the court parenthetical — Rule 2.2.6 places the
+   * court parenthetical after pinpoints and other parenthetical clauses.
+   */
+  judicialOfficers?: FormattedRun[];
 }
 
 /**
  * Assembles a complete reported case citation per AGLC4 Rule 2.2.
  *
  * Format:
- *   Case Name (year) volume Series startingPage, pinpoint (Court)
+ *   Case Name (year) volume Series startingPage, pinpoint (Officers) (Court)
  *
  * AGLC4 Rule 2.2: A reported case citation comprises the case name
  * (italicised), followed by the year, volume (if applicable), report
- * series abbreviation, starting page, pinpoint (if applicable), and
- * court identifier (if not apparent from the report series).
+ * series abbreviation, starting page, pinpoint (if applicable), any
+ * judicial-officer parenthetical (Rule 2.4), and the court parenthetical
+ * (Rule 2.2.6 — only when important and not apparent from the series).
  *
  * @example
  *   Mabo v Queensland (No 2) (1992) 175 CLR 1
- *   Smith v Jones [1974] VR 1; (1974) 4 ALR 57
+ *   Aldrick v EM Investments (Qld) Pty Ltd [2000] 2 Qd R 346 (Court of Appeal)
  */
 export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -410,16 +602,22 @@ export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
 
   // Starting page and pinpoint (COURT-005: style-aware)
   runs.push({ text: " " });
-  runs.push(
-    ...formatStartingPageAndPinpoint(data.startingPage, data.pinpoint, data.pinpointStyle)
-  );
+  runs.push(...formatStartingPageAndPinpoint(data.startingPage, data.pinpoint, data.pinpointStyle));
 
-  // Court identifier (omitted if apparent from series)
+  // Judicial officers (Rule 2.4) — precede the court parenthetical,
+  // which Rule 2.2.6 places after "other parenthetical clauses".
+  if (data.judicialOfficers && data.judicialOfficers.length > 0) {
+    runs.push({ text: " " });
+    runs.push(...data.judicialOfficers);
+  }
+
+  // Court parenthetical (Rule 2.2.6; omitted if apparent from series)
   if (data.courtId) {
     runs.push(...formatCourtIdentifier(data.courtId, data.reportSeries));
   }
 
-  // Parallel citations
+  // Parallel citations — never present in AGLC academic mode
+  // (Rule 2.2.7); used by court writing mode / foreign styles only.
   if (data.parallelCitations && data.parallelCitations.length > 0) {
     runs.push({ text: "; " });
     runs.push(...formatParallelCitations(data.parallelCitations));

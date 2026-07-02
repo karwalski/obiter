@@ -123,20 +123,14 @@ export function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
  * cc.clear() which can destroy footnote reference marks if the CC
  * encompasses them.
  */
-export function writeFormattedRunsToControl(
-  cc: Word.ContentControl,
-  runs: FormattedRun[],
-): void {
+export function writeFormattedRunsToControl(cc: Word.ContentControl, runs: FormattedRun[]): void {
   if (runs.length === 0) {
     cc.clear();
     return;
   }
 
   // Replace all existing content with the first run
-  const firstRange = cc.insertText(
-    runs[0].text,
-    "Replace" as Word.InsertLocation.replace,
-  );
+  const firstRange = cc.insertText(runs[0].text, "Replace" as Word.InsertLocation.replace);
   applyRunFormatting(firstRange, runs[0]);
 
   // Append remaining runs
@@ -164,7 +158,7 @@ export function insertChildCitation(
   parentCC: Word.ContentControl,
   citationId: string,
   title: string,
-  formattedRuns: FormattedRun[],
+  formattedRuns: FormattedRun[]
 ): void {
   const endRange = parentCC.getRange("End");
   const childCC = endRange.insertContentControl("RichText");
@@ -192,7 +186,7 @@ export function insertChildCitation(
  */
 export async function findParentCC(
   noteItem: Word.NoteItem,
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<Word.ContentControl | null> {
   const contentControls = noteItem.body.contentControls;
   contentControls.load("items/tag");
@@ -219,13 +213,13 @@ export async function findParentCC(
 export async function findChildCC(
   parentCC: Word.ContentControl,
   citationId: string,
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<Word.ContentControl | null> {
   const childControls = parentCC.contentControls;
   childControls.load("items/tag");
   await context.sync();
 
-  for (const cc of (childControls.items ?? [])) {
+  for (const cc of childControls.items ?? []) {
     if (cc.tag === citationId) {
       return cc;
     }
@@ -245,7 +239,7 @@ export async function findChildCC(
  */
 export async function getFootnoteCitations(
   noteItem: Word.NoteItem,
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<string[]> {
   const parentCC = await findParentCC(noteItem, context);
   if (!parentCC) {
@@ -257,7 +251,7 @@ export async function getFootnoteCitations(
   await context.sync();
 
   const citationIds: string[] = [];
-  for (const cc of (childControls.items ?? [])) {
+  for (const cc of childControls.items ?? []) {
     // Only collect child CCs with citation UUID tags, not internal obiter tags.
     if (cc.tag && !cc.tag.startsWith("obiter-")) {
       citationIds.push(cc.tag);
@@ -274,11 +268,9 @@ export async function getFootnoteCitations(
  */
 export function buildOccurrenceTitle(
   formatPreference: "auto" | "full" | "short" | "ibid",
-  pinpoint?: string,
+  pinpoint?: string
 ): string {
-  return pinpoint
-    ? `Citation:${formatPreference}:${pinpoint}`
-    : `Citation:${formatPreference}`;
+  return pinpoint ? `Citation:${formatPreference}:${pinpoint}` : `Citation:${formatPreference}`;
 }
 
 /**
@@ -307,7 +299,7 @@ export async function updateOccurrenceMetadata(
   citationId: string,
   footnoteIndex: number,
   formatPreference: "auto" | "full" | "short" | "ibid",
-  pinpoint?: string,
+  pinpoint?: string
 ): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
@@ -343,7 +335,7 @@ export async function updateOccurrenceMetadata(
  * @returns The adjacent footnote result, or null if no footnote is adjacent.
  */
 export async function getAdjacentFootnote(
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<AdjacentFootnoteResult | null> {
   const selection = context.document.getSelection();
   selection.load("isEmpty");
@@ -372,10 +364,7 @@ export async function getAdjacentFootnote(
       const compareResult = afterRef.compareLocationWith(cursorStart);
       await context.sync();
 
-      if (
-        compareResult.value === "Equal" ||
-        compareResult.value === "Contains"
-      ) {
+      if (compareResult.value === "Equal" || compareResult.value === "Contains") {
         return {
           footnoteIndex: i + 1,
           noteItem: allItems[i],
@@ -410,12 +399,12 @@ async function appendCitationToParent(
   citationId: string,
   title: string,
   formattedRuns: FormattedRun[],
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<void> {
   const parentCC = await findParentCC(noteItem, context);
   if (!parentCC) {
     throw new Error(
-      "Cannot append citation: footnote does not contain an obiter-fn parent content control.",
+      "Cannot append citation: footnote does not contain an obiter-fn parent content control."
     );
   }
 
@@ -446,7 +435,7 @@ export async function appendToFootnoteByIndex(
   footnoteIndex: number,
   citationId: string,
   title: string,
-  formattedRuns: FormattedRun[],
+  formattedRuns: FormattedRun[]
 ): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
@@ -459,13 +448,7 @@ export async function appendToFootnoteByIndex(
       throw new Error(`Footnote ${footnoteIndex} not found.`);
     }
 
-    await appendCitationToParent(
-      noteItem,
-      citationId,
-      title,
-      formattedRuns,
-      context,
-    );
+    await appendCitationToParent(noteItem, citationId, title, formattedRuns, context);
   });
 }
 
@@ -497,7 +480,7 @@ export async function insertCitationFootnote(
   citationId: string,
   title: string,
   formattedRuns: FormattedRun[],
-  appendToFootnote?: number,
+  appendToFootnote?: number
 ): Promise<void> {
   try {
     await Word.run(async (context) => {
@@ -510,13 +493,7 @@ export async function insertCitationFootnote(
         const fnItems = footnotes.items ?? [];
         const noteItem = fnItems[appendToFootnote - 1];
         if (noteItem) {
-          await appendCitationToParent(
-            noteItem,
-            citationId,
-            title,
-            formattedRuns,
-            context,
-          );
+          await appendCitationToParent(noteItem, citationId, title, formattedRuns, context);
           return;
         }
         // Fall through to create a new footnote if the index is invalid.
@@ -525,13 +502,7 @@ export async function insertCitationFootnote(
       // Try to detect an adjacent footnote reference at the cursor.
       const adjacent = await getAdjacentFootnote(context);
       if (adjacent) {
-        await appendCitationToParent(
-          adjacent.noteItem,
-          citationId,
-          title,
-          formattedRuns,
-          context,
-        );
+        await appendCitationToParent(adjacent.noteItem, citationId, title, formattedRuns, context);
         return;
       }
 
@@ -555,7 +526,7 @@ export async function insertCitationFootnote(
       const firstParaItems = paragraphs.items ?? [];
       if (firstParaItems.length === 0) {
         throw new Error(
-          "Could not access footnote content. Word for Web may have limited footnote support.",
+          "Could not access footnote content. Word for Web may have limited footnote support."
         );
       }
       const firstPara = firstParaItems[0];
@@ -586,7 +557,7 @@ export async function insertCitationFootnote(
       if (footnotesAfterCount <= footnotesBeforeCount) {
         console.warn(
           "[footnoteManager] Footnote count did not increase after insertion. " +
-            `Before: ${footnotesBeforeCount}, After: ${footnotesAfterCount}`,
+            `Before: ${footnotesBeforeCount}, After: ${footnotesAfterCount}`
         );
       }
 
@@ -600,9 +571,7 @@ export async function insertCitationFootnote(
       await context.sync();
     });
   } catch (err: unknown) {
-    throw new Error(
-      `Failed to insert citation footnote. ${describeOfficeError(err)}`,
-    );
+    throw new Error(`Failed to insert citation footnote. ${describeOfficeError(err)}`);
   }
 }
 
@@ -646,11 +615,10 @@ function describeOfficeError(err: unknown): string {
  */
 export async function updateCitationContent(
   citationId: string,
-  formattedRuns: FormattedRun[],
+  formattedRuns: FormattedRun[]
 ): Promise<void> {
   await Word.run(async (context) => {
-    const contentControls =
-      context.document.contentControls.getByTag(citationId);
+    const contentControls = context.document.contentControls.getByTag(citationId);
     contentControls.load("items");
     await context.sync();
 
@@ -673,9 +641,7 @@ export async function updateCitationContent(
  * @returns An array of {@link CitationFootnoteEntry} objects, one per child
  *   content control found, in document order.
  */
-export async function getAllCitationFootnotes(): Promise<
-  CitationFootnoteEntry[]
-> {
+export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]> {
   const results: CitationFootnoteEntry[] = [];
 
   await Word.run(async (context) => {
@@ -730,10 +696,7 @@ export async function getAllCitationFootnotes(): Promise<
  * edits) is preserved. Locking changes no content — no refresh is required.
  * Unlocking should be followed by a refresh to restore structured formatting.
  */
-export async function setFootnoteLock(
-  footnoteIndex: number,
-  locked: boolean,
-): Promise<void> {
+export async function setFootnoteLock(footnoteIndex: number, locked: boolean): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
     footnotes.load("items");
@@ -745,9 +708,7 @@ export async function setFootnoteLock(
     }
     const parentCC = await findParentCC(noteItem, context);
     if (!parentCC) {
-      throw new Error(
-        `Footnote ${footnoteIndex} has no Obiter content control to lock.`,
-      );
+      throw new Error(`Footnote ${footnoteIndex} has no Obiter content control to lock.`);
     }
     parentCC.title = locked ? LOCKED_PARENT_CC_TITLE : PARENT_CC_TITLE;
     await context.sync();
@@ -815,7 +776,7 @@ export async function getFootnoteText(footnoteIndex: number): Promise<string> {
 export async function setOccurrenceText(
   footnoteIndex: number,
   citationId: string,
-  text: string,
+  text: string
 ): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
@@ -858,9 +819,7 @@ export async function setOccurrenceText(
  * @returns The total footnote count (also equals the 1-based index of the
  *   last footnote).
  */
-export async function getFootnoteIndex(
-  context: Word.RequestContext,
-): Promise<number> {
+export async function getFootnoteIndex(context: Word.RequestContext): Promise<number> {
   const footnotes = context.document.body.footnotes;
   footnotes.load("items");
   await context.sync();
@@ -890,7 +849,7 @@ export async function getFootnoteIndex(
  */
 export async function deleteCitationFootnote(
   citationId: string,
-  footnoteIndex: number,
+  footnoteIndex: number
 ): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
@@ -946,7 +905,7 @@ export async function deleteCitationFootnote(
  */
 export async function deleteAllOccurrences(
   citationId: string,
-  footnoteIndices: number[],
+  footnoteIndices: number[]
 ): Promise<void> {
   if (footnoteIndices.length === 0) return;
 
@@ -999,7 +958,7 @@ export async function deleteAllOccurrences(
 async function deleteLegacyCitation(
   noteItem: Word.NoteItem,
   citationId: string,
-  context: Word.RequestContext,
+  context: Word.RequestContext
 ): Promise<void> {
   const contentControls = noteItem.body.contentControls;
   contentControls.load("items/tag");

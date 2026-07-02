@@ -104,9 +104,7 @@ export interface NZPreNeutralCaseData {
  *     parallelReport: { year: 2007, volume: 3, reportSeries: "NZLR", startPage: 338 },
  *   })
  */
-export function formatNeutralCitation(
-  data: NZNeutralCitationData,
-): FormattedRun[] {
+export function formatNeutralCitation(data: NZNeutralCitationData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name in italics
@@ -154,9 +152,7 @@ export function formatNeutralCitation(
  *     date: "7 November 1985",
  *   })
  */
-export function formatPreNeutralCase(
-  data: NZPreNeutralCaseData,
-): FormattedRun[] {
+export function formatPreNeutralCase(data: NZPreNeutralCaseData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Case name in italics
