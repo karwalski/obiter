@@ -24,11 +24,11 @@
       when applying the preview.
 -->
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
-  <Id>933c30ed-e129-4844-9880-c4009e3969a5</Id>
+  <Id>1fe03f6c-b9b7-4a44-a55f-4b08f9813729</Id>
   <Version>1.14.0.0</Version>
   <ProviderName>PLAN A DYNAMICS CO</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Obiter"/>
+  <DisplayName DefaultValue="Obiter for Microsoft 365 Copilot"/>
   <Description DefaultValue="AGLC4 citation engine for Word. 80+ source types, ibid and short references, bibliography, validation, court mode, quotation tools, and AI-assisted parsing. Supports OSCOLA and NZLSG."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>

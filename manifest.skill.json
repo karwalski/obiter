@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "id": "933c30ed-e129-4844-9880-c4009e3969a5",
+  "id": "1fe03f6c-b9b7-4a44-a55f-4b08f9813729",
   "version": "1.15.0",
   "developer": {
     "name": "Matthew Watt",
@@ -10,8 +10,8 @@
     "termsOfUseUrl": "https://obiter.com.au/terms.html"
   },
   "name": {
-    "short": "Obiter",
-    "full": "Obiter — AGLC4 Citations"
+    "short": "Obiter Copilot",
+    "full": "Obiter for Microsoft 365 Copilot"
   },
   "description": {
     "short": "Insert AGLC4-formatted citations as native Word footnotes through Microsoft 365 Copilot.",

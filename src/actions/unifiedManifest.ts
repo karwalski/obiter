@@ -22,8 +22,13 @@ import { CITATION_REQUEST_CONTRACT_VERSION } from "./citationRequest";
 /** The production host the packaged manifest points at (COPILOT-013 substitutes). */
 export const SKILL_HOST = "https://obiter.com.au/app";
 
-/** Stable add-in / app id (same add-in as manifest.xml). */
-const APP_ID = "933c30ed-e129-4844-9880-c4009e3969a5";
+/**
+ * App id for the Copilot companion product ("Obiter for Microsoft 365 Copilot").
+ * Distinct from the classic add-in id (933c30ed…, live as WA200010629): AppSource
+ * keys on the id, so the two products must not share one. Set on the copilot/* line
+ * only (see docs/copilot-branching.md).
+ */
+const APP_ID = "1fe03f6c-b9b7-4a44-a55f-4b08f9813729";
 
 /** App version for the skill package (minor bump over the shipping 1.14.0). */
 export const SKILL_APP_VERSION = "1.15.0";
@@ -112,7 +117,7 @@ export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest
       privacyUrl: "https://obiter.com.au/privacy.html",
       termsOfUseUrl: "https://obiter.com.au/terms.html",
     },
-    name: { short: "Obiter", full: "Obiter — AGLC4 Citations" },
+    name: { short: "Obiter Copilot", full: "Obiter for Microsoft 365 Copilot" },
     description: { short: SHORT_DESCRIPTION, full: FULL_DESCRIPTION },
     icons: { color: "color.png", outline: "outline.png" },
     accentColor: "#2AA198",
