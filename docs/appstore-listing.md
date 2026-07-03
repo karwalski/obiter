@@ -1,7 +1,7 @@
-# AppSource Listing — Obiter v1.13.18
+# AppSource Listing — Obiter v1.14
 
-## Short Description (100 chars)
-AGLC4 citation engine with 80+ source types, ibid resolution, bibliography, validation, and court mode.
+## Short Description (99 chars)
+AGLC4 citations for Word: 80+ source types, ibid, bibliography, validation, court mode, AI/Copilot.
 
 ## Long Description
 
@@ -22,11 +22,12 @@ DOCUMENT TOOLS:
 
 - One-click bibliography generation with AGLC4 section headings (A Articles/Books/Reports, B Cases, C Legislation, D Treaties, E Other)
 - Document validation against AGLC4 formatting rules with "Go to" navigation for each finding
+- Scan and Repair — rebuilds the citation library from an existing document, relinks Obiter citations that have become detached, and adopts plain-text citations found in footnotes, including documents not created with Obiter
 - AGLC4 heading styles (5 levels with auto-numbering per Rule 1.12.2)
 - AGLC4 document template — margins, fonts, spacing applied in one step
 - Quotation formatting tools — auto block quote detection, ellipsis insertion, [sic], editorial brackets, emphasis annotation (Rules 1.5.1-1.5.7)
-- Inline body-text formatting — automatic italicisation of case names on subsequent mention
-- Latin term auto-italicisation — 78 common legal terms identified and formatted per Rule 1.8.3
+- Inline body-text formatting — automatic italicisation of case names on subsequent mention, and italics preserved inside titles (eg a case name within an article title)
+- Latin and foreign term handling — common legal terms italicised per Rule 1.8.3, with Macquarie-listed terms correctly left in roman
 - Searchable reference guide covering all AGLC4 rules, abbreviations, and source types
 
 COURT SUBMISSION MODE:
@@ -51,8 +52,16 @@ AI-ASSISTED CITATION (OPTIONAL):
 - Multi-turn AI parser — paste a raw citation and extract structured fields automatically
 - Source type classification — describe your source and get a recommendation
 - Citation verification — check citation details against known legal databases
+- Suggested short titles for first citations
 - BYO API key. No data is sent without explicit user action. Works fully without AI enabled.
 - Supports OpenAI, Anthropic, Google Gemini, Grok, and DeepSeek providers
+
+MICROSOFT 365 COPILOT (COMPANION SKILL):
+
+- Obiter ships with a Microsoft 365 Copilot skill so you can ask Copilot to cite a source in plain language ("cite Mabo v Queensland (No 2)") and have it inserted as a correctly formatted AGLC4 footnote
+- Copilot extracts the structured fields; Obiter's engine remains the sole authority for AGLC4 formatting and inserts a native Word footnote — every citation stays traceable to a numbered rule
+- Insert a citation directly, or preview the formatted text first
+- Requires a Microsoft 365 Copilot licence; the add-in works fully without it
 
 OTHER:
 
@@ -71,4 +80,4 @@ Australian law students, legal academics, practitioners, and anyone who needs to
 
 PRIVACY:
 
-Obiter collects no personal data and no document content. When it opens, it sends a single anonymous load count (the app version, your Word version, and your operating system — no identifying information). All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.
+Obiter collects no personal data and no document content. When it opens, it sends a single anonymous load count (the app version, your Word version, and your operating system — no identifying information). All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. The optional Microsoft 365 Copilot skill passes only the source details you provide to Copilot in order to insert a citation. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.
