@@ -1,7 +1,7 @@
 # AppSource Listing — Obiter v1.14
 
-## Short Description (99 chars)
-AGLC4 citations for Word: 80+ source types, ibid, bibliography, validation, court mode, AI/Copilot.
+## Short Description (98 chars)
+AGLC4 citation engine for Word: 80+ source types, ibid, bibliography, validation, and court mode.
 
 ## Long Description
 
@@ -56,13 +56,6 @@ AI-ASSISTED CITATION (OPTIONAL):
 - BYO API key. No data is sent without explicit user action. Works fully without AI enabled.
 - Supports OpenAI, Anthropic, Google Gemini, Grok, and DeepSeek providers
 
-MICROSOFT 365 COPILOT (COMPANION SKILL):
-
-- Obiter ships with a Microsoft 365 Copilot skill so you can ask Copilot to cite a source in plain language ("cite Mabo v Queensland (No 2)") and have it inserted as a correctly formatted AGLC4 footnote
-- Copilot extracts the structured fields; Obiter's engine remains the sole authority for AGLC4 formatting and inserts a native Word footnote — every citation stays traceable to a numbered rule
-- Insert a citation directly, or preview the formatted text first
-- Requires a Microsoft 365 Copilot licence; the add-in works fully without it
-
 OTHER:
 
 - Import citations from Word Source Manager or BibTeX files
@@ -80,4 +73,4 @@ Australian law students, legal academics, practitioners, and anyone who needs to
 
 PRIVACY:
 
-Obiter collects no personal data and no document content. When it opens, it sends a single anonymous load count (the app version, your Word version, and your operating system — no identifying information). All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. The optional Microsoft 365 Copilot skill passes only the source details you provide to Copilot in order to insert a citation. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.
+Obiter collects no personal data and no document content. When it opens, it sends a single anonymous load count (the app version, your Word version, and your operating system — no identifying information). All citation data remains in your document. Optional AI features require user-provided API keys and only process text that users explicitly select. Optional error reporting is anonymous and requires explicit user consent. See our full privacy policy at https://obiter.com.au/privacy.html.
