@@ -13,6 +13,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_deploy-env.sh"
 
 echo "Deploying add-in to obiter.com.au/app/beta/ (staging — production /app/ untouched)..."
-ssh -i "$SSH_KEY" "$SSH_TARGET" "sudo mkdir -p /opt/bitnami/nginx/html/app/beta"
+# plain mkdir (deploy user owns /app) — sudo would create a root-owned dir the
+# rsync transfer can't write into.
+ssh -i "$SSH_KEY" "$SSH_TARGET" "mkdir -p /opt/bitnami/nginx/html/app/beta"
 rsync -avz --delete -e "ssh -i $SSH_KEY" dist/ "$SSH_TARGET:/opt/bitnami/nginx/html/app/beta/"
 echo "Deployed. Beta available at https://obiter.com.au/app/beta/taskpane.html"
