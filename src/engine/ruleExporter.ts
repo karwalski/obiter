@@ -379,11 +379,12 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
   {
     type: "book.ebook",
     ruleNumber: "n/a (Obiter extension)",
-    label: "Ebook (Obiter extension — AGLC4 has no ebook rule)",
+    label:
+      "Ebook (Obiter extension — AGLC4 has no ebook rule; renders as a rule 6.1–6.5 book, DECISION-019)",
     category: "secondary",
     requiredFields: ["authors", "title", "publisher", "year"],
-    optionalFields: ["edition", "pinpoint", "platform", "url"],
-    formatTemplate: "Author, Title (Publisher, Edition ed, Year) Pinpoint [Platform] <URL>.",
+    optionalFields: ["edition", "pinpoint", "url"],
+    formatTemplate: "Author, Title (Publisher, Edition ed, Year) Pinpoint <URL>.",
   },
 
   // ── Part III — Secondary Sources: Reports ─────────────────────────────────

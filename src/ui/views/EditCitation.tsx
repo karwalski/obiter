@@ -256,13 +256,14 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
         { key: "pinpoint", label: "Pinpoint" },
       ];
     case "book.ebook":
+      // DECISION-019: the '[Platform]' bracket was retired — ebooks render as
+      // ordinary books (rules 6.1–6.5) — so no Platform field is offered.
       return [
         { key: "author", label: "Author", required: true },
         { key: "title", label: "Title", required: true },
         { key: "publisher", label: "Publisher", required: true },
         { key: "edition", label: "Edition" },
         { key: "year", label: "Year", required: true },
-        { key: "platform", label: "Platform", placeholder: "e.g. Kindle, Google Books" },
         { key: "url", label: "URL" },
         { key: "pinpoint", label: "Pinpoint" },
       ];

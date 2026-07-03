@@ -8054,7 +8054,7 @@ function renderConstitutiveDocumentForm(
             At Date (required)
             <FieldHelp
               {...(isAglcStandard ? { ruleNumber: "7.10" } : {})}
-              description="The full date the document was last updated, or the date it was retrieved. Rule 7.10 requires this date, shown as '(at Date)'."
+              description="The date the document was last updated, or the date it was retrieved, shown as '(at Date)'. A full date is preferred; a partial date (eg 'September 2017') is accepted where that is all the source states (rule 7.10, ex 79)."
               example="5 October 2012"
             />
           </label>
@@ -12455,6 +12455,90 @@ function renderForeignForm(
             </div>
           )}
 
+          {country === "usa" && subType === "constitution" && (
+            <>
+              <div className="ic-field-row">
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor="ic-fgn-const-article">
+                    Article
+                    <FieldHelp
+                      {...(isAglcStandard ? { ruleNumber: "25.4" } : {})}
+                      description="The article of the constitution being cited. The 'art' abbreviation is added automatically and the numeral is passed through as entered; Roman numerals are recommended (eg 'art IV')."
+                      example="IV"
+                    />
+                  </label>
+                  <input
+                    id="ic-fgn-const-article"
+                    className="ic-input"
+                    type="text"
+                    value={(data.article as string) || ""}
+                    placeholder="e.g. IV"
+                    onChange={(e) => updateField("article", e.target.value)}
+                  />
+                </div>
+
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor="ic-fgn-const-amendment">
+                    Amendment
+                    <FieldHelp
+                      {...(isAglcStandard ? { ruleNumber: "25.4" } : {})}
+                      description="The amendment being cited. The 'amend' abbreviation is added automatically and the numeral is passed through as entered; Roman numerals are recommended (eg 'amend XIV')."
+                      example="XIV"
+                    />
+                  </label>
+                  <input
+                    id="ic-fgn-const-amendment"
+                    className="ic-input"
+                    type="text"
+                    value={(data.amendment as string) || ""}
+                    placeholder="e.g. XIV"
+                    onChange={(e) => updateField("amendment", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="ic-field-row">
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor="ic-fgn-const-section">
+                    Section
+                    <FieldHelp
+                      {...(isAglcStandard ? { ruleNumber: "25.4" } : {})}
+                      description="The section within the article or amendment, shown with the section symbol."
+                      example="3"
+                    />
+                  </label>
+                  <input
+                    id="ic-fgn-const-section"
+                    className="ic-input"
+                    type="text"
+                    value={(data.section as string) || ""}
+                    placeholder="e.g. 3"
+                    onChange={(e) => updateField("section", e.target.value)}
+                  />
+                </div>
+
+                <div className="ic-field ic-field--grow">
+                  <label className="ic-label" htmlFor="ic-fgn-const-clause">
+                    Clause
+                    <FieldHelp
+                      {...(isAglcStandard ? { ruleNumber: "25.4" } : {})}
+                      description="The clause within the section, shown with the 'cl' abbreviation."
+                      example="2"
+                    />
+                  </label>
+                  <input
+                    id="ic-fgn-const-clause"
+                    className="ic-input"
+                    type="text"
+                    value={(data.clause as string) || ""}
+                    placeholder="e.g. 2"
+                    onChange={(e) => updateField("clause", e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           {(country === "singapore" || country === "hong_kong") && (
             <div className="ic-field-row">
               <div className="ic-field ic-field--grow">
@@ -12900,31 +12984,8 @@ function renderBookEbookForm(
         </div>
       </div>
 
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-ebook-platform">
-          Ebook Platform
-          <FieldHelp
-            {...(isAglcStandard ? { ruleNumber: "6.8" } : {})}
-            description="The ebook platform or format. Appended in square brackets."
-            example="Kindle"
-          />
-        </label>
-        <select
-          id="ic-ebook-platform"
-          className="ic-select"
-          value={(data.platform as string) || ""}
-          onChange={(e) => updateField("platform", e.target.value)}
-        >
-          <option value="">Select platform...</option>
-          <option value="Kindle">Kindle</option>
-          <option value="Google Books">Google Books</option>
-          <option value="Apple Books">Apple Books</option>
-          <option value="Kobo">Kobo</option>
-          <option value="PDF">PDF</option>
-          <option value="EPUB">EPUB</option>
-          <option value="ebook">ebook</option>
-        </select>
-      </div>
+      {/* DECISION-019: the '[Platform]' bracket was retired — ebooks render as
+          ordinary books (rules 6.1–6.5) — so the Ebook Platform input is gone. */}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-ebook-url">

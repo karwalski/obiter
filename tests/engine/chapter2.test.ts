@@ -102,6 +102,26 @@ describe("Rule 2.1.1 — Parties' Names (General)", () => {
     expect(toPlainText(runs)).toBe("Pochi v Minister for Immigration and Ethnic Affairs");
   });
 
+  test("BUG-001: corporate second party containing '&' is never truncated (rule 2.1.1)", () => {
+    // Field repro: Smith v Land & House Property Corporation (1884) 28 Ch D 7
+    // must not become 'Smith v Land'.
+    const runs = formatCaseName("Smith", "Land & House Property Corporation");
+    expect(toPlainText(runs)).toBe("Smith v Land & House Property Corporation");
+  });
+
+  test("BUG-001: corporate second party containing 'and' is never truncated (rule 2.1.1)", () => {
+    // The rule 2.1.2 and→& abbreviation is gated on business-firm
+    // indicators (Pty/Ltd/Co/Inc); without one, 'and' is preserved as
+    // typed — and the party must survive whole either way.
+    const runs = formatCaseName("Smith", "Land and House Property Corporation");
+    expect(toPlainText(runs)).toBe("Smith v Land and House Property Corporation");
+  });
+
+  test("BUG-001: 'and' in a Ltd firm's name abbreviates to '&' without truncation (rule 2.1.2)", () => {
+    const runs = formatCaseName("Popovic", "Herald and Weekly Times Ltd");
+    expect(toPlainText(runs)).toBe("Popovic v Herald & Weekly Times Ltd");
+  });
+
   test("two capitalised words without corporate indicator are not corrupted (rule 2.1.1)", () => {
     // 'Hot Holdings' must not become 'Holdings' — two-word names are
     // ambiguous between personal and business names.
@@ -316,6 +336,16 @@ describe("Rule 2.1.14 — Shortened Case Names", () => {
 
   test("preserves [No 2] suffix", () => {
     expect(suggestShortTitle("Cubillo", "Commonwealth [No 2]", "v")).toBe("Cubillo [No 2]");
+  });
+
+  test("BUG-001: short title is the first-named party even when the other party contains '&' (rule 2.1.14)", () => {
+    expect(suggestShortTitle("Smith", "Land & House Property Corporation", "v")).toBe("Smith");
+  });
+
+  test("BUG-001: '&' survives inside a longer short title (rule 2.1.14)", () => {
+    expect(suggestShortTitle("Herald & Weekly Times Ltd", "Popovic", "v")).toBe(
+      "Herald & Weekly Times Ltd"
+    );
   });
 });
 
@@ -556,6 +586,18 @@ describe("Rule 2.2 — Full Reported Case Citation", () => {
     });
     const text = toPlainText(runs);
     expect(text).toBe("Bakker v Stewart [1980] VR 17, 22");
+  });
+
+  test("BUG-001: full reported citation keeps '&' party whole (Smith v Land & House Property Corporation (1884) 28 Ch D 7)", () => {
+    const runs = formatReportedCase({
+      caseName: formatCaseName("Smith", "Land & House Property Corporation"),
+      yearType: "round",
+      year: 1884,
+      volume: 28,
+      reportSeries: "Ch D",
+      startingPage: 7,
+    });
+    expect(toPlainText(runs)).toBe("Smith v Land & House Property Corporation (1884) 28 Ch D 7");
   });
 
   test("court omitted when apparent from CLR", () => {

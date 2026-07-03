@@ -152,7 +152,7 @@ export type SourceType =
   | "book.chapter" // Rule 6.6.1
   | "book.translated" // Rule 6.7
   | "book.audiobook" // Rule 6.9
-  | "book.ebook" // Rule 6.8
+  | "book.ebook" // Obiter extension — renders as a rule 6.1–6.5 book (DECISION-019)
   | "report" // Rule 7.1
   | "report.parliamentary" // Rule 7.1.2
   | "report.royal_commission" // Rule 7.1.3

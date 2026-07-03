@@ -385,6 +385,13 @@ export async function ensureModelMigrated(
     return null;
   }
 
+  // BUG-003: never write store metadata while the store part is unreadable —
+  // a setCcModel() persist here would sit a fresh empty store next to the
+  // (still recoverable) quarantined part. Leave the document untouched.
+  if (store.getDiagnostics().status === "unreadable") {
+    return null;
+  }
+
   // Detect the actual model version from document content
   const version = await detectModelVersion(context);
 

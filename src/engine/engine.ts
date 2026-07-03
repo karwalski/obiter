@@ -1171,15 +1171,17 @@ function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): For
 }
 
 /**
- * Dispatches an ebook citation (non-AGLC extension).
+ * Dispatches an ebook citation (UI convenience type).
  *
- * AGLC4 has no ebook rule (Rule 6.8 covers forthcoming books); the
- * `[Platform]` bracket appended here is an Obiter extension for users who
- * want the platform recorded. See docs/decisions.md.
+ * AGLC4 has no ebook rule (Rule 6.8 covers forthcoming books). Per
+ * DECISION-019, ebooks render as ordinary books under rules 6.1–6.5, with
+ * `<URL>` appended where a URL is provided. The `book.ebook` sourceType is
+ * retained as a UI convenience only; the former invented `[Platform]`
+ * bracket is not emitted. See docs/decisions.md.
  */
 function dispatchBookEbook(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
-  // Format like a regular book first
+  // Rules 6.1–6.5: format exactly like a regular book
   const runs = formatBook({
     authors: (d.authors as Author[]) ?? [],
     title: (d.title as string) ?? "",
@@ -1190,12 +1192,8 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
   });
 
-  // Append platform/format indicator
-  const platform = (d.platform as string) ?? "";
+  // Append the URL where provided (matching other secondary types)
   const url = (d.url as string) ?? "";
-  if (platform) {
-    runs.push({ text: ` [${platform}]` });
-  }
   if (url) {
     runs.push({ text: ` <${url}>` });
   }

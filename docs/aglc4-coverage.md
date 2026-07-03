@@ -138,7 +138,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 6.1-6.5 | Books (General) | Partial | Author, title, publisher (omitted when = author), superscript edition ordinals, `rev ed`, year spans, multi-volume; revised/volume/year-span UI fields pending |
 | 6.6 | Chapters in Edited Books | Partial | Chapter author, editors, book title, starting page; author+editor (`, ed X and Y`) UI field pending |
 | 6.7 | Translated Books | Full | `tr` after title, outside the parenthetical |
-| 6.8 | Forthcoming Books | Partial | `(Publisher, forthcoming)` supported; UI checkbox pending. NB `book.ebook` `[Platform]` is a non-AGLC extension (DECISION-019) — AGLC4 has no ebook rule |
+| 6.8 | Forthcoming Books | Partial | `(Publisher, forthcoming)` supported; UI checkbox pending. NB `book.ebook` is a UI convenience type only — AGLC4 has no ebook rule; it renders as an ordinary rule 6.1–6.5 book, appending `<URL>` where provided (DECISION-019; invented `[Platform]` bracket retired) |
 | 6.9 | Audiobooks | Full | `(Audiobook, Publisher, Year)`; narrator not emitted (not an AGLC element) |
 
 ---

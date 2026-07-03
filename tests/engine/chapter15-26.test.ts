@@ -1820,6 +1820,25 @@ describe("Rule 26 — Other Foreign Domestic Materials", () => {
       expect(runs[0].italic).toBeUndefined();
     });
 
+    it("renders a plain-string written-out report series roman by default (rule 26.2)", () => {
+      // DECISION-029: written-out non-common-law report series default to
+      // roman, consistent with rule 2.2.3; italics (as in the guide's ex 12
+      // '*Il Foro Italiano*…') require an explicit FormattedRun[] override.
+      const runs = other.formatOtherDecision({
+        court: "Corte costituzionale",
+        courtTranslation: "Italian Constitutional Court",
+        caseNumber: "No 239",
+        date: "29 December 1982",
+        reportedIn: "[1983] I Il Foro Italiano: Raccolta Generale di Giurisprudenza 2",
+        pinpoint: "4–5",
+      });
+      expect(flatten(runs)).toBe(
+        "Corte costituzionale [Italian Constitutional Court], No 239, 29 December 1982 reported in [1983] I Il Foro Italiano: Raccolta Generale di Giurisprudenza 2, 4–5"
+      );
+      // No part of the citation is italicised for a plain-string series
+      expect(italicText(runs)).toBe("");
+    });
+
     it("drops 'reported in' for unreported decisions (rule 26.2)", () => {
       const runs = other.formatOtherDecision({
         court: "Hamburg Intermediate Appellate Court",

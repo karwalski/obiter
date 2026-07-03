@@ -1,6 +1,6 @@
 {
   "version": "AGLC4",
-  "generatedAt": "2026-07-02T05:16:52.899Z",
+  "generatedAt": "2026-07-03T06:04:24.284Z",
   "generatedBy": "Obiter v1.14.0",
   "sourceTypes": [
     {
@@ -435,7 +435,7 @@
     {
       "type": "book.ebook",
       "ruleNumber": "n/a (Obiter extension)",
-      "label": "Ebook (Obiter extension — AGLC4 has no ebook rule)",
+      "label": "Ebook (Obiter extension — AGLC4 has no ebook rule; renders as a rule 6.1–6.5 book, DECISION-019)",
       "category": "secondary",
       "requiredFields": [
         "authors",
@@ -446,10 +446,9 @@
       "optionalFields": [
         "edition",
         "pinpoint",
-        "platform",
         "url"
       ],
-      "formatTemplate": "Author, Title (Publisher, Edition ed, Year) Pinpoint [Platform] <URL>."
+      "formatTemplate": "Author, Title (Publisher, Edition ed, Year) Pinpoint <URL>."
     },
     {
       "type": "report",

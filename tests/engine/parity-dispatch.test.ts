@@ -11,7 +11,7 @@
  * wave 1.
  */
 
-import { formatCitation, type CitationContext } from "../../src/engine/engine";
+import { formatCitation, getFormattedPreview, type CitationContext } from "../../src/engine/engine";
 import type { Citation, SourceType, SourceData } from "../../src/types/citation";
 import type { FormattedRun } from "../../src/types/formattedRun";
 
@@ -1071,5 +1071,147 @@ describe("Chapter 7 dispatch wiring", () => {
     const text = toPlainText(runs);
     expect(text).not.toContain("Directed by");
     expect(text).toContain("Working Dog Productions");
+  });
+});
+
+// ─── DECISION-019 — book.ebook renders as an ordinary book (rules 6.1–6.5) ──
+
+describe("DECISION-019: book.ebook renders as a rule 6.1–6.5 book", () => {
+  test("formats an ebook exactly as a book, appending the URL (rules 6.1–6.5)", () => {
+    // Book form per the AGLC4 ch 6 table: Malcolm N Shaw, International Law
+    // (Cambridge University Press, 7th ed, 2014) 578 — with <URL> appended.
+    const runs = formatCitation(
+      makeCitation("book.ebook", {
+        authors: [{ givenNames: "Malcolm N", surname: "Shaw" }],
+        title: "International Law",
+        publisher: "Cambridge University Press",
+        edition: 7,
+        year: 2014,
+        pinpoint: { type: "page", value: "578" },
+        url: "https://www.cambridge.org/core/books/international-law",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Malcolm N Shaw, International Law (Cambridge University Press, 7th ed, 2014) 578 <https://www.cambridge.org/core/books/international-law>"
+    );
+    expect(italicText(runs)).toBe("International Law");
+  });
+
+  test("emits no '[Platform]' bracket even when a platform value is stored", () => {
+    const runs = formatCitation(
+      makeCitation("book.ebook", {
+        authors: [{ givenNames: "Ralph H", surname: "Folsom" }],
+        title: "Principles of European Union Law",
+        publisher: "Thomson West",
+        year: 2005,
+        platform: "Kindle",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Ralph H Folsom, Principles of European Union Law (Thomson West, 2005)"
+    );
+  });
+});
+
+// ─── BUG-001 — '&'/'and' party names through the full dispatch path (rule 2.1.1) ──
+
+describe("BUG-001: dispatch never truncates party names containing '&' / 'and'", () => {
+  // Raw form-style data: the reported-case form stores its inputs as
+  // strings (party1/party2/yearType/year/volume/reportSeries/startingPage).
+  const smithFormData: SourceData = {
+    party1: "Smith",
+    party2: "Land & House Property Corporation",
+    yearType: "round",
+    year: "1884",
+    volume: "28",
+    reportSeries: "Ch D",
+    startingPage: "7",
+  };
+
+  test("formats the field-reported citation end-to-end from raw form data (case.reported, rules 2.1.1/2.2)", () => {
+    const runs = getFormattedPreview(makeCitation("case.reported", smithFormData));
+    expect(toPlainText(runs)).toBe("Smith v Land & House Property Corporation (1884) 28 Ch D 7.");
+    expect(italicText(runs)).toBe("Smith v Land & House Property Corporation");
+  });
+
+  test("'and' variant is never truncated (case.reported, rules 2.1.1/2.1.2)", () => {
+    const runs = getFormattedPreview(
+      makeCitation("case.reported", {
+        ...smithFormData,
+        party2: "Land and House Property Corporation",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Smith v Land and House Property Corporation (1884) 28 Ch D 7."
+    );
+  });
+
+  test("UI flow with the suggested short title introduces (‘Smith’) whole (rules 2.1.14/1.4.4)", () => {
+    // The insert form auto-suggests shortTitle = party1 ('Smith'); the
+    // refresher renders the actual footnote via formatCitation (which
+    // appends the rule 1.4.4 introduction) and adds the closing stop.
+    const runs = formatCitation(
+      makeCitation("case.reported", smithFormData, { shortTitle: "Smith" })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Smith v Land & House Property Corporation (1884) 28 Ch D 7 (‘Smith’)"
+    );
+  });
+
+  test("subsequent reference uses the first-named party short form (rules 2.1.14/1.4.1)", () => {
+    const runs = formatCitation(
+      makeCitation("case.reported", smithFormData, { shortTitle: "Smith" }),
+      {
+        footnoteNumber: 12,
+        isFirstCitation: false,
+        isSameAsPreceding: false,
+        precedingFootnoteCitationCount: 1,
+        firstFootnoteNumber: 4,
+        isWithinSameFootnote: false,
+        formatPreference: "auto",
+      }
+    );
+    expect(toPlainText(runs)).toBe("Smith (n 4)");
+  });
+
+  test("'&' survives inside a longer short title in subsequent references (rule 1.4.1)", () => {
+    const runs = formatCitation(
+      makeCitation(
+        "case.reported",
+        {
+          party1: "Popovic",
+          party2: "Herald & Weekly Times Ltd",
+          yearType: "round",
+          year: "2002",
+          reportSeries: "VSC",
+          startingPage: "174",
+        },
+        { shortTitle: "Herald & Weekly Times" }
+      ),
+      {
+        footnoteNumber: 9,
+        isFirstCitation: false,
+        isSameAsPreceding: false,
+        precedingFootnoteCitationCount: 1,
+        firstFootnoteNumber: 2,
+        isWithinSameFootnote: false,
+        formatPreference: "auto",
+      }
+    );
+    expect(toPlainText(runs)).toBe("Herald & Weekly Times (n 2)");
+  });
+
+  test("same case dispatched as a foreign UK case keeps the '&' party whole (rule 24.1.2, Ch D)", () => {
+    // The UK form stores the whole case name plus free-text citation
+    // details; the historical round-bracket Ch D pattern must parse.
+    const runs = getFormattedPreview(
+      makeCitation("foreign.uk", {
+        foreignSubType: "case",
+        title: "Smith v Land & House Property Corporation",
+        citationDetails: "(1884) 28 Ch D 7",
+      })
+    );
+    expect(toPlainText(runs)).toBe("Smith v Land & House Property Corporation (1884) 28 Ch D 7.");
+    expect(italicText(runs)).toBe("Smith v Land & House Property Corporation");
   });
 });

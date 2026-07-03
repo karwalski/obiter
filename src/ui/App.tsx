@@ -53,7 +53,7 @@ async function executeRibbonAction(action: string): Promise<void> {
   const { refreshAllCitations } = await import("../word/citationRefresher");
   const { renumberAllHeadings } = await import("../word/styles");
   const { scanAndFormatInlineReferences } = await import("../word/inlineFormatter");
-  const { CitationStore } = await import("../store/citationStore");
+  const { getSharedStore } = await import("../store/singleton");
 
   try {
     if (action.startsWith("action/heading/")) {
@@ -103,8 +103,10 @@ async function executeRibbonAction(action: string): Promise<void> {
         await applyAglc4Template(context);
       });
     } else if (action === "action/refresh") {
-      const store = new CitationStore();
-      await store.initStore();
+      // BUG-003: use the shared singleton — a second CitationStore instance
+      // holds its own part id and its persists raced the task pane's,
+      // leaving duplicate Custom XML parts behind.
+      const store = await getSharedStore();
       const citations = store.getAll();
       if (citations.length > 0) {
         await Word.run(async (context) => {

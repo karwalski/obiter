@@ -21,22 +21,40 @@ export interface CitationPreviewProps {
   onSourceTypeDetected?: (sourceType: string) => void;
 }
 
-/** Parse a raw citation string into partial source data based on source type. */
-function parseCitationText(
-  text: string,
+/**
+ * Parse a raw citation string into partial source data based on source type.
+ *
+ * Exported for unit testing (BUG-002).
+ */
+export function parseCitationText(
+  rawText: string,
   sourceType?: SourceType,
 ): { data: Partial<SourceData>; warnings: string[] } {
   const data: Partial<SourceData> = {};
   const warnings: string[] = [];
 
-  if (!text.trim()) return { data, warnings };
+  if (!rawText.trim()) return { data, warnings };
+
+  // Normalise pasted text: Word footnotes copy with hard/soft line breaks
+  // (\r, \n, vertical tab) and non-breaking spaces inside wrapped citations,
+  // which would otherwise defeat `.`-based patterns (BUG-002) — `\s` matches
+  // them all, so collapse every whitespace run to a single space. A single
+  // trailing full stop (the footnote's closing punctuation, AGLC4 rule 1.1.4)
+  // is stripped before matching.
+  const text = rawText
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.$/, "");
 
   if (sourceType?.startsWith("case.")) {
+    // AGLC4 rule 2.1.1: the parties are separated only by ' v '. '&' and
+    // 'and' are ordinary words INSIDE a party name (eg 'Land & House
+    // Property Corporation', 'Herald and Weekly Times Ltd') and must never
+    // be treated as a party delimiter or a substitute for 'v' (BUG-002).
+    //
     // Pattern: Party1 v Party2 (Year) Volume Series Page
-    // or: Party1 v Party2 [Year] Court Number
-    const caseMatch = text.match(
-      /^(.+?)\s+v\s+(.+?)\s+[\[\(](\d{4})[\]\)]\s*(.*)/i,
-    );
+    // or:      Party1 v Party2 [Year] Court Number
+    const caseMatch = text.match(/^(.+?)\s+v\s+(.+?)\s+[\[(](\d{4})[\])]\s*(.*)$/i);
     if (caseMatch) {
       data.party1 = caseMatch[1].trim();
       data.party2 = caseMatch[2].trim();
@@ -44,24 +62,35 @@ function parseCitationText(
       const afterYear = caseMatch[4].trim();
 
       // Check bracket type
-      if (text.includes(`[${caseMatch[3]}]`)) {
-        data.yearType = "square";
-      } else {
-        data.yearType = "round";
-      }
+      const square = text.includes(`[${caseMatch[3]}]`);
+      data.yearType = square ? "square" : "round";
 
-      // Try to parse "Volume Series Page" from remainder
-      const reportMatch = afterYear.match(/^(\d+)\s+(.+?)\s+(\d+)/);
-      if (reportMatch) {
-        data.volume = parseInt(reportMatch[1], 10);
-        data.reportSeries = reportMatch[2].trim();
-        data.startingPage = parseInt(reportMatch[3], 10);
+      // Square-bracket year followed by "CourtCode Number" is a medium
+      // neutral citation ([2019] UKSC 5), not a report series and page.
+      // Populate every alias the case forms use (case.reported reads
+      // courtId/mnc; case.unreported.mnc reads court/caseNumber).
+      const mncMatch = square ? afterYear.match(/^([A-Z][A-Za-z]{1,9})\s+(\d+)$/) : null;
+      if (mncMatch) {
+        data.courtId = mncMatch[1];
+        data.court = mncMatch[1];
+        data.mnc = mncMatch[2];
+        data.caseNumber = mncMatch[2];
       } else {
-        // Try "Series Page" (year-organised)
-        const seriesMatch = afterYear.match(/^(.+?)\s+(\d+)/);
-        if (seriesMatch) {
-          data.reportSeries = seriesMatch[1].trim();
-          data.startingPage = parseInt(seriesMatch[2], 10);
+        // "Volume Series Page" from remainder. The lazy series group copes
+        // with multi-word series — '(1884) 28 Ch D 7' (historical UK,
+        // rule 24.1) parses as volume 28, series 'Ch D', page 7.
+        const reportMatch = afterYear.match(/^(\d+)\s+(.+?)\s+(\d+)/);
+        if (reportMatch) {
+          data.volume = parseInt(reportMatch[1], 10);
+          data.reportSeries = reportMatch[2].trim();
+          data.startingPage = parseInt(reportMatch[3], 10);
+        } else {
+          // Try "Series Page" (year-organised)
+          const seriesMatch = afterYear.match(/^(.+?)\s+(\d+)/);
+          if (seriesMatch) {
+            data.reportSeries = seriesMatch[1].trim();
+            data.startingPage = parseInt(seriesMatch[2], 10);
+          }
         }
       }
     } else {
@@ -370,18 +399,15 @@ export default function CitationPreview({
                   {w}
                 </div>
               ))}
-              <button
-                type="button"
-                className="citation-preview-override-btn"
-                onClick={handleOverride}
-              >
-                Use as-is (override formatting)
-              </button>
+              <div className="citation-preview-warning-hint">
+                Parsing problems never block insertion — choose &lsquo;Insert as
+                manual citation&rsquo; to keep the text exactly as typed.
+              </div>
             </div>
           )}
           {overrideMode && (
             <div className="citation-preview-override-active">
-              Override active — citation will be inserted exactly as typed.
+              Manual citation — the text will be inserted exactly as typed.
             </div>
           )}
           {aiMessage && (
@@ -405,6 +431,20 @@ export default function CitationPreview({
                 disabled={aiParsing || !manualText.trim()}
               >
                 {aiParsing ? "Parsing..." : "Parse citation"}
+              </button>
+            )}
+            {/* BUG-002: escape hatch — always available, not only after a
+                parse warning, so an unparseable citation is never a dead
+                end. Inserts the text verbatim as a manual (override)
+                citation tracked in the library. */}
+            {onOverride && !overrideMode && (
+              <button
+                type="button"
+                className="citation-preview-override-btn"
+                onClick={handleOverride}
+                disabled={!manualText.trim()}
+              >
+                Insert as manual citation
               </button>
             )}
           </div>

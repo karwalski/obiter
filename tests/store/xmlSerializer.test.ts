@@ -1,4 +1,6 @@
 /**
+ * @jest-environment jsdom
+ *
  * XML Serializer/Deserializer Tests (Schema v2)
  *
  * Validates round-trip fidelity of the citation XML serialization system.

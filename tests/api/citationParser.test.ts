@@ -5,17 +5,12 @@
  * Tests for Citation Parser & MNC Tokeniser (Story 17.52).
  */
 
-import {
-  parseCitation,
-  tokeniseMNC,
-  findAllCitations,
-} from "../../src/api/citationParser";
+import { parseCitation, tokeniseMNC, findAllCitations } from "../../src/api/citationParser";
 import type {
   MNCToken,
   ReportCitation,
   StatuteCitation,
   HansardCitation,
-  ParsedCitation,
 } from "../../src/api/citationParser";
 
 describe("Citation Parser (Story 17.52)", () => {
@@ -178,8 +173,7 @@ describe("Citation Parser (Story 17.52)", () => {
     });
 
     it("parses Hansard without speaker", () => {
-      const text =
-        "New South Wales, Parliamentary Debates, Legislative Assembly, 5 June 2019, 123";
+      const text = "New South Wales, Parliamentary Debates, Legislative Assembly, 5 June 2019, 123";
       const c = parseCitation(text);
       expect(c).not.toBeNull();
       const h = c as HansardCitation;
@@ -255,6 +249,57 @@ describe("Citation Parser (Story 17.52)", () => {
       const c = parseCitation("[1992] HCA 23; (1992) 175 CLR 1");
       expect(c).not.toBeNull();
       expect(c!.type).toBe("mnc");
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // BUG-002: '&'/'and' inside party names; historical UK report series
+  // -----------------------------------------------------------------------
+
+  describe("BUG-002: '&'/'and' in party names and historical UK report series", () => {
+    it("parses (1884) 28 Ch D 7 (multi-word LR-descendant series, rule 24.1) after an '&' party", () => {
+      const c = parseCitation("Smith v Land & House Property Corporation (1884) 28 Ch D 7");
+      expect(c).not.toBeNull();
+      expect(c!.type).toBe("report");
+      const r = c as ReportCitation;
+      expect(r.year).toBe(1884);
+      expect(r.volume).toBe(28);
+      expect(r.series).toBe("Ch D");
+      expect(r.page).toBe(7);
+    });
+
+    it("parses the same citation with 'and' in place of '&'", () => {
+      const c = parseCitation("Smith v Land and House Property Corporation (1884) 28 Ch D 7");
+      expect(c).not.toBeNull();
+      expect(c!.type).toBe("report");
+      const r = c as ReportCitation;
+      expect(r.year).toBe(1884);
+      expect(r.volume).toBe(28);
+      expect(r.series).toBe("Ch D");
+      expect(r.page).toBe(7);
+    });
+
+    it("regression: (2002) 123 FCR 298 with 'and' twice inside the second party", () => {
+      const c = parseCitation(
+        "NAAV v Minister for Immigration and Multicultural and Indigenous Affairs (2002) 123 FCR 298"
+      );
+      expect(c).not.toBeNull();
+      expect(c!.type).toBe("report");
+      const r = c as ReportCitation;
+      expect(r.year).toBe(2002);
+      expect(r.volume).toBe(123);
+      expect(r.series).toBe("FCR");
+      expect(r.page).toBe(298);
+    });
+
+    it("regression: [2019] UKSC 5-style MNC still tokenises", () => {
+      const c = parseCitation("R v Adams [2019] UKSC 5");
+      expect(c).not.toBeNull();
+      expect(c!.type).toBe("mnc");
+      const m = c as MNCToken;
+      expect(m.year).toBe(2019);
+      expect(m.court).toBe("UKSC");
+      expect(m.number).toBe(5);
     });
   });
 });

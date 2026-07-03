@@ -2264,6 +2264,12 @@ body {
   margin-bottom: var(--space-xs);
 }
 
+/* BUG-002: non-blocking hint beneath parse warnings pointing to the manual-citation escape hatch */
+.citation-preview-warning-hint {
+  color: var(--colour-text-secondary);
+  font-style: italic;
+}
+
 .citation-preview-override-btn {
   display: inline-block;
   margin-top: var(--space-xs);
@@ -2274,6 +2280,11 @@ body {
   border: 1px solid var(--colour-accent);
   border-radius: var(--radius-sm);
   cursor: pointer;
+}
+
+.citation-preview-override-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .citation-preview-override-active {

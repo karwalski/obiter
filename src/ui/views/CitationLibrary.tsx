@@ -6,6 +6,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
+import type { StoreDiagnostics } from "../../store";
 import { getSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
@@ -379,6 +380,11 @@ export default function CitationLibrary(): JSX.Element {
   const [clearMode, setClearMode] = useState<"all" | "unused" | null>(null);
   const [clearing, setClearing] = useState(false);
 
+  // BUG-003: store health diagnostics + orphaned-control detection
+  const [storeDiagnostics, setStoreDiagnostics] = useState<StoreDiagnostics | null>(null);
+  const [orphanControlCount, setOrphanControlCount] = useState<number>(0);
+  const [detailsCopied, setDetailsCopied] = useState(false);
+
   const standardConfig = getStandardConfig(standardId);
 
   // Load citations on mount and when refreshCounter changes.
@@ -388,9 +394,25 @@ export default function CitationLibrary(): JSX.Element {
       try {
         store = await getSharedStore();
         if (!cancelled) {
-          setCitations(store.getAll());
+          const all = store.getAll();
+          setCitations(all);
           setStandardId(store.getStandardId());
+          setStoreDiagnostics(store.getDiagnostics());
           setLoading(false);
+
+          // BUG-003: an empty library with Obiter content controls still in
+          // the document means the library has come unlinked — never present
+          // that as a plain "no citations" state.
+          if (all.length === 0) {
+            try {
+              const entries = await getAllCitationFootnotes();
+              if (!cancelled) setOrphanControlCount(entries.length);
+            } catch {
+              // Footnote scan unavailable — leave the count at 0.
+            }
+          } else {
+            setOrphanControlCount(0);
+          }
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -606,6 +628,42 @@ export default function CitationLibrary(): JSX.Element {
     [],
   );
 
+  // BUG-003: diagnostic details for field reports (copy-to-clipboard)
+  const buildDiagnosticDetails = useCallback((): string => {
+    const d = storeDiagnostics;
+    return [
+      "Obiter citation store diagnostics",
+      `Time: ${new Date().toISOString()}`,
+      `Status: ${d?.status ?? "unknown"}`,
+      `Store parts found: ${d?.partsFound ?? 0} (readable ${d?.readableParts ?? 0}, unreadable ${d?.unreadableParts ?? 0})`,
+      `Selected part: ${d?.selectedPartId ?? "none"}`,
+      `Citations in library: ${citations.length}`,
+      `Citations merged from duplicate parts: ${d?.mergedFromDuplicates ?? 0}`,
+      `Obiter content controls found in footnotes: ${orphanControlCount}`,
+      `Detail: ${d?.detail ?? "none"}`,
+    ].join("\n");
+  }, [storeDiagnostics, citations.length, orphanControlCount]);
+
+  const handleCopyDiagnostics = useCallback(async () => {
+    const text = buildDiagnosticDetails();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Clipboard API unavailable in this webview — textarea fallback.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+    setDetailsCopied(true);
+    window.setTimeout(() => setDetailsCopied(false), 2000);
+  }, [buildDiagnosticDetails]);
+
   const handleImportFromWord = useCallback(async () => {
     setImporting(true);
     setImportStatus(null);
@@ -691,6 +749,49 @@ export default function CitationLibrary(): JSX.Element {
 
       {/* Citation Finder (collapsible) — scan document for all citations */}
       <CitationFinder refreshSignal={finderSignal} />
+
+      {/* BUG-003: store health diagnostics — never present an empty library
+          silently while a store part or Obiter content controls exist. */}
+      {(storeDiagnostics?.status === "unreadable" ||
+        storeDiagnostics?.status === "recovered" ||
+        (citations.length === 0 && orphanControlCount > 0)) && (
+        <div
+          className="library-toast"
+          role={storeDiagnostics?.status === "recovered" && citations.length > 0 ? "status" : "alert"}
+        >
+          <div>
+            {storeDiagnostics?.status === "unreadable" ? (
+              <span>
+                Citation store found but unreadable. The stored citation data is still in this
+                document and has not been deleted. Copy the details below and report the issue;
+                avoid clearing the library until the store is repaired.
+              </span>
+            ) : citations.length === 0 && orphanControlCount > 0 ? (
+              <span>
+                The library is empty, but {orphanControlCount} Obiter citation
+                {orphanControlCount !== 1 ? " markers were" : " marker was"} found in the
+                document&apos;s footnotes. The library appears to have become unlinked from the
+                document. Copy the details below and report the issue.
+              </span>
+            ) : (
+              <span>
+                Duplicate citation store parts were detected and recovered
+                {storeDiagnostics && storeDiagnostics.mergedFromDuplicates > 0
+                  ? ` (${storeDiagnostics.mergedFromDuplicates} citation${storeDiagnostics.mergedFromDuplicates !== 1 ? "s" : ""} merged)`
+                  : ""}
+                . Please review the library for completeness.
+              </span>
+            )}
+            <button
+              className="library-btn"
+              style={{ marginLeft: 8 }}
+              onClick={() => void handleCopyDiagnostics()}
+            >
+              {detailsCopied ? "Copied" : "Copy details"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Refresh status toast */}
       <div aria-live="polite" role="status">
@@ -850,7 +951,9 @@ export default function CitationLibrary(): JSX.Element {
       {filteredCitations.length === 0 ? (
         <p className="library-empty">
           {citations.length === 0
-            ? "No citations in this document. Use Insert Citation to add your first citation."
+            ? orphanControlCount > 0 || storeDiagnostics?.status === "unreadable"
+              ? "The citation library could not be loaded normally. See the notice above for details."
+              : "No citations in this document. Use Insert Citation to add your first citation."
             : "No citations match your search."}
         </p>
       ) : (

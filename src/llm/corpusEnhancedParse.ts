@@ -145,7 +145,15 @@ export function getFieldSchemaForSourceType(sourceType: SourceType): FieldDescri
     "case.reported": [
       { name: "party1", description: "First party name" },
       { name: "party2", description: "Second party name" },
-      { name: "separator", description: 'Party separator: "v" or "and" or "&"' },
+      {
+        name: "separator",
+        // BUG-002 / AGLC4 rule 2.1.1: opposing parties are separated only by
+        // "v". "&" and "and" inside a name ("Land & House Property
+        // Corporation") are part of that party's name — never a delimiter.
+        description:
+          'Party separator between the opposing parties: almost always "v". ' +
+          'Never treat "&" or "and" inside a company or party name as the separator',
+      },
       { name: "yearType", description: '"round" for (year) or "square" for [year]' },
       { name: "year", description: "Year of the decision" },
       { name: "volume", description: "Report volume number" },
@@ -675,13 +683,14 @@ export function getFieldSchemaForSourceType(sourceType: SourceType): FieldDescri
       { name: "date", description: "Date" },
       { name: "pinpoint", description: "Pinpoint" },
     ],
+    // DECISION-019: the invented '[Platform]' bracket is retired — ebooks
+    // render as ordinary books (rules 6.1–6.5), so no platform field.
     "book.ebook": [
       { name: "authors", description: "Array of { givenNames, surname }" },
       { name: "title", description: "Book title" },
       { name: "publisher", description: "Publisher name" },
       { name: "edition", description: "Edition" },
       { name: "year", description: "Publication year" },
-      { name: "platform", description: "Ebook platform (e.g. Kindle, Google Books, Apple Books)" },
       { name: "url", description: "URL if applicable" },
       { name: "pinpoint", description: "Pinpoint page" },
     ],
@@ -998,6 +1007,7 @@ ${examplesBlock}
 IMPORTANT:
 - First decide which source type is the best match, then use ONLY that type's field names
 - Do not invent new field names — only use the ones listed above
+- Case parties are separated ONLY by " v ". "&" and "and" occurring inside a party name (eg "Land & House Property Corporation") are part of that name — never split a party there
 - Strip italic markers (*text*) from values
 - Only populate fields you are confident about — leave others out
 - Also suggest a shortTitle (first party name for cases, short form for legislation)

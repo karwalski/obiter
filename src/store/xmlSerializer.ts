@@ -27,6 +27,28 @@ export const OBITER_NAMESPACE = "urn:obiter:aglc";
 const DEFAULT_SCHEMA_VERSION = "2";
 const DEFAULT_AGLC_VERSION = "4";
 
+// ─── Errors (BUG-003) ────────────────────────────────────────────────────────
+
+/**
+ * Thrown when store XML cannot be deserialized (empty payload, XML parse
+ * failure, or a root element that is not an Obiter citation store).
+ *
+ * BUG-003: previously DOMParser failures were invisible — `parseFromString`
+ * never throws, it returns a `<parsererror>` document whose attribute reads
+ * all return null, so a corrupted part silently deserialized to an EMPTY
+ * store. That empty store could then be persisted over the real data.
+ * Deserialization must fail loudly so callers can quarantine the part.
+ */
+export class StoreXmlError extends Error {
+  constructor(
+    message: string,
+    public readonly reason: "empty" | "parse" | "wrong-root"
+  ) {
+    super(message);
+    this.name = "StoreXmlError";
+  }
+}
+
 // ─── Generator info (INFRA-008 Layer 2) ─────────────────────────────────────
 
 /**
@@ -150,8 +172,22 @@ export function deserializeCitation(xml: string | Element): Citation {
   let root: Element;
   if (typeof xml === "string") {
     const parser = new DOMParser();
-    const doc = parser.parseFromString(xml, "text/xml");
+    let doc = parser.parseFromString(xml, "text/xml");
     root = doc.documentElement;
+    // A standalone <obiter:citation> fragment carries an undeclared
+    // `obiter:` prefix, which strict XML parsers reject via <parsererror>.
+    // Retry wrapped in a namespace-declaring root (BUG-003 hardening).
+    if (isParserError(doc)) {
+      doc = parser.parseFromString(
+        `<obiter:root xmlns:obiter="${OBITER_NAMESPACE}">${xml}</obiter:root>`,
+        "text/xml"
+      );
+      const wrapped = isParserError(doc) ? null : doc.documentElement.firstElementChild;
+      if (!wrapped) {
+        throw new StoreXmlError("Citation XML is not well-formed", "parse");
+      }
+      root = wrapped;
+    }
   } else {
     root = xml;
   }
@@ -293,11 +329,32 @@ export function deserializeCitation(xml: string | Element): Citation {
  *
  * Uses DOMParser for root-level attribute extraction, eliminating
  * the fragile regex-based approach.
+ *
+ * @throws {StoreXmlError} when the payload is empty, the XML does not parse
+ *   (browser DOMParsers signal failure via a `<parsererror>` element rather
+ *   than throwing), or the root element is not `<obiter:citationStore>`.
+ *   Callers must treat this as "part unreadable", never as "no citations".
  */
 export function deserializeStore(xml: string): CitationStoreData {
+  if (!xml || xml.trim() === "") {
+    throw new StoreXmlError("Store XML payload is empty", "empty");
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(xml, "text/xml");
   const root = doc.documentElement;
+
+  // DOMParser never throws: Chromium/WebKit embed a <parsererror> element in
+  // the result document; jsdom/Firefox make it the document element.
+  if (isParserError(doc)) {
+    throw new StoreXmlError("Store XML is not well-formed", "parse");
+  }
+  if (root.localName !== "citationStore") {
+    throw new StoreXmlError(
+      `Expected <obiter:citationStore> root, found <${root.localName}>`,
+      "wrong-root"
+    );
+  }
 
   const schemaVersion = root.getAttribute("version") ?? "1.0";
   const aglcVersion = (root.getAttribute("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
@@ -357,6 +414,20 @@ function escapeXml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+/**
+ * Detect a DOMParser failure document. Browsers do not throw on invalid XML:
+ * Chromium/WebKit embed a `<parsererror>` element, jsdom/Firefox make it the
+ * document element.
+ */
+function isParserError(doc: Document): boolean {
+  const root = doc.documentElement;
+  return (
+    root == null ||
+    root.localName === "parsererror" ||
+    doc.getElementsByTagName("parsererror").length > 0
+  );
 }
 
 function unescapeXml(str: string): string {
