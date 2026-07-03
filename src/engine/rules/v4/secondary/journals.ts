@@ -133,7 +133,10 @@ function pushCoreElements(runs: FormattedRun[], data: JournalCore): void {
  */
 function stripPartFromTitle(title: string): string {
   return title
-    .replace(/\s*[—–:,-]?\s*[([]?\s*Part\s+(\d+|[IVXLC]+|One|Two|Three|Four|Five)\s*[)\]]?\s*$/i, "")
+    .replace(
+      /\s*[—–:,-]?\s*[([]?\s*Part\s+(\d+|[IVXLC]+|One|Two|Three|Four|Five)\s*[)\]]?\s*$/i,
+      ""
+    )
     .replace(/^Part\s+(\d+|[IVXLC]+|One|Two|Three|Four|Five)\s*[:.—–-]\s*/i, "")
     .trim();
 }

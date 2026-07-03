@@ -16,7 +16,7 @@ try {
   if (!hasDOMParser) {
     // Dynamic require to avoid ESM issues with jsdom
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { JSDOM } = eval('require')("jsdom");
+    const { JSDOM } = eval("require")("jsdom");
     const jsdom = new JSDOM();
     (global as Record<string, unknown>).DOMParser = jsdom.window.DOMParser;
     (global as Record<string, unknown>).XMLSerializer = jsdom.window.XMLSerializer;
@@ -276,7 +276,7 @@ describeIfDOMParser("xmlSerializer store round-trip", () => {
       "hca",
       42,
       "1.0.0",
-      "parent-child",
+      "parent-child"
     );
     const store = deserializeStore(xml);
 
@@ -298,7 +298,7 @@ describeIfDOMParser("xmlSerializer store round-trip", () => {
       "court",
       "TASCSC",
       undefined,
-      "1.0.0",
+      "1.0.0"
     );
     const store = deserializeStore(xml);
 
@@ -481,7 +481,7 @@ describeIfDOMParser("xmlSerializer v1 -> v2 migration", () => {
       "2",
       store.metadata.aglcVersion,
       store.metadata.standardId,
-      store.metadata.writingMode,
+      store.metadata.writingMode
     );
 
     // Read v2 store back

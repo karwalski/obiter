@@ -8,7 +8,7 @@
  * Example numbers in comments refer to AGLC4 numbered examples.
  */
 
-import { Author, Pinpoint } from "../../src/types/citation";
+import { Author } from "../../src/types/citation";
 import { FormattedRun } from "../../src/types/formattedRun";
 import {
   formatAuthorName,
@@ -216,9 +216,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
         { givenNames: "J.R.", surname: "Nethercote" },
       ];
       const runs = formatAuthors(authors);
-      expect(toPlainText(runs)).toBe(
-        "Nicholas Aroney, Scott Prasser and JR Nethercote"
-      );
+      expect(toPlainText(runs)).toBe("Nicholas Aroney, Scott Prasser and JR Nethercote");
     });
 
     it("should use 'et al' for four or more authors", () => {
@@ -243,9 +241,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
   describe("Rule 4.1.3 — Editors", () => {
     it("should append '(ed)' for a single editor", () => {
       // AGLC4 Example 6: "Peter Birks (ed)"
-      const editors: Author[] = [
-        { givenNames: "Peter", surname: "Birks" },
-      ];
+      const editors: Author[] = [{ givenNames: "Peter", surname: "Birks" }];
       const runs = formatAuthors(editors, true);
       expect(toPlainText(runs)).toBe("Peter Birks (ed)");
     });
@@ -268,9 +264,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
         { givenNames: "Nicole", surname: "Asquith" },
       ];
       const runs = formatAuthors(editors, true);
-      expect(toPlainText(runs)).toBe(
-        "Isabelle Bartkowiak-Th\u00e9ron and Nicole Asquith (eds)"
-      );
+      expect(toPlainText(runs)).toBe("Isabelle Bartkowiak-Th\u00e9ron and Nicole Asquith (eds)");
     });
   });
 
@@ -358,13 +352,8 @@ describe("Chapter 4 — Secondary Sources General", () => {
 
   describe("Rule 4.2 — Titles", () => {
     it("should italicise book titles", () => {
-      const runs = formatSecondaryTitle(
-        "International Law",
-        "book"
-      );
-      expect(runs).toEqual([
-        { text: "International Law", italic: true },
-      ]);
+      const runs = formatSecondaryTitle("International Law", "book");
+      expect(runs).toEqual([{ text: "International Law", italic: true }]);
     });
 
     it("should quote journal article titles in single curly quotes", () => {
@@ -373,17 +362,12 @@ describe("Chapter 4 — Secondary Sources General", () => {
         "journal.article"
       );
       // 'through' stays lowercase: rule 1.7 lowercases prepositions.
-      expect(runs[0].text).toBe(
-        "\u2018A Personal Journey through the Law of Torts\u2019"
-      );
+      expect(runs[0].text).toBe("\u2018A Personal Journey through the Law of Torts\u2019");
       expect(runs[0].italic).toBeFalsy();
     });
 
     it("should remove full stops from within the title", () => {
-      const runs = formatSecondaryTitle(
-        "The U.N. Convention",
-        "book"
-      );
+      const runs = formatSecondaryTitle("The U.N. Convention", "book");
       expect(runs[0].text).toBe("The UN Convention");
     });
 
@@ -410,18 +394,12 @@ describe("Chapter 4 — Secondary Sources General", () => {
     });
 
     it("should keep a second subtitle that is a span of dates (rule 4.2)", () => {
-      const runs = formatSecondaryTitle(
-        "A History: The Law of the Sea: 1945–75",
-        "book"
-      );
+      const runs = formatSecondaryTitle("A History: The Law of the Sea: 1945–75", "book");
       expect(runs[0].text).toBe("A History: The Law of the Sea: 1945–75");
     });
 
     it("should lowercase prepositions and capitalise after hyphens (rule 1.7 via 4.2)", () => {
-      const runs = formatSecondaryTitle(
-        "Inquiry into the office of governor-general",
-        "book"
-      );
+      const runs = formatSecondaryTitle("Inquiry into the office of governor-general", "book");
       expect(runs[0].text).toBe("Inquiry into the Office of Governor-General");
     });
   });
@@ -439,10 +417,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
     });
 
     it("should wrap article short title in parentheses with non-italic quotes", () => {
-      const runs = formatSecondaryShortTitle(
-        "Personal Journey",
-        "journal.article"
-      );
+      const runs = formatSecondaryShortTitle("Personal Journey", "journal.article");
       const text = toPlainText(runs);
       expect(text).toBe("(\u2018Personal Journey\u2019)");
       expect(hasNoItalic(runs)).toBe(true);
@@ -468,9 +443,7 @@ describe("Chapter 4 — Secondary Sources General", () => {
   describe("Rule 4.5 — Archived sources", () => {
     it("should format archived source with comma prefix", () => {
       const runs = formatArchivedSource("https://perma.cc/DC8L-Y5GD");
-      expect(toPlainText(runs)).toBe(
-        ", archived at <https://perma.cc/DC8L-Y5GD>"
-      );
+      expect(toPlainText(runs)).toBe(", archived at <https://perma.cc/DC8L-Y5GD>");
     });
   });
 });
@@ -562,8 +535,7 @@ describe("Chapter 5 — Journal Articles", () => {
       // the Public Domain' (2003) 66(1\u20132) Law and Contemporary Problems 33, 37.
       const runs = formatJournalArticle({
         authors: [{ givenNames: "James", surname: "Boyle" }],
-        title:
-          "The Second Enclosure Movement and the Construction of the Public Domain",
+        title: "The Second Enclosure Movement and the Construction of the Public Domain",
         year: 2003,
         volume: 66,
         issue: "1\u20132",
@@ -591,8 +563,9 @@ describe("Chapter 5 — Journal Articles", () => {
         pinpoint: { type: "page", value: "1\u20139" },
       });
       const text = toPlainText(runs);
-      expect(text).toContain("Sir Zelman Cowen");
-      expect(text).toContain("Melbourne University Law Review 1, 1\u20139");
+      expect(text).toBe(
+        "Sir Zelman Cowen, \u2018The Press, the Courts and the Law\u2019 (1979) 12(1) Melbourne University Law Review 1, 1\u20139"
+      );
     });
 
     it("should format article without pinpoint", () => {
@@ -614,9 +587,7 @@ describe("Chapter 5 — Journal Articles", () => {
       // Hailegabriel G Feyissa, 'European Extraterritoriality in Semicolonial Ethiopia'
       // (2016) 17(1) Melbourne Journal of International Law 107.
       const runs = formatJournalArticle({
-        authors: [
-          { givenNames: "Hailegabriel G", surname: "Feyissa" },
-        ],
+        authors: [{ givenNames: "Hailegabriel G", surname: "Feyissa" }],
         title: "European Extraterritoriality in Semicolonial Ethiopia",
         year: 2016,
         volume: 17,
@@ -690,9 +661,7 @@ describe("Chapter 5 — Journal Articles", () => {
         journal: "Some Journal",
         startingPage: 10,
       });
-      expect(toPlainText(runs)).toBe(
-        "Test Author, ‘Test Article’ (2000) Some Journal 10"
-      );
+      expect(toPlainText(runs)).toBe("Test Author, ‘Test Article’ (2000) Some Journal 10");
     });
   });
 
@@ -935,9 +904,7 @@ describe("Chapter 6 — Books", () => {
         year: 2005,
       });
       const text = toPlainText(runs);
-      expect(text).toBe(
-        "Ralph H Folsom, Principles of European Union Law (Thomson West, 2005)"
-      );
+      expect(text).toBe("Ralph H Folsom, Principles of European Union Law (Thomson West, 2005)");
     });
 
     it("should format Rishworth et al (AGLC4 6.1 Example 3)", () => {
@@ -970,9 +937,7 @@ describe("Chapter 6 — Books", () => {
         pinpoint: { type: "page", value: "10" },
       });
       const text = toPlainText(runs);
-      expect(text).toBe(
-        "Ronald Dworkin, Justice for Hedgehogs (Belknap Press, 2011) 10"
-      );
+      expect(text).toBe("Ronald Dworkin, Justice for Hedgehogs (Belknap Press, 2011) 10");
     });
 
     it("should format Atiyah with page pinpoint after publication details (AGLC4 6.4 Example 23)", () => {
@@ -1132,9 +1097,7 @@ describe("Chapter 6 — Books", () => {
         publisher: "Law Institute of Victoria",
         year: 2005,
       });
-      expect(toPlainText(runs)).toBe(
-        "Law Institute of Victoria, Legal Directory 2006 (2005)"
-      );
+      expect(toPlainText(runs)).toBe("Law Institute of Victoria, Legal Directory 2006 (2005)");
     });
 
     it("drops a leading 'The' from the publisher's name per AGLC4 ex 7 (rule 6.3.1)", () => {
@@ -1286,23 +1249,19 @@ describe("Chapter 6 — Books", () => {
         chapterAuthors: [{ givenNames: "Jeremy", surname: "Waldron" }],
         chapterTitle: "Do Judges Reason Morally?",
         editors: [{ givenNames: "Grant", surname: "Huscroft" }],
-        bookTitle:
-          "Expounding the Constitution: Essays in Constitutional Theory",
+        bookTitle: "Expounding the Constitution: Essays in Constitutional Theory",
         publisher: "Cambridge University Press",
         year: 2008,
         startingPage: 38,
       });
       const text = toPlainText(runs);
-      // Chapter title in quotes, not italic
-      expect(text).toContain(
-        "\u2018Do Judges Reason Morally?\u2019"
+      expect(text).toBe(
+        "Jeremy Waldron, \u2018Do Judges Reason Morally?\u2019 in Grant Huscroft (ed), " +
+          "Expounding the Constitution: Essays in Constitutional Theory " +
+          "(Cambridge University Press, 2008) 38"
       );
-      // 'in' between chapter title and editor
-      expect(text).toContain("in Grant Huscroft (ed)");
-      // Book title is italic
+      // Book title is italic; chapter title is not
       expect(italicText(runs)).toContain("Expounding the Constitution");
-      // Starting page
-      expect(text).toContain("2008) 38");
     });
 
     it("should format Russell chapter with multiple editors (AGLC4 6.6.1 Example 29)", () => {
@@ -1311,24 +1270,24 @@ describe("Chapter 6 — Books", () => {
       // (University of Western Australia Press, 2008) 119.
       const runs = formatBookChapter({
         chapterAuthors: [{ givenNames: "Meg", surname: "Russell" }],
-        chapterTitle:
-          "Reform of the House of Lords: Lessons for Bicameralism",
+        chapterTitle: "Reform of the House of Lords: Lessons for Bicameralism",
         editors: [
           { givenNames: "Nicholas", surname: "Aroney" },
           { givenNames: "Scott", surname: "Prasser" },
           { givenNames: "J.R.", surname: "Nethercote" },
         ],
-        bookTitle:
-          "Restraining Elective Dictatorship: The Upper House Solution?",
+        bookTitle: "Restraining Elective Dictatorship: The Upper House Solution?",
         publisher: "University of Western Australia Press",
         year: 2008,
         startingPage: 119,
       });
       const text = toPlainText(runs);
-      expect(text).toContain(
-        "Nicholas Aroney, Scott Prasser and JR Nethercote (eds)"
+      expect(text).toBe(
+        "Meg Russell, ‘Reform of the House of Lords: Lessons for Bicameralism’ in " +
+          "Nicholas Aroney, Scott Prasser and JR Nethercote (eds), " +
+          "Restraining Elective Dictatorship: The Upper House Solution? " +
+          "(University of Western Australia Press, 2008) 119"
       );
-      expect(text).toContain("2008) 119");
     });
 
     it("should format chapter with pinpoint (AGLC4 6.6.1 Example 31)", () => {
@@ -1348,7 +1307,12 @@ describe("Chapter 6 — Books", () => {
         pinpoint: { type: "page", value: "252\u20133" },
       });
       const text = toPlainText(runs);
-      expect(text).toContain("248, 252\u20133");
+      expect(text).toBe(
+        "Janet Ransley, \u2018Illusions of Reform\u2019 in " +
+          "Nicholas Aroney, Scott Prasser and JR Nethercote (eds), " +
+          "Restraining Elective Dictatorship " +
+          "(University of Western Australia Press, 2008) 248, 252\u20133"
+      );
     });
   });
 

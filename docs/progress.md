@@ -1413,6 +1413,8 @@ AGLC4 rule reference; fixes ran in waves on branch `fix/parity-epic` (stories in
   rebased row-by-row from the review-doc Status lines; DECISION-016..029 filed;
   execution summary appended to `aglc4-parity.md`).
 
+- **Final wave** (2026-07-03): PARITY-119 **done** — full verification sweep green (tsc/jest 2709/build; zero epic-introduced lint errors), ~60 `toContain` clusters rewritten to exact-string assertions, two dispatch bugs fixed (NZLSG `(NZ)` suffix, `report.waitangi_tribunal` fall-through); seams reconciled (coverage-doc Part V, review-ch15-26 X-1/X-2 statuses); leftovers consolidated as **PARITY-121** in the backlog.
+
 Open: DATA-004/DATA-005 block final verification of provisional data rows (DECISION-015);
 DECISION-013..029 await researcher sign-off; seven resolver-routed short-title rules and a
 handful of low-severity gaps are marked RE-AUDIT in the rebased docs.

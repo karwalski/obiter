@@ -93,7 +93,10 @@ describe("skill dispatchers", () => {
     await expect(skillUpdateCitation({ request: validRequest })).rejects.toThrow(SkillRequestError);
     mocked.updateCitation.mockResolvedValue(undefined);
     const result = await skillUpdateCitation({ citationId: "id-9", request: validRequest });
-    expect(mocked.updateCitation).toHaveBeenCalledWith("id-9", expect.objectContaining({ sourceType: "case.reported" }));
+    expect(mocked.updateCitation).toHaveBeenCalledWith(
+      "id-9",
+      expect.objectContaining({ sourceType: "case.reported" })
+    );
     expect(result).toEqual({ status: "updated", citationId: "id-9" });
   });
 

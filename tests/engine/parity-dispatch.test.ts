@@ -77,9 +77,7 @@ describe("PARITY-102(a): short-title introductions are suppressed only on true r
         { shortTitle: "McGinty" }
       )
     );
-    expect(toPlainText(runs)).toBe(
-      "McGinty v Western Australia (1996) 186 CLR 140 (‘McGinty’)"
-    );
+    expect(toPlainText(runs)).toBe("McGinty v Western Australia (1996) 186 CLR 140 (‘McGinty’)");
   });
 
   test("suppresses the introduction only when the short title IS the whole citation", () => {

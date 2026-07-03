@@ -36,9 +36,7 @@ describe("buildCopilotSkillManifest", () => {
 
   it("bundles the per-source-type field schema for building valid requests", () => {
     expect(manifest.sourceTypeSchema.sourceTypes.length).toBeGreaterThan(0);
-    const reported = manifest.sourceTypeSchema.sourceTypes.find(
-      (s) => s.type === "case.reported"
-    );
+    const reported = manifest.sourceTypeSchema.sourceTypes.find((s) => s.type === "case.reported");
     expect(reported).toBeDefined();
     expect(reported?.requiredFields.length).toBeGreaterThan(0);
   });

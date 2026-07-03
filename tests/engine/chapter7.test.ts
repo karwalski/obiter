@@ -82,9 +82,7 @@ describe("Rule 7.1.1 — Reports", () => {
     const runs = formatReport(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("Review of the Law of Negligence");
-    expect(text).toContain("(Final Report, September 2002)");
-    expect(text).toContain("37\u201357");
+    expect(text).toBe("Review of the Law of Negligence (Final Report, September 2002) 37\u201357");
     // Title should be italic
     expectItalic(runs, "Review of the Law of Negligence");
   });
@@ -104,10 +102,11 @@ describe("Rule 7.1.1 — Reports", () => {
     const runs = formatReport(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("Community Law Australia, ");
-    expect(text).toContain("(Report, July 2012)");
     // Rule 1.7 lowercases the preposition 'out' (guide ex 2 prints 'Out';
     // per DECISION-012 the rule text is implemented).
+    expect(text).toBe(
+      "Community Law Australia, Unaffordable and out of Reach: The Problem of Access to the Australian Legal System (Report, July 2012)"
+    );
     expectItalic(runs, "Unaffordable and out of Reach");
   });
 
@@ -128,10 +127,10 @@ describe("Rule 7.1.1 — Reports", () => {
     const runs = formatReport(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("(Report, 2017)");
-    expect(text).toContain("12");
-    // Must NOT use "Annual Report" in parenthetical
-    expect(text).not.toContain("(Annual Report,");
+    // Parenthetical must use the generic "Report", NOT "Annual Report"
+    expect(text).toBe(
+      "Qantas Airways, Qantas Annual Report 2017: Positioning for Sustainability and Growth (Report, 2017) 12"
+    );
   });
 
   /*
@@ -152,8 +151,9 @@ describe("Rule 7.1.1 — Reports", () => {
     const runs = formatReport(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("Investment and Enterprise Division, UNCTAD, ");
-    expect(text).toContain("(IIA Issues Note No 4, 23 November 2017)");
+    expect(text).toBe(
+      "Investment and Enterprise Division, UNCTAD, Improving Investment Dispute Settlement: UNCTAD Policy Tools (IIA Issues Note No 4, 23 November 2017)"
+    );
   });
 
   it("report with no type and no number — parenthetical has only date", () => {
@@ -287,8 +287,7 @@ describe("Rules 7.2.1–7.2.2 — Research and working papers", () => {
         "“Light Touch” Labour Regulation by State Governments in Australia: A Preliminary Assessment",
       documentType: "Working Paper",
       number: "40",
-      institution:
-        "Centre for Employment and Labour Relations Law, The University of Melbourne",
+      institution: "Centre for Employment and Labour Relations Law, The University of Melbourne",
       date: "December 2006",
       pinpoint: { type: "page", value: "6" },
       url: "http://papers.ssrn.com/sol3/papers.cfm?abstract_id=961528",
@@ -864,10 +863,9 @@ describe("Rules 7.11.1–7.11.2 — Newspaper Articles", () => {
     const runs = formatNewspaper(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("Stephanie Peatling, ");
-    expect(text).toContain("\u2018Female Chief Justice Rewrites the Script\u2019");
-    expect(text).toContain("(Melbourne, 31 January 2017)");
-    expect(text).toContain(" 6");
+    expect(text).toBe(
+      "Stephanie Peatling, \u2018Female Chief Justice Rewrites the Script\u2019, The Age (Melbourne, 31 January 2017) 6"
+    );
     // Newspaper name must be italic
     expectItalic(runs, "The Age");
     // Title must NOT be italic
@@ -892,11 +890,11 @@ describe("Rules 7.11.1–7.11.2 — Newspaper Articles", () => {
     const runs = formatNewspaper(data);
     const text = toPlainText(runs);
 
-    // Electronic format: (online, Date) — NOT (Place, Date)
-    expect(text).toContain("(online, 19 May 2009)");
-    expect(text).not.toContain("(Melbourne,");
-    // URL in angle brackets
-    expect(text).toContain("<http://www.theage.com.au/national/education/kinder-wages-breakthrough-20090519-bcwh.html>");
+    // Electronic format: (online, Date) — NOT (Place, Date) — with URL in angle brackets
+    expect(text).toBe(
+      "Farrah Tomazin, ‘Kinder Wages Breakthrough’, The Age (online, 19 May 2009) " +
+        "<http://www.theage.com.au/national/education/kinder-wages-breakthrough-20090519-bcwh.html>"
+    );
     expectItalic(runs, "The Age");
   });
 
@@ -917,9 +915,9 @@ describe("Rules 7.11.1–7.11.2 — Newspaper Articles", () => {
     const text = toPlainText(runs);
 
     // No author prefix
-    expect(text).toMatch(/^\u2018Fury at WA Council Plan\u2019/);
-    expect(text).toContain("(Sydney, 1 May 2006)");
-    expect(text).toContain(" 5");
+    expect(text).toBe(
+      "\u2018Fury at WA Council Plan\u2019, The Australian Financial Review (Sydney, 1 May 2006) 5"
+    );
   });
 });
 
@@ -1012,9 +1010,7 @@ describe("Rules 7.14.1\u20137.14.2 \u2014 Films and audiovisual recordings", () 
       timePinpoint: "0:54:58\u20130:55:11",
     });
     const text = toPlainText(runs);
-    expect(text).toBe(
-      "The Dark Knight (Warner Brothers Pictures, 2008) 0:54:58\u20130:55:11"
-    );
+    expect(text).toBe("The Dark Knight (Warner Brothers Pictures, 2008) 0:54:58\u20130:55:11");
     expect(text).not.toContain("Directed by");
     expectItalic(runs, "The Dark Knight");
   });
@@ -1027,9 +1023,7 @@ describe("Rules 7.14.1\u20137.14.2 \u2014 Films and audiovisual recordings", () 
       productionCompany: "Newmarket Films",
       year: "2004",
     });
-    expect(toPlainText(runs)).toBe(
-      "Donnie Darko (Director's Cut, Newmarket Films, 2004)"
-    );
+    expect(toPlainText(runs)).toBe("Donnie Darko (Director's Cut, Newmarket Films, 2004)");
   });
 });
 
@@ -1136,9 +1130,7 @@ describe("Rule 7.14.4 \u2014 Radio segments and podcasts", () => {
       producer: "Test Podcast",
       date: "1 January 2020",
     });
-    expect(toPlainText(runs)).toBe(
-      "\u2018Test Episode\u2019, Test Podcast (1 January 2020)"
-    );
+    expect(toPlainText(runs)).toBe("\u2018Test Episode\u2019, Test Podcast (1 January 2020)");
   });
 });
 
@@ -1159,9 +1151,7 @@ describe("Rule 7.12 — Written Correspondence", () => {
     const runs = formatCorrespondence(data);
     const text = toPlainText(runs);
 
-    expect(text).toBe(
-      "Email from Vanessa Li to Samantha Jones, 4 November 2015"
-    );
+    expect(text).toBe("Email from Vanessa Li to Samantha Jones, 4 November 2015");
   });
 
   /*
@@ -1178,9 +1168,7 @@ describe("Rule 7.12 — Written Correspondence", () => {
     const runs = formatCorrespondence(data);
     const text = toPlainText(runs);
 
-    expect(text).toBe(
-      "Letter from Sir Peter Cosgrove to Malcolm Turnbull, 3 July 2016"
-    );
+    expect(text).toBe("Letter from Sir Peter Cosgrove to Malcolm Turnbull, 3 July 2016");
   });
 });
 
@@ -1313,8 +1301,9 @@ describe("Rule 7.16 — Social Media", () => {
     const runs = formatSocialMedia(data);
     const text = toPlainText(runs);
 
-    expect(text).toContain("@s_m_stephenson (Scott Stephenson)");
-    expect(text).toContain("(Twitter, 17 July 2017, 9:37pm AEST)");
-    expect(text).toContain("<https://twitter.com/s_m_stephenson/status/887169425551441921>");
+    expect(text).toBe(
+      "@s_m_stephenson (Scott Stephenson) (Twitter, 17 July 2017, 9:37pm AEST) " +
+        "<https://twitter.com/s_m_stephenson/status/887169425551441921>"
+    );
   });
 });

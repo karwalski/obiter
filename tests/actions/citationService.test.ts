@@ -37,7 +37,14 @@ const mockStore = {
 
 const caseRequest = {
   sourceType: "case.reported" as const,
-  data: { party1: "Mabo", party2: "Queensland (No 2)", year: "1992", volume: "175", reporter: "CLR", startingPage: "1" },
+  data: {
+    party1: "Mabo",
+    party2: "Queensland (No 2)",
+    year: "1992",
+    volume: "175",
+    reporter: "CLR",
+    startingPage: "1",
+  },
   shortTitle: "Mabo",
 };
 
@@ -62,7 +69,10 @@ describe("buildCitationFromRequest (COPILOT-002)", () => {
   });
 
   it("normalises empty optional strings to undefined", () => {
-    const c = buildCitationFromRequest({ sourceType: "book" as const, data: {}, shortTitle: "" }, "4");
+    const c = buildCitationFromRequest(
+      { sourceType: "book" as const, data: {}, shortTitle: "" },
+      "4"
+    );
     expect(c.shortTitle).toBeUndefined();
   });
 

@@ -497,9 +497,12 @@ describe("Chapter 9 — UN Materials", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("[1973]");
-    expect(text).toContain("United Nations Juridical Yearbook");
-    expect(text).toContain("132, 135");
+    expect(text).toBe(
+      "'National Legislation Providing for the Levying of Certain Air Travel Taxes — " +
+        "The United Nations Should Be Exempt from Such Taxes under Section 7(a) of the " +
+        "Convention on the Privileges and Immunities of the United Nations' " +
+        "[1973] United Nations Juridical Yearbook 132, 135"
+    );
   });
 });
 
@@ -577,9 +580,10 @@ describe("Chapter 10 — ICJ and PCIJ", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("(Bosnia and Herzegovina v Yugoslavia)");
-    expect(text).toContain("(Preliminary Objections)");
-    expect(text).toContain("[1996] ICJ Rep 595");
+    expect(text).toBe(
+      "Application of the Convention on the Prevention and Punishment of the Crime of Genocide " +
+        "(Bosnia and Herzegovina v Yugoslavia) (Preliminary Objections) [1996] ICJ Rep 595"
+    );
   });
 
   // AGLC4 p 162 ex 8: Provisional Measures
@@ -595,8 +599,11 @@ describe("Chapter 10 — ICJ and PCIJ", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("(Provisional Measures)");
-    expect(text).toContain("7, 12 [10]\u2013[11]");
+    expect(text).toBe(
+      "United States Diplomatic and Consular Staff in Tehran " +
+        "(United States of America v Iran) (Provisional Measures) " +
+        "[1979] ICJ Rep 7, 12 [10]\u2013[11]"
+    );
   });
 
   // AGLC4 p 165 ex 23: Identifying judges (separate/dissenting)
@@ -649,7 +656,11 @@ describe("Chapter 10 — ICJ and PCIJ", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("[1986] V ICJ Pleadings 78, 78 (Judge Schwebel)");
+    expect(text).toBe(
+      "'Questions Put to Professor Glennon by Judge Schwebel', " +
+        "Military and Paramilitary Activities in and against Nicaragua " +
+        "(Nicaragua v United States of America) [1986] V ICJ Pleadings 78, 78 (Judge Schwebel)"
+    );
   });
 
   // AGLC4 Rule 10.4.1: unreported ICJ decision
@@ -753,7 +764,11 @@ describe("Chapter 11 — International Arbitral Decisions", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("(1992) 25 RIAA 1, 12\u201313 (Prof Orrego Vicu\u00f1a)");
+    expect(text).toBe(
+      "Responsibility for the Deaths of Letelier and Moffitt " +
+        "(United States of America v Chile) (Decision) " +
+        "(1992) 25 RIAA 1, 12\u201313 (Prof Orrego Vicu\u00f1a)"
+    );
   });
 
   // AGLC4 p 172 ex 4: Unreported state-state arbitration
@@ -768,8 +783,10 @@ describe("Chapter 11 — International Arbitral Decisions", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("(Permanent Court of Arbitration, Case No 2014-02, 14 August 2015)");
-    expect(text).toContain("[152]");
+    expect(text).toBe(
+      "Arctic Sunrise Arbitration (Netherlands v Russia) (Award on Merits) " +
+        "(Permanent Court of Arbitration, Case No 2014-02, 14 August 2015) [152]"
+    );
   });
 
   // AGLC4 Rule 11.2.1: reported individual–state decision (no separate
@@ -904,9 +921,11 @@ describe("Chapter 12 — International Criminal Tribunals", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("Simba v Prosecutor");
-    expect(text).toContain("International Criminal Tribunal for Rwanda");
-    expect(text).toContain("[40]\u2013[41]");
+    expect(text).toBe(
+      "Simba v Prosecutor (Judgement) " +
+        "(International Criminal Tribunal for Rwanda, Appeals Chamber, " +
+        "Case No ICTR-01-76-A, 27 November 2007) [40]\u2013[41]"
+    );
   });
 
   // Phase must be italicised (Rule 12.2.2)
@@ -1021,8 +1040,10 @@ describe("Chapter 13 — International Economic Materials", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("WTO Doc WT/DS517/1 and G/L/1171");
-    expect(text).toContain("(21 December 2016)");
+    expect(text).toBe(
+      "China — Tariff Rate Quotas for Certain Agricultural Products, " +
+        "WTO Doc WT/DS517/1 and G/L/1171 (21 December 2016)"
+    );
   });
 
   // AGLC4 Rule 13.1.2: document description and treaty-like pinpoint
@@ -1086,8 +1107,11 @@ describe("Chapter 13 — International Economic Materials", () => {
     });
 
     const text = toText(runs);
-    expect(text).toContain("Appellate Body Report, ");
-    expect(text).toContain("[5.96]");
+    expect(text).toBe(
+      "Appellate Body Report, " +
+        "Colombia — Measures Relating to the Importation of Textiles, Apparel and Footwear, " +
+        "WTO Doc WT/DS461/AB/R (7 June 2016) [5.96]"
+    );
   });
 
   // AGLC4 Rule 13.1.3: DSR reference — comma then precedes the pinpoint

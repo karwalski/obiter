@@ -11,21 +11,20 @@
  * matching the dedicated formatters.
  *
  * These tests verify that formatCitation routes correctly when
- * config.standardId is "oscola5" or "nzlsg3". Until the dispatch wiring
- * from OSC-ENH-001 / NZLSG-ENH-001 lands, the engine will use the generic
- * formatter for unrecognised OSCOLA/NZLSG source types — assertions use
- * resilient content-based checks rather than exact string matches.
+ * config.standardId is "oscola5" or "nzlsg3". The dispatch wiring from
+ * OSC-ENH-001 / NZLSG-ENH-001 has landed, so assertions pin the exact
+ * output strings (PARITY-119). Source types without a standard-specific
+ * formatter fall through to the generic AGLC4 dispatch; those outputs are
+ * pinned as-is and any known gaps are logged in the PARITY-121 leftovers.
  */
 
 import { formatCitation, CitationContext } from "../../src/engine/engine";
 import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
-import type { CitationConfig } from "../../src/engine/standards/types";
 import type { Citation, Pinpoint } from "../../src/types/citation";
 import type { FormattedRun } from "../../src/types/formattedRun";
 
 // ─── OSCOLA Direct Formatter Imports ────────────────────────────────────────
 
-import { formatOscolaCase } from "../../src/engine/rules/oscola/cases";
 import { formatOscolaScottishCase } from "../../src/engine/rules/oscola/cases-scotland";
 import { formatOscolaNICase } from "../../src/engine/rules/oscola/cases-ni";
 import {
@@ -55,11 +54,8 @@ import {
   formatBook as nzlsgFormatBook,
   formatJournalArticle as nzlsgFormatJournalArticle,
 } from "../../src/engine/rules/nzlsg/secondary";
-import {
-  formatTreaty as nzlsgFormatTreaty,
-} from "../../src/engine/rules/nzlsg/international";
+import { formatTreaty as nzlsgFormatTreaty } from "../../src/engine/rules/nzlsg/international";
 import { formatTreatyOfWaitangi as nzlsgFormatTreatyOfWaitangi } from "../../src/engine/rules/nzlsg/treaty-of-waitangi";
-import { formatGeneralSubsequent as nzlsgFormatGeneralSubsequent } from "../../src/engine/rules/nzlsg/styles";
 
 // ─── Config Fixtures ────────────────────────────────────────────────────────
 
@@ -69,8 +65,7 @@ const NZLSG3_CONFIG = STANDARD_PROFILES.nzlsg3.config;
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Join all runs into plain text. */
-const joinText = (runs: FormattedRun[]): string =>
-  runs.map((r) => r.text).join("");
+const joinText = (runs: FormattedRun[]): string => runs.map((r) => r.text).join("");
 
 /** Check whether any run in the array is italic. */
 const hasItalicRun = (runs: FormattedRun[], substring: string): boolean =>
@@ -105,7 +100,7 @@ function subsequentContext(overrides: Partial<CitationContext> = {}): CitationCo
 function makeCitation(
   sourceType: Citation["sourceType"],
   data: Citation["data"],
-  shortTitle?: string,
+  shortTitle?: string
 ): Citation {
   return {
     id: `test-${sourceType}-${Date.now()}`,
@@ -142,11 +137,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const text = joinText(runs);
 
     // Key elements that must be present regardless of routing path
-    expect(text).toContain("Corr");
-    expect(text).toContain("IBC Vehicles");
-    expect(text).toContain("2008");
-    expect(text).toContain("AC");
-    expect(text).toContain("884");
+    expect(text).toBe("Corr v IBC Vehicles Ltd [2008] 1 AC 884");
     // Closing punctuation now managed by refresher, not formatCitation
   });
 
@@ -164,10 +155,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const directText = joinText(directRuns);
 
     // Verify the direct formatter output contains expected elements
-    expect(directText).toContain("AXA General Insurance");
-    expect(directText).toContain("CSIH");
-    expect(directText).toContain("SC");
-    expect(directText).toContain("158");
+    expect(directText).toBe(
+      "AXA General Insurance Ltd v Lord Advocate [2011] CSIH 31, (2011) SC 158"
+    );
 
     // Engine dispatch with OSCOLA config for a reported case
     const citation = makeCitation("case.reported", {
@@ -184,9 +174,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineText = joinText(engineRuns);
 
     // Engine output must contain the key case elements
-    expect(engineText).toContain("AXA General Insurance");
-    expect(engineText).toContain("2011");
-    expect(engineText).toContain("SC");
+    // No neutral citation supplied via the engine path, so only the report
+    // citation is rendered.
+    expect(engineText).toBe("AXA General Insurance Ltd v Lord Advocate (2011) SC 158");
   });
 
   // ─── 3. NI case ────────────────────────────────────────────────────────────
@@ -203,8 +193,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       },
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("McFarland");
-    expect(directText).toContain("NICA");
+    expect(directText).toBe("Re McFarland [2004] NICA 29, [2004] NI 380");
 
     // Via engine — use case.reported source type
     const citation = makeCitation("case.reported", {
@@ -220,9 +209,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("McFarland");
-    expect(engineText).toContain("2004");
-    expect(engineText).toContain("NI");
+    // No neutral citation supplied via the engine path, so only the report
+    // citation is rendered.
+    expect(engineText).toBe("Re McFarland [2004] NI 380");
   });
 
   // ─── 4. UK primary legislation ─────────────────────────────────────────────
@@ -247,8 +236,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Human Rights Act");
-    expect(engineText).toContain("1998");
+    expect(engineText).toBe("Human Rights Act 1998");
     // OSCOLA: legislation is NOT italic
     const legRun = engineRuns.find((r) => r.text.includes("Human Rights Act"));
     if (legRun) {
@@ -268,21 +256,20 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       number: 3132,
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Civil Procedure Rules 1998");
-    expect(directText).toContain("SI 1998/3132");
+    expect(directText).toBe("Civil Procedure Rules 1998, SI 1998/3132");
 
     // Via engine with delegated legislation type
     const citation = makeCitation("legislation.delegated", {
       title: "Civil Procedure Rules",
       year: 1998,
+      number: 3132,
       jurisdiction: "UK",
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Civil Procedure Rules");
-    expect(engineText).toContain("1998");
+    expect(engineText).toBe("Civil Procedure Rules 1998, SI 1998/3132");
   });
 
   // ─── 6. Hansard ────────────────────────────────────────────────────────────
@@ -296,8 +283,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       speaker: "Boris Johnson",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("HC Deb");
-    expect(directText).toContain("Boris Johnson");
+    expect(directText).toBe("HC Deb 3 March 2020, vol 672, col 800 (Boris Johnson)");
 
     // Via engine with correct adapter fields
     const citation = makeCitation("hansard", {
@@ -311,8 +297,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("HC Deb");
-    expect(engineText).toContain("2020");
+    expect(engineText).toBe("HC Deb 3 March 2020, vol 672, col 800 (Boris Johnson)");
   });
 
   // ─── 7. EU case ────────────────────────────────────────────────────────────
@@ -324,9 +309,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       ecli: "ECLI:EU:C:2008:461",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Kadi");
-    expect(directText).toContain("C-402/05 P");
-    expect(directText).toContain("ECLI:EU:C:2008:461");
+    expect(directText).toBe(
+      "Case C-402/05 P Kadi v Council of the European Union ECLI:EU:C:2008:461"
+    );
 
     // Via engine with correct adapter fields for EU court dispatch
     const citation = makeCitation("eu.court", {
@@ -340,8 +325,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Kadi");
-    expect(engineText).toContain("2008");
+    expect(engineText).toBe(
+      "Case C-402/05 P Kadi v Council of the European Union ECLI:EU:C:2008:461"
+    );
   });
 
   // ─── 8. ECHR case ──────────────────────────────────────────────────────────
@@ -354,9 +340,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       date: "17 January 2012",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Othman");
-    expect(directText).toContain("United Kingdom");
-    expect(directText).toContain("8139/09");
+    expect(directText).toBe(
+      "Othman (Abu Qatada) v United Kingdom App no 8139/09 (ECtHR, 17 January 2012)"
+    );
 
     // Via engine with correct adapter fields for ECHR dispatch
     const citation = makeCitation("echr.decision", {
@@ -371,8 +357,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Othman");
-    expect(engineText).toContain("2012");
+    expect(engineText).toBe(
+      "Othman (Abu Qatada) v United Kingdom App no 8139/09 (ECtHR, 17 January 2012)"
+    );
   });
 
   // ─── 9. GenAI ──────────────────────────────────────────────────────────────
@@ -386,8 +373,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       url: "https://chat.openai.com/share/abc123",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("ChatGPT");
-    expect(directText).toContain("Donoghue v Stevenson");
+    expect(directText).toBe(
+      "ChatGPT (OpenAI), ‘Summarise the rule in Donoghue v Stevenson’ (response generated 15 March 2026) <https://chat.openai.com/share/abc123>"
+    );
 
     // Via engine
     const citation = makeCitation("genai_output", {
@@ -402,8 +390,11 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineText = joinText(engineRuns);
 
     // GenAI output is dispatched through the engine (may use OSCOLA or AGLC4 formatter)
-    expect(engineText).toContain("ChatGPT");
-    expect(engineText).toContain("15 March 2026");
+    // Engine data uses platform (no provider field), so no "(OpenAI)" suffix.
+    expect(engineText).toBe(
+      "ChatGPT, ‘Summarise the rule in Donoghue v Stevenson’ " +
+        "(response generated 15 March 2026) <https://chat.openai.com/share/abc123>"
+    );
   });
 
   // ─── 10. Irish case ────────────────────────────────────────────────────────
@@ -414,8 +405,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       neutralCitation: { year: 2024, court: "IESC", number: 1 },
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Langan");
-    expect(directText).toContain("IESC");
+    expect(directText).toBe("Langan v Health Service Executive [2024] IESC 1");
 
     // Via engine — Irish cases as foreign sources
     const citation = makeCitation("case.reported", {
@@ -431,8 +421,7 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Langan");
-    expect(engineText).toContain("2024");
+    expect(engineText).toBe("Langan v Health Service Executive [2024] IESC 1");
   });
 
   // ─── 11. Book citation with OSCOLA config — "edn" not "ed" ────────────────
@@ -452,9 +441,9 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Burrows");
-    expect(engineText).toContain("Law of Restitution");
-    expect(engineText).toContain("2011");
+    expect(engineText).toBe(
+      "Andrew Burrows, The Law of Restitution (Oxford University Press, 3rd edn, 2011)"
+    );
     // When edition wiring is complete, the "edn" abbreviation should appear
     // The config is correctly set to "edn" for OSCOLA
     expect(OSCOLA5_CONFIG.editionAbbreviation).toBe("edn");
@@ -466,12 +455,16 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     // OSCOLA disables ibid
     expect(OSCOLA5_CONFIG.ibidEnabled).toBe(false);
 
-    const citation = makeCitation("book", {
-      authors: [{ givenNames: "Andrew", surname: "Burrows" }],
-      title: "The Law of Restitution",
-      publisher: "Oxford University Press",
-      year: 2011,
-    }, "Law of Restitution");
+    const citation = makeCitation(
+      "book",
+      {
+        authors: [{ givenNames: "Andrew", surname: "Burrows" }],
+        title: "The Law of Restitution",
+        publisher: "Oxford University Press",
+        year: 2011,
+      },
+      "Law of Restitution"
+    );
     citation.firstFootnoteNumber = 1;
 
     const ctx = subsequentContext({
@@ -512,27 +505,29 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       },
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("R v Fonotia");
-    expect(directText).toContain("NZCA");
-    expect(directText).toContain("NZLR");
+    expect(directText).toBe("R v Fonotia [2007] NZCA 188, [2007] 3 NZLR 338");
 
-    // Via engine
+    // Via engine — the NZLSG dispatch reads court/decisionNumber/parallelReport
     const citation = makeCitation("case.reported", {
       party1: "R",
       party2: "Fonotia",
       separator: "v",
       yearType: "square",
       year: 2007,
-      reportSeries: "NZLR",
-      startingPage: 338,
-      volume: 3,
+      court: "NZCA",
+      decisionNumber: 188,
+      parallelReport: {
+        year: 2007,
+        volume: 3,
+        reportSeries: "NZLR",
+        startPage: 338,
+      },
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Fonotia");
-    expect(engineText).toContain("2007");
+    expect(engineText).toBe("R v Fonotia [2007] NZCA 188, [2007] 3 NZLR 338");
     // Closing punctuation now managed by refresher
   });
 
@@ -547,25 +542,25 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       date: "7 November 1985",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Taylor v Beere");
-    expect(directText).toContain("HC");
-    expect(directText).toContain("Wellington");
+    expect(directText).toBe("Taylor v Beere HC Wellington CP 291/85, 7 November 1985");
 
-    // Via engine with a case source type
+    // Via engine with a case source type — fileNumber selects the
+    // pre-neutral format in the NZLSG dispatch
     const citation = makeCitation("case.unreported.mnc", {
       party1: "Taylor",
       party2: "Beere",
       separator: "v",
       year: 1985,
       court: "HC",
+      registry: "Wellington",
+      fileNumber: "CP 291/85",
+      date: "7 November 1985",
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Taylor");
-    expect(engineText).toContain("Beere");
-    expect(engineText).toContain("1985");
+    expect(engineText).toBe("Taylor v Beere HC Wellington CP 291/85, 7 November 1985");
   });
 
   // ─── 3. Maori Land Court ───────────────────────────────────────────────────
@@ -583,9 +578,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       shortPage: 95,
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Pomare");
-    expect(directText).toContain("Taitokerau");
-    expect(directText).toContain("103 TTK 95");
+    expect(directText).toBe("Pomare – Peter Here Pomare (2015) 103 Taitokerau MB 95 (103 TTK 95)");
 
     // Maori Land Court via engine — uses quasi_judicial with MLC fields
     const citation = makeCitation("case.quasi_judicial", {
@@ -616,21 +609,20 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       pinpoint: "23",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Waitangi Tribunal");
-    expect(directText).toContain("Ko Aotearoa");
-    expect(directText).toContain("Wai 262");
+    expect(directText).toBe("Waitangi Tribunal Ko Aotearoa Tēnei (Wai 262, 2011) at 23");
 
     // Via engine
     const citation = makeCitation("report.waitangi_tribunal", {
       title: "Ko Aotearoa T\u0113nei",
+      waiNumber: 262,
       year: 2011,
+      pinpoint: { type: "page" as const, value: "23" },
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Ko Aotearoa");
-    expect(engineText).toContain("2011");
+    expect(engineText).toBe("Waitangi Tribunal Ko Aotearoa T\u0113nei (Wai 262, 2011) at 23");
   });
 
   // ─── 5. NZ legislation ─────────────────────────────────────────────────────
@@ -654,8 +646,8 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Property Law Act");
-    expect(engineText).toContain("2007");
+    // NZLSG 4.1: no jurisdiction parenthetical for NZ domestic legislation
+    expect(engineText).toBe("Property Law Act 2007");
     // NZLSG: legislation is NOT italic
     expect(NZLSG3_CONFIG.italiciseLegislation).toBe(false);
     // Closing punctuation now managed by refresher
@@ -670,8 +662,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       pinpoint: "cl 5",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Trusts Bill");
-    expect(directText).toContain("105-2");
+    expect(directText).toBe("Trusts Bill (no 105-2), cl 5");
 
     // Via engine
     const citation = makeCitation("legislation.bill", {
@@ -695,10 +686,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       speaker: "Christopher Finlayson",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("NZPD");
-    expect(directText).toContain("656");
-    expect(directText).toContain("5531");
-    expect(directText).toContain("Christopher Finlayson");
+    expect(directText).toBe("(21 July 2009) 656 NZPD 5531 (Christopher Finlayson)");
 
     // Via engine
     const citation = makeCitation("hansard", {
@@ -714,8 +702,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("NZPD");
-    expect(engineText).toContain("2009");
+    expect(engineText).toBe("(21 July 2009) 656 NZPD 5531 (Christopher Finlayson)");
   });
 
   // ─── 8. NZ book with "at" pinpoint ─────────────────────────────────────────
@@ -731,15 +718,20 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       pinpoint: "134",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("at 134");
-    expect(directText).toContain("Butler");
+    expect(directText).toBe(
+      "Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary (2nd ed, LexisNexis, Wellington, 2015) at 134"
+    );
 
-    // Via engine
+    // Via engine — the NZLSG dispatch passes edition/place through verbatim
     const citation = makeCitation("book", {
-      authors: [{ givenNames: "Andrew", surname: "Butler" }],
+      authors: [
+        { givenNames: "Andrew", surname: "Butler" },
+        { givenNames: "Petra", surname: "Butler" },
+      ],
       title: "The New Zealand Bill of Rights Act: A Commentary",
+      edition: "2nd ed",
       publisher: "LexisNexis",
-      edition: 2,
+      place: "Wellington",
       year: 2015,
       pinpoint: { type: "page" as const, value: "134" },
     });
@@ -747,9 +739,10 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Butler");
-    expect(engineText).toContain("Bill of Rights");
-    expect(engineText).toContain("2015");
+    expect(engineText).toBe(
+      "Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary " +
+        "(2nd ed, LexisNexis, Wellington, 2015) at 134"
+    );
     // NZLSG uses "at" pinpoint prefix
     expect(NZLSG3_CONFIG.pinpointPrefix).toBe("at ");
   });
@@ -783,10 +776,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
     const engineText = joinText(engineRuns);
 
-    expect(engineText).toContain("Geiringer");
-    expect(engineText).toContain("Road to Nowhere");
-    expect(engineText).toContain("2009");
-    expect(engineText).toContain("VUWLR");
+    expect(engineText).toBe("Claudia Geiringer “On a Road to Nowhere” (2009) 40 VUWLR 613");
     // NZLSG uses double quotation marks
     expect(NZLSG3_CONFIG.quotationMarkStyle).toBe("double");
   });
@@ -801,8 +791,9 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
       pinpoint: "art 31",
     });
     const directText = joinText(directRuns);
-    expect(directText).toContain("Vienna Convention");
-    expect(directText).toContain("at art 31");
+    expect(directText).toBe(
+      "Vienna Convention on the Law of Treaties (opened for signature 23 May 1969, entered into force 27 January 1980) at art 31"
+    );
 
     // Via engine
     const citation = makeCitation("treaty", {
@@ -858,12 +849,16 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
     expect(NZLSG3_CONFIG.ibidEnabled).toBe(false);
     expect(NZLSG3_CONFIG.subsequentReferenceFormat).toBe("above n");
 
-    const citation = makeCitation("book", {
-      authors: [{ givenNames: "Andrew", surname: "Butler" }],
-      title: "The New Zealand Bill of Rights Act",
-      publisher: "LexisNexis",
-      year: 2015,
-    }, "NZBORA Commentary");
+    const citation = makeCitation(
+      "book",
+      {
+        authors: [{ givenNames: "Andrew", surname: "Butler" }],
+        title: "The New Zealand Bill of Rights Act",
+        publisher: "LexisNexis",
+        year: 2015,
+      },
+      "NZBORA Commentary"
+    );
     citation.firstFootnoteNumber = 1;
 
     const pinpoint: Pinpoint = { type: "page", value: "134" };
@@ -887,12 +882,16 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
   // ─── 13. Subsequent reference — different preceding citation ───────────────
 
   it("produces 'above n' for non-preceding subsequent reference", () => {
-    const citation = makeCitation("book", {
-      authors: [{ givenNames: "John", surname: "Smith" }],
-      title: "Contract Law",
-      publisher: "Thomson Reuters",
-      year: 2020,
-    }, "Contract Law");
+    const citation = makeCitation(
+      "book",
+      {
+        authors: [{ givenNames: "John", surname: "Smith" }],
+        title: "Contract Law",
+        publisher: "Thomson Reuters",
+        year: 2020,
+      },
+      "Contract Law"
+    );
     citation.firstFootnoteNumber = 2;
 
     const ctx = subsequentContext({
@@ -962,12 +961,9 @@ describe("Multi-standard config verification through engine", () => {
     }).not.toThrow();
   });
 
-  it("all engine outputs end with closing punctuation", () => {
+  it("produces non-empty output for both standards (closing punctuation is the refresher's job)", () => {
     // Use source types that produce meaningful output with minimal data
-    const sourceTypes: Citation["sourceType"][] = [
-      "book",
-      "journal.article",
-    ];
+    const sourceTypes: Citation["sourceType"][] = ["book", "journal.article"];
 
     for (const sourceType of sourceTypes) {
       const citation = makeCitation(sourceType, {
@@ -979,10 +975,15 @@ describe("Multi-standard config verification through engine", () => {
         startingPage: 1,
       });
 
-      const oscolaRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
-      const nzlsgRuns = formatCitation(citation, firstCitationContext, NZLSG3_CONFIG);
+      const oscolaText = joinText(formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG));
+      const nzlsgText = joinText(formatCitation(citation, firstCitationContext, NZLSG3_CONFIG));
 
-      // Closing punctuation now managed by refresher, not formatCitation
+      // Closing punctuation is managed by the refresher, not formatCitation —
+      // the engine must still render substantive output.
+      expect(oscolaText.length).toBeGreaterThan(0);
+      expect(nzlsgText.length).toBeGreaterThan(0);
+      expect(oscolaText.endsWith(".")).toBe(false);
+      expect(nzlsgText.endsWith(".")).toBe(false);
     }
   });
 });

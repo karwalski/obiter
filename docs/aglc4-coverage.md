@@ -277,22 +277,22 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 
 ## Part V: Foreign Domestic Sources (Chapters 15-26)
 
-Per-country dispatch is live (PARITY-114, wave 2): `dispatchForeign` routes `foreignSubType` case/legislation data to the `rules/v4/foreign/*` modules, with a generic fallback (italic case/legislation titles, space-joined pinpoints) for unstructured `citationDetails`. The wave-2 module fixes (PARITY-115/116) are covered by 140 exact-string tests in `tests/engine/chapter15-26.test.ts` (green). "Partial" below means specialised new formatters are built and tested at module level but their dispatch registration and/or structured UI fields are still pending (wave 3 — see the engine-leftovers handoff).
+Per-country dispatch is live (PARITY-114 wave 2, mop-up wave 3): `dispatchForeign` routes `foreignSubType` case/legislation/secondary data to the `rules/v4/foreign/*` modules — including the specialised formatters (court decisions, constitutions, regulations, Fed Reg, TRC reports, Māori Land Court, regnal years, judicial officers) registered in the wave-3 mop-up — with a generic fallback (italic case/legislation titles, space-joined pinpoints) for unstructured `citationDetails`. The module fixes (PARITY-115/116) are covered by exact-string tests in `tests/engine/chapter15-26.test.ts` (green). "Partial" below means the engine path is wired but structured UI fields are still pending (the forms fall back to `citationDetails` parsing — see PARITY-121 leftovers) or acknowledged rule gaps remain.
 
 | Rule | Jurisdiction | Coverage | Notes |
 |------|-------------|----------|-------|
-| 15 | Canada | Partial | Cases (round/square years, no brackets on neutral citations), legislation (supplements); `formatRegulation`/`formatFederalConstitution` await dispatch registration |
-| 16 | China | Partial | 16.1/16.2.1 wired (guillemets, roman, `[year]`); unreported judgments + constitutions await registration |
-| 17 | France | Partial | 17.2.x wired; rule-17.1 `formatCourtDecision` awaits registration (legacy case shape deprecated) |
-| 18 | Germany | Partial | 18.2.x wired; rule-18.1 `formatCourtDecision` awaits registration |
+| 15 | Canada | Partial | Cases (round/square years, no brackets on neutral citations), legislation (supplements); `formatRegulation`/`formatFederalConstitution` dispatched (wave 3); structured UI fields pending |
+| 16 | China | Partial | 16.1/16.2.1 wired (guillemets, roman, `[year]`); unreported judgments + constitutions dispatched (wave 3); 16.4 secondary sources remain a gap |
+| 17 | France | Partial | 17.2.x wired; rule-17.1 `formatCourtDecision` dispatched (wave 3); structured UI fields pending |
+| 18 | Germany | Partial | 18.2.x wired; rule-18.1 `formatCourtDecision` dispatched (wave 3); structured UI fields pending |
 | 19 | Hong Kong | Full | `(Hong Kong)` default, `cap` numbers, corrected series-implies-court set |
 | 20 | Malaysia | Full | Pre-1966 MLJ square brackets per the guide's examples (DECISION-028) |
-| 21 | New Zealand | Partial | Rule 21.1.3 adoption years corrected; `formatMaoriLandCourt` awaits registration |
+| 21 | New Zealand | Partial | Rule 21.1.3 adoption years corrected; `formatMaoriLandCourt` dispatched (wave 3); structured UI fields pending |
 | 22 | Singapore | Full | Lowercase `cap`/`rev ed`, reprint parenthetical, constitutions get `(Singapore)` |
-| 23 | South Africa | Partial | Division codes banned, title-year legislation; `formatTRCReport` awaits registration |
-| 24 | United Kingdom | Partial | Scottish bare year, ER/RR parallels, LR volume placement, SI/SR/SR & O; judicial-titles + regnal-year formatters await wiring |
-| 25 | United States | Partial | Session laws, state constitutions, Congressional Record, Restatements fixed; unreported/Fed Reg formatters await registration; 25.1.8/25.5.2/25.6.2 residual gaps |
-| 26 | Other Foreign | Partial | 26.1.1 `[tr …]` placement + 26.2 year bug fixed; `formatOtherDecision` awaits registration; 26.1.2/26.4 residual gaps |
+| 23 | South Africa | Partial | Division codes banned, title-year legislation; `formatTRCReport` dispatched (wave 3); structured UI fields pending |
+| 24 | United Kingdom | Partial | Scottish bare year, ER/RR parallels, LR volume placement, SI/SR/SR & O; judicial-titles + regnal-year formatters wired (wave 3); structured UI fields pending |
+| 25 | United States | Partial | Session laws, state constitutions, Congressional Record, Restatements fixed; unreported/Fed Reg formatters dispatched (wave 3); 25.1.8/25.5.2/25.6.2 residual gaps |
+| 26 | Other Foreign | Partial | 26.1.1 `[tr …]` placement + 26.2 year bug fixed; `formatOtherDecision` dispatched (wave 3); 26.1.2/26.4 residual gaps |
 
 ---
 
@@ -323,4 +323,4 @@ Per-country dispatch is live (PARITY-114, wave 2): `dispatchForeign` routes `for
 | Appendices | 2 | 1 | 0 | 0 | 3 |
 | **Total** | **93** | **60** | **17** | **7** | **177** |
 
-Of the 160 automatable rows (177 − 17 manual), **93 are Full end-to-end**; of the 60 Partial rows, the large majority are **engine-complete** — the format is implemented and tested against the guide's own examples, and only a wave-3 UI form field (or dispatch registration of a new foreign formatter) is pending. Seven RE-AUDIT rows have never been verified against the reference. The previous "96% Full" claim (June 2026) predated the parity reviews and was overstated — dozens of "Full" rows covered dead code paths or inverted rules; see `docs/parity-reviews/`.
+Of the 160 automatable rows (177 − 17 manual), **93 are Full end-to-end**; of the 60 Partial rows, the large majority are **engine-complete** — the format is implemented and tested against the guide's own examples, and only a UI form field is pending (foreign-formatter dispatch registration completed in the wave-3 mop-up). Seven RE-AUDIT rows have never been verified against the reference. The previous "96% Full" claim (June 2026) predated the parity reviews and was overstated — dozens of "Full" rows covered dead code paths or inverted rules; see `docs/parity-reviews/`.

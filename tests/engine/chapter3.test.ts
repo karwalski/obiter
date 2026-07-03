@@ -90,9 +90,7 @@ describe("Rule 3.1 -- Statute Citation Format", () => {
       expect(toPlainText(runs)).toBe(
         "Financial Framework Legislation Amendment Act (No 2) 2012 (Cth)"
       );
-      expect(italicText(runs)).toBe(
-        "Financial Framework Legislation Amendment Act (No 2) 2012"
-      );
+      expect(italicText(runs)).toBe("Financial Framework Legislation Amendment Act (No 2) 2012");
     });
 
     it("should include (No 3) numbering (AGLC4 Example 4)", () => {
@@ -109,8 +107,7 @@ describe("Rule 3.1 -- Statute Citation Format", () => {
 
     it("should handle complex title with nested parens (AGLC4 Example 5)", () => {
       const runs = formatStatute({
-        title:
-          "A New Tax System (Family Assistance) (Consequential Related Measures) Act",
+        title: "A New Tax System (Family Assistance) (Consequential Related Measures) Act",
         year: 1999,
         jurisdiction: "Cth",
         number: "(No 1)",
@@ -155,9 +152,7 @@ describe("Rule 3.1 -- Statute Citation Format", () => {
         year: 2006,
         jurisdiction: "Vic",
       });
-      expect(toPlainText(runs)).toBe(
-        "Charter of Human Rights and Responsibilities Act 2006 (Vic)"
-      );
+      expect(toPlainText(runs)).toBe("Charter of Human Rights and Responsibilities Act 2006 (Vic)");
     });
 
     it("should use correct abbreviation for Commonwealth", () => {
@@ -478,9 +473,7 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
       jurisdiction: "Cth",
     });
     const runs = formatLegislativeDefinition(statute, "10", "widget");
-    expect(toPlainText(runs)).toBe(
-      "Test Act 2020 (Cth) s 10 (definition of \u2018widget\u2019)"
-    );
+    expect(toPlainText(runs)).toBe("Test Act 2020 (Cth) s 10 (definition of \u2018widget\u2019)");
   });
 
   it("formats definition with paragraph reference per AGLC4 ex 26 (rule 3.1.6)", () => {
@@ -491,13 +484,7 @@ describe("Rule 3.1.6 -- Legislative Definitions", () => {
       year: 2001,
       jurisdiction: "Cth",
     });
-    const runs = formatLegislativeDefinition(
-      statute,
-      "9",
-      "administrator",
-      "section",
-      "(a)(i)"
-    );
+    const runs = formatLegislativeDefinition(statute, "9", "administrator", "section", "(a)(i)");
     expect(toPlainText(runs)).toBe(
       "Corporations Act 2001 (Cth) s 9 (definition of \u2018administrator\u2019 para (a)(i))"
     );
@@ -539,9 +526,7 @@ describe("Rule 3.2 -- Bills", () => {
       year: 2009,
       jurisdiction: "Cth",
     });
-    expect(toPlainText(runs)).toBe(
-      "Carbon Pollution Reduction Scheme Bill 2009 (Cth)"
-    );
+    expect(toPlainText(runs)).toBe("Carbon Pollution Reduction Scheme Bill 2009 (Cth)");
     // Bill title should not be italic
     const italicRuns = runs.filter((r) => r.italic);
     expect(italicRuns).toHaveLength(0);
@@ -554,9 +539,7 @@ describe("Rule 3.2 -- Bills", () => {
       jurisdiction: "Cth",
       number: "(No 2)",
     });
-    expect(toPlainText(runs)).toBe(
-      "Law and Justice Amendment Bill (No 2) 1995 (Cth)"
-    );
+    expect(toPlainText(runs)).toBe("Law and Justice Amendment Bill (No 2) 1995 (Cth)");
   });
 
   it("should not italicise jurisdiction", () => {
@@ -730,9 +713,7 @@ describe("Rule 3.6 -- Australian Constitutions", () => {
         value: "51(i)",
       });
       // The pinpoint part should not be italic
-      const pinpointRuns = runs.filter(
-        (r) => r.text.includes("s 51") || r.text.includes("51(i)")
-      );
+      const pinpointRuns = runs.filter((r) => r.text.includes("s 51") || r.text.includes("51(i)"));
       pinpointRuns.forEach((r) => {
         expect(r.italic).toBeUndefined();
       });
@@ -758,9 +739,7 @@ describe("Rule 3.6 -- Australian Constitutions", () => {
         jurisdiction: "Qld",
         pinpoint: { type: "section", value: "3" },
       });
-      expect(toPlainText(runs)).toBe(
-        "Constitution of Queensland 2001 (Qld) s 3"
-      );
+      expect(toPlainText(runs)).toBe("Constitution of Queensland 2001 (Qld) s 3");
     });
 
     it("should format Constitution Act 1975 (Vic) (AGLC4 Example 56)", () => {
@@ -813,9 +792,7 @@ describe("Rule 3.6 -- Australian Constitutions", () => {
         jurisdiction: "Cth",
         pinpoint: { type: "section", value: "6" },
       });
-      expect(toPlainText(runs)).toBe(
-        "Northern Territory (Self-Government) Act 1978 (Cth) s 6"
-      );
+      expect(toPlainText(runs)).toBe("Northern Territory (Self-Government) Act 1978 (Cth) s 6");
     });
   });
 });
@@ -847,9 +824,7 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
       jurisdiction: "Qld",
       pinpoint: { type: "page", value: "5\u20136, 29" },
     });
-    expect(toPlainText(runs)).toBe(
-      "Explanatory Notes, Adoption Bill 2009 (Qld) 5\u20136, 29"
-    );
+    expect(toPlainText(runs)).toBe("Explanatory Notes, Adoption Bill 2009 (Qld) 5\u20136, 29");
     expect(italicText(runs)).toBe("");
   });
 
@@ -861,9 +836,7 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
       jurisdiction: "ACT",
       pinpoint: { type: "page", value: "3" },
     });
-    expect(toPlainText(runs)).toBe(
-      "Explanatory Statement, Human Rights Bill 2003 (ACT) 3"
-    );
+    expect(toPlainText(runs)).toBe("Explanatory Statement, Human Rights Bill 2003 (ACT) 3");
     expect(italicText(runs)).toBe("");
   });
 
@@ -886,9 +859,9 @@ describe("Rule 3.7 -- Explanatory Memoranda", () => {
 
 describe("Rule 3.8 -- Legislative History", () => {
   it("should have guidance constant defined", () => {
-    const { LEGISLATIVE_HISTORY_GUIDANCE } = require(
-      "../../src/engine/rules/v4/domestic/legislation-supplementary"
-    );
+    const {
+      LEGISLATIVE_HISTORY_GUIDANCE,
+    } = require("../../src/engine/rules/v4/domestic/legislation-supplementary");
     expect(LEGISLATIVE_HISTORY_GUIDANCE).toBeDefined();
     expect(typeof LEGISLATIVE_HISTORY_GUIDANCE).toBe("string");
   });
@@ -927,9 +900,7 @@ describe("Rule 3.8 -- Legislative History", () => {
       jurisdiction: "Cth",
     });
     const runs = formatLegislativeHistory(lead, { connector: "as enacted" });
-    expect(toPlainText(runs)).toBe(
-      "Restrictive Trade Practices Act 1971 (Cth), as enacted"
-    );
+    expect(toPlainText(runs)).toBe("Restrictive Trade Practices Act 1971 (Cth), as enacted");
   });
 });
 
@@ -946,9 +917,7 @@ describe("Rule 3.9.1 -- Gazettes", () => {
       date: "1 December 2004",
     });
     const text = toPlainText(runs);
-    expect(text).toBe(
-      "Commonwealth, Gazette: Special, No S 489, 1 December 2004"
-    );
+    expect(text).toBe("Commonwealth, Gazette: Special, No S 489, 1 December 2004");
   });
 
   it("should italicise gazette type", () => {
@@ -1009,9 +978,7 @@ describe("Rule 3.9.1 -- Gazettes", () => {
       gazetteType: "Gazette: Special",
       date: "1 January 2020",
     });
-    const jurisdictionRun = runs.find((r) =>
-      r.text.includes("Commonwealth")
-    );
+    const jurisdictionRun = runs.find((r) => r.text.includes("Commonwealth"));
     expect(jurisdictionRun).toBeDefined();
     expect(jurisdictionRun!.italic).toBeUndefined();
   });
@@ -1034,9 +1001,7 @@ describe("Rule 3.9.2 -- Orders and Rulings", () => {
       "Australian Taxation Office, Income Tax: Carrying on a Business as a " +
         "Professional Artist (TR 2005/1, 12 January 2005)"
     );
-    expect(italicText(runs)).toBe(
-      "Income Tax: Carrying on a Business as a Professional Artist"
-    );
+    expect(italicText(runs)).toBe("Income Tax: Carrying on a Business as a Professional Artist");
   });
 
   it("formats ASIC class order with paragraph pinpoint per AGLC4 ex 73 (rule 3.9.2)", () => {
@@ -1081,9 +1046,7 @@ describe("Rule 3.9.2 -- Orders and Rulings", () => {
       number: "TR 2010/1",
       date: "14 July 2010",
     });
-    const titleRun = runs.find(
-      (r) => r.text === "Income Tax: Residency Tests"
-    );
+    const titleRun = runs.find((r) => r.text === "Income Tax: Residency Tests");
     expect(titleRun).toBeDefined();
     expect(titleRun!.italic).toBe(true);
   });
@@ -1164,9 +1127,7 @@ describe("Rule 3.9.4 -- Court Practice Directions", () => {
       "Supreme Court of Victoria, Practice Note No 8 of 2010: Management of " +
         "Group Proceedings (2010) 30 VR 693"
     );
-    expect(italicText(runs)).toBe(
-      "Practice Note No 8 of 2010: Management of Group Proceedings"
-    );
+    expect(italicText(runs)).toBe("Practice Note No 8 of 2010: Management of Group Proceedings");
   });
 
   it("omits 'No' before a non-numeric identifier per AGLC4 ex 79 (rule 3.9.4)", () => {
@@ -1269,8 +1230,6 @@ describe("Integration -- Full statute with pinpoint", () => {
       },
     });
     const combined = [...statute, { text: " " }, ...pinpoint];
-    expect(toPlainText(combined)).toBe(
-      "Civil Liability Act 2003 (Qld) ch 2 pt 1 div 4"
-    );
+    expect(toPlainText(combined)).toBe("Civil Liability Act 2003 (Qld) ch 2 pt 1 div 4");
   });
 });

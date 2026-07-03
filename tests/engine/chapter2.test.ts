@@ -820,8 +820,9 @@ describe("Rule 2.3.3 — Proceedings", () => {
       commencedDate: "3 December 2014",
     });
     const text = toPlainText(runs);
-    expect(text).toContain("commenced 3 December 2014");
-    expect(text).toContain("VID725/2014");
+    expect(text).toBe(
+      "ACCC v Olex Australia Pty Ltd (Federal Court of Australia, VID725/2014, commenced 3 December 2014)"
+    );
   });
 });
 
@@ -1333,14 +1334,10 @@ describe("Rule 2.8 — Submissions in Cases", () => {
       pinpoint: { type: "paragraph", value: "[10]" },
     });
     const text = toPlainText(runs);
-    // Check key components
-    expect(text).toContain("Attorney-General (Cth)");
-    expect(text).toContain(
-      "\u2018Outline of Submissions of the Attorney-General of the Commonwealth as Amicus Curiae\u2019"
+    expect(text).toBe(
+      "Attorney-General (Cth), \u2018Outline of Submissions of the Attorney-General of the " +
+        "Commonwealth as Amicus Curiae\u2019, Submission in Humane Society International Inc v " +
+        "Kyodo Senpaku Kaisha Ltd, NSD1519/2004, 25 January 2005, [10]"
     );
-    expect(text).toContain("Submission in");
-    expect(text).toContain("NSD1519/2004");
-    expect(text).toContain("25 January 2005");
-    expect(text).toContain("[10]");
   });
 });

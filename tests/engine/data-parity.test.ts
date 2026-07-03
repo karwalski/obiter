@@ -20,11 +20,8 @@
  * only rows the in-chapter tables govern.
  */
 
-import {
-  REPORT_SERIES,
-  getByAbbreviation,
-} from "../../src/engine/data/report-series";
-import { COURT_IDENTIFIERS, getByCode } from "../../src/engine/data/court-identifiers";
+import { REPORT_SERIES, getByAbbreviation } from "../../src/engine/data/report-series";
+import { getByCode } from "../../src/engine/data/court-identifiers";
 import {
   PINPOINT_ABBREVIATIONS,
   getPinpointAbbreviation,
@@ -141,9 +138,7 @@ describe("report-series.ts vs rule 2.2.2/2.2.3 tables", () => {
   test("duplicate abbreviations are disambiguated by jurisdiction", () => {
     expect(getByAbbreviation("IR")?.fullName).toBe("Industrial Reports");
     expect(getByAbbreviation("IR", "IE")?.fullName).toBe("Irish Reports");
-    expect(getByAbbreviation("BCLC", "UK")?.fullName).toBe(
-      "Butterworths Company Law Cases (UK)"
-    );
+    expect(getByAbbreviation("BCLC", "UK")?.fullName).toBe("Butterworths Company Law Cases (UK)");
   });
 
   test("no duplicate abbreviation+jurisdiction pairs", () => {
@@ -278,9 +273,7 @@ describe("judicial-titles.ts vs rule 2.4.1 table", () => {
   test("exact abbreviations for compound offices", () => {
     expect(getJudicialTitle("CJ at CL")?.office).toBe("Chief Judge at Common Law");
     expect(getJudicialTitle("CJ in Eq")?.office).toBe("Chief Judge in Equity");
-    expect(getJudicialTitle("CJ Comm D")?.office).toBe(
-      "Chief Judge of the Commercial Division"
-    );
+    expect(getJudicialTitle("CJ Comm D")?.office).toBe("Chief Judge of the Commercial Division");
     expect(getJudicialTitle("AsJ")?.office).toBe("Associate Justice");
     expect(getJudicialTitle("V-P")?.office).toBe("Vice-President");
     expect(getJudicialTitle("SPJ")?.office).toBe("Senior Puisne Judge");

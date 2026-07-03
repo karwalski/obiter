@@ -1830,9 +1830,7 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
   const isCharter =
     toBool(d.isCharter) || /^charter of the united nations$/i.test(toStr(d.title).trim());
   if (isCharter) {
-    return formatUnCharter(
-      toStr(d.article) || normalisePinpoint(d.pinpoint)?.value || undefined
-    );
+    return formatUnCharter(toStr(d.article) || normalisePinpoint(d.pinpoint)?.value || undefined);
   }
 
   return formatUnDocument({
@@ -2066,8 +2064,7 @@ function dispatchArbitralIndividualState(citation: Citation): FormattedRun[] {
  */
 function dispatchIccTribunalCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  const caseName =
-    (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "";
+  const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "";
 
   // Rule 12.3: decisions reproduced in a report series (exs 23-4)
   if (d.reportSeries) {
@@ -2416,10 +2413,7 @@ function renderUkJudicialOfficers(raw: unknown): string {
  * null when the fields do not indicate one of these, so the wave-2
  * structured routing (and generic fallback) still applies.
  */
-function dispatchForeignCourtDecision(
-  citation: Citation,
-  caseName: string
-): FormattedRun[] | null {
+function dispatchForeignCourtDecision(citation: Citation, caseName: string): FormattedRun[] | null {
   const d = citation.data;
   const date = toStr(d.fullDate) || toStr(d.date);
   const caseNumber = toStr(d.caseNumber) || toStr(d.docketNumber);
@@ -3228,7 +3222,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   // ── Waitangi Tribunal Reports ──────────────────────────────────────────────
 
-  if (st === "report" && d.waiNumber !== undefined) {
+  if (st === "report.waitangi_tribunal" || (st === "report" && d.waiNumber !== undefined)) {
     return nzlsgFormatWaitangiTribunalReport({
       title: (d.title as string) ?? "",
       waiNumber: toNumber(d.waiNumber, 0),
@@ -3250,10 +3244,14 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   // ── Legislation ────────────────────────────────────────────────────────────
 
   if (st === "legislation.statute") {
+    // NZLSG 4.1: the jurisdiction parenthetical marks FOREIGN statutes only —
+    // omit it for NZ domestic legislation.
+    const statuteJurisdiction = d.jurisdiction as string | undefined;
+    const isDomestic = statuteJurisdiction === "NZ" || statuteJurisdiction === "New Zealand";
     return nzlsgFormatLegislation({
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
-      jurisdiction: d.jurisdiction as string | undefined,
+      jurisdiction: isDomestic ? undefined : statuteJurisdiction,
       pinpoint: extractNzlsgPinpoint(d),
     });
   }

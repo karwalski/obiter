@@ -622,8 +622,7 @@ describe("Rule 1.4.3 — Ibid", () => {
     });
     // Should use short reference instead of ibid (AGLC4 fn 76)
     expect(result).not.toBeNull();
-    expect(runsToText(result!)).toContain("Barendt");
-    expect(runsToText(result!)).toContain("(n 68)");
+    expect(runsToText(result!)).toBe("Barendt (n 68) 67");
   });
 
   test("ibid NOT used when preceding had pinpoint but current does not (AGLC4 fn 80)", () => {
@@ -651,9 +650,7 @@ describe("Rule 1.4.3 — Ibid", () => {
     });
     // Should use short reference: Higgins (n 75)
     expect(result).not.toBeNull();
-    expect(runsToText(result!)).toContain("Higgins");
-    expect(runsToText(result!)).toContain("(n 75)");
-    expect(runsToText(result!)).not.toContain("Ibid");
+    expect(runsToText(result!)).toBe("Higgins (n 75)");
   });
 });
 
