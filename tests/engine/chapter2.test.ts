@@ -368,6 +368,19 @@ describe("Rule 2.1.15 — Omitting the Case Name", () => {
     const runs = formatCaseWithoutName("square", 1974, undefined, "VR", 253);
     expect(toPlainText(runs)).toBe("[1974] VR 253");
   });
+
+  // BUG-005: an incomplete reported case (eg a bare name pasted without a year)
+  // must not render placeholder zeros or a double space.
+  test("BUG-005: empty year and page render nothing, not (0) 0", () => {
+    expect(toPlainText(formatCaseWithoutName("round", 0, undefined, "", 0))).toBe("");
+  });
+
+  test("BUG-005: missing year/series still omits placeholders for a partial citation", () => {
+    // Only a page known → just the page, no "(0)" and no leading/double space.
+    expect(toPlainText(formatCaseWithoutName("round", 0, undefined, "", 7))).toBe("7");
+    // Year + page but no series → no double space where the series would sit.
+    expect(toPlainText(formatCaseWithoutName("round", 1884, undefined, "", 7))).toBe("(1884) 7");
+  });
 });
 
 // ─── Rule 2.2.1 — Year and Volume ───────────────────────────────────────────

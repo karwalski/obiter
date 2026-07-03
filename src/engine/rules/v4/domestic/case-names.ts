@@ -465,14 +465,24 @@ export function formatCaseWithoutName(
   reportSeries: string,
   startingPage: number
 ): FormattedRun[] {
-  const yearStr = yearType === "square" ? `[${year}]` : `(${year})`;
-
-  const parts = [yearStr];
-  if (volume !== undefined) {
+  // Only emit elements that are actually present. An empty/zero year or page
+  // must not render as the literal `(0)`/`0`, and a missing report series must
+  // not leave a double space (BUG-005): an incomplete reported case (eg a bare
+  // party name pasted with no year) yields no trailing citation rather than
+  // placeholder zeros.
+  const parts: string[] = [];
+  if (year) {
+    parts.push(yearType === "square" ? `[${year}]` : `(${year})`);
+  }
+  if (volume !== undefined && volume > 0) {
     parts.push(String(volume));
   }
-  parts.push(reportSeries);
-  parts.push(String(startingPage));
+  if (reportSeries && reportSeries.trim()) {
+    parts.push(reportSeries.trim());
+  }
+  if (startingPage) {
+    parts.push(String(startingPage));
+  }
 
-  return [{ text: parts.join(" ") }];
+  return parts.length > 0 ? [{ text: parts.join(" ") }] : [];
 }
