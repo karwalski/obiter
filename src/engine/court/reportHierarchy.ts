@@ -264,9 +264,9 @@ function getRankInHierarchy(series: string, hierarchy: readonly string[]): numbe
   const mncIndex = hierarchy.indexOf("MNC");
   const base = mncIndex !== -1 ? mncIndex : hierarchy.length;
   // Rule 2.2.2: medium neutral citations rank below ALL report series.
-  // Court-identifier rows in report-series.ts carry the mediumNeutral flag
-  // (interim representation pending the type-union migration), so an MNC
-  // form given by identifier (eg "NSWSC") ranks with the MNC placeholder.
+  // Court-identifier rows in report-series.ts are typed "medium_neutral",
+  // so an MNC form given by identifier (eg "NSWSC") ranks with the MNC
+  // placeholder.
   if (isMediumNeutralSeries(series)) {
     return base;
   }
@@ -276,11 +276,11 @@ function getRankInHierarchy(series: string, hierarchy: readonly string[]): numbe
 
 /**
  * Returns true when the abbreviation is a medium neutral court identifier
- * row in the report-series dataset (rule 2.3.1 identifiers, flagged
- * `mediumNeutral: true`), not a report series.
+ * row in the report-series dataset (rule 2.3.1 identifiers, typed
+ * `"medium_neutral"`), not a report series.
  */
 function isMediumNeutralSeries(series: string): boolean {
-  return getByAbbreviation(series)?.mediumNeutral === true;
+  return getByAbbreviation(series)?.type === "medium_neutral";
 }
 
 /**
@@ -328,7 +328,7 @@ function getDefaultPreferenceRank(series: string): number {
   if (generalistUnauthorised.has(series)) return 2;
   if (unreported.has(series)) return 4;
   // Rule 2.2.2: medium neutral citations (rule 2.3.1 court identifiers,
-  // flagged mediumNeutral in report-series.ts) rank below ALL report
+  // typed "medium_neutral" in report-series.ts) rank below ALL report
   // series, including subject-specific unauthorised reports.
   if (isMediumNeutralSeries(series)) return 4;
   return 3; // subject-specific unauthorised

@@ -55,8 +55,11 @@ export interface OscolaSecondaryLegislationData {
    * - 'sr': Northern Ireland Statutory Rule
    */
   type: "si" | "ssi" | "wsi" | "sr";
-  /** Instrument number. */
-  number: number | string;
+  /**
+   * Instrument number. When absent the 'SI Year/Number' element is
+   * omitted entirely (never rendered as 'SI 1998/0').
+   */
+  number?: number | string;
   /** Pinpoint reference. */
   pinpoint?: string;
 }
@@ -199,9 +202,13 @@ export function formatOscolaSecondaryLegislation(
 
   const prefix = SECONDARY_LEGISLATION_PREFIX[data.type];
 
-  // Title, year, and instrument number — all roman
+  // Title, year, and instrument number — all roman. The instrument-number
+  // element is omitted when no number is stored.
+  const hasNumber = data.number !== undefined && String(data.number).trim() !== "";
   runs.push({
-    text: `${data.title} ${data.year}, ${prefix} ${data.year}/${data.number}`,
+    text: hasNumber
+      ? `${data.title} ${data.year}, ${prefix} ${data.year}/${data.number}`
+      : `${data.title} ${data.year}`,
   });
 
   // Pinpoint

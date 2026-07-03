@@ -5,35 +5,16 @@
 
 import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
+import { getJudicialTitlePlural, isTitleBeforeName } from "../../../data/judicial-titles";
 import { formatPinpoint } from "../general/pinpoints";
 
 // ─── CASE-015: Identifying Judicial Officers (Rules 2.4.1–2.4.5) ────────────
-
-/**
- * AGLC4 Rule 2.4.1 plural forms from the judicial-office table. Only the
- * offices listed here have a plural abbreviation; per Rule 2.4.5, where
- * there is no plural form the singular is repeated after each name.
- */
-const PLURAL_TITLES: Record<string, string> = {
-  J: "JJ",
-  JA: "JJA",
-  AJA: "AJJA",
-  AJ: "AJJ",
-  SJ: "SJJ",
-};
-
-/**
- * AGLC4 Rule 2.4.1: offices marked with an asterisk in the rule's table
- * (Commissioner, Judge, Magistrate, Master) always appear in full
- * *before* the officer's name (ex 93: 'Commissioner Buss'; ex 117:
- * 'Judge Lacava').
- */
-const PRE_NAME_TITLES: ReadonlySet<string> = new Set([
-  "Commissioner",
-  "Judge",
-  "Magistrate",
-  "Master",
-]);
+//
+// Plural abbreviations (Rule 2.4.5) and the asterisked before-the-name
+// offices (Rule 2.4.1 — 'Commissioner Buss' ex 93, 'Judge Lacava' ex 117)
+// come from the shared rule 2.4.1 table dataset in
+// src/engine/data/judicial-titles.ts; where the table gives no plural the
+// singular is repeated after each name.
 
 /**
  * A judicial officer reference per AGLC4 Rules 2.4.1–2.4.5.
@@ -92,13 +73,13 @@ function groupNameUnits(names: string[], title: string): string[] {
   if (!title) {
     return [...names];
   }
-  if (PRE_NAME_TITLES.has(title)) {
+  if (isTitleBeforeName(title)) {
     return names.map((n) => `${title} ${n}`);
   }
   if (names.length === 1) {
     return [`${names[0]} ${title}`];
   }
-  const plural = PLURAL_TITLES[title];
+  const plural = getJudicialTitlePlural(title);
   if (plural) {
     return [...names.slice(0, -1), `${names[names.length - 1]} ${plural}`];
   }

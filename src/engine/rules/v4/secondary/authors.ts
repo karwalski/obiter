@@ -346,6 +346,11 @@ export function invertAuthorName(author: Author): string {
  * If the authors are editors, append '(ed)' for a single editor or
  * '(eds)' for multiple editors.
  *
+ * AGLC4 Rule 4.1.5: an author whose judicial title appears on the source
+ * itself (`judicialTitle` populated) is rendered through
+ * {@link formatJudicialAuthor}, so the title precedes the name (eg
+ * 'Justice Michael Kirby', guide ex 19).
+ *
  * @returns FormattedRun[] — plain text (no italic, no bold)
  */
 export function formatAuthors(authors: Author[], isEditor?: boolean): FormattedRun[] {
@@ -353,17 +358,25 @@ export function formatAuthors(authors: Author[], isEditor?: boolean): FormattedR
     return [];
   }
 
+  // Rule 4.1.5: on-source judicial titles route through formatJudicialAuthor
+  const displayName = (author: Author): string =>
+    author.judicialTitle
+      ? formatJudicialAuthor(author)
+          .map((run) => run.text)
+          .join("")
+      : formatAuthorName(author);
+
   let nameStr: string;
 
   if (authors.length === 1) {
-    nameStr = formatAuthorName(authors[0]);
+    nameStr = displayName(authors[0]);
   } else if (authors.length <= 3) {
-    const names = authors.map(formatAuthorName);
+    const names = authors.map(displayName);
     const allButLast = names.slice(0, -1);
     nameStr = allButLast.join(", ") + " and " + names[names.length - 1];
   } else {
     // 4+ authors: first author + et al
-    nameStr = formatAuthorName(authors[0]) + " et al";
+    nameStr = displayName(authors[0]) + " et al";
   }
 
   if (isEditor) {

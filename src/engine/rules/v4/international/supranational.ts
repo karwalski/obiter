@@ -444,3 +444,113 @@ export function formatSupranationalDocument(data: {
 
   return runs;
 }
+
+// ─── PARITY: Rules of Procedure of Supranational Courts (Rule 14.4.3) ────────
+
+/**
+ * Formats the rules of court or rules of procedure of a supranational
+ * court or tribunal other than those of the European Union per AGLC4
+ * Rule 14.4.3.
+ *
+ * AGLC4 Rule 14.4.3: the form is
+ *   «Court», *Rules of Court/Procedure* (adopted «Full Date») «Pinpoint».
+ * Pinpoints follow rule 8.7 and are generally to rules or sub-rules.
+ *
+ * @example
+ *   // African Court on Human and Peoples' Rights, Rules of Court
+ *   //   (adopted 2 June 2010) r 3(1)  — AGLC4 ex 41
+ *   formatSupranationalRules({
+ *     court: "African Court on Human and Peoples’ Rights",
+ *     title: "Rules of Court",
+ *     adoptedDate: "2 June 2010",
+ *     pinpoint: "r 3(1)",
+ *   })
+ *
+ * @param data - The rules citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 14.4.3.
+ */
+export function formatSupranationalRules(data: {
+  court: string;
+  /** Title of the rules (eg 'Rules of Court', 'Rules of Procedure'). */
+  title: string;
+  adoptedDate: string;
+  pinpoint?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Court (roman), then the rules' title in italics
+  runs.push({ text: `${data.court}, ` });
+  runs.push({ text: data.title, italic: true });
+
+  // Adoption date
+  runs.push({ text: ` (adopted ${data.adoptedDate})` });
+
+  // Pinpoint — generally rules or sub-rules (Rule 8.7)
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
+
+  return runs;
+}
+
+// ─── PARITY: Pleadings before Supranational Courts (Rule 14.4.4) ────────────
+
+/**
+ * Formats a pleading or other party/court document in proceedings before
+ * a supranational court or tribunal (other than in the EU) per AGLC4
+ * Rule 14.4.4.
+ *
+ * AGLC4 Rule 14.4.4: the form is
+ *   '«Document Title»', «Parties' Names or Title» («Court», «Case
+ *   Number», «Full Date») «Pinpoint».
+ * The parties' names or proceeding title and the case number follow rules
+ * 14.4.1–14.4.2; the date is the document's own; a speaker's name may
+ * follow a pinpoint. (The guide's ex 43 omits the comma between case
+ * number and date that the rule's template requires; the template governs
+ * per DECISION-012.)
+ *
+ * @param data - The pleading citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 14.4.4.
+ */
+export function formatSupranationalPleading(data: {
+  documentTitle: string;
+  /** Parties' names or title of the proceeding (italicised). */
+  caseName: string;
+  court: string;
+  /** Case number, labelled as the institution labels it (eg 'Series C No 82'). */
+  caseNumber?: string;
+  date: string;
+  pinpoint?: string;
+  /** Speaker's name, where not otherwise apparent (rules 10.2.8/2.4.4). */
+  speaker?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Document title in single quotes (roman)
+  runs.push({ text: `'${data.documentTitle}', ` });
+
+  // Parties' names or proceeding title — italicised (Rules 14.4.1–14.4.2)
+  runs.push({ text: data.caseName, italic: true });
+
+  // Court, case number and full date parenthetical
+  const parenParts = [data.court];
+  if (data.caseNumber) {
+    parenParts.push(data.caseNumber);
+  }
+  parenParts.push(data.date);
+  runs.push({ text: ` (${parenParts.join(", ")})` });
+
+  // Pinpoint, optionally followed by a speaker's name
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
+  if (data.speaker) {
+    runs.push({ text: ` (${data.speaker})` });
+  }
+
+  return runs;
+}

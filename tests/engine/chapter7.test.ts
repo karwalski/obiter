@@ -334,6 +334,24 @@ describe("Rule 7.2.3 — Parliamentary research papers", () => {
       "Caley Otter, ‘Voluntary Assisted Dying Bill 2017’ (Research Note No 1, Parliamentary Library and Information Service, Parliament of Victoria, October 2017)"
     );
   });
+
+  it("renders a pinpoint after the parenthetical per the rule 7.2.1 template (PARITY-121; ex 33 fields)", () => {
+    // Rule 7.2.1: «…» («Document Type» …, «Full Date») «Pinpoint» — the
+    // guide's 7.2.3 examples carry no pinpoint, so this pins the
+    // template-prescribed placement on the ex 33 citation.
+    const runs = formatParliamentaryResearchPaper({
+      authors: [{ givenNames: "Amanda", surname: "Biggs" }],
+      title: "Medicare: A Quick Guide",
+      documentType: "Research Paper",
+      body: "Parliamentary Library",
+      legislature: "Parliament of Australia",
+      date: "12 July 2016",
+      pinpoint: { type: "page", value: "3" },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Amanda Biggs, ‘Medicare: A Quick Guide’ (Research Paper, Parliamentary Library, Parliament of Australia, 12 July 2016) 3"
+    );
+  });
 });
 
 // ─── Rule 7.2.4 — Conference Papers ───────────────────────────────────────────
@@ -1221,6 +1239,25 @@ describe("Rule 7.15 — Internet Materials", () => {
       "Martin Clark, \u2018Koani v The Queen\u2019, Opinions on High (Blog Post, 18 October 2017) <http://blogs.unimelb.edu.au/opinionsonhigh/2017/10/18/koani-case-page/>"
     );
     expectItalic(runs, "Opinions on High");
+  });
+
+  it("renders a bracketed paragraph pinpoint before the URL (rule 7.15; PARITY-121, ex 113 fields)", () => {
+    // Rule 7.15: web-page pinpoints are usually paragraph numbers, cited in
+    // square brackets, between the parenthetical and the URL. The guide's
+    // examples carry no pinpoint, so this pins the template placement.
+    const data: InternetMaterialData = {
+      authors: [{ givenNames: "Martin", surname: "Clark" }],
+      title: "Koani v The Queen",
+      website: "Opinions on High",
+      documentType: "Blog Post",
+      date: "18 October 2017",
+      pinpoint: { type: "paragraph", value: "4" },
+      url: "http://blogs.unimelb.edu.au/opinionsonhigh/2017/10/18/koani-case-page/",
+    };
+    const text = toPlainText(formatInternetMaterial(data));
+    expect(text).toBe(
+      "Martin Clark, \u2018Koani v The Queen\u2019, Opinions on High (Blog Post, 18 October 2017) [4] <http://blogs.unimelb.edu.au/opinionsonhigh/2017/10/18/koani-case-page/>"
+    );
   });
 
   it("omits the author where identical to the web page title (rule 7.15)", () => {

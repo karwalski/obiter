@@ -78,7 +78,7 @@
 | CH2-012 | 2.1.12 | Admiralty cases | FIX — (PARITY) JSDoc corrected |
 | CH2-013 | 2.1.13 | Multiple proceedings | PASS |
 | CH2-014 | 2.1.14 | Shortened and popular names | FIX — (PARITY wave 2) short-title introduction suppression removed |
-| CH2-015 | 2.1.15 | Omitting the case name | RE-AUDIT — never verified in the parity review |
+| CH2-015 | 2.1.15 | Omitting the case name | PASS — (RE-AUDIT closure) `formatCaseWithoutName` matches exs 47/49 (chapter2 tests); the rule's exception verified — resolver always retains the (short) case name in subsequent refs (ex 51, re-audit test) |
 | CH2-016 | 2.2.1 | Year and volume | PASS |
 | CH2-017 | 2.2.2 | Report series | FIX — (PARITY) preference tiers corrected (FLR generalist, IR subject, identifiers ranked with MNC, `mediumNeutral` flag); appendix-dependent rows provisional (DECISION-015) |
 | CH2-018 | 2.2.3 | Preference of reports | FIX — (PARITY) "QR" fabrication removed → "Qd R"; ACTR tier interim per 2.2.2 table (DECISION-015) |
@@ -215,21 +215,21 @@
 | CH8-001 | 8.1 | Title | PASS |
 | CH8-002 | 8.2 | Parties | PASS |
 | CH8-003 | 8.3 | Date of signing/opening | FIX — (PARITY) same-date `signed` form (8.3.2) added |
-| CH8-004 | 8.4 | Treaty series | RE-AUDIT — low-severity gap noted in review, not yet addressed |
+| CH8-004 | 8.4 | Treaty series | FIX — (RE-AUDIT closure) year-organised (`[2015] OJ L 328/3`, ex 13) and sequential (`ETS No 185`, ex 12) forms native; rule-table series abbreviations encoded (`abbreviateTreatySeries`); non-numeric starting pages |
 | CH8-005 | 8.5 | Reservations/declarations | PASS — manual/discursive |
 | CH8-006 | 8.6 | MoUs | FIX — (PARITY) party joining/en-dash/pinpoints |
 | CH8-007 | 8.7 | Entry into force | PASS |
-| CH8-008 | 8.8 | Pinpoints and short titles | RE-AUDIT — resolver-routed; not examined by the parity review |
+| CH8-008 | 8.8 | Pinpoints and short titles | PASS — (RE-AUDIT closure) italic short-title introduction (ex 20) and portion short refs with designator pinpoints (ex 25) verified in re-audit.test.ts; ibid per rule 1.4.3 resolver |
 
 ## Chapter 9 — UN Materials
 
 | ID | Section | Title | Status |
 |----|---------|-------|--------|
 | CH9-001 | 9.1 | UN Charter | FIX — (PARITY) article optional; dedicated `un.charter` SourceType deferred to wave 3 |
-| CH9-002 | 9.2 | UN official documents | FIX — (PARITY) resolution numbers/UN GAOR roman (9.2.2); pinpoint comma-after-date (9.2.13); 9.2.5/9.2.8/9.2.12 fixed; 9.2.14 residual low gap |
+| CH9-002 | 9.2 | UN official documents | FIX — (PARITY) resolution numbers/UN GAOR roman (9.2.2); pinpoint comma-after-date (9.2.13); 9.2.5/9.2.8/9.2.12 fixed; (RE-AUDIT closure) 9.2.14 parallel Official Records + `UN Docs` (ex 37; dispatch wired + dispatch test, final mop-up 2026-07-03) |
 | CH9-003 | 9.3 | UN committee communications | FIX — (PARITY) session element + submissions form (UI fields wave 3) |
 | CH9-004 | 9.4 | UN Yearbooks | FIX |
-| CH9-005 | 9.5 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH9-005 | 9.5 | Short title and subsequent references | FIX — (RE-AUDIT closure) subsequent refs now `«Short Title», UN Doc «n» (n X)` with italic short title (ex 48; was author-surname/quoted-roman); yearbook material keeps the quoted title (ex 51) |
 
 ## Chapter 10 — ICJ and PCIJ
 
@@ -244,9 +244,9 @@
 | CH10-007 | 10.2.6 | Starting page and case number | FIX |
 | CH10-008 | 10.2.7 | Pinpoint references | FIX |
 | CH10-009 | 10.2.8 | Identifying judges | FIX |
-| CH10-010 | 10.3 | Reported pleadings | FIX — residual low gap noted in review, unaddressed |
+| CH10-010 | 10.3 | Reported pleadings | FIX — (RE-AUDIT closure) PCIJ `(ser C) No «n» pt «pt», «page»` form added to `formatIcjPleading` (ex 28; dispatch wired + dispatch test, final mop-up 2026-07-03) |
 | CH10-011 | 10.4 | Unreported materials | FIX — (PARITY) General List No form supported (UI field wave 3) |
-| CH10-012 | 10.5 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH10-012 | 10.5 | Short title and subsequent references | FIX — (RE-AUDIT closure) decision short titles were quoted-roman via the secondary path; now italic per rule 2.1.14 (ex 41) with `('…')` intro italic (ex 36); pleadings shorten to the quoted document title (ex 42) |
 
 ## Chapter 11 — International Arbitral Decisions
 
@@ -256,14 +256,14 @@
 | CH11-002 | 11.1.2 | State-state unreported decisions | FIX |
 | CH11-003 | 11.2.1 | Individual-state reported decisions | FIX — (PARITY wave 2) `formatStateArbitration` wired; ICSID mislabel gone (UI fields wave 3) |
 | CH11-004 | 11.2.2 | Individual-state unreported decisions | FIX — (PARITY) April PASS was stale |
-| CH11-005 | 11.3 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH11-005 | 11.3 | Short title and subsequent references | FIX — (RE-AUDIT closure) arbitral short titles (incl phase-bearing, ex 19) now italic; case-name fallback via `caseTitle`/`caseName`/`parties` |
 
 ## Chapter 12 — International Criminal Tribunals
 
 | ID | Section | Title | Status |
 |----|---------|-------|--------|
 | CH12-001 | 12.1.1 | Constitutive documents | PASS — manual (cite as treaty/constitutive document) |
-| CH12-002 | 12.1.2 | Rules | RE-AUDIT — low-severity gap noted in review, not yet addressed |
+| CH12-002 | 12.1.2 | Rules | FIX — (RE-AUDIT closure) `formatTribunalRules` built — `«Tribunal», *Title*, Doc No «n» (adopted «date»)` (exs 6/8; dispatch wired — adopted-date/documentType signals — + dispatch tests, final mop-up 2026-07-03) |
 | CH12-003 | 12.2.1 | Parties' names | PASS |
 | CH12-004 | 12.2.2 | Phase | FIX |
 | CH12-005 | 12.2.3 | Court | PASS |
@@ -273,7 +273,7 @@
 | CH12-009 | 12.2.7 | Pinpoint references | PASS |
 | CH12-010 | 12.2.8 | Identifying judges | FIX — (PARITY) |
 | CH12-011 | 12.3 | Reports of cases | FIX — (PARITY) report-series form added (UI fields wave 3) |
-| CH12-012 | 12.4 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH12-012 | 12.4 | Short title and subsequent references | FIX — (RE-AUDIT closure) tribunal decision/rules short titles now italic (exs 28/32); ibid with paragraph pinpoints per ex 30 |
 
 ## Chapter 13 — International Economic Materials
 
@@ -284,8 +284,8 @@
 | CH13-003 | 13.1.3 | WTO panel/AB/arbitrator decisions | FIX — (PARITY) DSR reference (UI field wave 3) |
 | CH13-004 | 13.2.1 | Official GATT documents | FIX — (PARITY) BISD reference + document description |
 | CH13-005 | 13.2.2 | GATT panel reports | FIX |
-| CH13-006 | 13.3 | Investment/trade treaties and investor-state | RE-AUDIT — adequate via `arbitral.individual_state`; unexamined |
-| CH13-007 | 13.4 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH13-006 | 13.3 | Investment/trade treaties and investor-state | PASS — (RE-AUDIT closure) pure referral rule (ch 8 treaties, ch 11 arbitrations); both underlying paths fixed in PARITY wave 2 (CH8-x, CH11-003/004) |
+| CH13-007 | 13.4 | Short title and subsequent references | FIX — (RE-AUDIT closure) subsequent refs now `[«Reporting Body», ]«Short Title», WTO/GATT Doc «n» (n X)` with italic short title (ex 33); annexed agreements shorten as treaties (ex 25) |
 
 ## Chapter 14 — Supranational Materials
 
@@ -297,9 +297,9 @@
 | CH14-004 | 14.2.3 | Courts of the EU (CJEU) | FIX — (PARITY) unreported form; case-prefix data C-/T-/F- corrected (ECLI UI field wave 3) |
 | CH14-005 | 14.3.1 | Council of Europe basic documents | PASS — manual (cite as treaty) |
 | CH14-006 | 14.3.2 | European Court of Human Rights | FIX — (PARITY) reported ECtHR formatter wired (bogus unreported hybrid gone); Eur Comm HR year brackets (14.3.3) fixed |
-| CH14-007 | 14.4 | Other supranational decisions | RE-AUDIT — 14.4.3/14.4.4 residual low gaps noted in review, unaddressed |
+| CH14-007 | 14.4 | Other supranational decisions | FIX — (RE-AUDIT closure) 14.4.1/14.4.2 already MATCH; `formatSupranationalRules` (exs 41–2) and `formatSupranationalPleading` (ex 43, template comma per DECISION-012) built; dispatch wired + dispatch tests (final mop-up 2026-07-03) |
 | CH14-008 | 14.5 | Other supranational documents | FIX — (PARITY) date/session/pinpoint (session UI field wave 3) |
-| CH14-009 | 14.6 | Short title and subsequent references | RE-AUDIT — resolver-routed; not examined |
+| CH14-009 | 14.6 | Short title and subsequent references | FIX — (RE-AUDIT closure) EU/supranational document and decision short titles now italic and title-led even for body-authored documents (exs 55/58; was author-led/quoted-roman) |
 
 ## Chapter 15 — Canada
 
@@ -315,7 +315,7 @@
 | CH15-008 | 15.3.1 | Constitution — federal | FIX — (PARITY) `formatFederalConstitution` built; dispatch registration wave 3 |
 | CH15-009 | 15.3.2 | Constitution — provincial/territorial | PASS |
 | CH15-010 | 15.4 | Delegated legislation | FIX — (PARITY) `formatRegulation` (CRC/SOR/provincial) built; dispatch registration wave 3 |
-| CH15-011 | 15.5 | Other | RE-AUDIT |
+| CH15-011 | 15.5 | Other | PASS — (RE-AUDIT closure) referral rule (defer to the *Canadian Guide to Uniform Legal Citation*); no engine logic required |
 
 ## Chapter 16 — China
 
@@ -324,7 +324,7 @@
 | CH16-001 | 16.1 | Cases | FIX — (PARITY) guillemets for Chinese-script names (roman), `[year]`, translations; April PASS was stale |
 | CH16-002 | 16.2 | Legislative materials | FIX — (PARITY) 16.2.1 fixed; 16.2.3 unreported-judgment formatter built (dispatch wave 3); 16.2.2 series preference stays manual |
 | CH16-003 | 16.3 | Chinese language materials | FIX — (PARITY) 16.3.1 body/order-no/full-date/gazette form; 16.3.2 constitutions (dispatch wave 3) |
-| CH16-004 | 16.4 | Author names and subsequent references | RE-AUDIT |
+| CH16-004 | 16.4 | Author names and subsequent references | FIX — (RE-AUDIT closure) 16.4.2: resolver keeps the full name (characters + pinyin) for Chinese-script authors in subsequent refs; 16.4.1 script/translation content stays manual (pinyin-only names undetectable without a language flag) |
 
 ## Chapter 17 — France
 
@@ -372,7 +372,7 @@
 | CH21-005 | 21.1.5 | Waitangi Tribunal | IMPL |
 | CH21-006 | 21.2.1 | Statutes | PASS |
 | CH21-007 | 21.2.2 | Delegated legislation | IMPL |
-| CH21-008 | 21.3 | Other | RE-AUDIT |
+| CH21-008 | 21.3 | Other | PASS — (RE-AUDIT closure) referral rule (defer to the *New Zealand Law Style Guide*); no engine logic required (a full NZLSG mode exists separately) |
 
 ## Chapter 22 — Singapore
 
@@ -411,7 +411,7 @@
 | CH24-011 | 24.3 | Delegated legislation (SIs) | FIX — (PARITY) instrumentType SI/SR/SR & O by jurisdiction+year; comma before pinpoint (`SI 2001/2600, r 4`) |
 | CH24-012 | 24.4.1 | Parliamentary debates (Hansard) | FIX — (PARITY) `*Parliamentary Debates*` italic; Cobbett's-era form residual low gap |
 | CH24-013 | 24.4.2 | Command papers | PASS |
-| CH24-014 | 24.4.3 | Parliamentary papers | RE-AUDIT — gap noted in review, not yet addressed |
+| CH24-014 | 24.4.3 | Parliamentary papers | FIX — (RE-AUDIT closure) `formatParliamentaryPaper` built — both-Houses paper numbers comma-joined (exs 50–1; dispatch wired via foreign.uk secondary branch + UI fields + dispatch tests, final mop-up 2026-07-03) |
 
 ## Chapter 25 — United States
 
@@ -424,7 +424,7 @@
 | CH25-005 | 25.1.5 | Jurisdiction and court name | PASS |
 | CH25-006 | 25.1.6 | Year | PASS |
 | CH25-007 | 25.1.7 | Unreported cases | FIX — (PARITY) `formatUnreportedCase` (docket/slip op) built; dispatch registration wave 3 |
-| CH25-008 | 25.1.8 | Identifying judges | RE-AUDIT — gap noted in review, not yet addressed |
+| CH25-008 | 25.1.8 | Identifying judges | FIX — (RE-AUDIT closure) `judge` element after the pinpoint in reported/unreported formatters (exs 29–31); `abbreviateUsJudicialTitle` (J/PJ/JAD; 'Assistant Justice' misprint aliased to Associate Justice, never emitted); dispatch wired + UI judge field + dispatch tests (final mop-up 2026-07-03) |
 | CH25-009 | 25.2 | Legislation — USC codes | PASS |
 | CH25-010 | 25.3 | Session laws | FIX — (PARITY) `(year)` omitted when in title (25.3.7); Pub L/Priv L/ch; 'Act of «date»' roman; April PASS was stale |
 | CH25-011 | 25.4 | Constitution | FIX — (PARITY) state constitutions; article numerals passthrough (DECISION-027) |
@@ -437,10 +437,10 @@
 | ID | Section | Title | Status |
 |----|---------|-------|--------|
 | CH26-001 | 26.1.1 | Non-English materials translated by author | FIX — (PARITY) `[tr author]` / `[tr …]` as the FINAL run; April PASS was stale |
-| CH26-002 | 26.1.2 | Published translations | RE-AUDIT — gap noted in review, not yet addressed |
+| CH26-002 | 26.1.2 | Published translations | FIX — (RE-AUDIT closure) `publishedTranslation` element (`[tr «Translation Citation»]` final, exs 4/7) on case/decision/legislation formatters; dispatch wired + UI field + dispatch tests (final mop-up 2026-07-03) |
 | CH26-003 | 26.2 | Judicial and administrative decisions | FIX — (PARITY) year-overwrite bug fixed (`[1967] 1 All NLR 123`); `formatOtherDecision` built (series italics open — DECISION-029) |
 | CH26-004 | 26.3 | Legislative materials | FIX — (PARITY) `otherInformation` elements; translation marker placement |
-| CH26-005 | 26.4 | Other non-English language materials | RE-AUDIT — gap noted in review, not yet addressed |
+| CH26-005 | 26.4 | Other non-English language materials | FIX — (final mop-up 2026-07-03) `translatedTitle` on `formatBook`/`formatInternetMaterial`/`formatNewspaper` (+ `translatedWebsiteName` for ex 22's website element), emitted as roman ` [«translation»]` after the styled element per rule 26.1.1; dispatch + Insert/Edit UI fields wired; exact-string tests for exs 21–2. Non-English book titles with a stored translation are reproduced as typed rather than English-title-cased (ex 21 'von Lissabon'; DECISION-030 OPEN) |
 
 ---
 

@@ -104,16 +104,22 @@ export function formatIcjDecision(data: {
 // ─── INTL-006: ICJ Pleading (Rule 10.3) ─────────────────────────────────────
 
 /**
- * Formats an ICJ pleading citation per AGLC4 Rule 10.3.
+ * Formats an ICJ or PCIJ pleading citation per AGLC4 Rule 10.3.
  *
- * AGLC4 Rule 10.3: Pleadings before the ICJ are cited with the
- * document title, case name, and the relevant volume of the
- * ICJ Pleadings series.
+ * AGLC4 Rule 10.3: Reported pleadings and other documents originating in
+ * ICJ proceedings are cited:
+ *   '«Document Title»', *Case Name* (*Parties*) [Year] «Vol» ICJ
+ *   Pleadings «Starting Page», «Pinpoint» («Speaker»).
+ * The volume number, in Roman numerals, precedes 'ICJ Pleadings' where a
+ * case spans several volumes.
  *
- * The format is:
- *   Document Title, *Case Name* (Year) [Vol] ICJ Pleadings Page.
+ * PCIJ equivalents appear in series C of the PCIJ publications:
+ *   '«Document Title»', *Case Name* (*Parties*) [Year] PCIJ (ser C)
+ *   No «Number» pt «Part», «Starting Page», «Pinpoint» («Speaker»)
+ * — the part (Roman numerals, preceded by 'pt') follows the number where
+ * a number has multiple parts, and a comma precedes the starting page.
  *
- * @param data - The ICJ pleading citation data.
+ * @param data - The ICJ/PCIJ pleading citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
  *
  * @see AGLC4, Rule 10.3.
@@ -124,6 +130,13 @@ export function formatIcjPleading(data: {
   parties?: string;
   year: number;
   volume?: string;
+  /**
+   * PCIJ series C number (eg '14'). When present the citation takes the
+   * PCIJ (ser C) form instead of ICJ Pleadings (rule 10.3).
+   */
+  pcijSeriesNumber?: string;
+  /** Part of the PCIJ ser C number, in Roman numerals (eg 'II'). */
+  pcijPart?: string;
   page?: number;
   pinpoint?: string;
   speaker?: string;
@@ -148,17 +161,29 @@ export function formatIcjPleading(data: {
   // Year in square brackets (Rule 10.3)
   runs.push({ text: ` [${data.year}]` });
 
-  // Volume in Roman numerals before ICJ Pleadings (Rule 10.3)
-  if (data.volume) {
-    runs.push({ text: ` ${data.volume}` });
-  }
+  if (data.pcijSeriesNumber) {
+    // PCIJ series C form: '(ser C) No «Number» pt «Part», «Starting Page»'
+    // (Rule 10.3, guide ex 28)
+    runs.push({ text: ` PCIJ (ser C) No ${data.pcijSeriesNumber}` });
+    if (data.pcijPart) {
+      runs.push({ text: ` pt ${data.pcijPart}` });
+    }
+    if (data.page !== undefined) {
+      runs.push({ text: `, ${data.page}` });
+    }
+  } else {
+    // Volume in Roman numerals before ICJ Pleadings (Rule 10.3)
+    if (data.volume) {
+      runs.push({ text: ` ${data.volume}` });
+    }
 
-  // ICJ Pleadings series
-  runs.push({ text: " ICJ Pleadings" });
+    // ICJ Pleadings series
+    runs.push({ text: " ICJ Pleadings" });
 
-  // Starting page
-  if (data.page !== undefined) {
-    runs.push({ text: ` ${data.page}` });
+    // Starting page
+    if (data.page !== undefined) {
+      runs.push({ text: ` ${data.page}` });
+    }
   }
 
   // Pinpoint

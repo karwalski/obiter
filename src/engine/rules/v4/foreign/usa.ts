@@ -40,6 +40,47 @@ interface USCaseData {
    * 'US' or 'S Ct' reporter). Required for circuit and district courts.
    */
   courtId?: string;
+  /**
+   * Judge's name with abbreviated title (Rule 25.1.8) — e.g. 'Fortas J',
+   * 'Neff PJ'. Parenthesised immediately after the pinpoint (rule 2.4.1),
+   * before the court/year parenthetical (guide exs 29, 31). Use
+   * {@link abbreviateUsJudicialTitle} to reduce full titles.
+   */
+  judge?: string;
+}
+
+// ─── FRGN-011-JUDGE: Identifying Judges (Rule 25.1.8) ───────────────────────
+
+/**
+ * US judicial-title abbreviations per AGLC4 Rule 25.1.8.
+ *
+ * Federal courts: 'Judge', 'Associate Justice' and 'Circuit Judge' all
+ * reduce to 'J'; 'Presiding Judge' becomes 'PJ'; 'Judge Administrative
+ * Director of the Courts' becomes 'JAD'. (The rule text prints 'Assistant
+ * Justice' — a title that does not exist in the US federal courts; the
+ * intended 'Associate Justice' is encoded, and the misprint accepted as an
+ * alias.)
+ */
+const US_JUDICIAL_TITLE_ABBREVIATIONS: ReadonlyMap<string, string> = new Map([
+  ["judge", "J"],
+  ["associate justice", "J"],
+  ["assistant justice", "J"],
+  ["circuit judge", "J"],
+  ["presiding judge", "PJ"],
+  ["judge administrative director of the courts", "JAD"],
+]);
+
+/**
+ * Abbreviates a US judicial title per AGLC4 Rule 25.1.8. Titles outside
+ * the rule's list pass through unchanged.
+ *
+ * @param title - The judicial title as it appears on the decision.
+ * @returns The abbreviated title ('J', 'PJ', 'JAD'), or the input title.
+ *
+ * @see AGLC4, Rule 25.1.8.
+ */
+export function abbreviateUsJudicialTitle(title: string): string {
+  return US_JUDICIAL_TITLE_ABBREVIATIONS.get(title.trim().toLowerCase()) ?? title.trim();
 }
 
 // ─── Reporter-implied courts ─────────────────────────────────────────────────
@@ -90,6 +131,12 @@ export function formatCase(data: USCaseData): FormattedRun[] {
   // Pinpoint
   if (data.pinpoint) {
     runs.push({ text: `, ${data.pinpoint}` });
+  }
+
+  // Judge — parenthesised after the pinpoint, before the court/year
+  // parenthetical (Rule 25.1.8, guide exs 29, 31)
+  if (data.judge) {
+    runs.push({ text: ` (${data.judge})` });
   }
 
   // Year and court parenthetical
@@ -154,6 +201,11 @@ export function formatUnreportedCase(data: {
   slipOpStartingPage?: number | string;
   /** Pinpoint reference within the slip opinion. */
   slipOpPinpoint?: string;
+  /**
+   * Judge's name with abbreviated title (Rule 25.1.8) — parenthesised
+   * after the pinpoint (rule 2.4.1; guide ex 30).
+   */
+  judge?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -173,6 +225,11 @@ export function formatUnreportedCase(data: {
       pages.push(data.slipOpPinpoint);
     }
     runs.push({ text: ` slip op ${pages.join(", ")}` });
+  }
+
+  // Judge — parenthesised after the pinpoint (Rule 25.1.8, guide ex 30)
+  if (data.judge) {
+    runs.push({ text: ` (${data.judge})` });
   }
 
   return runs;

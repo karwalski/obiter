@@ -13,6 +13,38 @@ import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatPinpoint } from "../general/pinpoints";
 
+// ─── Treaty Series Abbreviations (Rule 8.4) ─────────────────────────────────
+
+/**
+ * Treaty series abbreviations per the rule 8.4 table, plus the two
+ * first-preference series (UNTS/LNTS), the OJ (treaties between EU members
+ * not in the UNTS or a member's official series, rule 8.4 via 14.2.1), and
+ * ILM (not technically a treaty series but treated as one, rule 8.4).
+ */
+const TREATY_SERIES_ABBREVIATIONS: ReadonlyMap<string, string> = new Map([
+  ["united nations treaty series", "UNTS"],
+  ["league of nations treaty series", "LNTS"],
+  ["australian treaty series", "ATS"],
+  ["australian treaties not yet in force", "ATNIF"],
+  ["canada treaty series", "CTS"],
+  ["consolidated treaty series", "ConTS"],
+  ["council of europe treaty series", "CETS"],
+  ["european treaty series", "ETS"],
+  ["pacific islands treaty series", "PITS"],
+  ["united states treaties and other international agreements", "UTS"],
+  ["official journal of the european union", "OJ"],
+  ["international legal materials", "ILM"],
+]);
+
+/**
+ * Abbreviates a treaty series name per rule 8.4 ('the name of the treaty
+ * series should be abbreviated'). Names not in the rule's table (or already
+ * abbreviated) pass through unchanged.
+ */
+export function abbreviateTreatySeries(seriesName: string): string {
+  return TREATY_SERIES_ABBREVIATIONS.get(seriesName.trim().toLowerCase()) ?? seriesName.trim();
+}
+
 // ─── INTL-001: Treaty (Rules 8.1–8.8) ───────────────────────────────────────
 
 /**
@@ -36,7 +68,11 @@ import { formatPinpoint } from "../general/pinpoints";
  * instead.
  *
  * AGLC4 Rule 8.4: The treaty series abbreviation (e.g. UNTS, ATS) and
- * volume/page number follow the date.
+ * volume/page number follow the date. The citation pattern follows the
+ * series' organising principle: volume-organised '«Volume» «Series»
+ * «Page»' (eg '1155 UNTS 331'); year-organised '[«Year»] «Series»
+ * «Page or Number»' (eg '[2015] OJ L 328/3'); sequential-deposit
+ * '«Series» No «Number»' (eg 'ETS No 185').
  *
  * AGLC4 Rule 8.5: The date of entry into force appears in parentheses
  * as '(entered into force Date)'. If the treaty has not yet entered
@@ -62,8 +98,23 @@ export function formatTreaty(data: {
   openedDate?: string;
   signedDate?: string;
   treatySeries: string;
+  /** Volume number, for volume-organised series (rule 8.4: '1155 UNTS 331'). */
   seriesVolume?: number;
-  startingPage?: number;
+  /**
+   * Year of the volume, for year-organised series (rule 8.4:
+   * '[2015] OJ L 328/3'). Mutually exclusive with seriesVolume.
+   */
+  yearOfVolume?: number;
+  /**
+   * Sequential deposit number, for series organised by order of deposit
+   * (rule 8.4: 'ETS No 185'). Excludes volume/year/starting page.
+   */
+  sequentialNumber?: string | number;
+  /**
+   * Starting page or treaty number. Non-numeric values support
+   * year-organised series references such as 'L 328/3' (rule 8.4).
+   */
+  startingPage?: number | string;
   entryIntoForceDate?: string;
   notYetInForce?: boolean;
   pinpoint?: Pinpoint;
@@ -92,14 +143,25 @@ export function formatTreaty(data: {
     runs.push({ text: `, signed ${data.signedDate}` });
   }
 
-  // Treaty series and volume/page (Rule 8.4)
+  // Treaty series (Rule 8.4) — abbreviated, in the form the series'
+  // organising principle dictates
+  const series = abbreviateTreatySeries(data.treatySeries);
   let seriesText = ", ";
-  if (data.seriesVolume !== undefined) {
-    seriesText += `${data.seriesVolume} `;
-  }
-  seriesText += data.treatySeries;
-  if (data.startingPage !== undefined) {
-    seriesText += ` ${data.startingPage}`;
+  if (data.sequentialNumber !== undefined) {
+    // Sequential-deposit-organised: '«Series» No «Number»' (eg 'ETS No 185')
+    seriesText += `${series} No ${data.sequentialNumber}`;
+  } else {
+    if (data.yearOfVolume !== undefined) {
+      // Year-organised: '[«Year»] «Series» «Page or Number»'
+      seriesText += `[${data.yearOfVolume}] `;
+    } else if (data.seriesVolume !== undefined) {
+      // Volume-organised: '«Volume» «Series» «Page»'
+      seriesText += `${data.seriesVolume} `;
+    }
+    seriesText += series;
+    if (data.startingPage !== undefined) {
+      seriesText += ` ${data.startingPage}`;
+    }
   }
   runs.push({ text: seriesText });
 

@@ -52,6 +52,8 @@ const PREPOSITIONS: ReadonlySet<string> = new Set([
   "down",
   "during",
   "except",
+  // Lowercase in the guide's own ex 2 ('… Works following IceTV …', rule 5.2).
+  "following",
   "for",
   "from",
   "in",

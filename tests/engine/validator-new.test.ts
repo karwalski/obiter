@@ -16,6 +16,9 @@ import {
   checkFootnoteFormat,
   checkParallelCitations,
   checkMncYearValidity,
+  checkCourtOrderOfficers,
+  checkIssuingBodyName,
+  validateDocument,
 } from "../../src/engine/validator";
 import type { Citation } from "../../src/types/citation";
 
@@ -445,5 +448,156 @@ describe("checkMncYearValidity (Rule 2.3.1)", () => {
       modifiedAt: "",
     };
     expect(checkMncYearValidity([citation])).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARITY-121 — Rule 2.3.4 court-order judicial officers
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("checkCourtOrderOfficers (Rule 2.3.4)", () => {
+  const makeOrder = (data: Record<string, unknown>): Citation => ({
+    id: "order-1",
+    aglcVersion: "4",
+    sourceType: "case.court_order",
+    data,
+    tags: [],
+    createdAt: "",
+    modifiedAt: "",
+  });
+
+  test("warns when a court order names no judicial officer (rule 2.3.4)", () => {
+    const issues = checkCourtOrderOfficers(
+      makeOrder({
+        party1: "Seiko Epson Corporation",
+        party2: "Calidad Pty Ltd",
+        court: "Federal Court of Australia",
+        proceedingNumber: "NSD1519/2004",
+        date: "21 December 2016",
+      })
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ruleNumber).toBe("2.3.4");
+    expect(issues[0].severity).toBe("warning");
+  });
+
+  test("accepts officers stored as a string (AGLC4 ex 88: 'Burley J')", () => {
+    const issues = checkCourtOrderOfficers(
+      makeOrder({
+        party1: "Seiko Epson Corporation",
+        party2: "Calidad Pty Ltd",
+        judicialOfficers: "Burley J",
+        court: "Federal Court of Australia",
+      })
+    );
+    expect(issues).toHaveLength(0);
+  });
+
+  test("accepts officers stored on the legacy judges key", () => {
+    const issues = checkCourtOrderOfficers(makeOrder({ judges: "Murphy J" }));
+    expect(issues).toHaveLength(0);
+  });
+
+  test("ignores other case source types", () => {
+    const citation: Citation = {
+      id: "c1",
+      aglcVersion: "4",
+      sourceType: "case.reported",
+      data: { party1: "A", party2: "B" },
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    expect(checkCourtOrderOfficers(citation)).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARITY-121 — Rule 3.9.3 issuing-body name hint
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("checkIssuingBodyName (Rule 3.9.3)", () => {
+  const makeQuasi = (data: Record<string, unknown>): Citation => ({
+    id: "quasi-1",
+    aglcVersion: "4",
+    sourceType: "legislation.quasi",
+    data,
+    tags: [],
+    createdAt: "",
+    modifiedAt: "",
+  });
+
+  test("hints on 'The Victorian Bar Inc' in the numbered form and suggests the trimmed name (ex 77)", () => {
+    const issues = checkIssuingBodyName(
+      makeQuasi({
+        issuingBody: "The Victorian Bar Inc",
+        title: "Compulsory Continuing Professional Development Rules",
+        number: "R 12",
+        date: "1 April 2011",
+      })
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].ruleNumber).toBe("3.9.3");
+    expect(issues[0].severity).toBe("info");
+    expect(issues[0].suggestion).toBe("Victorian Bar");
+  });
+
+  test("stays silent on the (at date) form — the formatter trims automatically (rule 3.9.3)", () => {
+    const issues = checkIssuingBodyName(
+      makeQuasi({
+        issuingBody: "The Victorian Bar Inc",
+        title: "Compulsory Continuing Professional Development Rules",
+        atDate: "1 April 2011",
+      })
+    );
+    expect(issues).toHaveLength(0);
+  });
+
+  test("stays silent on a government instrumentality without company designators (rule 3.9.2)", () => {
+    const issues = checkIssuingBodyName(
+      makeQuasi({
+        issuingBody: "Australian Taxation Office",
+        title: "Income Tax: Carrying on a Business as a Professional Artist",
+        number: "TR 2005/1",
+        date: "12 January 2005",
+      })
+    );
+    expect(issues).toHaveLength(0);
+  });
+
+  test("ignores other source types", () => {
+    const citation: Citation = {
+      id: "s1",
+      aglcVersion: "4",
+      sourceType: "legislation.statute",
+      data: { title: "The Something Act", issuingBody: "The Body Inc" },
+      tags: [],
+      createdAt: "",
+      modifiedAt: "",
+    };
+    expect(checkIssuingBodyName(citation)).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARITY-121 — dash/date-span dedupe (rules 1.6.3 / 1.11.4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("validateDocument dedupes overlapping dash and date-span issues (rules 1.6.3/1.11.4)", () => {
+  test("a hyphenated year span raises only the rule 1.11.4 issue", () => {
+    const result = validateDocument(["See the 1986-87 financial year."], []);
+    const all = [...result.errors, ...result.warnings, ...result.info];
+    const spanIssues = all.filter((i) => i.message.includes("1986-87"));
+    expect(spanIssues.some((i) => i.ruleNumber === "1.11.4")).toBe(true);
+    expect(
+      all.some((i) => i.ruleNumber === "1.6.3" && i.message.includes("number or date spans"))
+    ).toBe(false);
+  });
+
+  test("a plain page span still raises the rule 1.6.3 issue", () => {
+    const result = validateDocument(["See pp 102-3."], []);
+    const all = [...result.errors, ...result.warnings, ...result.info];
+    expect(all.some((i) => i.ruleNumber === "1.6.3")).toBe(true);
+    expect(all.some((i) => i.ruleNumber === "1.11.4")).toBe(false);
   });
 });

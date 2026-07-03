@@ -1,6 +1,6 @@
 {
   "version": "AGLC4",
-  "generatedAt": "2026-07-03T06:04:24.284Z",
+  "generatedAt": "2026-07-03T08:39:16.148Z",
   "generatedBy": "Obiter v1.14.0",
   "sourceTypes": [
     {
@@ -1007,6 +1007,18 @@
         "url"
       ],
       "formatTemplate": "Title, Parties, signed SignedDate, TreatySeries (Memorandum of Understanding) Pinpoint <URL>."
+    },
+    {
+      "type": "un.charter",
+      "ruleNumber": "9.1",
+      "label": "Charter of the United Nations",
+      "category": "international",
+      "requiredFields": [],
+      "optionalFields": [
+        "article",
+        "pinpoint"
+      ],
+      "formatTemplate": "Charter of the United Nations art Article. (fixed italic title, rule 9.1)"
     },
     {
       "type": "un.document",

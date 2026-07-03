@@ -112,6 +112,11 @@ export interface NewspaperData {
   authors?: Author[];
   title: string;
   /**
+   * Rule 26.4 (via 26.1.1): English translation of a non-English article
+   * title, emitted roman in square brackets after the quoted title.
+   */
+  translatedTitle?: string;
+  /**
    * When true, `title` is a description of an untitled piece (eg 'Letter
    * to the Editor') and is not placed in quotation marks (Rule 7.11.4).
    */
@@ -197,10 +202,25 @@ export interface PodcastData {
 export interface InternetMaterialData {
   authors?: Author[];
   title: string;
+  /**
+   * Rule 26.4 (via 26.1.1): English translation of a non-English document
+   * title, emitted roman in square brackets after the quoted title (ex 22).
+   */
+  translatedTitle?: string;
   website: string;
+  /**
+   * Rule 26.4: English translation of a non-English web page title,
+   * emitted roman in square brackets after the italic website name (ex 22).
+   */
+  translatedWebsiteName?: string;
   /** Document type (eg 'Web Page', 'Blog Post') opening the parenthetical. */
   documentType?: string;
   date: string;
+  /**
+   * Rule 7.15: pinpoint before the URL — usually a paragraph number in
+   * square brackets (the value carries its own brackets per rule 1.1.6).
+   */
+  pinpoint?: Pinpoint;
   url: string;
 }
 
@@ -582,6 +602,10 @@ export function formatNewspaper(data: NewspaperData): FormattedRun[] {
   } else {
     runs.push({ text: "‘" + data.title + "’" });
   }
+  // Rule 26.4: bracketed element translation follows the title (roman)
+  if (data.translatedTitle) {
+    runs.push({ text: ` [${data.translatedTitle}]` });
+  }
   runs.push({ text: ", " });
   runs.push({ text: data.newspaper, italic: true });
 
@@ -871,10 +895,18 @@ export function formatInternetMaterial(data: InternetMaterialData): FormattedRun
 
   if (data.title) {
     runs.push({ text: `‘${data.title}’` });
+    // Rule 26.4: bracketed element translation follows the quoted title
+    if (data.translatedTitle) {
+      runs.push({ text: ` [${data.translatedTitle}]` });
+    }
   }
   if (data.website) {
     if (runs.length > 0) runs.push({ text: ", " });
     runs.push({ text: data.website, italic: true });
+    // Rule 26.4: roman translation after the italic web page title (ex 22)
+    if (data.translatedWebsiteName) {
+      runs.push({ text: ` [${data.translatedWebsiteName}]` });
+    }
   }
 
   // Parenthetical: (Document Type, Full Date) / (Document Type) / (Date).
@@ -883,6 +915,15 @@ export function formatInternetMaterial(data: InternetMaterialData): FormattedRun
   const paren = joinParen([data.documentType, data.date]);
   if (paren) {
     runs.push({ text: ` (${paren})` });
+  }
+
+  // Rule 7.15: pinpoint before the URL — usually paragraph numbers, cited
+  // in square brackets
+  if (data.pinpoint) {
+    const value = formatPinpointValue(data.pinpoint);
+    runs.push({
+      text: ` ${data.pinpoint.type === "paragraph" ? bracketParagraph(value) : value}`,
+    });
   }
 
   if (data.url) {

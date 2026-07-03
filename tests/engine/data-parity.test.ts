@@ -111,15 +111,15 @@ describe("report-series.ts vs rule 2.2.2/2.2.3 tables", () => {
     expect(getByAbbreviation("WAR")?.yearOrganised).toBe(false);
   });
 
-  test("medium neutral identifiers are flagged (rule 2.2.2 ranks MNC below series)", () => {
+  test("medium neutral identifiers are typed medium_neutral (rule 2.2.2 ranks MNC below series)", () => {
     for (const abbrev of ["HCA", "FCA", "FCAFC", "FamCA", "FamCAFC", "NSWSC", "VSC"]) {
-      expect(getByAbbreviation(abbrev)?.mediumNeutral).toBe(true);
+      expect(getByAbbreviation(abbrev)?.type).toBe("medium_neutral");
     }
   });
 
-  test("report series proper are not flagged medium neutral", () => {
+  test("report series proper are not typed medium_neutral", () => {
     for (const abbrev of ["CLR", "NSWLR", "Qd R", "ALR", "ALJR", "IPR"]) {
-      expect(getByAbbreviation(abbrev)?.mediumNeutral).toBeUndefined();
+      expect(getByAbbreviation(abbrev)?.type).not.toBe("medium_neutral");
     }
   });
 

@@ -987,3 +987,83 @@ describe("Multi-standard config verification through engine", () => {
     }
   });
 });
+
+// =============================================================================
+// PARITY-121 — ADAPTER HARDENING (degenerate/missing-field output)
+// =============================================================================
+
+describe("PARITY-121: OSCOLA SI adapter omits the instrument number when missing (OSCOLA 2.2.6)", () => {
+  it("renders title + year only — never 'SI 1998/0'", () => {
+    const citation = makeCitation("legislation.delegated", {
+      title: "Civil Procedure Rules",
+      year: 1998,
+      jurisdiction: "UK",
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG));
+    expect(text).toBe("Civil Procedure Rules 1998");
+  });
+
+  it("still renders the full form when a number is stored (OSCOLA 2.2.6)", () => {
+    const citation = makeCitation("legislation.delegated", {
+      title: "Civil Procedure Rules",
+      year: 1998,
+      number: 3132,
+      jurisdiction: "UK",
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG));
+    expect(text).toBe("Civil Procedure Rules 1998, SI 1998/3132");
+  });
+});
+
+describe("PARITY-121: NZLSG book adapter hardening (NZLSG 6.1)", () => {
+  it("ordinalises a bare numeric edition and skips a missing place — never '(2, LexisNexis, , 2015)'", () => {
+    const citation = makeCitation("book", {
+      author: "Andrew Butler and Petra Butler",
+      title: "The New Zealand Bill of Rights Act: A Commentary",
+      edition: "2",
+      publisher: "LexisNexis",
+      year: 2015,
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, NZLSG3_CONFIG));
+    expect(text).toBe(
+      "Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary (2nd ed, LexisNexis, 2015)"
+    );
+  });
+
+  it("renders the full NZLSG 6.1 form when every element is stored", () => {
+    const citation = makeCitation("book", {
+      author: "Andrew Butler and Petra Butler",
+      title: "The New Zealand Bill of Rights Act: A Commentary",
+      edition: "2nd ed",
+      publisher: "LexisNexis",
+      place: "Wellington",
+      year: 2015,
+      pinpoint: { type: "page", value: "134" },
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, NZLSG3_CONFIG));
+    expect(text).toBe(
+      "Andrew Butler and Petra Butler The New Zealand Bill of Rights Act: A Commentary (2nd ed, LexisNexis, Wellington, 2015) at 134"
+    );
+  });
+});
+
+describe("PARITY-121: NZLSG Waitangi Tribunal adapter omits a missing Wai number (NZLSG 3.6)", () => {
+  it("renders '(Year)' — never '(Wai 0, Year)'", () => {
+    const citation = makeCitation("report.waitangi_tribunal", {
+      title: "Ko Aotearoa Tēnei",
+      year: 2011,
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, NZLSG3_CONFIG));
+    expect(text).toBe("Waitangi Tribunal Ko Aotearoa Tēnei (2011)");
+  });
+
+  it("renders the Wai element when the claim number is stored (NZLSG 3.6)", () => {
+    const citation = makeCitation("report.waitangi_tribunal", {
+      title: "Ko Aotearoa Tēnei",
+      waiNumber: 262,
+      year: 2011,
+    });
+    const text = joinText(formatCitation(citation, firstCitationContext, NZLSG3_CONFIG));
+    expect(text).toBe("Waitangi Tribunal Ko Aotearoa Tēnei (Wai 262, 2011)");
+  });
+});

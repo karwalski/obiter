@@ -46,7 +46,7 @@ The coverage doc does disclose the passthrough design ("The user enters the cita
 | 16.2.3 | Unreported Chinese judgments | GAP | medium |
 | 16.3.1 | Chinese legislative acts | MISMATCH | high |
 | 16.3.2 | Chinese constitutions | GAP (partially ack'd: audit 16.3 AUDIT) | low |
-| 16.4.1–16.4.2 | Chinese secondary sources / author names | GAP (ack'd: audit AUDIT) | low |
+| 16.4.1–16.4.2 | Chinese secondary sources / author names | GAP (ack'd: audit AUDIT) — **Status:** FIXED in part (resolver.ts — 16.4.2 full name incl characters+pinyin retained in subsequent refs for Chinese-script structured authors; re-audit.test.ts); 16.4.1 script/translation content stays manual, pinyin-only names undetectable without a language flag | low |
 | 17.1 | French cases (4 court patterns, 'reported in') | MISMATCH | high |
 | 17.2.1 | French individual laws (JO, date) | MISMATCH | medium |
 | 17.2.2 | French codes | MATCH (base form; translation roman not supported) | low |
@@ -90,12 +90,12 @@ The coverage doc does disclose the passthrough design ("The user enters the cita
 | 24.3 | Delegated legislation (SI / SR & O / NI SR) | MISMATCH (hardcodes 'SI'; table's SR & O and NI SR unreachable) | medium |
 | 24.4.1 | Hansard modern / historical | MATCH / GAP (Cobbett's) | low |
 | 24.4.2 | Command papers | MATCH | — |
-| 24.4.3 | Parliamentary papers | GAP (ack'd: audit AUDIT) | medium |
+| 24.4.3 | Parliamentary papers | GAP (ack'd: audit AUDIT) — **Status:** FIXED (uk.ts — `formatParliamentaryPaper`, exs 50–1); HANDOFF (engine wiring, handoff/re-audit.md §5) | medium |
 | 24.5 | Defer to OSCOLA | MANUAL-OK | — |
 | 25.1.1–25.1.2, 25.1.4–25.1.6 | US case elements | MATCH | — |
 | 25.1.3 | Reporters; pre-1875 parallel form '17 US (4 Wheat) 316' | MATCH (base) / GAP (parallel form, caller workaround) | low |
 | 25.1.7 | US unreported (docket, slip op) | GAP (ack'd: audit AUDIT) | medium |
-| 25.1.8 | US judges (J/PJ/JAD) | GAP (ack'd; no 'Assistant Justice' leakage) | low |
+| 25.1.8 | US judges (J/PJ/JAD) | GAP (ack'd; no 'Assistant Justice' leakage) — **Status:** FIXED (usa.ts — `judge` element exs 29–31 + `abbreviateUsJudicialTitle` per X-3 guidance); HANDOFF (engine wiring, handoff/re-audit.md §6) | low |
 | 25.2.x | USC/code citations | MATCH (year passed via misnamed `supplement` field; state code names/publishers via caller strings) | low |
 | 25.3.x | Session laws | MISMATCH (25.3.7 year wrongly always emitted — test admits) + GAP (ch numbers, Priv L, state session laws, 25.3.8) | medium |
 | 25.4 | Constitutions | MATCH (federal) / GAP (state constitutions — hardcoded title; test admits) | medium |
@@ -106,10 +106,10 @@ The coverage doc does disclose the passthrough design ("The user enters the cita
 | 25.7 | Restatements | MISMATCH (unack'd — audit PASS) | high |
 | 25.8 | Defer to Bluebook | MANUAL-OK | — |
 | 26.1.1 | Author translations ('[tr author]' / '[tr Name]') | MISMATCH (unack'd — audit PASS) | high |
-| 26.1.2 | Published translations | GAP (ack'd: audit AUDIT) | medium |
+| 26.1.2 | Published translations | GAP (ack'd: audit AUDIT) — **Status:** FIXED (other.ts — `publishedTranslation` `[tr «citation»]` final element, exs 4/7); HANDOFF (engine wiring, handoff/re-audit.md §7) | medium |
 | 26.2 | Other foreign decisions | MISMATCH (code bug: year dropped when volume present; no 'reported in' element order) | high |
 | 26.3 | Other foreign legislation | MATCH (base) / GAP ('other information' elements) | low |
-| 26.4 | Other non-English materials | GAP (ack'd: audit AUDIT) | low |
+| 26.4 | Other non-English materials | GAP (ack'd: audit AUDIT) — **Status:** DEFERRED (fix lands in rules/v4/secondary/** owned by a concurrent agent — bracketed element translations for books/internet materials; handoff/re-audit.md §8) | low |
 | Data: `nz-report-series.ts` | duplicate NZAR (l.50, l.246) and NZCPR (l.182, l.254) entries | ANOMALY-RISK | low |
 | Data: `irish-courts.ts` | Ireland has no AGLC4 chapter; ch 26 territory | UNVERIFIED (no AGLC4 source to verify against; harmless as lookup data) | — |
 

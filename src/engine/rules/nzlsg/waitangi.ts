@@ -17,8 +17,11 @@ import { FormattedRun } from "../../../types/formattedRun";
 export interface WaitangiTribunalReportData {
   /** Title of the report (will be italicised). */
   title: string;
-  /** Wai claim number (e.g. 262). */
-  waiNumber: number;
+  /**
+   * Wai claim number (e.g. 262). Omitted from the parenthetical when the
+   * stored citation carries no claim number (never rendered as 'Wai 0').
+   */
+  waiNumber?: number;
   /** Year of the report. */
   year: number;
   /** Pinpoint reference (page or chapter). */
@@ -54,8 +57,11 @@ export function formatWaitangiTribunalReport(data: WaitangiTribunalReportData): 
   // Title in italics
   runs.push({ text: data.title, italic: true });
 
-  // Parenthetical: Wai number and year
-  runs.push({ text: ` (Wai ${data.waiNumber}, ${data.year})` });
+  // Parenthetical: Wai number (where known) and year
+  runs.push({
+    text:
+      data.waiNumber !== undefined ? ` (Wai ${data.waiNumber}, ${data.year})` : ` (${data.year})`,
+  });
 
   // Pinpoint with 'at' prefix
   if (data.pinpoint) {

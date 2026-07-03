@@ -229,8 +229,8 @@ describe("COURT-006: suggestPreferredReport", () => {
   });
 
   test("medium neutral identifier ranks with MNC, below subject-specific series (rule 2.2.2)", () => {
-    // "NSWSC" is a rule 2.3.1 court identifier (mediumNeutral row in
-    // report-series.ts), not a report series — it must rank below the
+    // "NSWSC" is a rule 2.3.1 court identifier (a "medium_neutral"-typed row
+    // in report-series.ts), not a report series — it must rank below the
     // subject-specific tier, unlike other unknown abbreviations.
     expect(suggestPreferredReport("NSW", ["NSWSC", "IPR"])).toBe("IPR");
     expect(suggestPreferredReport("NSW", ["NSWSC", "NSWLR"])).toBe("NSWLR");
@@ -283,8 +283,8 @@ describe("COURT-006: Unknown jurisdiction falls back to AGLC4 default ordering",
   });
 
   test("unknown jurisdiction: medium neutral identifiers rank below subject-specific (rule 2.2.2)", () => {
-    // "HCA" and "NSWSC" are rule 2.3.1 court identifiers flagged
-    // mediumNeutral in report-series.ts — the MNC tier, below all series.
+    // "HCA" and "NSWSC" are rule 2.3.1 court identifiers typed
+    // "medium_neutral" in report-series.ts — the MNC tier, below all series.
     expect(suggestPreferredReport("UNKNOWN", ["HCA", "IPR"])).toBe("IPR");
     expect(suggestPreferredReport("UNKNOWN", ["NSWSC", "ALR"])).toBe("ALR");
     expect(suggestPreferredReport("UNKNOWN", ["NSWSC", "CLR"])).toBe("CLR");

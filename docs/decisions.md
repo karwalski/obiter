@@ -294,6 +294,7 @@ Rule 4.2 preserves italics inside secondary-source titles (eg a case name like *
 **Interim:** titles render entirely roman inside quotes (or entirely italic for books); embedded italics are lost.
 **Researchers/design:** approve a title markup convention (and UI affordance) before the formatter layer can honour this.
 **Resolution (2026-07-03, Matthew):** Title markup convention approved as a design story (PARITY-122 filed). Embedded italics remain unsupported until it lands; titles render in a single style.
+**Implemented (2026-07-03, PARITY-122):** Minimal inline marker convention, parsed at format time only — no store schema change (titles remain plain strings). A pair of single asterisks marks an italic span (`Talking to *IceTV*: …`); `**` escapes a literal asterisk; unbalanced markers render the whole title exactly as typed (never crash, never eat characters). Parser: `src/engine/rules/v4/general/titleMarkup.ts`, hooked at the `formatSecondaryTitle` choke point (secondary/general.ts) and the quoted-title helper (secondary/other.ts). Marked spans render italic inside roman quoted titles (articles/chapters). Inside wholly italic titles (books) marked spans REMAIN italic: the roman-inversion variant was checked against the guide and rejected — rule 4.2 (PDF p.113) states "no part of the title should appear in roman font" where the Guide italicises the whole title, and rule 1.8.2 contains no within-italics inversion convention. Verified with exact-string tests on the guide's own ex 2 (*IceTV*, rule 5.2) and ex 26 (*Briginshaw*, rule 4.2); unmarked titles proven byte-for-byte unchanged across the full test corpus. UI editing affordance/help copy and resolver short-title (rule 4.3) support remain open — see PARITY-121/handoff.
 
 ## DECISION-022: Rule 21.1.3 — NZ Neutral-Citation Adoption Years (AGLC4 vs NZLII)
 
@@ -366,3 +367,10 @@ Rule 26.2 ex 12 italicises a written-out series title ('*Il Foro Italiano*…'),
 **Interim:** `formatOtherDecision` accepts `reportedIn` as `string | FormattedRun[]`, so the caller decides the styling; no default italicisation is applied.
 **Researchers:** confirm which styling governs non-common-law series names, so a default can be encoded.
 **Resolution (2026-07-03, Matthew):** Written-out non-common-law report series default to roman, consistent with rule 2.2.3; the FormattedRun[] caller override is retained for edge cases. Test pinned 2026-07-03.
+## DECISION-030: Rule 26.4 — English Title-Casing of Non-English Titles
+
+**Status:** OPEN
+**Raised:** 2026-07-03 (PARITY final mop-up, rule 26.4 implementation)
+Rule 4.2 sends secondary-source title capitalisation to rule 1.7, whose minor-word list (articles/prepositions/conjunctions) is English. Applied to a non-English title it produces 'Der Reformvertrag Von Lissabon', but the guide's own rule 26.4 ex 21 (PDF p 321) prints '*Der Reformvertrag von Lissabon*' with the German preposition lowercase — foreign titles are evidently reproduced with their own language's capitalisation.
+**Interim:** where a `translatedTitle` is stored (the signal that the title is non-English), `formatBook` renders the original title as typed (embedded-italic markers still honoured) instead of applying rule 1.7 title case; titles without a stored translation are unaffected. The newspaper and internet-material formatters never title-cased, so they need no carve-out.
+**Researchers:** confirm the scope of rule 1.7 over non-English titles (reproduce-as-typed vs source-language convention vs English title case), and whether the carve-out should extend beyond the translated-title signal.

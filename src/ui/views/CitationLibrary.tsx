@@ -763,15 +763,17 @@ export default function CitationLibrary(): JSX.Element {
             {storeDiagnostics?.status === "unreadable" ? (
               <span>
                 Citation store found but unreadable. The stored citation data is still in this
-                document and has not been deleted. Copy the details below and report the issue;
-                avoid clearing the library until the store is repaired.
+                document and has not been deleted. Use Scan &amp; Repair to rebuild the library
+                from the document, or copy the details below and report the issue. Avoid
+                clearing the library until the store is repaired.
               </span>
             ) : citations.length === 0 && orphanControlCount > 0 ? (
               <span>
                 The library is empty, but {orphanControlCount} Obiter citation
                 {orphanControlCount !== 1 ? " markers were" : " marker was"} found in the
                 document&apos;s footnotes. The library appears to have become unlinked from the
-                document. Copy the details below and report the issue.
+                document. Use Scan &amp; Repair to rebuild it, or copy the details below and
+                report the issue.
               </span>
             ) : (
               <span>
@@ -782,6 +784,13 @@ export default function CitationLibrary(): JSX.Element {
                 . Please review the library for completeness.
               </span>
             )}
+            <button
+              className="library-btn library-btn--insert"
+              style={{ marginLeft: 8 }}
+              onClick={() => navigate("/scan-repair")}
+            >
+              Scan &amp; Repair
+            </button>
             <button
               className="library-btn"
               style={{ marginLeft: 8 }}
@@ -827,6 +836,13 @@ export default function CitationLibrary(): JSX.Element {
           onClick={() => setBibtexModalOpen(true)}
         >
           Import BibTeX
+        </button>
+        <button
+          className="library-btn library-btn--import"
+          onClick={() => navigate("/scan-repair")}
+          title="Deep scan of body, footnotes and endnotes: relink Obiter citation markers, rebuild lost library entries and adopt plain-text citations"
+        >
+          Scan &amp; Repair
         </button>
         {citations.length > 0 && (
           <>
@@ -949,13 +965,29 @@ export default function CitationLibrary(): JSX.Element {
 
       {/* Citation list */}
       {filteredCitations.length === 0 ? (
-        <p className="library-empty">
-          {citations.length === 0
-            ? orphanControlCount > 0 || storeDiagnostics?.status === "unreadable"
-              ? "The citation library could not be loaded normally. See the notice above for details."
-              : "No citations in this document. Use Insert Citation to add your first citation."
-            : "No citations match your search."}
-        </p>
+        <div className="library-empty">
+          <p>
+            {citations.length === 0
+              ? orphanControlCount > 0 || storeDiagnostics?.status === "unreadable"
+                ? "The citation library could not be loaded normally. See the notice above for details."
+                : "No citations in this document. Use Insert Citation to add your first citation."
+              : "No citations match your search."}
+          </p>
+          {citations.length === 0 &&
+            orphanControlCount === 0 &&
+            storeDiagnostics?.status !== "unreadable" && (
+              <p style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)" }}>
+                Working on a document with existing footnotes? Run{" "}
+                <button
+                  className="library-btn"
+                  onClick={() => navigate("/scan-repair")}
+                >
+                  Scan &amp; Repair
+                </button>{" "}
+                to find citations already in the document and adopt them into the library.
+              </p>
+            )}
+        </div>
       ) : (
         <div className="library-list">
           {filteredCitations.map((citation) => (

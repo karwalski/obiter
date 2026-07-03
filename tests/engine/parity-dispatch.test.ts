@@ -892,9 +892,12 @@ describe("PARITY wave 3: foreign delegated legislation and constitutions", () =>
   });
 
   test("routes a Federal Register citation per AGLC4 ch 25 ex 80 (rule 25.5.1)", () => {
+    // PARITY-121: a titled instrument needs an explicit Fed Reg signal
+    // (foreignSubType or fedRegVolume) — generic volume/page/date fields
+    // alone no longer misroute titled non-Fed-Reg instruments here.
     const runs = formatCitation(
       makeCitation("foreign.usa", {
-        foreignSubType: "legislation",
+        foreignSubType: "federal_register",
         title: "Enhancing Airline Passenger Protections",
         volume: 74,
         startingPage: 68983,
@@ -905,6 +908,7 @@ describe("PARITY wave 3: foreign delegated legislation and constitutions", () =>
     expect(toPlainText(runs)).toBe(
       "Enhancing Airline Passenger Protections, 74 Fed Reg 68983, 68985 (30 December 2009)"
     );
+    expect(italicText(runs)).toBe("Enhancing Airline Passenger Protections");
   });
 
   test("emits rule 26.3 other-information and the final [tr author] marker per AGLC4 ch 26 ex 1 (rule 26.1.1)", () => {
@@ -1141,9 +1145,7 @@ describe("BUG-001: dispatch never truncates party names containing '&' / 'and'",
         party2: "Land and House Property Corporation",
       })
     );
-    expect(toPlainText(runs)).toBe(
-      "Smith v Land and House Property Corporation (1884) 28 Ch D 7."
-    );
+    expect(toPlainText(runs)).toBe("Smith v Land and House Property Corporation (1884) 28 Ch D 7.");
   });
 
   test("UI flow with the suggested short title introduces (‘Smith’) whole (rules 2.1.14/1.4.4)", () => {
@@ -1213,5 +1215,485 @@ describe("BUG-001: dispatch never truncates party names containing '&' / 'and'",
     );
     expect(toPlainText(runs)).toBe("Smith v Land & House Property Corporation (1884) 28 Ch D 7.");
     expect(italicText(runs)).toBe("Smith v Land & House Property Corporation");
+  });
+});
+
+// ─── PARITY-121 — deferred-leftovers dispatch wiring ─────────────────────────
+
+describe("PARITY-121: ordinal report series parse from citationDetails (rule 15.1.2)", () => {
+  test("formats a Canadian DLR (4th) case per AGLC4 ch 15 ex 5 (rule 15.1.2)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.canada", {
+        foreignSubType: "case",
+        title: "Bangoura v Washington Post",
+        citationDetails: "(2005) 258 DLR (4th) 341",
+        court: "Ontario Court of Appeal",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Bangoura v Washington Post (2005) 258 DLR (4th) 341 (Ontario Court of Appeal)"
+    );
+    expect(italicText(runs)).toBe("Bangoura v Washington Post");
+  });
+
+  test("parses an ordinal US reporter ('985 F 2d 500 (1993)', rule 25.1.3)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "case",
+        title: "Moore v Regents of the University of California",
+        citationDetails: "985 F 2d 500 (1993)",
+      })
+    );
+    const text = toPlainText(runs);
+    expect(text).toContain("985 F 2d 500");
+    expect(text).toContain("(1993)");
+  });
+
+  test("Canadian unreported neutral form keeps the rule 2.3 square-bracket year (rules 15.1.1-15.1.2)", () => {
+    // Rule 15.1.2 note band (PDF p.236): 'Unreported decisions should be
+    // cited in accordance with rule 2.3' — the rule 2.3.1 MNC form takes
+    // a square-bracket year, so a bare Canadian neutral citation is
+    // normalised to it (the bracket-less native form is not an AGLC4 form).
+    const runs = formatCitation(
+      makeCitation("foreign.canada", {
+        foreignSubType: "case",
+        title: "Garcia v Canada (Attorney General)",
+        citationDetails: "2018 FCA 153",
+      })
+    );
+    expect(toPlainText(runs)).toBe("Garcia v Canada (Attorney General) [2018] FCA 153");
+  });
+});
+
+describe("PARITY-121: Federal Register title guard (rule 25.5.1)", () => {
+  test("routes via the explicit fedRegVolume field without a foreignSubType", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "legislation",
+        title: "Enhancing Airline Passenger Protections",
+        fedRegVolume: 74,
+        startingPage: 68983,
+        date: "30 December 2009",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Enhancing Airline Passenger Protections, 74 Fed Reg 68983 (30 December 2009)"
+    );
+  });
+
+  test("a title-less volume/page/date instrument still reaches the Fed Reg form", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "legislation",
+        volume: 74,
+        startingPage: 68983,
+        date: "30 December 2009",
+      })
+    );
+    expect(toPlainText(runs)).toBe("74 Fed Reg 68983 (30 December 2009)");
+  });
+
+  test("a titled instrument with generic volume/page/date but no Fed Reg signal does not misroute", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "legislation",
+        title: "Some State Instrument",
+        volume: 74,
+        startingPage: 68983,
+        date: "30 December 2009",
+      })
+    );
+    expect(toPlainText(runs)).not.toContain("Fed Reg");
+  });
+});
+
+describe("PARITY-121: un.charter source type (rule 9.1)", () => {
+  test("formats the Charter with an article per AGLC4 ch 9 ex 1 (rule 9.1)", () => {
+    const runs = formatCitation(makeCitation("un.charter", { article: "51" }));
+    expect(toPlainText(runs)).toBe("Charter of the United Nations art 51");
+    expect(italicText(runs)).toBe("Charter of the United Nations");
+  });
+
+  test("formats the Charter without a pinpoint (rule 9.1)", () => {
+    const runs = formatCitation(makeCitation("un.charter", {}));
+    expect(toPlainText(runs)).toBe("Charter of the United Nations");
+  });
+
+  test("legacy un.document isCharter path still renders the rule 9.1 form", () => {
+    const runs = formatCitation(makeCitation("un.document", { isCharter: true, article: "2(4)" }));
+    expect(toPlainText(runs)).toBe("Charter of the United Nations art 2(4)");
+  });
+});
+
+describe("PARITY-121: Maori Land Court minute-book dataset lookup (rule 21.1.4)", () => {
+  test("resolves a full minute-book name to its abbreviation per the rule 21.1.4 table", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.new_zealand", {
+        foreignSubType: "case",
+        title: "Taipari v Hauraki Maori Trust Board",
+        year: 2008,
+        caseNumber: 114,
+        registry: "Hauraki",
+        startingPage: 34,
+        minuteBook: "Appellate Court Minute Book",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Taipari v Hauraki Maori Trust Board (2008) 114 Hauraki ACMB 34"
+    );
+  });
+
+  test("formats a minute-book decision per AGLC4 ch 21 ex 14 (rule 21.1.4, default MB)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.new_zealand", {
+        foreignSubType: "case",
+        title: "Taipari v Hauraki Maori Trust Board",
+        year: 2008,
+        caseNumber: 114,
+        registry: "Hauraki",
+        startingPage: 34,
+      })
+    );
+    expect(toPlainText(runs)).toBe("Taipari v Hauraki Maori Trust Board (2008) 114 Hauraki MB 34");
+    expect(italicText(runs)).toBe("Taipari v Hauraki Maori Trust Board");
+  });
+
+  test("an unrecognised minute-book value falls back to 'MB' rather than rendering verbatim", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.new_zealand", {
+        foreignSubType: "case",
+        title: "Taipari v Hauraki Maori Trust Board",
+        year: 2008,
+        caseNumber: 114,
+        registry: "Hauraki",
+        startingPage: 34,
+        minuteBook: "Some Unknown Book",
+      })
+    );
+    expect(toPlainText(runs)).toBe("Taipari v Hauraki Maori Trust Board (2008) 114 Hauraki MB 34");
+  });
+});
+
+// ─── RE-AUDIT closure: engine dispatch passthroughs (final mop-up) ──────────
+
+describe("RE-AUDIT closure: dispatch passthroughs to the wave formatters", () => {
+  test("dispatches a multi-organ UN document per AGLC4 ch 9 ex 37 (rule 9.2.14)", () => {
+    const runs = formatCitation(
+      makeCitation("un.document", {
+        title:
+          "Letter Dated 5 November 2001 from the Chargé d’affaires ai of the Permanent " +
+          "Mission of the Syrian Arab Republic to the United Nations Addressed to the " +
+          "Secretary-General",
+        officialRecords: "UN GAOR",
+        session: "56th sess",
+        agendaItem: "42, 88 and 166",
+        parallelOfficialRecords: "UN SCOR, 56th sess",
+        documentNumber: "A/56/601 and S/2001/1045",
+        date: "5 November 2001",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Letter Dated 5 November 2001 from the Chargé d’affaires ai of the Permanent " +
+        "Mission of the Syrian Arab Republic to the United Nations Addressed to the " +
+        "Secretary-General, UN GAOR, 56th sess, Agenda Items 42, 88 and 166; " +
+        "UN SCOR, 56th sess, UN Docs A/56/601 and S/2001/1045 (5 November 2001)"
+    );
+  });
+
+  test("dispatches a PCIJ ser C pleading per AGLC4 ch 10 ex 28 (rule 10.3)", () => {
+    const runs = formatCitation(
+      makeCitation("icj.pleading", {
+        documentTitle: "Speech by Dr Budding",
+        caseName: "Rights of Minorities in Upper Silesia",
+        parties: "Germany v Poland",
+        year: 1928,
+        pcijSeriesNumber: "14",
+        pcijPart: "II",
+        page: 20,
+        pinpoint: "25–7",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "'Speech by Dr Budding', Rights of Minorities in Upper Silesia (Germany v Poland) " +
+        "[1928] PCIJ (ser C) No 14 pt II, 20, 25–7"
+    );
+    expect(italicText(runs)).toContain("Rights of Minorities in Upper Silesia");
+  });
+
+  test("dispatches ICC rules per AGLC4 ch 12 ex 6 (rule 12.1.2, adopted-date signal)", () => {
+    const runs = formatCitation(
+      makeCitation("icc_tribunal.case", {
+        court: "International Criminal Court",
+        title: "Rules of Procedure and Evidence",
+        documentNumber: "ICC-ASP/1/3",
+        adoptedDate: "9 September 2002",
+        pinpoint: "r 74",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "International Criminal Court, Rules of Procedure and Evidence, " +
+        "Doc No ICC-ASP/1/3 (adopted 9 September 2002) r 74"
+    );
+    expect(italicText(runs)).toBe("Rules of Procedure and Evidence");
+  });
+
+  test("dispatches ECCC internal rules per AGLC4 ch 12 ex 8 (rule 12.1.2, documentType signal)", () => {
+    const runs = formatCitation(
+      makeCitation("icc_tribunal.case", {
+        court: "Extraordinary Chambers in the Courts of Cambodia",
+        title: "Internal Rules",
+        documentType: "rules",
+        date: "16 January 2015",
+        pinpoint: "r 6",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Extraordinary Chambers in the Courts of Cambodia, Internal Rules " +
+        "(adopted 16 January 2015) r 6"
+    );
+  });
+
+  test("dispatches supranational rules of procedure per AGLC4 ch 14 ex 41 (rule 14.4.3)", () => {
+    const runs = formatCitation(
+      makeCitation("supranational.decision", {
+        court: "African Court on Human and Peoples' Rights",
+        title: "Rules of Court",
+        adoptedDate: "2 June 2010",
+        pinpoint: "r 3(1)",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "African Court on Human and Peoples' Rights, Rules of Court (adopted 2 June 2010) r 3(1)"
+    );
+    expect(italicText(runs)).toBe("Rules of Court");
+  });
+
+  test("dispatches a supranational pleading per AGLC4 ch 14 ex 43 (rule 14.4.4, template comma per DECISION-012)", () => {
+    const runs = formatCitation(
+      makeCitation("supranational.decision", {
+        documentTitle:
+          "Preliminary Objection by the Government of the Republic of Trinidad and Tobago",
+        caseName: "Constantine v Trinidad and Tobago",
+        court: "Inter-American Court of Human Rights",
+        caseNumber: "Series C No 82",
+        date: "1 September 2001",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "'Preliminary Objection by the Government of the Republic of Trinidad and Tobago', " +
+        "Constantine v Trinidad and Tobago " +
+        "(Inter-American Court of Human Rights, Series C No 82, 1 September 2001)"
+    );
+    expect(italicText(runs)).toBe("Constantine v Trinidad and Tobago");
+  });
+
+  test("dispatches a UK parliamentary paper per AGLC4 ch 24 ex 50 (rule 24.4.3)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.uk", {
+        foreignSubType: "secondary",
+        author: "National Audit Office",
+        title: "Regenerating the English Coalfields",
+        paperNumber: "House of Commons Paper No 84",
+        session: "2009–10",
+        pinpoint: "11",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "National Audit Office, Regenerating the English Coalfields " +
+        "(House of Commons Paper No 84, Session 2009–10) 11"
+    );
+    expect(italicText(runs)).toBe("Regenerating the English Coalfields");
+  });
+
+  test("dispatches a both-Houses parliamentary paper per AGLC4 ch 24 ex 51 (rule 24.4.3)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.uk", {
+        foreignSubType: "secondary",
+        author: "Joint Committee on Human Rights",
+        title: "Prisoner Transfer Treaty with Libya",
+        paperNumber: "House of Lords Paper No 71",
+        paperNumber2: "House of Commons Paper No 398",
+        session: "2008–09",
+        pinpoint: "5",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Joint Committee on Human Rights, Prisoner Transfer Treaty with Libya " +
+        "(House of Lords Paper No 71, House of Commons Paper No 398, Session 2008–09) 5"
+    );
+  });
+
+  test("dispatches a reported US case with judge per AGLC4 ch 25 ex 29 (rule 25.1.8)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "case",
+        caseTitle: "Re Gault",
+        volume: "387",
+        reportSeries: "US",
+        startingPage: "1",
+        year: "1967",
+        yearType: "round",
+        pinpoint: "13–14, 27–8",
+        judge: "Fortas J",
+      })
+    );
+    expect(toPlainText(runs)).toBe("Re Gault, 387 US 1, 13–14, 27–8 (Fortas J) (1967)");
+    expect(italicText(runs)).toBe("Re Gault");
+  });
+
+  test("dispatches an unreported US case with judge per AGLC4 ch 25 ex 30 fields (rules 25.1.7-25.1.8)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.usa", {
+        foreignSubType: "case",
+        caseTitle: "City of Birmingham v Citigroup Inc",
+        court: "ND Ala",
+        docketNumber: "No CV-09-BE-467-S",
+        date: "19 August 2009",
+        slipOpPinpoint: "3",
+        judge: "Bowdre J",
+      })
+    );
+    // Ex 30 omits 'slip op', contradicting rule 25.1.7's template; the rule
+    // text governs per DECISION-012 (matches the formatter-level test).
+    expect(toPlainText(runs)).toBe(
+      "City of Birmingham v Citigroup Inc (ND Ala, No CV-09-BE-467-S, 19 August 2009) " +
+        "slip op 3 (Bowdre J)"
+    );
+  });
+
+  test("dispatches foreign legislation with a published translation per AGLC4 ch 26 ex 4 (rule 26.1.2)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.other", {
+        foreignSubType: "legislation",
+        title: "Civil Code",
+        jurisdiction: "France",
+        publishedTranslation: "John H Crabb, The French Civil Code (Rothman, rev ed, 1995)",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Civil Code (France) [tr John H Crabb, The French Civil Code (Rothman, rev ed, 1995)]"
+    );
+  });
+
+  test("dispatches a foreign decision with a published translation per AGLC4 ch 26 ex 7 (rule 26.1.2)", () => {
+    const runs = formatCitation(
+      makeCitation("foreign.other", {
+        foreignSubType: "case",
+        caseTitle: "Jand'heur I",
+        court: "French Court of Cassation",
+        date: "21 February 1927",
+        publishedTranslation:
+          "Edward A Tomlinson, 'Tort Liability in France for the Act of Things: " +
+          "A Study of Judicial Lawmaking' (1988) 48 Louisiana Law Review 1299, 1366",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Jand'heur I, French Court of Cassation, 21 February 1927 " +
+        "[tr Edward A Tomlinson, 'Tort Liability in France for the Act of Things: " +
+        "A Study of Judicial Lawmaking' (1988) 48 Louisiana Law Review 1299, 1366]"
+    );
+  });
+});
+
+// ─── Rule 26.4 + PARITY-121 secondary dispatch wiring (final mop-up) ────────
+
+describe("Rule 26.4 and PARITY-121: secondary dispatch wiring", () => {
+  test("dispatches a non-English book with a title translation per AGLC4 ch 26 ex 21 (rule 26.4)", () => {
+    const runs = formatCitation(
+      makeCitation("book", {
+        authors: [{ givenNames: "Jürgen", surname: "Schwarze" }],
+        title: "Der Reformvertrag von Lissabon",
+        translatedTitle: "The Reform Treaty of Lisbon",
+        publisher: "Nomos",
+        year: "2009",
+        pinpoint: "181",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Jürgen Schwarze, Der Reformvertrag von Lissabon [The Reform Treaty of Lisbon] " +
+        "(Nomos, 2009) 181"
+    );
+    expect(italicText(runs)).toBe("Der Reformvertrag von Lissabon");
+  });
+
+  test("dispatches a non-English blog post with element translations per AGLC4 ch 26 ex 22 (rule 26.4)", () => {
+    // The guide's example ends ', archived at <perma link>'; the formatter
+    // carries no archive element (matching the rule 7.15 ex 113 test), so
+    // the assertion stops at the URL.
+    const runs = formatCitation(
+      makeCitation("internet_material", {
+        title: "Quelques Vices de Procédure",
+        translatedTitle: "Some Procedural Flaws",
+        websiteName: "Le Blog du Droit Européen des Brevets",
+        translatedWebsiteName: "Blog of European Patent Law",
+        documentType: "Blog Post",
+        date: "13 September 2009",
+        url: "http://europeanpatentcaselaw.blogspot.com/2009/09/quelques-vices-de-procedure.html",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "‘Quelques Vices de Procédure’ [Some Procedural Flaws], " +
+        "Le Blog du Droit Européen des Brevets [Blog of European Patent Law] " +
+        "(Blog Post, 13 September 2009) " +
+        "<http://europeanpatentcaselaw.blogspot.com/2009/09/quelques-vices-de-procedure.html>"
+    );
+  });
+
+  test("dispatches a judicially-authored article per AGLC4 ch 4 ex 19 (rule 4.1.5)", () => {
+    const runs = formatCitation(
+      makeCitation("journal.article", {
+        authors: [
+          { givenNames: "Michael", surname: "Kirby", isJudge: true, judicialTitle: "Justice" },
+        ],
+        title: "Transnational Judicial Dialogue, Internationalisation of Law and Australian Judges",
+        year: "2008",
+        volume: "9",
+        issue: "1",
+        journal: "Melbourne Journal of International Law",
+        startingPage: "171",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Justice Michael Kirby, " +
+        "‘Transnational Judicial Dialogue, Internationalisation of Law and Australian Judges’ " +
+        "(2008) 9(1) Melbourne Journal of International Law 171"
+    );
+    expect(italicText(runs)).toBe("Melbourne Journal of International Law");
+  });
+
+  test("dispatches an internet-material pinpoint before the URL (rule 7.15; PARITY-121, ex 113 fields)", () => {
+    const runs = formatCitation(
+      makeCitation("internet_material", {
+        authors: [{ givenNames: "Martin", surname: "Clark" }],
+        title: "Koani v The Queen",
+        websiteName: "Opinions on High",
+        documentType: "Blog Post",
+        date: "18 October 2017",
+        pinpoint: "[4]",
+        url: "http://blogs.unimelb.edu.au/opinionsonhigh/2017/10/18/koani-case-page/",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Martin Clark, ‘Koani v The Queen’, Opinions on High (Blog Post, 18 October 2017) " +
+        "[4] <http://blogs.unimelb.edu.au/opinionsonhigh/2017/10/18/koani-case-page/>"
+    );
+  });
+
+  test("dispatches a parliamentary research paper pinpoint per the rule 7.2.1 template (PARITY-121, ex 33 fields)", () => {
+    const runs = formatCitation(
+      makeCitation("research_paper.parliamentary", {
+        authors: [{ givenNames: "Amanda", surname: "Biggs" }],
+        title: "Medicare: A Quick Guide",
+        documentType: "Research Paper",
+        body: "Parliamentary Library",
+        legislature: "Parliament of Australia",
+        date: "12 July 2016",
+        pinpoint: "3",
+      })
+    );
+    expect(toPlainText(runs)).toBe(
+      "Amanda Biggs, ‘Medicare: A Quick Guide’ " +
+        "(Research Paper, Parliamentary Library, Parliament of Australia, 12 July 2016) 3"
+    );
   });
 });

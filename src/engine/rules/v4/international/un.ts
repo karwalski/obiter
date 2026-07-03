@@ -83,7 +83,9 @@ export function formatUnCharter(article?: string): FormattedRun[] {
  * AGLC4 Rule 9.2.13: Pinpoints end the citation; elements after the UN
  * document number take no separating punctuation.
  *
- * AGLC4 Rule 9.2.14: Only include elements that are applicable.
+ * AGLC4 Rule 9.2.14: A document considered by more than one organ carries
+ * parallel citations to both organs' Official Records, separated by a
+ * semicolon, with both document numbers joined by 'and' ('UN Docs').
  *
  * @param data - The UN document citation data.
  * @returns An array of FormattedRun objects representing the formatted citation.
@@ -99,6 +101,12 @@ export function formatUnDocument(data: {
   session?: string;
   meetingNumber?: string;
   agendaItem?: string;
+  /**
+   * The second organ's Official Records elements for documents of
+   * multiple organs (rule 9.2.14), eg 'UN SCOR, 56th sess'. Emitted after
+   * the first organ's elements, preceded by a semicolon (guide ex 37).
+   */
+  parallelOfficialRecords?: string;
   supplement?: string;
   documentNumber: string;
   date: string;
@@ -162,6 +170,13 @@ export function formatUnDocument(data: {
     sep();
     const label = /\band\b|,/.test(data.agendaItem) ? "Agenda Items" : "Agenda Item";
     runs.push({ text: `${label} ${data.agendaItem}` });
+  }
+
+  // Parallel Official Records of a second organ — semicolon-separated
+  // (Rule 9.2.14, guide ex 37: '…Agenda Items 42, 88 and 166; UN SCOR,
+  // 56th sess, UN Docs…')
+  if (data.parallelOfficialRecords) {
+    runs.push({ text: `; ${data.parallelOfficialRecords}` });
   }
 
   // Supplement (Rule 9.2.9)

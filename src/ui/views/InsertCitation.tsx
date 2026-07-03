@@ -184,6 +184,7 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
       {
         label: "UN Materials",
         types: [
+          { value: "un.charter", label: "UN Charter" },
           { value: "un.document", label: "UN Document" },
           { value: "un.communication", label: "UN Communication" },
           { value: "un.yearbook", label: "UN Yearbook" },
@@ -381,6 +382,7 @@ const CORE_SOURCE_TYPES: SourceType[] = [
   "foreign.uk",
   "foreign.usa",
   "foreign.other",
+  "un.charter",
   "un.document",
   "un.communication",
   "un.yearbook",
@@ -1621,6 +1623,7 @@ export default function InsertCitation(): JSX.Element {
         renderBookAudiobookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
       {selectedSourceType === "book.ebook" &&
         renderBookEbookForm(formData, updateField, authors, updateAuthor, addAuthor, removeAuthor, isAglcStandard)}
+      {selectedSourceType === "un.charter" && renderUnCharterForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "un.document" && renderUnDocumentForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "un.communication" && renderUnCommunicationForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "un.yearbook" && renderUnYearbookForm(formData, updateField, isAglcStandard)}
@@ -4540,7 +4543,7 @@ function renderJournalForm(
           Article Title
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "5.1" } : {})}
-            description="The title of the article, enclosed in single quotation marks."
+            description="The title of the article, enclosed in single quotation marks. To italicise words that are italic in the original source (eg a case name), surround them with asterisks: *IceTV*. Type ** for a literal asterisk."
             example="'The Rule of Law'"
           />
         </label>
@@ -4712,7 +4715,7 @@ function renderBookForm(
           Title
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "6.1" } : {})}
-            description="The title of the book. Italicised in the citation."
+            description="The title of the book. Italicised in the citation. Words that are italic in the original (eg a case name) simply remain italic within the italic title (rule 4.2), so no markup is needed."
             example="The Common Law"
           />
         </label>
@@ -4723,6 +4726,25 @@ function renderBookForm(
           value={(data.title as string) || ""}
           placeholder="e.g. The Common Law"
           onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-book-translated-title">
+          Title Translation (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "26.4" } : {})}
+            description="For a non-English title, its English translation. It follows the title in square brackets and is never italicised; the original title is reproduced as typed."
+            example="The Reform Treaty of Lisbon"
+          />
+        </label>
+        <input
+          id="ic-book-translated-title"
+          className="ic-input"
+          type="text"
+          value={(data.translatedTitle as string) || ""}
+          placeholder="For non-English titles"
+          onChange={(e) => updateField("translatedTitle", e.target.value)}
         />
       </div>
 
@@ -5806,6 +5828,11 @@ function renderReportForm(
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-rpt-title">
           Title
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "7.1.1" } : {})}
+            description="The title of the report. Italicised in the citation. Words that are italic in the original (eg a case name) simply remain italic within the italic title (rule 4.2), so no markup is needed."
+            example="Serious Invasions of Privacy in the Digital Era"
+          />
         </label>
         <input
           id="ic-rpt-title"
@@ -8133,6 +8160,25 @@ function renderNewspaperForm(
       </div>
 
       <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-news-translated-title">
+          Title Translation (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "26.4" } : {})}
+            description="For a non-English article title, its English translation. It follows the title in square brackets and is never italicised."
+            example="The Night of Ideas"
+          />
+        </label>
+        <input
+          id="ic-news-translated-title"
+          className="ic-input"
+          type="text"
+          value={(data.translatedTitle as string) || ""}
+          placeholder="For non-English titles"
+          onChange={(e) => updateField("translatedTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
         <label className="ic-label ic-label--checkbox">
           <input
             type="checkbox"
@@ -8699,6 +8745,25 @@ function renderInternetMaterialForm(
       </div>
 
       <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-translated-title">
+          Title Translation (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "26.4" } : {})}
+            description="For a non-English title, its English translation. It follows the title in square brackets and is never italicised."
+            example="Some Procedural Flaws"
+          />
+        </label>
+        <input
+          id="ic-web-translated-title"
+          className="ic-input"
+          type="text"
+          value={(data.translatedTitle as string) || ""}
+          placeholder="For non-English titles"
+          onChange={(e) => updateField("translatedTitle", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
         <label className="ic-label" htmlFor="ic-web-website">
           Website Name
         </label>
@@ -8709,6 +8774,25 @@ function renderInternetMaterialForm(
           value={(data.websiteName as string) || ""}
           placeholder="e.g. Australian Government Department of Health"
           onChange={(e) => updateField("websiteName", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-web-translated-website">
+          Website Name Translation (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "26.4" } : {})}
+            description="For a non-English website name, its English translation. It follows the website name in square brackets and is never italicised."
+            example="Blog of European Patent Law"
+          />
+        </label>
+        <input
+          id="ic-web-translated-website"
+          className="ic-input"
+          type="text"
+          value={(data.translatedWebsiteName as string) || ""}
+          placeholder="For non-English websites"
+          onChange={(e) => updateField("translatedWebsiteName", e.target.value)}
         />
       </div>
 
@@ -8864,18 +8948,39 @@ function renderSocialMediaForm(
         />
       </div>
 
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-sm-date">
-          Date
-        </label>
-        <input
-          id="ic-sm-date"
-          className="ic-input"
-          type="text"
-          value={(data.date as string) || ""}
-          placeholder="e.g. 15 March 2021"
-          onChange={(e) => updateField("date", e.target.value)}
-        />
+      <div className="ic-field-row">
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-sm-date">
+            Date
+          </label>
+          <input
+            id="ic-sm-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 15 March 2021"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field ic-field--grow">
+          <label className="ic-label" htmlFor="ic-sm-time">
+            Time posted (optional)
+            <FieldHelp
+              {...(isAglcStandard ? { ruleNumber: "7.16" } : {})}
+              description="The time of the post as shown on the platform, cited after the date inside the parenthetical."
+              example="9:37pm AEST"
+            />
+          </label>
+          <input
+            id="ic-sm-time"
+            className="ic-input"
+            type="text"
+            value={(data.time as string) || ""}
+            placeholder="e.g. 9:37pm AEST"
+            onChange={(e) => updateField("time", e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="ic-field">
@@ -8908,6 +9013,39 @@ function renderSocialMediaForm(
           value={(data.url as string) || ""}
           placeholder="e.g. https://twitter.com/HighCourtAus/status/..."
           onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function renderUnCharterForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+  isAglcStandard: boolean,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <p className="ic-note">
+        The Charter is cited by its fixed title, Charter of the United Nations, with an optional
+        article reference.
+      </p>
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-uncharter-article">
+          Article
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.1" } : {})}
+            description="The article of the Charter being cited, if any. The 'art' abbreviation is added automatically."
+            example="2(4)"
+          />
+        </label>
+        <input
+          id="ic-uncharter-article"
+          className="ic-input"
+          type="text"
+          value={(data.article as string) || ""}
+          placeholder="e.g. 2(4)"
+          onChange={(e) => updateField("article", e.target.value)}
         />
       </div>
     </div>
@@ -9041,6 +9179,25 @@ function renderUnDocumentForm(
           value={(data.session as string) || ""}
           placeholder="e.g. 3rd sess"
           onChange={(e) => updateField("session", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-undoc-parallel-or">
+          Second organ official records (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "9.2.14" } : {})}
+            description="Where the document was issued in the Official Records of more than one organ, the second organ's Official Records reference. It follows the first after a semicolon."
+            example="UN SCOR, 56th sess"
+          />
+        </label>
+        <input
+          id="ic-undoc-parallel-or"
+          className="ic-input"
+          type="text"
+          value={(data.parallelOfficialRecords as string) || ""}
+          placeholder="e.g. UN SCOR, 56th sess"
+          onChange={(e) => updateField("parallelOfficialRecords", e.target.value)}
         />
       </div>
 
@@ -9581,6 +9738,44 @@ function renderIcjPleadingForm(
       </div>
 
       <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-pcij-series">
+          PCIJ Series C Number (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.3" } : {})}
+            description="For pleadings before the Permanent Court of International Justice, the series C number. When set, the citation uses the PCIJ (ser C) form instead of ICJ Pleadings."
+            example="72"
+          />
+        </label>
+        <input
+          id="ic-icjp-pcij-series"
+          className="ic-input"
+          type="text"
+          value={(data.pcijSeriesNumber as string) || ""}
+          placeholder="e.g. 72"
+          onChange={(e) => updateField("pcijSeriesNumber", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-icjp-pcij-part">
+          PCIJ Part (optional)
+          <FieldHelp
+            {...(isAglcStandard ? { ruleNumber: "10.3" } : {})}
+            description="The part of the PCIJ series C volume, rendered as 'pt'."
+            example="1"
+          />
+        </label>
+        <input
+          id="ic-icjp-pcij-part"
+          className="ic-input"
+          type="text"
+          value={(data.pcijPart as string) || ""}
+          placeholder="e.g. 1"
+          onChange={(e) => updateField("pcijPart", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
         <label className="ic-label" htmlFor="ic-icjp-genlist">
           General List Number
           <FieldHelp
@@ -10036,40 +10231,131 @@ function renderIccTribunalCaseForm(
   updateField: (key: string, value: unknown) => void,
   isAglcStandard: boolean,
 ): JSX.Element {
+  const isRulesDocument = (data.documentType as string) === "rules";
   return (
     <div className="ic-form-fields">
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-accused">
-          Accused
-          <FieldHelp
-            {...(isAglcStandard ? { ruleNumber: "12.2" } : {})}
-            description="The name of the accused person."
-            example="Prosecutor v Lubanga"
+      <div className="ic-field ic-field--checkbox">
+        <label className="ic-checkbox-label">
+          <input
+            type="checkbox"
+            checked={isRulesDocument}
+            onChange={(e) => {
+              updateField("documentType", e.target.checked ? "rules" : "");
+              if (e.target.checked) {
+                // The engine routes to the rules form only when no case
+                // number or decision type is stored
+                updateField("caseNumber", "");
+                updateField("phase", "");
+              }
+            }}
           />
+          Rules or basic document of the tribunal (Rule 12.1.2)
         </label>
-        <input
-          id="ic-icc-accused"
-          className="ic-input"
-          type="text"
-          value={(data.caseTitle as string) || (data.accused as string) || ""}
-          placeholder="e.g. Prosecutor v Lubanga"
-          onChange={(e) => updateField("caseTitle", e.target.value)}
-        />
+        {isRulesDocument && (
+          <p className="ic-note">
+            Rules and basic documents are cited by tribunal, title, document number and adopted
+            date; the case fields on this form are not used.
+          </p>
+        )}
       </div>
 
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-caseno">
-          Case Number
-        </label>
-        <input
-          id="ic-icc-caseno"
-          className="ic-input"
-          type="text"
-          value={(data.caseNumber as string) || ""}
-          placeholder="e.g. ICC-01/04-01/06"
-          onChange={(e) => updateField("caseNumber", e.target.value)}
-        />
-      </div>
+      {isRulesDocument && (
+        <>
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-icc-rules-title">
+              Title
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "12.1.2" } : {})}
+                description="The title of the rules or basic document, italicised in the citation."
+                example="Rules of Procedure and Evidence"
+              />
+            </label>
+            <input
+              id="ic-icc-rules-title"
+              className="ic-input"
+              type="text"
+              value={(data.title as string) || ""}
+              placeholder="e.g. Rules of Procedure and Evidence"
+              onChange={(e) => updateField("title", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-icc-rules-docno">
+              Document Number (optional)
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "12.1.2" } : {})}
+                description="The document number, if the tribunal assigns one. The 'Doc No' label is added automatically."
+                example="ICC-ASP/1/3"
+              />
+            </label>
+            <input
+              id="ic-icc-rules-docno"
+              className="ic-input"
+              type="text"
+              value={(data.documentNumber as string) || ""}
+              placeholder="e.g. ICC-ASP/1/3"
+              onChange={(e) => updateField("documentNumber", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-icc-rules-adopted">
+              Adopted Date
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "12.1.2" } : {})}
+                description="The full date the rules or document was adopted, rendered as '(adopted ...)'."
+                example="9 September 2002"
+              />
+            </label>
+            <input
+              id="ic-icc-rules-adopted"
+              className="ic-input"
+              type="text"
+              value={(data.adoptedDate as string) || ""}
+              placeholder="e.g. 9 September 2002"
+              onChange={(e) => updateField("adoptedDate", e.target.value)}
+            />
+          </div>
+        </>
+      )}
+
+      {!isRulesDocument && (
+        <>
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-icc-accused">
+              Accused
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "12.2" } : {})}
+                description="The name of the accused person."
+                example="Prosecutor v Lubanga"
+              />
+            </label>
+            <input
+              id="ic-icc-accused"
+              className="ic-input"
+              type="text"
+              value={(data.caseTitle as string) || (data.accused as string) || ""}
+              placeholder="e.g. Prosecutor v Lubanga"
+              onChange={(e) => updateField("caseTitle", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-icc-caseno">
+              Case Number
+            </label>
+            <input
+              id="ic-icc-caseno"
+              className="ic-input"
+              type="text"
+              value={(data.caseNumber as string) || ""}
+              placeholder="e.g. ICC-01/04-01/06"
+              onChange={(e) => updateField("caseNumber", e.target.value)}
+            />
+          </div>
+        </>
+      )}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-icc-tribunal">
@@ -10118,54 +10404,60 @@ function renderIccTribunalCaseForm(
         </div>
       )}
 
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-chamber">
-          Chamber
-        </label>
-        <input
-          id="ic-icc-chamber"
-          className="ic-input"
-          type="text"
-          value={(data.chamber as string) || ""}
-          placeholder="e.g. Trial Chamber I"
-          onChange={(e) => updateField("chamber", e.target.value)}
-        />
-      </div>
-
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-decisiontype">
-          Decision Type
-        </label>
-        <input
-          id="ic-icc-decisiontype"
-          className="ic-input"
-          type="text"
-          value={(data.phase as string) || (data.decisionType as string) || ""}
-          placeholder="e.g. Judgment, Decision on Confirmation of Charges"
-          onChange={(e) => updateField("phase", e.target.value)}
-        />
-      </div>
-
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-report">
-          Report Series
-          <FieldHelp
-            {...(isAglcStandard ? { ruleNumber: "12.3" } : {})}
-            description="The abbreviation of the report series where the decision is reproduced. Leave blank for decisions cited by case number and date."
-            example="Ann Dig"
+      {!isRulesDocument && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-icc-chamber">
+            Chamber
+          </label>
+          <input
+            id="ic-icc-chamber"
+            className="ic-input"
+            type="text"
+            value={(data.chamber as string) || ""}
+            placeholder="e.g. Trial Chamber I"
+            onChange={(e) => updateField("chamber", e.target.value)}
           />
-        </label>
-        <input
-          id="ic-icc-report"
-          className="ic-input"
-          type="text"
-          value={(data.reportSeries as string) || ""}
-          placeholder="e.g. Ann Dig"
-          onChange={(e) => updateField("reportSeries", e.target.value)}
-        />
-      </div>
+        </div>
+      )}
 
-      {!!data.reportSeries && (
+      {!isRulesDocument && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-icc-decisiontype">
+            Decision Type
+          </label>
+          <input
+            id="ic-icc-decisiontype"
+            className="ic-input"
+            type="text"
+            value={(data.phase as string) || (data.decisionType as string) || ""}
+            placeholder="e.g. Judgment, Decision on Confirmation of Charges"
+            onChange={(e) => updateField("phase", e.target.value)}
+          />
+        </div>
+      )}
+
+      {!isRulesDocument && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-icc-report">
+            Report Series
+            <FieldHelp
+              {...(isAglcStandard ? { ruleNumber: "12.3" } : {})}
+              description="The abbreviation of the report series where the decision is reproduced. Leave blank for decisions cited by case number and date."
+              example="Ann Dig"
+            />
+          </label>
+          <input
+            id="ic-icc-report"
+            className="ic-input"
+            type="text"
+            value={(data.reportSeries as string) || ""}
+            placeholder="e.g. Ann Dig"
+            onChange={(e) => updateField("reportSeries", e.target.value)}
+          />
+        </div>
+      )}
+
+      {!isRulesDocument && !!data.reportSeries && (
         <>
           <div className="ic-field-row">
             <div className="ic-field ic-field--grow">
@@ -10232,19 +10524,21 @@ function renderIccTribunalCaseForm(
         </>
       )}
 
-      <div className="ic-field">
-        <label className="ic-label" htmlFor="ic-icc-date">
-          Date
-        </label>
-        <input
-          id="ic-icc-date"
-          className="ic-input"
-          type="text"
-          value={(data.date as string) || ""}
-          placeholder="e.g. 14 March 2012"
-          onChange={(e) => updateField("date", e.target.value)}
-        />
-      </div>
+      {!isRulesDocument && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-icc-date">
+            Date
+          </label>
+          <input
+            id="ic-icc-date"
+            className="ic-input"
+            type="text"
+            value={(data.date as string) || ""}
+            placeholder="e.g. 14 March 2012"
+            onChange={(e) => updateField("date", e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="ic-field">
         <label className="ic-label" htmlFor="ic-icc-pinpoint">
@@ -10255,7 +10549,7 @@ function renderIccTribunalCaseForm(
           className="ic-input"
           type="text"
           value={(data.pinpoint as string) || ""}
-          placeholder="e.g. [125]"
+          placeholder={isRulesDocument ? "e.g. r 3(F)" : "e.g. [125]"}
           onChange={(e) => updateField("pinpoint", e.target.value)}
         />
       </div>
@@ -11573,7 +11867,7 @@ function renderBookChapterForm(
           Chapter Title
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "6.6.1" } : {})}
-            description="The title of the chapter, enclosed in single quotation marks."
+            description="The title of the chapter, enclosed in single quotation marks. To italicise words that are italic in the original source (eg a case name), surround them with asterisks: *IceTV*. Type ** for a literal asterisk."
             example="'The Separation of Powers'"
           />
         </label>
@@ -12156,6 +12450,27 @@ function renderForeignForm(
             </div>
           )}
 
+          {country === "usa" && (
+            <div className="ic-field">
+              <label className="ic-label" htmlFor="ic-fgn-usjudge">
+                Judge
+                <FieldHelp
+                  {...(isAglcStandard ? { ruleNumber: "25.1.8" } : {})}
+                  description="The judge's name with the abbreviated judicial title (Judge/Associate Justice/Circuit Judge become 'J'; Presiding Judge 'PJ'), shown in parentheses after the pinpoint."
+                  example="Fortas J"
+                />
+              </label>
+              <input
+                id="ic-fgn-usjudge"
+                className="ic-input"
+                type="text"
+                value={(data.judge as string) || ""}
+                placeholder="e.g. Fortas J"
+                onChange={(e) => updateField("judge", e.target.value)}
+              />
+            </div>
+          )}
+
           {country === "uk" && (
             <div className="ic-field-row">
               <div className="ic-field ic-field--grow">
@@ -12583,6 +12898,27 @@ function renderForeignForm(
             </div>
           )}
 
+          {country === "south_africa" && (
+            <div className="ic-field">
+              <label className="ic-label" htmlFor="ic-fgn-actnumber">
+                Act Number
+                <FieldHelp
+                  {...(isAglcStandard ? { ruleNumber: "23.2.1" } : {})}
+                  description="The Act number as it appears on the statute, shown as 'Act Number of Year'."
+                  example="108"
+                />
+              </label>
+              <input
+                id="ic-fgn-actnumber"
+                className="ic-input"
+                type="text"
+                value={(data.actNumber as string) || ""}
+                placeholder="e.g. 108"
+                onChange={(e) => updateField("actNumber", e.target.value)}
+              />
+            </div>
+          )}
+
           {country === "china" && (
             <>
               <div className="ic-field-row">
@@ -12676,6 +13012,109 @@ function renderForeignForm(
               />
             </div>
           )}
+        </>
+      )}
+
+      {country === "other" && (isCaseLike || isLegislationLike) && (
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-fgn-pubtranslation">
+            Published Translation Citation
+            <FieldHelp
+              {...(isAglcStandard ? { ruleNumber: "26.1.2" } : {})}
+              description="Where a published translation was consulted, its full citation. It is appended in square brackets preceded by 'tr' and replaces any translator marker."
+              example="John H Crabb, The French Civil Code (Rothman, rev ed, 1995)"
+            />
+          </label>
+          <input
+            id="ic-fgn-pubtranslation"
+            className="ic-input"
+            type="text"
+            value={(data.publishedTranslation as string) || ""}
+            placeholder="e.g. John H Crabb, The French Civil Code (Rothman, rev ed, 1995)"
+            onChange={(e) => updateField("publishedTranslation", e.target.value)}
+          />
+        </div>
+      )}
+
+      {country === "uk" && subType === "secondary" && (
+        <>
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-fgn-ukpp-author">
+              Author
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "24.4.3" } : {})}
+                description="The individual or body that authored the parliamentary paper."
+                example="National Audit Office"
+              />
+            </label>
+            <input
+              id="ic-fgn-ukpp-author"
+              className="ic-input"
+              type="text"
+              value={(data.author as string) || ""}
+              placeholder="e.g. National Audit Office"
+              onChange={(e) => updateField("author", e.target.value)}
+            />
+          </div>
+
+          <div className="ic-field-row">
+            <div className="ic-field ic-field--grow">
+              <label className="ic-label" htmlFor="ic-fgn-ukpp-paperno">
+                Paper Number
+                <FieldHelp
+                  {...(isAglcStandard ? { ruleNumber: "24.4.3" } : {})}
+                  description="The paper number element, including the House."
+                  example="House of Commons Paper No 84"
+                />
+              </label>
+              <input
+                id="ic-fgn-ukpp-paperno"
+                className="ic-input"
+                type="text"
+                value={(data.paperNumber as string) || ""}
+                placeholder="e.g. House of Commons Paper No 84"
+                onChange={(e) => updateField("paperNumber", e.target.value)}
+              />
+            </div>
+
+            <div className="ic-field ic-field--grow">
+              <label className="ic-label" htmlFor="ic-fgn-ukpp-paperno2">
+                Second Paper Number
+                <FieldHelp
+                  {...(isAglcStandard ? { ruleNumber: "24.4.3" } : {})}
+                  description="Where the paper was presented to both Houses, the second House's paper number."
+                  example="House of Lords Paper No 18"
+                />
+              </label>
+              <input
+                id="ic-fgn-ukpp-paperno2"
+                className="ic-input"
+                type="text"
+                value={(data.paperNumber2 as string) || ""}
+                placeholder="e.g. House of Lords Paper No 18"
+                onChange={(e) => updateField("paperNumber2", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="ic-field">
+            <label className="ic-label" htmlFor="ic-fgn-ukpp-session">
+              Session
+              <FieldHelp
+                {...(isAglcStandard ? { ruleNumber: "24.4.3" } : {})}
+                description="The year(s) of the parliamentary session, rendered as 'Session ...'."
+                example="2009–10"
+              />
+            </label>
+            <input
+              id="ic-fgn-ukpp-session"
+              className="ic-input"
+              type="text"
+              value={(data.session as string) || ""}
+              placeholder="e.g. 2009–10"
+              onChange={(e) => updateField("session", e.target.value)}
+            />
+          </div>
         </>
       )}
 

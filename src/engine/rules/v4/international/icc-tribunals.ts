@@ -149,3 +149,67 @@ export function formatIccCaseReported(data: {
 
   return runs;
 }
+
+// ─── PARITY: Rules of Tribunals and Courts (Rule 12.1.2) ────────────────────
+
+/**
+ * Formats the procedural or internal rules of an international criminal
+ * tribunal or court per AGLC4 Rule 12.1.2.
+ *
+ * AGLC4 Rule 12.1.2: the form is
+ *   «Name of Tribunal or Court», *Title of Rules*, Doc No «Document
+ *   Number» (adopted «Full Date») «Pinpoint».
+ * A document number is included only where one appears on the rules
+ * themselves (labelled 'Doc No', rule 9.2.10); where the rules have been
+ * revised, the date is the adoption date of the revision. Pinpoints follow
+ * rule 8.7 and are generally to rules and sub-rules.
+ *
+ * @example
+ *   // International Criminal Court, Rules of Procedure and Evidence,
+ *   //   Doc No ICC-ASP/1/3 (adopted 9 September 2002) r 74  — AGLC4 ex 6
+ *   formatTribunalRules({
+ *     tribunal: "International Criminal Court",
+ *     title: "Rules of Procedure and Evidence",
+ *     documentNumber: "ICC-ASP/1/3",
+ *     adoptedDate: "9 September 2002",
+ *     pinpoint: "r 74",
+ *   })
+ *
+ * @param data - The tribunal rules citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 12.1.2.
+ */
+export function formatTribunalRules(data: {
+  tribunal: string;
+  title: string;
+  documentNumber?: string;
+  adoptedDate: string;
+  pinpoint?: string;
+}): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Name of the tribunal or court (roman)
+  runs.push({ text: `${data.tribunal}, ` });
+
+  // Title of the rules — italicised
+  runs.push({ text: data.title, italic: true });
+
+  // Document number — only where it appears on the rules (Rule 9.2.10)
+  if (data.documentNumber) {
+    const docNo = /^Doc No\b/i.test(data.documentNumber)
+      ? data.documentNumber
+      : `Doc No ${data.documentNumber}`;
+    runs.push({ text: `, ${docNo}` });
+  }
+
+  // Adoption date — of the revision, where revised
+  runs.push({ text: ` (adopted ${data.adoptedDate})` });
+
+  // Pinpoint — generally rules and sub-rules (Rule 8.7)
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
+
+  return runs;
+}

@@ -8,7 +8,11 @@
  * numbers from the Guide. Expected outputs are derived from the AGLC4 text.
  */
 
-import { formatTreaty, formatMou } from "../../src/engine/rules/v4/international/treaties";
+import {
+  abbreviateTreatySeries,
+  formatTreaty,
+  formatMou,
+} from "../../src/engine/rules/v4/international/treaties";
 import {
   formatUnCharter,
   formatUnDocument,
@@ -30,6 +34,7 @@ import {
 import {
   formatIccCase,
   formatIccCaseReported,
+  formatTribunalRules,
 } from "../../src/engine/rules/v4/international/icc-tribunals";
 import {
   formatWtoDocument,
@@ -44,6 +49,8 @@ import {
   formatCjeuCase,
   formatCjeuUnreportedCase,
   formatSupranationalDocument,
+  formatSupranationalRules,
+  formatSupranationalPleading,
 } from "../../src/engine/rules/v4/international/supranational";
 import { FormattedRun } from "../../src/types/formattedRun";
 
@@ -1468,5 +1475,222 @@ describe("Chapter 14 — Supranational Materials", () => {
         "Report on Admissibility: Raul Rolando Romero Feris, " +
         "Doc No OEA/Ser.L/V/II.Doc.5, 152nd extraord period sess, 29 January 2015"
     );
+  });
+});
+
+// =============================================================================
+// Rule 8.4 — Treaty Series (RE-AUDIT closure)
+// =============================================================================
+
+describe("Rule 8.4 — treaty series forms", () => {
+  // AGLC4 Rule 8.4: sequential-deposit-organised series — 'ETS No 185' (ex 12)
+  test("formats sequential-deposit series per AGLC4 ex 12 (rule 8.4)", () => {
+    const runs = formatTreaty({
+      title: "Convention on Cybercrime",
+      openedDate: "23 November 2001",
+      treatySeries: "ETS",
+      sequentialNumber: 185,
+      entryIntoForceDate: "1 July 2003",
+      pinpoint: { type: "article", value: "4(1)" },
+    });
+    expect(toText(runs)).toBe(
+      "Convention on Cybercrime, opened for signature 23 November 2001, " +
+        "ETS No 185 (entered into force 1 July 2003) art 4(1)"
+    );
+    expect(italicSegments(runs)).toContain("Convention on Cybercrime");
+  });
+
+  // AGLC4 Rule 8.4: year-organised series — '[2015] OJ L 328/3' (ex 13)
+  test("formats year-organised series per AGLC4 ex 13 (rule 8.4)", () => {
+    const runs = formatTreaty({
+      title:
+        "Sustainable Fisheries Partnership Agreement between the European Union and the Republic of Liberia",
+      openedDate: "9 September 2015",
+      treatySeries: "OJ",
+      yearOfVolume: 2015,
+      startingPage: "L 328/3",
+      entryIntoForceDate: "9 December 2015",
+    });
+    expect(toText(runs)).toBe(
+      "Sustainable Fisheries Partnership Agreement between the European Union and " +
+        "the Republic of Liberia, opened for signature 9 September 2015, " +
+        "[2015] OJ L 328/3 (entered into force 9 December 2015)"
+    );
+  });
+
+  // AGLC4 Rule 8.4: volume-organised series unchanged — '1155 UNTS 331' (ex 10)
+  test("formats volume-organised series per AGLC4 ex 10 (rule 8.4)", () => {
+    const runs = formatTreaty({
+      title: "Vienna Convention on the Law of Treaties",
+      openedDate: "23 May 1969",
+      treatySeries: "UNTS",
+      seriesVolume: 1155,
+      startingPage: 331,
+      entryIntoForceDate: "27 January 1980",
+    });
+    expect(toText(runs)).toBe(
+      "Vienna Convention on the Law of Treaties, opened for signature 23 May 1969, " +
+        "1155 UNTS 331 (entered into force 27 January 1980)"
+    );
+  });
+
+  // AGLC4 Rule 8.4: 'the name of the treaty series should be abbreviated' —
+  // the rule's own abbreviation table
+  test("abbreviates treaty series names per the rule 8.4 table", () => {
+    expect(abbreviateTreatySeries("European Treaty Series")).toBe("ETS");
+    expect(abbreviateTreatySeries("Council of Europe Treaty Series")).toBe("CETS");
+    expect(abbreviateTreatySeries("United Nations Treaty Series")).toBe("UNTS");
+    expect(abbreviateTreatySeries("Consolidated Treaty Series")).toBe("ConTS");
+    expect(abbreviateTreatySeries("International Legal Materials")).toBe("ILM");
+    // Already-abbreviated and unknown names pass through
+    expect(abbreviateTreatySeries("UNTS")).toBe("UNTS");
+    expect(abbreviateTreatySeries("Recueil des Traités")).toBe("Recueil des Traités");
+  });
+});
+
+// =============================================================================
+// Rule 9.2.14 — Documents of Multiple Organs (RE-AUDIT closure)
+// =============================================================================
+
+describe("Rule 9.2.14 — documents of multiple organs", () => {
+  // AGLC4 Rule 9.2.14: parallel Official Records semicolon-separated, both
+  // document numbers joined by 'and' under 'UN Docs' (ex 37)
+  test("formats a multi-organ document per AGLC4 ex 37 (rule 9.2.14)", () => {
+    const runs = formatUnDocument({
+      title:
+        "Letter Dated 5 November 2001 from the Chargé d’affaires ai of the Permanent Mission " +
+        "of the Syrian Arab Republic to the United Nations Addressed to the Secretary-General",
+      officialRecords: "UN GAOR",
+      session: "56th sess",
+      agendaItem: "42, 88 and 166",
+      parallelOfficialRecords: "UN SCOR, 56th sess",
+      documentNumber: "A/56/601 and S/2001/1045",
+      date: "5 November 2001",
+    });
+    expect(toText(runs)).toBe(
+      "Letter Dated 5 November 2001 from the Chargé d’affaires ai of the Permanent Mission " +
+        "of the Syrian Arab Republic to the United Nations Addressed to the Secretary-General, " +
+        "UN GAOR, 56th sess, Agenda Items 42, 88 and 166; UN SCOR, 56th sess, " +
+        "UN Docs A/56/601 and S/2001/1045 (5 November 2001)"
+    );
+  });
+});
+
+// =============================================================================
+// Rule 10.3 — Reported PCIJ Pleadings (RE-AUDIT closure)
+// =============================================================================
+
+describe("Rule 10.3 — PCIJ ser C pleadings", () => {
+  // AGLC4 Rule 10.3: PCIJ form — [Year] PCIJ (ser C) No «Number» pt «Part»,
+  // «Starting Page», «Pinpoint» (ex 28)
+  test("formats a PCIJ ser C pleading per AGLC4 ex 28 (rule 10.3)", () => {
+    const runs = formatIcjPleading({
+      documentTitle: "Speech by Dr Budding",
+      caseName: "Rights of Minorities in Upper Silesia",
+      parties: "Germany v Poland",
+      year: 1928,
+      pcijSeriesNumber: "14",
+      pcijPart: "II",
+      page: 20,
+      pinpoint: "25–7",
+    });
+    expect(toText(runs)).toBe(
+      "'Speech by Dr Budding', Rights of Minorities in Upper Silesia (Germany v Poland) " +
+        "[1928] PCIJ (ser C) No 14 pt II, 20, 25–7"
+    );
+    expect(italicSegments(runs)).toContain("Rights of Minorities in Upper Silesia");
+  });
+});
+
+// =============================================================================
+// Rule 12.1.2 — Rules of Tribunals and Courts (RE-AUDIT closure)
+// =============================================================================
+
+describe("Rule 12.1.2 — rules of international criminal tribunals", () => {
+  // AGLC4 Rule 12.1.2: «Tribunal», *Title*, Doc No «Number»
+  // (adopted «Date») «Pinpoint» (ex 6)
+  test("formats ICC rules per AGLC4 ex 6 (rule 12.1.2)", () => {
+    const runs = formatTribunalRules({
+      tribunal: "International Criminal Court",
+      title: "Rules of Procedure and Evidence",
+      documentNumber: "ICC-ASP/1/3",
+      adoptedDate: "9 September 2002",
+      pinpoint: "r 74",
+    });
+    expect(toText(runs)).toBe(
+      "International Criminal Court, Rules of Procedure and Evidence, " +
+        "Doc No ICC-ASP/1/3 (adopted 9 September 2002) r 74"
+    );
+    expect(italicSegments(runs)).toContain("Rules of Procedure and Evidence");
+  });
+
+  // AGLC4 Rule 12.1.2: no document number where none appears on the rules (ex 8)
+  test("formats ECCC internal rules per AGLC4 ex 8 (rule 12.1.2)", () => {
+    const runs = formatTribunalRules({
+      tribunal: "Extraordinary Chambers in the Courts of Cambodia",
+      title: "Internal Rules",
+      adoptedDate: "16 January 2015",
+      pinpoint: "r 6",
+    });
+    expect(toText(runs)).toBe(
+      "Extraordinary Chambers in the Courts of Cambodia, Internal Rules " +
+        "(adopted 16 January 2015) r 6"
+    );
+  });
+});
+
+// =============================================================================
+// Rules 14.4.3–14.4.4 — Supranational Rules of Procedure and Pleadings
+// =============================================================================
+
+describe("Rule 14.4.3 — rules of procedure of supranational courts", () => {
+  // AGLC4 Rule 14.4.3: «Court», *Rules of Court* (adopted «Date») «Pinpoint» (ex 41)
+  test("formats African Court rules per AGLC4 ex 41 (rule 14.4.3)", () => {
+    const runs = formatSupranationalRules({
+      court: "African Court on Human and Peoples' Rights",
+      title: "Rules of Court",
+      adoptedDate: "2 June 2010",
+      pinpoint: "r 3(1)",
+    });
+    expect(toText(runs)).toBe(
+      "African Court on Human and Peoples' Rights, Rules of Court (adopted 2 June 2010) r 3(1)"
+    );
+    expect(italicSegments(runs)).toContain("Rules of Court");
+  });
+
+  // AGLC4 Rule 14.4.3, ex 42
+  test("formats Inter-American Court rules per AGLC4 ex 42 (rule 14.4.3)", () => {
+    const runs = formatSupranationalRules({
+      court: "Inter-American Court of Human Rights",
+      title: "Rules of Procedure",
+      adoptedDate: "24 November 2000",
+      pinpoint: "art 48(2)",
+    });
+    expect(toText(runs)).toBe(
+      "Inter-American Court of Human Rights, Rules of Procedure " +
+        "(adopted 24 November 2000) art 48(2)"
+    );
+  });
+});
+
+describe("Rule 14.4.4 — pleadings before supranational courts", () => {
+  // AGLC4 Rule 14.4.4, ex 43. The guide's example omits the template's comma
+  // between case number and date ('Series C No 82 1 September 2001'); the
+  // rule's template governs per DECISION-012, so the comma is emitted.
+  test("formats a supranational pleading per AGLC4 ex 43 (rule 14.4.4, template comma per DECISION-012)", () => {
+    const runs = formatSupranationalPleading({
+      documentTitle:
+        "Preliminary Objection by the Government of the Republic of Trinidad and Tobago",
+      caseName: "Constantine v Trinidad and Tobago",
+      court: "Inter-American Court of Human Rights",
+      caseNumber: "Series C No 82",
+      date: "1 September 2001",
+    });
+    expect(toText(runs)).toBe(
+      "'Preliminary Objection by the Government of the Republic of Trinidad and Tobago', " +
+        "Constantine v Trinidad and Tobago " +
+        "(Inter-American Court of Human Rights, Series C No 82, 1 September 2001)"
+    );
+    expect(italicSegments(runs)).toContain("Constantine v Trinidad and Tobago");
   });
 });

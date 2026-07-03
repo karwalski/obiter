@@ -186,6 +186,7 @@ export type SourceType =
   // Part IV — International Materials
   | "treaty" // Rule 8
   | "treaty.mou" // Rule 8.6
+  | "un.charter" // Rule 9.1
   | "un.document" // Rule 9.2
   | "un.communication" // Rule 9.3
   | "un.yearbook" // Rule 9.4

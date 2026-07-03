@@ -7,6 +7,7 @@ import { SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { toTitleCase } from "../general/capitalisation";
 import { shouldItaliciseTitle, shouldQuoteTitle } from "../general/italicisation";
+import { parseTitleMarkup, quoteTitleRuns } from "../general/titleMarkup";
 
 /** Matches a bare span of dates (eg '1937–49', '1901–1950'). */
 const DATE_SPAN = /^\d{4}(\s*[–-]\s*\d{2,4})?$/;
@@ -23,9 +24,10 @@ const DATE_SPAN = /^\d{4}(\s*[–-]\s*\d{2,4})?$/;
  * - title-case capitalisation per Rule 1.7 (including the first word of
  *   each subtitle and the word following a hyphen).
  *
- * Limitation: Rule 4.2 also italicises individual words within a title
- * where italic in the original; titles are stored as plain strings with
- * no markup, so embedded italics cannot be represented here.
+ * Embedded italics (words italic in the original source, eg case names)
+ * are represented with the asterisk marker convention of parseTitleMarkup
+ * (titleMarkup.ts); the markers pass through this normalisation untouched
+ * and are resolved into runs by formatSecondaryTitle.
  *
  * @param title - The raw title text.
  * @returns The normalised, title-cased title text.
@@ -62,8 +64,11 @@ export function formatSecondaryTitleText(title: string): string {
  * - Components (articles, chapters): enclosed in single curly quotes, not italic.
  * - Text is normalised per formatSecondaryTitleText (stops removed,
  *   subtitle punctuation standardised, Rule 1.7 title case).
+ * - Embedded italics use the asterisk convention (parseTitleMarkup):
+ *   marked spans render italic inside quoted titles; inside wholly italic
+ *   titles they remain italic, as rule 4.2 permits no roman portion.
  *
- * @param title - The raw title text.
+ * @param title - The raw title text (may contain asterisk markers).
  * @param sourceType - The AGLC4 source type.
  * @returns An array of FormattedRun objects with appropriate formatting.
  *
@@ -73,15 +78,15 @@ export function formatSecondaryTitle(title: string, sourceType: SourceType): For
   const capitalised = formatSecondaryTitleText(title);
 
   if (shouldItaliciseTitle(sourceType)) {
-    return [{ text: capitalised, italic: true }];
+    return parseTitleMarkup(capitalised, true);
   }
 
   if (shouldQuoteTitle(sourceType)) {
-    return [{ text: "\u2018" + capitalised + "\u2019" }];
+    return quoteTitleRuns(parseTitleMarkup(capitalised, false));
   }
 
-  // Default: plain text (no special formatting).
-  return [{ text: capitalised }];
+  // Default: plain text (embedded italic markers still honoured).
+  return parseTitleMarkup(capitalised, false);
 }
 
 /**
@@ -93,8 +98,12 @@ export function formatSecondaryTitle(title: string, sourceType: SourceType): For
  * - For components (articles, chapters): short title is in single quotes
  *   (not italic), wrapped in parentheses.
  * - Parentheses are never italic.
+ * - Embedded italics use the asterisk convention (parseTitleMarkup), so a
+ *   short title such as `*IceTV* Case Note` renders its marked span italic
+ *   (rule 4.2 via DECISION-021); inside wholly italic short titles the
+ *   markers are consumed and the span stays italic.
  *
- * @param shortTitle - The short title text.
+ * @param shortTitle - The short title text (may contain asterisk markers).
  * @param sourceType - The AGLC4 source type.
  * @returns An array of FormattedRun objects representing the short title introduction.
  *
@@ -107,9 +116,9 @@ export function formatSecondaryShortTitle(
   const runs: FormattedRun[] = [{ text: "(" }];
 
   if (shouldItaliciseTitle(sourceType)) {
-    runs.push({ text: "\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019" });
+    runs.push({ text: "\u2018" }, ...parseTitleMarkup(shortTitle, true), { text: "\u2019" });
   } else {
-    runs.push({ text: "\u2018" + shortTitle + "\u2019" });
+    runs.push(...quoteTitleRuns(parseTitleMarkup(shortTitle, false)));
   }
 
   runs.push({ text: ")" });

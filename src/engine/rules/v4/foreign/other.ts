@@ -31,6 +31,37 @@ function translatorMarker(translator: string): string {
   return ` [tr ${translator}]`;
 }
 
+/**
+ * A published translation citation per rule 26.1.2, appended in square
+ * brackets after the primary-source citation. Either a plain string or
+ * FormattedRun[] where the translation's own title carries styling (an
+ * italic book title, a quoted article title with an italic journal name).
+ */
+type PublishedTranslation = string | FormattedRun[];
+
+/**
+ * Builds the rule 26.1.2 published-translation element.
+ *
+ * AGLC4 Rule 26.1.2: where a published translation of foreign legislation
+ * or a foreign decision has been used, a citation of the translation
+ * follows the primary citation in square brackets, its author/editor
+ * preceded by 'tr' — eg '[tr John H Crabb, *The French Civil Code*
+ * (Rothman, rev ed, 1995)]' (guide ex 4). The translation is cited under
+ * the Guide's rules for its own source type (chapters 5–7), except that a
+ * book-published translation follows rules 6.1–6.6 (not rule 6.7), and
+ * any year is the translation's publication year.
+ */
+function publishedTranslationRuns(translation: PublishedTranslation): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: " [tr " }];
+  if (typeof translation === "string") {
+    runs.push({ text: translation });
+  } else {
+    runs.push(...translation);
+  }
+  runs.push({ text: "]" });
+  return runs;
+}
+
 // ─── Generic Foreign Case Data ───────────────────────────────────────────────
 
 interface GenericForeignCaseData {
@@ -64,6 +95,12 @@ interface GenericForeignCaseData {
    * name (emits '[tr Name]'). Always the final element of the citation.
    */
   translator?: string;
+  /**
+   * Citation of a published translation consulted (rule 26.1.2), emitted
+   * as '[tr «Translation Citation»]' — the final element. Takes the place
+   * of the rule 26.1.1 marker.
+   */
+  publishedTranslation?: string | FormattedRun[];
   /** Full free-form citation string, for jurisdictions with unique formats. */
   freeFormCitation?: string;
 }
@@ -167,8 +204,11 @@ export function formatCase(data: GenericForeignCaseData): FormattedRun[] {
     runs.push({ text: ` (${parenParts.join(", ")})` });
   }
 
-  // Translation attribution — always the final element (rule 26.1.1)
-  if (data.translator) {
+  // Published translation (rule 26.1.2) or translation attribution
+  // (rule 26.1.1) — always the final element
+  if (data.publishedTranslation) {
+    runs.push(...publishedTranslationRuns(data.publishedTranslation));
+  } else if (data.translator) {
     runs.push({ text: translatorMarker(data.translator) });
   }
 
@@ -208,6 +248,12 @@ interface OtherDecisionData {
    * name), emitted as '[tr …]' at the end of the citation.
    */
   translator?: string;
+  /**
+   * Citation of a published translation consulted (rule 26.1.2), emitted
+   * as '[tr «Translation Citation»]' — the final element. Takes the place
+   * of the rule 26.1.1 marker.
+   */
+  publishedTranslation?: string | FormattedRun[];
 }
 
 // ─── FRGN-012-DECISION: Other Foreign Decisions (Rule 26.2) ─────────────────
@@ -278,8 +324,11 @@ export function formatOtherDecision(data: OtherDecisionData): FormattedRun[] {
     runs.push({ text: `, ${data.pinpoint}` });
   }
 
-  // Translation attribution — always the final element (rule 26.1.1)
-  if (data.translator) {
+  // Published translation (rule 26.1.2) or translation attribution
+  // (rule 26.1.1) — always the final element
+  if (data.publishedTranslation) {
+    runs.push(...publishedTranslationRuns(data.publishedTranslation));
+  } else if (data.translator) {
     runs.push({ text: translatorMarker(data.translator) });
   }
 
@@ -322,6 +371,12 @@ interface GenericForeignLegislationData {
    * precedence over `isAuthorTranslation`.
    */
   translator?: string;
+  /**
+   * Citation of a published translation consulted (rule 26.1.2), emitted
+   * as '[tr «Translation Citation»]' — the final element. Takes the place
+   * of the rule 26.1.1 marker.
+   */
+  publishedTranslation?: string | FormattedRun[];
   /** Free-form citation string for unique legislative formats. */
   freeFormCitation?: string;
 }
@@ -401,8 +456,11 @@ export function formatLegislation(data: GenericForeignLegislationData): Formatte
     runs.push({ text: data.otherInformation ? `, ${data.pinpoint}` : ` ${data.pinpoint}` });
   }
 
-  // Translation attribution — always the final element (rule 26.1.1)
-  if (translator) {
+  // Published translation (rule 26.1.2) or translation attribution
+  // (rule 26.1.1) — always the final element
+  if (data.publishedTranslation) {
+    runs.push(...publishedTranslationRuns(data.publishedTranslation));
+  } else if (translator) {
     runs.push({ text: translatorMarker(translator) });
   }
 

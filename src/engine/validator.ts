@@ -22,6 +22,7 @@ import {
   isCourtJurisdiction as isCourtJurisdictionPreset,
 } from "./court/presets";
 import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
+import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -140,7 +141,7 @@ export function validateDocument(
 
   // Footnote-level checks — stamp footnoteIndex on each issue for navigation
   for (let i = 0; i < footnoteTexts.length; i++) {
-    const fnIssues: ValidationIssue[] = [
+    const fnIssues: ValidationIssue[] = dedupeDashIssues([
       ...checkFootnoteFormat(footnoteTexts[i], i),
       ...checkTypography(footnoteTexts[i]),
       ...checkDatesAndNumbers(footnoteTexts[i]),
@@ -148,7 +149,7 @@ export function validateDocument(
       ...checkLongQuotation(footnoteTexts[i], i),
       ...checkLatinTermsItalicised(footnoteTexts[i], i),
       ...checkQuotationClauses(footnoteTexts[i], i),
-    ];
+    ]);
     const fnText = footnoteTexts[i];
     for (const issue of fnIssues) {
       issue.footnoteIndex = i + 1; // 1-based for Word API
@@ -183,6 +184,8 @@ export function validateDocument(
     allIssues.push(...checkCitationCapitalisation(citation));
     allIssues.push(...checkTitlePresence(citation));
     allIssues.push(...checkLegislativeHistoryHint(citation));
+    allIssues.push(...checkCourtOrderOfficers(citation));
+    allIssues.push(...checkIssuingBodyName(citation));
   }
 
   // Rule 2.3.1: medium neutral citations must not predate the year the
@@ -237,6 +240,31 @@ export function validateDocument(
   }
 
   return { errors, warnings, info };
+}
+
+/**
+ * Drops rule 1.6.3 dash warnings that duplicate a rule 1.11.4 date-span
+ * warning on the same text range.
+ *
+ * @remarks A hyphenated year or day span (eg '1986-87', '21-22 September')
+ * is flagged by both the generic dash check (Rule 1.6.3) and the specific
+ * date-span check (Rule 1.11.4); the 1.11.4 issue carries the better
+ * message and suggestion, so the overlapping 1.6.3 issue is removed.
+ */
+function dedupeDashIssues(issues: ValidationIssue[]): ValidationIssue[] {
+  const dateSpans = issues.filter((issue) => issue.ruleNumber === "1.11.4");
+  if (dateSpans.length === 0) {
+    return issues;
+  }
+  return issues.filter((issue) => {
+    if (issue.ruleNumber !== "1.6.3") {
+      return true;
+    }
+    return !dateSpans.some(
+      (span) =>
+        issue.offset >= span.offset && issue.offset + issue.length <= span.offset + span.length
+    );
+  });
 }
 
 // ─── VALID-006: Footnote number position checks ──────────────────────────────
@@ -912,6 +940,82 @@ export function checkCitationCompleteness(citation: Citation): ValidationIssue[]
   }
 
   return issues;
+}
+
+/**
+ * Warns when a court-order citation names no judicial officer.
+ *
+ * @remarks AGLC4 Rule 2.3.4 — a court order is cited as 'Order of
+ * «Judicial Officer(s)» in «Case Name» …'; every officer who issued the
+ * order must be named (per rule 2.4.1), so the element is mandatory.
+ */
+export function checkCourtOrderOfficers(citation: Citation): ValidationIssue[] {
+  if (citation.sourceType !== "case.court_order") {
+    return [];
+  }
+  const d = citation.data;
+  const officers =
+    (typeof d.judicialOfficers === "string" && d.judicialOfficers.trim()) ||
+    (typeof d.judges === "string" && d.judges.trim()) ||
+    (Array.isArray(d.judicialOfficers) && d.judicialOfficers.length > 0);
+  if (officers) {
+    return [];
+  }
+  return [
+    {
+      ruleNumber: "2.3.4",
+      message: `Court order citation '${citation.shortTitle || citation.id}' names no judicial officer — rule 2.3.4 requires 'Order of «Judicial Officer(s)» in «Case Name» …', naming every officer who issued the order`,
+      severity: "warning",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    },
+  ];
+}
+
+/**
+ * Hints that a quasi-legislative issuing body's name likely needs
+ * rule 3.9.3 trimming.
+ *
+ * @remarks AGLC4 Rule 3.9.3 — company-status designators ('Pty', 'Ltd',
+ * 'Co', 'Inc') and a leading 'The' are omitted from a non-government
+ * issuing body's name (ex 77: 'Victorian Bar', not 'The Victorian Bar
+ * Inc'). The formatter applies the trim automatically on the
+ * `(at «Full Date»)` form; on the numbered form it cannot tell a
+ * government instrumentality (rule 3.9.2, no trim) from a non-government
+ * body, so a name carrying company designators is flagged for the user
+ * instead.
+ */
+export function checkIssuingBodyName(citation: Citation): ValidationIssue[] {
+  if (citation.sourceType !== "legislation.quasi") {
+    return [];
+  }
+  const d = citation.data;
+  // The (at date) form trims automatically — only the numbered form needs a hint
+  if (typeof d.atDate === "string" && d.atDate.trim() !== "") {
+    return [];
+  }
+  const issuingBody = typeof d.issuingBody === "string" ? d.issuingBody.trim() : "";
+  if (!issuingBody) {
+    return [];
+  }
+  const hasCompanyMarker =
+    /^[Tt]he\s+/.test(issuingBody) || /\s(Pty|Ltd|Co|Inc|NL)\b\.?/.test(issuingBody);
+  if (!hasCompanyMarker) {
+    return [];
+  }
+  const trimmed = trimIssuingBodyName(issuingBody);
+  return [
+    {
+      ruleNumber: "3.9.3",
+      message: `Issuing body '${issuingBody}' looks like a non-government entity — rule 3.9.3 omits company-status designators and a leading 'The' from its name`,
+      severity: "info",
+      offset: 0,
+      length: 0,
+      suggestion: trimmed,
+      citationId: citation.id,
+    },
+  ];
 }
 
 /**

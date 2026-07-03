@@ -120,15 +120,24 @@ export function formatBook(data: NZBookData): FormattedRun[] {
   // Title in italics
   runs.push({ text: data.title, italic: true });
 
-  // Publication details in parentheses
+  // Publication details in parentheses. Missing elements are omitted
+  // rather than rendered as empty slots ('(2nd ed, LexisNexis, , 2015)').
   const pubParts: string[] = [];
   if (data.edition) {
     pubParts.push(data.edition);
   }
-  pubParts.push(data.publisher);
-  pubParts.push(data.place);
-  pubParts.push(String(data.year));
-  runs.push({ text: ` (${pubParts.join(", ")})` });
+  if (data.publisher) {
+    pubParts.push(data.publisher);
+  }
+  if (data.place) {
+    pubParts.push(data.place);
+  }
+  if (data.year) {
+    pubParts.push(String(data.year));
+  }
+  if (pubParts.length > 0) {
+    runs.push({ text: ` (${pubParts.join(", ")})` });
+  }
 
   // Pinpoint with 'at' prefix
   if (data.pinpoint) {

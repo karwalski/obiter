@@ -613,3 +613,68 @@ export function formatCommandPaper(data: UKCommandPaperData): FormattedRun[] {
 
   return runs;
 }
+
+// ─── PARITY: Parliamentary Papers (Rule 24.4.3) ─────────────────────────────
+
+/** Data for a UK parliamentary paper citation (Rule 24.4.3). */
+export interface UKParliamentaryPaperData {
+  /** Author (individual or body). */
+  author: string;
+  /** Title of the paper (italicised). */
+  title: string;
+  /**
+   * Paper number element(s), each including the House, eg
+   * 'House of Commons Paper No 84'. Where the paper was presented to both
+   * Houses, both entries appear, comma-separated (Rule 24.4.3).
+   */
+  paperNumbers: string[];
+  /** Year(s) of the session, eg '2009–10'. */
+  session: string;
+  /** Pinpoint reference. */
+  pinpoint?: string;
+}
+
+/**
+ * Formats a UK parliamentary paper citation per AGLC4 Rule 24.4.3.
+ *
+ * AGLC4 Rule 24.4.3 template: «Author», *Title* («House» Paper No
+ * «Number», Session «Year(s) of Session») «Pinpoint». Where a paper was
+ * presented to both Houses, both paper numbers appear, separated by a
+ * comma.
+ *
+ * @example
+ *   // National Audit Office, Regenerating the English Coalfields
+ *   //   (House of Commons Paper No 84, Session 2009–10) 11  — AGLC4 ex 50
+ *   formatParliamentaryPaper({
+ *     author: "National Audit Office",
+ *     title: "Regenerating the English Coalfields",
+ *     paperNumbers: ["House of Commons Paper No 84"],
+ *     session: "2009–10",
+ *     pinpoint: "11",
+ *   })
+ *
+ * @param data - The parliamentary paper citation data.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ *
+ * @see AGLC4, Rule 24.4.3.
+ */
+export function formatParliamentaryPaper(data: UKParliamentaryPaperData): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  // Author
+  runs.push({ text: `${data.author}, ` });
+
+  // Title in italics
+  runs.push({ text: data.title, italic: true });
+
+  // Paper number(s) and session parenthetical
+  const numbers = data.paperNumbers.join(", ");
+  runs.push({ text: ` (${numbers}, Session ${data.session})` });
+
+  // Pinpoint
+  if (data.pinpoint) {
+    runs.push({ text: ` ${data.pinpoint}` });
+  }
+
+  return runs;
+}

@@ -8,6 +8,7 @@ import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors, normaliseBodyName } from "./authors";
 import { formatSecondaryTitle } from "./general";
 import { formatPinpoint } from "../general/pinpoints";
+import { parseTitleMarkup } from "../general/titleMarkup";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -195,6 +196,11 @@ function pushEditedBy(runs: FormattedRun[], editors: Author[] | undefined): void
 export function formatBook(data: {
   authors: Author[];
   title: string;
+  /**
+   * Rule 26.4 (via 26.1.1): English translation of a non-English title,
+   * emitted roman in square brackets after the title (guide ex 21).
+   */
+  translatedTitle?: string;
   publisher?: string;
   edition?: number;
   revised?: boolean;
@@ -209,8 +215,19 @@ export function formatBook(data: {
   runs.push(...formatAuthors(data.authors));
   runs.push({ text: ", " });
 
-  // Title (italic, via formatSecondaryTitle which handles "book" source type)
-  runs.push(...formatSecondaryTitle(data.title, "book"));
+  // Title (italic, via formatSecondaryTitle which handles "book" source type).
+  // Rule 26.4: a stored translation signals a non-English title, which is
+  // reproduced as typed — rule 1.7's English minor-word list does not apply
+  // to foreign-language titles (guide ex 21 prints 'von Lissabon' lowercase;
+  // see DECISION-030).
+  if (data.translatedTitle) {
+    runs.push(...parseTitleMarkup(data.title, true));
+    // Rule 26.4: bracketed element translation — roman even after the italic
+    // title (rule 26.1.1: translated titles are never italicised)
+    runs.push({ text: ` [${data.translatedTitle}]` });
+  } else {
+    runs.push(...formatSecondaryTitle(data.title, "book"));
+  }
 
   // Editor of an authored book (Rule 6.6.2)
   pushEditedBy(runs, data.editors);

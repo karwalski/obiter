@@ -16,6 +16,13 @@ import type { FormattedRun } from "../types/formattedRun";
 import type { CitationConfig } from "./standards/types";
 import { formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
 import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
+import { parseTitleMarkup, quoteTitleRuns } from "./rules/v4/general/titleMarkup";
+import {
+  formatInternationalShortReference,
+  internationalLeadsWithShortTitle,
+  internationalShortTitleStyle,
+  styleInternationalShortTitle,
+} from "./rules/v4/international/subsequent";
 import { formatSecondaryShortTitle } from "./rules/v4/secondary/general";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
@@ -102,21 +109,52 @@ function pinpointsEqual(a: Pinpoint | undefined, b: Pinpoint | undefined): boole
 
 // ─── Author Helpers ──────────────────────────────────────────────────────────
 
+/** Matches CJK ideographs (Chinese-script names, Rule 16.4.2). */
+const CJK_CHAR = /[㐀-䶿一-鿿豈-﫿]/;
+
+/**
+ * Returns the full name for a Chinese-script structured author, in source
+ * order (surname first — AGLC4 Rule 16.4.2 note band), or undefined when
+ * the name is not in Chinese characters.
+ *
+ * AGLC4 Rule 16.4.2: subsequent references to Chinese language sources
+ * always carry the author's full name (characters plus any pinyin
+ * transliteration), never the surname alone.
+ */
+function chineseScriptFullName(author: {
+  surname?: string;
+  givenNames?: string;
+}): string | undefined {
+  const surname = author.surname ?? "";
+  const givenNames = author.givenNames ?? "";
+  if (!CJK_CHAR.test(surname) && !CJK_CHAR.test(givenNames)) {
+    return undefined;
+  }
+  if (!givenNames) return surname || undefined;
+  if (!surname) return givenNames;
+  // Characters run together without a space; a pinyin element keeps one.
+  const joiner = CJK_CHAR.test(surname.slice(-1)) && CJK_CHAR.test(givenNames.charAt(0)) ? "" : " ";
+  return `${surname}${joiner}${givenNames}`;
+}
+
 /**
  * Extracts the author surname from a Citation's data for use in short
  * references. Falls back to an empty string if no author is available.
+ *
+ * AGLC4 Rule 16.4.2: authors named in Chinese characters keep their full
+ * name (with any pinyin transliteration) in subsequent references.
  */
 function getAuthorSurname(citation: Citation): string {
   const data = citation.data;
   // Structured authors array (journal articles, books)
   if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
     const first = data.authors[0] as { surname?: string; givenNames?: string };
-    return first.surname ?? "";
+    return chineseScriptFullName(first) ?? first.surname ?? "";
   }
   // Structured author object
   if (data.author && typeof data.author === "object") {
-    const author = data.author as { surname?: string };
-    return author.surname ?? "";
+    const author = data.author as { surname?: string; givenNames?: string };
+    return chineseScriptFullName(author) ?? author.surname ?? "";
   }
   // Plain string author (reports, speeches, press releases, etc.)
   if (typeof data.author === "string" && data.author) {
@@ -160,8 +198,16 @@ function formatSecondaryLead(citation: Citation): FormattedRun[] {
 function getTitle(citation: Citation): string {
   if (citation.shortTitle) return citation.shortTitle;
   if (typeof citation.data.shortTitle === "string") return citation.data.shortTitle;
+  // Document-led sources (ICJ pleadings, rule 10.5 ex 42) shorten to the
+  // document title, not the case name.
+  if (typeof citation.data.documentTitle === "string") return citation.data.documentTitle;
+  // Case-like sources store their name under caseTitle/caseName/parties
+  // (mirroring the dispatch layer's field fallbacks).
+  if (typeof citation.data.caseTitle === "string") return citation.data.caseTitle;
+  if (typeof citation.data.caseName === "string") return citation.data.caseName;
   if (typeof citation.data.title === "string") return citation.data.title;
   if (typeof citation.data.name === "string") return citation.data.name;
+  if (typeof citation.data.parties === "string") return citation.data.parties;
   return "";
 }
 
@@ -176,15 +222,26 @@ function getTitle(citation: Citation): string {
  *
  * AGLC4 Rules 3.2/3.5: Bill titles are not italicised, so a Bill short title
  * is roman in subsequent references.
+ *
+ * AGLC4 Rules 8.8/9.5/10.5/11.3/12.4/13.4/14.6: Part IV short titles are
+ * italic (treaties, UN/WTO/GATT documents, decisions of international
+ * courts and tribunals) or quoted (ICJ pleadings, UN yearbook material).
  */
 function formatStyledShortTitle(title: string, sourceType: SourceType): FormattedRun[] {
+  const international = styleInternationalShortTitle(title, sourceType);
+  if (international !== null) {
+    return international;
+  }
+  // Rule 4.2 via DECISION-021: embedded-italic markers in stored short
+  // titles are honoured — italic spans inside roman short titles; markers
+  // consumed (span stays italic) inside wholly italic short titles.
   if (sourceType === "legislation.bill") {
-    return [{ text: title }];
+    return parseTitleMarkup(title, false);
   }
   if (shouldItaliciseTitle(sourceType)) {
-    return [{ text: title, italic: true }];
+    return parseTitleMarkup(title, true);
   }
-  return [{ text: `‘${title}’` }];
+  return quoteTitleRuns(parseTitleMarkup(title, false));
 }
 
 // ─── GEN-007: Short References (Rule 1.4.1) ─────────────────────────────────
@@ -241,7 +298,17 @@ export function formatShortReference(
   // AGLC4 / OSCOLA "n" format: Author (n X) pinpoint
   const runs: FormattedRun[] = [];
 
-  if (isSecondarySource(citation.sourceType)) {
+  // Part IV international materials lead with the styled short title plus
+  // any chapter-specific elements (Rules 8.8/9.5/10.5/11.3/12.4/13.4/14.6);
+  // authored rule 9.3.2 submissions fall through to the secondary form.
+  const internationalLead = formatInternationalShortReference(
+    citation,
+    firstFootnoteNumber,
+    getTitle(citation)
+  );
+  if (internationalLead !== null) {
+    runs.push(...internationalLead);
+  } else if (isSecondarySource(citation.sourceType)) {
     // Secondary sources: Author Surname (n X) pinpoint.
     const surname = getAuthorSurname(citation);
     runs.push(...formatSecondaryLead(citation));
@@ -308,7 +375,13 @@ function formatAboveNReference(
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  if (isSecondarySource(citation.sourceType)) {
+  if (internationalLeadsWithShortTitle(citation)) {
+    // Part IV materials lead with the styled short title (Rules 8.8–14.6)
+    const title = getTitle(citation);
+    if (title) {
+      runs.push(...formatStyledShortTitle(title, citation.sourceType));
+    }
+  } else if (isSecondarySource(citation.sourceType)) {
     const surname = getAuthorSurname(citation);
     runs.push(...formatSecondaryLead(citation));
 
@@ -362,7 +435,7 @@ function formatCourtShortReference(
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  if (isSecondarySource(citation.sourceType)) {
+  if (isSecondarySource(citation.sourceType) && !internationalLeadsWithShortTitle(citation)) {
     const surname = getAuthorSurname(citation);
     runs.push(...formatSecondaryLead(citation));
     if (disambiguate && surname) {
@@ -423,6 +496,31 @@ export function resolveIbid(
   return [{ text: "Ibid" }];
 }
 
+/**
+ * Wraps title runs in roman parentheses, merging each parenthesis into its
+ * adjacent run when that run is roman — so an unmarked (single-roman-run)
+ * short title round-trips byte-for-byte with the pre-markup output.
+ */
+function wrapRunsInParens(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) {
+    return [{ text: "()" }];
+  }
+  const wrapped = runs.map((run) => ({ ...run }));
+  const first = wrapped[0];
+  if (first.italic) {
+    wrapped.unshift({ text: "(" });
+  } else {
+    first.text = "(" + first.text;
+  }
+  const last = wrapped[wrapped.length - 1];
+  if (last.italic) {
+    wrapped.push({ text: ")" });
+  } else {
+    last.text += ")";
+  }
+  return wrapped;
+}
+
 // ─── GEN-009: Short Title Introduction (Rule 1.4.4) ─────────────────────────
 
 /**
@@ -445,18 +543,30 @@ export function formatShortTitleIntroduction(
   shortTitle: string,
   sourceType: SourceType
 ): FormattedRun[] {
+  // Part IV international materials: the introduced short title carries the
+  // styling its chapter's subsequent-reference rule prescribes — italic for
+  // treaties/UN docs/decisions (rule 8.8 ex 20: ('Timor Gap Treaty') with
+  // the title italic; rule 10.5 ex 36: ('Reparations')), quoted roman for
+  // ICJ pleadings and UN yearbook material (via the fallthrough below).
+  // Rule 4.2 via DECISION-021: embedded-italic markers in the stored short
+  // title are consumed here exactly as in the subsequent-reference path
+  // (formatStyledShortTitle), keeping the two renderings consistent.
+  if (internationalShortTitleStyle(sourceType) === "italic") {
+    return [{ text: "(‘" }, ...parseTitleMarkup(shortTitle, true), { text: "’)" }];
+  }
+
   if (isCase(sourceType)) {
     // Cases: ('Short Title') — title italic inside curly quotes, parens not italic
-    return [{ text: "(\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019)" }];
+    return [{ text: "(\u2018" }, ...parseTitleMarkup(shortTitle, true), { text: "\u2019)" }];
   }
 
   if (isLegislation(sourceType)) {
     // Rule 3.5: Bill short titles are roman (Rule 3.2); Acts and delegated
     // legislation short titles are italic
     if (sourceType === "legislation.bill") {
-      return [{ text: `(\u2018${shortTitle}\u2019)` }];
+      return wrapRunsInParens(quoteTitleRuns(parseTitleMarkup(shortTitle, false)));
     }
-    return [{ text: "(\u2018" }, { text: shortTitle, italic: true }, { text: "\u2019)" }];
+    return [{ text: "(\u2018" }, ...parseTitleMarkup(shortTitle, true), { text: "\u2019)" }];
   }
 
   // Secondary sources: Rule 4.3 (via Rule 1.4.4) — the short title is italic

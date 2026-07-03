@@ -346,6 +346,36 @@ describe("Chapter 4 — Secondary Sources General", () => {
       const runs = formatJudicialAuthor(author);
       expect(toPlainText(runs)).toBe("Michael Kirby");
     });
+
+    it("routes authors carrying an on-source judicial title through formatJudicialAuthor (PARITY-121)", () => {
+      // formatAuthors is the pipeline every secondary formatter calls; an
+      // entry with judicialTitle renders title-first per rule 4.1.5, while
+      // plain co-authors keep the rule 4.1.2 'and' joining.
+      const runs = formatAuthors([
+        { givenNames: "Michael", surname: "Kirby", isJudge: true, judicialTitle: "Justice" },
+        { givenNames: "Elise", surname: "Bant" },
+      ]);
+      expect(toPlainText(runs)).toBe("Justice Michael Kirby and Elise Bant");
+    });
+
+    it("formats a judicially-authored article per AGLC4 ex 19 (rule 4.1.5)", () => {
+      const runs = formatJournalArticle({
+        authors: [
+          { givenNames: "Michael", surname: "Kirby", isJudge: true, judicialTitle: "Justice" },
+        ],
+        title: "Transnational Judicial Dialogue, Internationalisation of Law and Australian Judges",
+        year: 2008,
+        volume: 9,
+        issue: "1",
+        journal: "Melbourne Journal of International Law",
+        startingPage: 171,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Justice Michael Kirby, " +
+          "‘Transnational Judicial Dialogue, Internationalisation of Law and Australian Judges’ " +
+          "(2008) 9(1) Melbourne Journal of International Law 171"
+      );
+    });
   });
 
   // ── Rule 4.2: Secondary Source Titles ───────────────────────────────────
@@ -401,6 +431,26 @@ describe("Chapter 4 — Secondary Sources General", () => {
     it("should lowercase prepositions and capitalise after hyphens (rule 1.7 via 4.2)", () => {
       const runs = formatSecondaryTitle("Inquiry into the office of governor-general", "book");
       expect(runs[0].text).toBe("Inquiry into the Office of Governor-General");
+    });
+
+    it("should italicise a marked span inside a quoted title (AGLC4 ex 26, rule 4.2)", () => {
+      // AGLC4 ex 26: 'The *Briginshaw* "Standard of Proof" in
+      // Anti-Discrimination Law: "Pointing with a Wavering Finger"'
+      const runs = formatSecondaryTitle(
+        "The *Briginshaw* “Standard of Proof” in Anti-Discrimination Law: “Pointing with a Wavering Finger”",
+        "journal.article"
+      );
+      expect(toPlainText(runs)).toBe(
+        "‘The Briginshaw “Standard of Proof” in Anti-Discrimination Law: “Pointing with a Wavering Finger”’"
+      );
+      expect(italicText(runs)).toBe("Briginshaw");
+    });
+
+    it("should keep a marked span italic inside a book title — no part in roman (rule 4.2)", () => {
+      // Rule 4.2: where the whole title is italicised (eg books), no part
+      // of the title may appear in roman font; markers are consumed.
+      const runs = formatSecondaryTitle("The *Mabo* Legacy", "book");
+      expect(runs).toEqual([{ text: "The Mabo Legacy", italic: true }]);
     });
   });
 
@@ -477,7 +527,7 @@ describe("Chapter 5 — Journal Articles", () => {
       expect(italicText(runs)).toBe("Sydney Law Review");
     });
 
-    it("should format RJ Ellicott article (AGLC4 5.2 Example 2)", () => {
+    it("should format RJ Ellicott article (AGLC4 ex 1, rule 5.1)", () => {
       // RJ Ellicott, 'The Autochthonous Expedient and the Federal Court'
       // (2008) 82(10) Australian Law Journal 700.
       const runs = formatJournalArticle({
@@ -493,6 +543,27 @@ describe("Chapter 5 — Journal Articles", () => {
       expect(text).toBe(
         "RJ Ellicott, \u2018The Autochthonous Expedient and the Federal Court\u2019 (2008) 82(10) Australian Law Journal 700"
       );
+    });
+
+    it("should format McCutcheon article with embedded italic case names (AGLC4 ex 2, rule 5.2)", () => {
+      // Jani McCutcheon, 'Curing the Authorless Void: Protecting
+      // Computer-Generated Works following *IceTV* and *Phone Directories*'
+      // (2013) 37(1) Melbourne University Law Review 46.
+      const runs = formatJournalArticle({
+        authors: [{ givenNames: "Jani", surname: "McCutcheon" }],
+        title:
+          "Curing the Authorless Void: Protecting Computer-Generated Works following *IceTV* and *Phone Directories*",
+        year: 2013,
+        volume: 37,
+        issue: "1",
+        journal: "Melbourne University Law Review",
+        startingPage: 46,
+      });
+      expect(toPlainText(runs)).toBe(
+        "Jani McCutcheon, \u2018Curing the Authorless Void: Protecting Computer-Generated Works following IceTV and Phone Directories\u2019 (2013) 37(1) Melbourne University Law Review 46"
+      );
+      // The case names and the journal are the only italic runs.
+      expect(italicText(runs)).toBe("IceTVPhone DirectoriesMelbourne University Law Review");
     });
 
     it("should format Jeremy Masters article with pinpoint range (AGLC4 5.4 Example 3)", () => {

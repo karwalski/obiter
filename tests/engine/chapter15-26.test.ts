@@ -39,6 +39,11 @@ import * as southAfrica from "../../src/engine/rules/v4/foreign/south-africa";
 import * as uk from "../../src/engine/rules/v4/foreign/uk";
 import * as usa from "../../src/engine/rules/v4/foreign/usa";
 import * as other from "../../src/engine/rules/v4/foreign/other";
+import { formatBook } from "../../src/engine/rules/v4/secondary/books";
+import {
+  formatInternetMaterial,
+  formatNewspaper,
+} from "../../src/engine/rules/v4/secondary/other-media";
 
 /** Helper: concatenate all text runs into a flat string for full-citation assertions. */
 function flatten(runs: FormattedRun[]): string {
@@ -1902,5 +1907,219 @@ describe("Rule 26 — Other Foreign Domestic Materials", () => {
       expect(flatten(runs)).toBe("Bürgerliches Gesetzbuch [Civil Code] (Germany) § 242");
       expect(italicText(runs)).toBe("Bürgerliches Gesetzbuch");
     });
+  });
+});
+
+// =============================================================================
+// RE-AUDIT closures — Rules 24.4.3, 25.1.8, 26.1.2
+// =============================================================================
+
+describe("Rule 24.4.3 — UK parliamentary papers", () => {
+  it("formats a single-House parliamentary paper per AGLC4 ex 50 (rule 24.4.3)", () => {
+    const runs = uk.formatParliamentaryPaper({
+      author: "National Audit Office",
+      title: "Regenerating the English Coalfields",
+      paperNumbers: ["House of Commons Paper No 84"],
+      session: "2009–10",
+      pinpoint: "11",
+    });
+    expect(flatten(runs)).toBe(
+      "National Audit Office, Regenerating the English Coalfields " +
+        "(House of Commons Paper No 84, Session 2009–10) 11"
+    );
+    expect(italicText(runs)).toBe("Regenerating the English Coalfields");
+  });
+
+  it("formats a both-Houses parliamentary paper per AGLC4 ex 51 (rule 24.4.3)", () => {
+    const runs = uk.formatParliamentaryPaper({
+      author: "Joint Committee on Human Rights",
+      title: "Prisoner Transfer Treaty with Libya",
+      paperNumbers: ["House of Lords Paper No 71", "House of Commons Paper No 398"],
+      session: "2008–09",
+      pinpoint: "5",
+    });
+    expect(flatten(runs)).toBe(
+      "Joint Committee on Human Rights, Prisoner Transfer Treaty with Libya " +
+        "(House of Lords Paper No 71, House of Commons Paper No 398, Session 2008–09) 5"
+    );
+  });
+});
+
+describe("Rule 25.1.8 — identifying US judges", () => {
+  it("formats a reported case with judge per AGLC4 ex 29 (rules 25.1.8/2.4.1)", () => {
+    const runs = usa.formatCase({
+      caseName: "Re Gault",
+      volume: 387,
+      reporter: "US",
+      startingPage: 1,
+      pinpoint: "13–14, 27–8",
+      judge: "Fortas J",
+      year: 1967,
+    });
+    expect(flatten(runs)).toBe("Re Gault, 387 US 1, 13–14, 27–8 (Fortas J) (1967)");
+    expect(italicText(runs)).toBe("Re Gault");
+  });
+
+  it("formats a state case with presiding judge per AGLC4 ex 31 (rule 25.1.8)", () => {
+    const runs = usa.formatCase({
+      caseName: "Werth v Taylor",
+      volume: 475,
+      reporter: "NW 2d",
+      startingPage: 426,
+      pinpoint: "430",
+      judge: "Neff PJ",
+      year: 1991,
+      courtId: "Mich Ct App",
+    });
+    expect(flatten(runs)).toBe("Werth v Taylor, 475 NW 2d 426, 430 (Neff PJ) (Mich Ct App, 1991)");
+  });
+
+  it("formats an unreported case with judge after the slip-op pinpoint (rules 25.1.7/25.1.8; guide ex 30 omits 'slip op' — rule 25.1.7 governs per DECISION-012)", () => {
+    // Ex 30 prints ') 3 (Bowdre J)' with no 'slip op' marker, contradicting
+    // rule 25.1.7's own template (compare exs 27–8); the rule text governs.
+    const runs = usa.formatUnreportedCase({
+      caseName: "City of Birmingham v Citigroup Inc",
+      court: "ND Ala",
+      docketNumber: "No CV-09-BE-467-S",
+      date: "19 August 2009",
+      slipOpPinpoint: "3",
+      judge: "Bowdre J",
+    });
+    expect(flatten(runs)).toBe(
+      "City of Birmingham v Citigroup Inc (ND Ala, No CV-09-BE-467-S, 19 August 2009) " +
+        "slip op 3 (Bowdre J)"
+    );
+  });
+
+  it("abbreviates US judicial titles per the rule 25.1.8 list", () => {
+    expect(usa.abbreviateUsJudicialTitle("Judge")).toBe("J");
+    expect(usa.abbreviateUsJudicialTitle("Circuit Judge")).toBe("J");
+    // The rule's 'Assistant Justice' is a misprint for 'Associate Justice';
+    // both reduce to 'J' (review X-3: never emit 'Assistant Justice')
+    expect(usa.abbreviateUsJudicialTitle("Associate Justice")).toBe("J");
+    expect(usa.abbreviateUsJudicialTitle("Assistant Justice")).toBe("J");
+    expect(usa.abbreviateUsJudicialTitle("Presiding Judge")).toBe("PJ");
+    expect(usa.abbreviateUsJudicialTitle("Judge Administrative Director of the Courts")).toBe(
+      "JAD"
+    );
+    // Titles outside the list pass through
+    expect(usa.abbreviateUsJudicialTitle("Chief Justice")).toBe("Chief Justice");
+  });
+});
+
+describe("Rule 26.1.2 — published translations of foreign primary materials", () => {
+  it("cites legislation with a published book translation per AGLC4 ex 4 (rule 26.1.2)", () => {
+    const runs = other.formatLegislation({
+      title: "Civil Code",
+      jurisdiction: "France",
+      publishedTranslation: [
+        { text: "John H Crabb, " },
+        { text: "The French Civil Code", italic: true },
+        { text: " (Rothman, rev ed, 1995)" },
+      ],
+    });
+    expect(flatten(runs)).toBe(
+      "Civil Code (France) [tr John H Crabb, The French Civil Code (Rothman, rev ed, 1995)]"
+    );
+    // The primary title and the translation's book title are italic;
+    // the bracket furniture stays roman
+    expect(italicText(runs)).toBe("Civil CodeThe French Civil Code");
+  });
+
+  it("cites a decision with a published article translation per AGLC4 ex 7 (rule 26.1.2)", () => {
+    const runs = other.formatOtherDecision({
+      caseName: "Jand'heur I",
+      court: "French Court of Cassation",
+      date: "21 February 1927",
+      publishedTranslation: [
+        {
+          text:
+            "Edward A Tomlinson, 'Tort Liability in France for the Act of Things: " +
+            "A Study of Judicial Lawmaking' (1988) 48 ",
+        },
+        { text: "Louisiana Law Review", italic: true },
+        { text: " 1299, 1366" },
+      ],
+    });
+    expect(flatten(runs)).toBe(
+      "Jand'heur I, French Court of Cassation, 21 February 1927 " +
+        "[tr Edward A Tomlinson, 'Tort Liability in France for the Act of Things: " +
+        "A Study of Judicial Lawmaking' (1988) 48 Louisiana Law Review 1299, 1366]"
+    );
+  });
+
+  it("published translation takes the place of the rule 26.1.1 marker", () => {
+    const runs = other.formatLegislation({
+      title: "Civil Code",
+      jurisdiction: "France",
+      translator: "author",
+      publishedTranslation: "John H Crabb, The French Civil Code (Rothman, rev ed, 1995)",
+    });
+    expect(flatten(runs)).toBe(
+      "Civil Code (France) [tr John H Crabb, The French Civil Code (Rothman, rev ed, 1995)]"
+    );
+  });
+});
+
+// =============================================================================
+// Rule 26.4 — Other Non-English Language Materials
+// =============================================================================
+
+describe("Rule 26.4 — other non-English secondary materials", () => {
+  it("formats a non-English book with a bracketed title translation per AGLC4 ex 21 (rule 26.4)", () => {
+    const runs = formatBook({
+      authors: [{ givenNames: "Jürgen", surname: "Schwarze" }],
+      title: "Der Reformvertrag von Lissabon",
+      translatedTitle: "The Reform Treaty of Lisbon",
+      publisher: "Nomos",
+      year: 2009,
+      pinpoint: { type: "page", value: "181" },
+    });
+    expect(flatten(runs)).toBe(
+      "Jürgen Schwarze, Der Reformvertrag von Lissabon [The Reform Treaty of Lisbon] " +
+        "(Nomos, 2009) 181"
+    );
+    // Rule 26.1.1 via 26.4: the translation is never italicised — only the
+    // original title carries italics
+    expect(italicText(runs)).toBe("Der Reformvertrag von Lissabon");
+  });
+
+  it("formats a non-English blog post with element translations per AGLC4 ex 22 (rule 26.4)", () => {
+    // The guide's example ends ', archived at <https://perma.cc/TL68-HRR9>';
+    // the formatter carries no archive element (consistent with the rule
+    // 7.15 ex 113 test), so the assertion stops at the URL.
+    const runs = formatInternetMaterial({
+      title: "Quelques Vices de Procédure",
+      translatedTitle: "Some Procedural Flaws",
+      website: "Le Blog du Droit Européen des Brevets",
+      translatedWebsiteName: "Blog of European Patent Law",
+      documentType: "Blog Post",
+      date: "13 September 2009",
+      url: "http://europeanpatentcaselaw.blogspot.com/2009/09/quelques-vices-de-procedure.html",
+    });
+    expect(flatten(runs)).toBe(
+      "‘Quelques Vices de Procédure’ [Some Procedural Flaws], " +
+        "Le Blog du Droit Européen des Brevets [Blog of European Patent Law] " +
+        "(Blog Post, 13 September 2009) " +
+        "<http://europeanpatentcaselaw.blogspot.com/2009/09/quelques-vices-de-procedure.html>"
+    );
+    expect(italicText(runs)).toBe("Le Blog du Droit Européen des Brevets");
+  });
+
+  it("places a newspaper article's title translation after the quoted title (rule 26.4; no guide example)", () => {
+    // Rule 26.4 prescribes bracketed element translations for any source
+    // type; the guide gives no newspaper example, so this pins the
+    // template-derived placement only.
+    const runs = formatNewspaper({
+      title: "La Nuit des Idées",
+      translatedTitle: "The Night of Ideas",
+      newspaper: "Le Monde",
+      place: "Paris",
+      date: "31 January 2019",
+    });
+    expect(flatten(runs)).toBe(
+      "‘La Nuit des Idées’ [The Night of Ideas], Le Monde (Paris, 31 January 2019)"
+    );
+    expect(italicText(runs)).toBe("Le Monde");
   });
 });

@@ -87,6 +87,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   genai_output: "Generative AI Output",
   treaty: "Treaty",
   "treaty.mou": "Memorandum of Understanding",
+  "un.charter": "UN Charter",
   "un.document": "UN Document",
   "un.communication": "UN Communication",
   "un.yearbook": "UN Yearbook",
@@ -208,6 +209,8 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
       return [
         { key: "author", label: "Author", required: true },
         { key: "title", label: "Title", required: true },
+        // Rule 26.4: bracketed translation of a non-English title
+        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
         { key: "publisher", label: "Publisher", required: true },
         { key: "edition", label: "Edition" },
         { key: "year", label: "Year", required: true },
@@ -242,14 +245,21 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
       return [
         { key: "author", label: "Author" },
         { key: "title", label: "Title", required: true },
+        // Rule 26.4: bracketed translations of non-English elements
+        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
         { key: "webPage", label: "Web Page / Site" },
+        { key: "translatedWebsiteName", label: "Web Page Translation", placeholder: "For non-English sites" },
         { key: "date", label: "Date" },
+        // Rule 7.15: pinpoint (usually a bracketed paragraph) before the URL
+        { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [4]" },
         { key: "url", label: "URL", required: true },
       ];
     case "newspaper":
       return [
         { key: "author", label: "Author" },
         { key: "title", label: "Article Title", required: true },
+        // Rule 26.4: bracketed translation of a non-English title
+        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
         { key: "newspaper", label: "Newspaper", required: true },
         { key: "date", label: "Date", required: true },
         { key: "startingPage", label: "Starting Page" },

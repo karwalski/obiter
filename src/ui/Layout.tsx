@@ -189,6 +189,13 @@ export default function Layout(): JSX.Element {
         },
       },
       {
+        id: "scan-repair",
+        label: "Scan and repair citations",
+        hint: "View",
+        keywords: "deep scan recover rebuild relink adopt unlinked library lost store",
+        run: () => navigate("/scan-repair"),
+      },
+      {
         id: "comfort-mode",
         label: comfortMode ? "Turn off Comfort mode" : "Turn on Comfort mode",
         keywords: "accessibility larger text targets motion",

@@ -8,16 +8,18 @@ import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors, formatBodyAuthor } from "./authors";
 import { formatSecondaryTitle, formatSecondaryTitleText } from "./general";
 import { formatPinpoint } from "../general/pinpoints";
+import { parseTitleMarkup, quoteTitleRuns } from "../general/titleMarkup";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Formats a title in single curly quotes with Rule 4.2 normalisation.
+ * Formats a title in single curly quotes with Rule 4.2 normalisation,
+ * honouring embedded italic markers (parseTitleMarkup).
  * Used for source types whose titles should be quoted but are not in
  * the centralised QUOTED_TYPES set in italicisation.ts.
  */
 function formatQuotedTitle(title: string): FormattedRun[] {
-  return [{ text: `‘${formatSecondaryTitleText(title)}’` }];
+  return quoteTitleRuns(parseTitleMarkup(formatSecondaryTitleText(title), false));
 }
 
 /**
@@ -133,6 +135,8 @@ export interface ParliamentaryResearchPaperData {
   /** Full date (eg '12 July 2016'); preferred over `year`. */
   date?: string;
   year?: number | string;
+  /** Pinpoint after the parenthetical (Rules 7.2.1, 1.1.6–1.1.7). */
+  pinpoint?: Pinpoint;
 }
 
 export interface ConferencePaperData {
@@ -239,7 +243,10 @@ export function formatReport(data: ReportData): FormattedRun[] {
   // Parenthetical: (Report Type No X, Date)
   runs.push({
     text: ` ${parenthetical([
-      docTypeWithNumber(data.reportType ?? (data.reportNumber ? "Report" : undefined), data.reportNumber),
+      docTypeWithNumber(
+        data.reportType ?? (data.reportNumber ? "Report" : undefined),
+        data.reportNumber
+      ),
       data.date,
     ])}`,
   });
@@ -478,6 +485,12 @@ export function formatParliamentaryResearchPaper(
       dateOrYear(data.date, data.year),
     ])}`,
   });
+
+  // Pinpoint (Rules 7.2.1, 1.1.6–1.1.7)
+  if (data.pinpoint) {
+    runs.push({ text: " " });
+    runs.push(...formatPinpoint(data.pinpoint));
+  }
 
   return runs;
 }

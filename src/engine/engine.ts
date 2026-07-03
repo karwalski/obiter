@@ -115,7 +115,11 @@ import {
   formatStateArbitration,
   formatIcsidCase,
 } from "./rules/v4/international/arbitral";
-import { formatIccCase, formatIccCaseReported } from "./rules/v4/international/icc-tribunals";
+import {
+  formatIccCase,
+  formatIccCaseReported,
+  formatTribunalRules,
+} from "./rules/v4/international/icc-tribunals";
 import {
   formatWtoDocument,
   formatWtoDecision,
@@ -130,6 +134,8 @@ import {
   formatEchrReportedCase,
   formatSupranationalDecision,
   formatSupranationalDocument,
+  formatSupranationalRules,
+  formatSupranationalPleading,
 } from "./rules/v4/international/supranational";
 import * as foreignCanada from "./rules/v4/foreign/canada";
 import * as foreignChina from "./rules/v4/foreign/china";
@@ -216,6 +222,7 @@ import {
   formatNeutralCitation as nzlsgFormatNeutralCitation,
   formatPreNeutralCase as nzlsgFormatPreNeutralCase,
 } from "./rules/nzlsg/cases";
+import { NZ_MINUTE_BOOKS } from "./data/nz-court-identifiers";
 import { formatMaoriLandCourt as nzlsgFormatMaoriLandCourt } from "./rules/nzlsg/maori-land-court";
 import { formatWaitangiTribunalReport as nzlsgFormatWaitangiTribunalReport } from "./rules/nzlsg/waitangi";
 import {
@@ -560,6 +567,8 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
   const base = {
     authors: (d.authors as Author[]) ?? [],
     title: (d.title as string) ?? "",
+    // Rule 26.4: bracketed translation of a non-English title (ex 21)
+    translatedTitle: toStr(d.translatedTitle) || undefined,
     publisher: toStr(d.publisher) || undefined,
     edition: toOptionalNumber(d.edition),
     // Rule 6.3.3: revised editions render a bare 'rev ed'
@@ -1343,6 +1352,8 @@ function dispatchParliamentaryResearchPaper(citation: Citation): FormattedRun[] 
     number: toStr(d.number) || undefined,
     date: toStr(d.date) || undefined,
     year: toNumber(d.year, 0),
+    // Rules 7.2.1/1.1.6-1.1.7: pinpoint after the parenthetical
+    pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
 
@@ -1453,6 +1464,8 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
   return formatNewspaper({
     authors: d.authors as Author[] | undefined,
     title: (d.title as string) ?? "",
+    // Rule 26.4: bracketed translation of a non-English title
+    translatedTitle: toStr(d.translatedTitle) || undefined,
     // Rule 7.11.4: descriptions of untitled pieces take no quotes (ex 92)
     titleIsDescription: toBool(d.titleIsDescription) || undefined,
     newspaper,
@@ -1614,12 +1627,17 @@ function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
   return formatInternetMaterial({
     authors,
     title: toStr(d.title),
+    // Rule 26.4: bracketed translations of non-English elements (ex 22)
+    translatedTitle: toStr(d.translatedTitle) || undefined,
     website: toStr(d.websiteName) || toStr(d.website) || toStr(d.siteName),
+    translatedWebsiteName: toStr(d.translatedWebsiteName) || undefined,
     // Rule 7.15: document type opens the parenthetical. Default 'Web Page'
     // only when no stored date exists — legacy data smuggled the type into
     // `date`, and defaulting there would double-type it.
     documentType: toStr(d.documentType) || (toStr(d.date) ? undefined : "Web Page"),
     date: toStr(d.date),
+    // Rule 7.15: pinpoint (usually bracketed paragraphs) before the URL
+    pinpoint: normalisePinpoint(d.pinpoint),
     url: toStr(d.url),
   });
 }
@@ -1816,6 +1834,16 @@ function dispatchConstitutionalConvention(citation: Citation): FormattedRun[] {
 // ─── Group 6: International Materials ──────────────────────────────────────
 
 /**
+ * Dispatches a UN Charter citation (Rule 9.1). The Charter takes a fixed
+ * italic title, 'Charter of the United Nations', with an optional article
+ * pinpoint. Delegates to formatUnCharter.
+ */
+function dispatchUnCharter(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatUnCharter(toStr(d.article) || normalisePinpoint(d.pinpoint)?.value || undefined);
+}
+
+/**
  * Dispatches a UN document citation (Rules 9.2.1-9.2.14).
  * Delegates to formatUnDocument.
  */
@@ -1823,8 +1851,9 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
   const d = citation.data;
 
   // Rule 9.1: the UN Charter is cited simply as 'Charter of the United
-  // Nations' + article. Reachable via an explicit flag or the title itself
-  // (a dedicated un.charter source type is deferred to the UI wave).
+  // Nations' + article. Legacy path retained for citations stored before
+  // the dedicated un.charter source type existed (explicit isCharter flag
+  // or the fixed title itself).
   const isCharter =
     toBool(d.isCharter) || /^charter of the united nations$/i.test(toStr(d.title).trim());
   if (isCharter) {
@@ -1848,6 +1877,8 @@ function dispatchUnDocument(citation: Citation): FormattedRun[] {
     date: toStr(d.date) || (d.year ? String(d.year) : ""),
     annex: (d.annex as string) ?? undefined,
     pinpoint: d.pinpoint as string | undefined,
+    // Rule 9.2.14: second organ's Official Records for multi-organ documents
+    parallelOfficialRecords: toStr(d.parallelOfficialRecords) || undefined,
   });
 }
 
@@ -1984,6 +2015,9 @@ function dispatchIcjPleading(citation: Citation): FormattedRun[] {
     page: toOptionalNumber(d.page),
     pinpoint: d.pinpoint as string | undefined,
     speaker: d.speaker as string | undefined,
+    // Rule 10.3: PCIJ ser C pleadings render '[Year] PCIJ (ser C) No n pt p'
+    pcijSeriesNumber: toStr(d.pcijSeriesNumber) || undefined,
+    pcijPart: toStr(d.pcijPart) || undefined,
   });
 }
 
@@ -2063,6 +2097,22 @@ function dispatchArbitralIndividualState(citation: Citation): FormattedRun[] {
 function dispatchIccTribunalCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const caseName = (d.caseTitle as string) ?? (d.caseName as string) ?? (d.title as string) ?? "";
+
+  // Rule 12.1.2: rules/basic documents of the tribunal (not a case) —
+  // 'Tribunal, Title, Doc No n (adopted date) pinpoint' (exs 6, 8)
+  const isRulesDocument =
+    (toStr(d.adoptedDate) !== "" || toStr(d.documentType).toLowerCase() === "rules") &&
+    !toStr(d.caseNumber) &&
+    !toStr(d.phase);
+  if (isRulesDocument) {
+    return formatTribunalRules({
+      tribunal: toStr(d.court) || toStr(d.tribunal),
+      title: toStr(d.title),
+      documentNumber: toStr(d.documentNumber) || undefined,
+      adoptedDate: toStr(d.adoptedDate) || toStr(d.date),
+      pinpoint: normalisePinpoint(d.pinpoint)?.value,
+    });
+  }
 
   // Rule 12.3: decisions reproduced in a report series (exs 23-4)
   if (d.reportSeries) {
@@ -2266,6 +2316,34 @@ function dispatchSupranationalDecision(citation: Citation): FormattedRun[] {
   const date = (d.date as string) ?? "";
   const pinpoint = d.pinpoint as string | undefined;
 
+  // Rule 14.4.3: rules of procedure of the court itself (no case) —
+  // 'Court, Title (adopted date) pinpoint' (exs 41-2)
+  const adoptedDate = toStr(d.adoptedDate);
+  const hasCaseParties = toStr(d.caseName) !== "" || toStr(d.caseTitle) !== "" || !!d.applicant;
+  if (adoptedDate && !hasCaseParties) {
+    return formatSupranationalRules({
+      court,
+      title: toStr(d.title),
+      adoptedDate,
+      pinpoint,
+    });
+  }
+
+  // Rule 14.4.4: pleadings and other case documents —
+  // '‘Document Title’, Case (Court, Case Number, Date) pinpoint' (ex 43)
+  const documentTitle = toStr(d.documentTitle);
+  if (documentTitle && caseName) {
+    return formatSupranationalPleading({
+      documentTitle,
+      caseName,
+      court,
+      caseNumber: caseNumber || seriesNo || undefined,
+      date,
+      pinpoint,
+      speaker: toStr(d.speaker) || undefined,
+    });
+  }
+
   const runs = formatSupranationalDecision({
     caseName,
     court,
@@ -2331,8 +2409,10 @@ function parseForeignCaseCore(d: Record<string, unknown>): ForeignCaseCore | und
   const details = (toStr(d.citationDetails) || toStr(d.mnc)).trim();
   if (!details) return undefined;
 
-  // '[2020] UKSC 5' | '[1990] 1 SLR 158'
-  let m = details.match(/^\[(\d{4})\]\s+(?:(\d+)\s+)?([A-Za-z][A-Za-z .&()']*?)\s+(\d+)$/);
+  // '[2020] UKSC 5' | '[1990] 1 SLR 158'. Digits are allowed after the
+  // first series character so ordinal series designations parse — eg
+  // 'DLR (4th)' (rule 15.1.2 ex 5) or 'F 3d' (rule 25.1.3).
+  let m = details.match(/^\[(\d{4})\]\s+(?:(\d+)\s+)?([A-Za-z][A-Za-z0-9 .&()']*?)\s+(\d+)$/);
   if (m) {
     return {
       year: Number(m[1]),
@@ -2343,8 +2423,8 @@ function parseForeignCaseCore(d: Record<string, unknown>): ForeignCaseCore | und
     };
   }
 
-  // '(1998) 193 CLR 173'
-  m = details.match(/^\((\d{4})\)\s+(?:(\d+)\s+)?([A-Za-z][A-Za-z .&()']*?)\s+(\d+)$/);
+  // '(1998) 193 CLR 173' | '(2005) 258 DLR (4th) 341'
+  m = details.match(/^\((\d{4})\)\s+(?:(\d+)\s+)?([A-Za-z][A-Za-z0-9 .&()']*?)\s+(\d+)$/);
   if (m) {
     return {
       year: Number(m[1]),
@@ -2355,8 +2435,8 @@ function parseForeignCaseCore(d: Record<string, unknown>): ForeignCaseCore | und
     };
   }
 
-  // '347 US 483 (1954)' — US reporter style
-  m = details.match(/^(\d+)\s+([A-Za-z][A-Za-z .&']*?)\s+(\d+)\s+\((\d{4})\)$/);
+  // '347 US 483 (1954)' | '985 F 2d 500 (1993)' — US reporter style
+  m = details.match(/^(\d+)\s+([A-Za-z][A-Za-z0-9 .&']*?)\s+(\d+)\s+\((\d{4})\)$/);
   if (m) {
     return {
       year: Number(m[4]),
@@ -2379,6 +2459,22 @@ function parseForeignCaseCore(d: Record<string, unknown>): ForeignCaseCore | und
   }
 
   return undefined;
+}
+
+/**
+ * Resolves a stored minute-book value to a rule 21.1.4 abbreviation via
+ * the NZ_MINUTE_BOOKS dataset (PDF pp.265–6 table): accepts the
+ * abbreviation ('ACMB') or the full name ('Appellate Court Minute
+ * Book'), case-insensitively. Returns undefined for anything not in the
+ * table — the formatter then defaults to 'MB'.
+ */
+function resolveNzMinuteBook(raw: unknown): "MB" | "ACMB" | "CJMB" | undefined {
+  const value = toStr(raw).trim().toLowerCase();
+  if (!value) return undefined;
+  const abbrev = NZ_MINUTE_BOOKS.find(
+    (mb) => mb.abbreviation.toLowerCase() === value || mb.fullName.toLowerCase() === value
+  )?.abbreviation;
+  return abbrev === "MB" || abbrev === "ACMB" || abbrev === "CJMB" ? abbrev : undefined;
 }
 
 /**
@@ -2464,10 +2560,7 @@ function dispatchForeignCourtDecision(citation: Citation, caseName: string): For
       if (!caseName || !registry || year === undefined || !minuteBookNumber || !startingPage) {
         return null;
       }
-      const minuteBook =
-        d.minuteBook === "MB" || d.minuteBook === "ACMB" || d.minuteBook === "CJMB"
-          ? d.minuteBook
-          : undefined;
+      const minuteBook = resolveNzMinuteBook(d.minuteBook);
       return foreignNewZealand.formatMaoriLandCourt({
         parties: caseName,
         blockName: toStr(d.blockName) || undefined,
@@ -2493,6 +2586,8 @@ function dispatchForeignCourtDecision(citation: Citation, caseName: string): For
         date,
         slipOpStartingPage: toOptionalNumber(d.slipOpStartingPage),
         slipOpPinpoint: toStr(d.slipOpPinpoint) || undefined,
+        // Rule 25.1.8: judge's name with abbreviated title (ex 30)
+        judge: toStr(d.judge) || undefined,
       });
     }
     case "foreign.other": {
@@ -2510,6 +2605,9 @@ function dispatchForeignCourtDecision(citation: Citation, caseName: string): For
         reportedIn: reportedIn || undefined,
         pinpoint,
         translator: toStr(d.translator) || undefined,
+        // Rule 26.1.2: full citation of a published translation as the
+        // final '[tr …]' element
+        publishedTranslation: toStr(d.publishedTranslation) || undefined,
       });
     }
     default:
@@ -2607,6 +2705,8 @@ function dispatchForeignCase(citation: Citation, caseName: string): FormattedRun
         pinpoint,
         year: core.year,
         courtId,
+        // Rule 25.1.8: judge's name with abbreviated title (exs 29, 31)
+        judge: toStr(d.judge) || undefined,
       });
     }
     default:
@@ -2621,8 +2721,43 @@ function dispatchForeignCase(citation: Citation, caseName: string): FormattedRun
         courtId,
         jurisdiction: toStr(d.jurisdiction) || undefined,
         translatedCaseName: toStr(d.translatedCaseName) || undefined,
+        // Rule 26.1.2: published translation as the final '[tr …]' element
+        publishedTranslation: toStr(d.publishedTranslation) || undefined,
       });
   }
+}
+
+/**
+ * Rule 25.5.1 (Federal Register form) — indicated by an explicit Fed Reg
+ * signal (`fedRegVolume` or a 'federal_register' `foreignSubType`), or by
+ * a title-less volume + starting page + full date without a USC
+ * reference. A titled instrument carrying those generic fields but no
+ * Fed Reg signal returns null rather than misrouting here. The
+ * regulation title itself is optional under rule 25.5.1.
+ */
+function dispatchUsFederalRegister(
+  d: Record<string, unknown>,
+  title: string,
+  pinpoint: string | undefined
+): FormattedRun[] | null {
+  if (toOptionalNumber(d.uscTitle) !== undefined) return null;
+  const subType = toStr(d.foreignSubType).toLowerCase();
+  const explicitFedReg =
+    toOptionalNumber(d.fedRegVolume) !== undefined ||
+    subType === "federal_register" ||
+    subType === "fed_reg";
+  if (!explicitFedReg && title) return null;
+  const volume = toOptionalNumber(d.fedRegVolume) ?? toOptionalNumber(d.volume);
+  const startingPage = toOptionalNumber(d.startingPage);
+  const date = toStr(d.date) || toStr(d.fullDate);
+  if (volume === undefined || startingPage === undefined || !date) return null;
+  return foreignUsa.formatFederalRegister({
+    title: title || undefined,
+    volume,
+    startingPage,
+    pinpoint,
+    date,
+  });
 }
 
 /**
@@ -2646,7 +2781,14 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
     }
   }
 
-  if (!title) return null;
+  if (!title) {
+    // Rule 25.5.1: the Federal Register form's title is optional, so a
+    // title-less Fed Reg citation is routed before the title guard
+    if (citation.sourceType === "foreign.usa") {
+      return dispatchUsFederalRegister(d, "", pinpoint);
+    }
+    return null;
+  }
 
   const year = toOptionalNumber(d.year);
   const jurisdiction = toStr(d.jurisdiction) || undefined;
@@ -2796,25 +2938,9 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
       }
       const uscTitle = toOptionalNumber(d.uscTitle);
       const uscSection = toStr(d.uscSection);
-      // Rule 25.5.1 (Federal Register form) — indicated by a volume,
-      // starting page and full date without a USC reference
-      const fedRegVolume = toOptionalNumber(d.fedRegVolume) ?? toOptionalNumber(d.volume);
-      const fedRegPage = toOptionalNumber(d.startingPage);
-      const fedRegDate = toStr(d.date) || toStr(d.fullDate);
-      if (
-        uscTitle === undefined &&
-        fedRegVolume !== undefined &&
-        fedRegPage !== undefined &&
-        fedRegDate
-      ) {
-        return foreignUsa.formatFederalRegister({
-          title: title || undefined,
-          volume: fedRegVolume,
-          startingPage: fedRegPage,
-          pinpoint,
-          date: fedRegDate,
-        });
-      }
+      // Rule 25.5.1 (Federal Register form) — see dispatchUsFederalRegister
+      const fedReg = dispatchUsFederalRegister(d, title, pinpoint);
+      if (fedReg) return fedReg;
       if (uscTitle === undefined || !uscSection) return null;
       return foreignUsa.formatLegislation({
         title,
@@ -2838,6 +2964,9 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
             // Rule 26.1.1: '[tr …]' as the final element
             translator: toStr(d.translator) || undefined,
             isAuthorTranslation: toBool(d.isAuthorTranslation) || undefined,
+            // Rule 26.1.2: a published translation's citation replaces the
+            // rule 26.1.1 marker when both are stored
+            publishedTranslation: toStr(d.publishedTranslation) || undefined,
           });
   }
 }
@@ -2902,6 +3031,22 @@ function dispatchForeignSecondary(citation: Citation, title: string): FormattedR
       }
       return null;
     }
+    case "foreign.uk": {
+      // Rule 24.4.3: parliamentary papers — 'Author, Title (House Paper
+      // No n[, House2 Paper No n2], Session years) pinpoint' (exs 50-1)
+      const paperNumbers = [toStr(d.paperNumber), toStr(d.paperNumber2)].filter(Boolean);
+      const session = toStr(d.session);
+      // Both template elements are required; otherwise fall through to
+      // the generic secondary rendering (subType alone cannot render).
+      if (paperNumbers.length === 0 || session === "") return null;
+      return foreignUk.formatParliamentaryPaper({
+        author: toStr(d.author),
+        title,
+        paperNumbers,
+        session,
+        pinpoint,
+      });
+    }
     case "foreign.south_africa": {
       // Rule 23.3: TRC reports as chapter 6 books
       const years = toStr(d.years);
@@ -2948,7 +3093,12 @@ function dispatchForeign(citation: Citation): FormattedRun[] {
   const subType = toStr(d.foreignSubType).toLowerCase();
   const isCase = subType === "case" || (!subType && caseName.includes(" v "));
   const isLegislation =
-    subType === "legislation" || subType === "constitution" || toBool(d.isConstitution);
+    subType === "legislation" ||
+    subType === "constitution" ||
+    // Rule 25.5.1: the Federal Register form is US delegated legislation
+    subType === "federal_register" ||
+    subType === "fed_reg" ||
+    toBool(d.isConstitution);
 
   // Per-country structured routing
   if (isCase) {
@@ -3076,6 +3226,7 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   constitutional_convention: dispatchConstitutionalConvention,
 
   // ── International Materials (Group 6) ─────────────────────────────────────
+  "un.charter": dispatchUnCharter,
   "un.document": dispatchUnDocument,
   "un.communication": dispatchUnCommunication,
   "un.yearbook": dispatchUnYearbook,
@@ -3125,6 +3276,40 @@ function extractNzlsgPinpoint(data: Record<string, unknown>): string | undefined
   const pin = data.pinpoint as Pinpoint | undefined;
   if (!pin) return undefined;
   return pin.value;
+}
+
+/**
+ * Ordinal suffix for a positive integer ('1st', '2nd', '3rd', '4th', …,
+ * '11th'–'13th').
+ */
+function ordinalSuffixFor(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return "th";
+  switch (n % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+/**
+ * NZLSG rule 6.1 renders editions as ordinals ('2nd ed'): a bare numeric
+ * edition from the form ('2') is ordinalised; a pre-formatted string
+ * passes through; empty input is omitted (never '(2, …)').
+ */
+function nzlsgEdition(edition: unknown): string | undefined {
+  const raw = toStr(edition).trim();
+  if (!raw) return undefined;
+  if (/^\d+$/.test(raw)) {
+    const n = Number(raw);
+    return `${n}${ordinalSuffixFor(n)} ed`;
+  }
+  return raw;
 }
 
 /**
@@ -3223,7 +3408,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   if (st === "report.waitangi_tribunal" || (st === "report" && d.waiNumber !== undefined)) {
     return nzlsgFormatWaitangiTribunalReport({
       title: (d.title as string) ?? "",
-      waiNumber: toNumber(d.waiNumber, 0),
+      // Omit the Wai element when no claim number is stored (never 'Wai 0')
+      waiNumber: toOptionalNumber(d.waiNumber),
       year: toNumber(d.year, 0),
       pinpoint: extractNzlsgPinpoint(d),
     });
@@ -3325,7 +3511,7 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatBook({
       author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
       title: (d.title as string) ?? "",
-      edition: d.edition as string | undefined,
+      edition: nzlsgEdition(d.edition),
       publisher: (d.publisher as string) ?? "",
       place: (d.place as string) ?? "",
       year: toNumber(d.year, 0),
@@ -3779,11 +3965,14 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaDelegatedLegislation(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // OSCOLA 2.2.6: omit the 'SI Year/Number' element when no instrument
+  // number is stored, rather than rendering a placeholder 'SI 1998/0'.
+  const siNumber = toStr(d.number).trim() || toStr(d.siNumber).trim();
   return formatOscolaSecondaryLegislation({
     title: (d.title as string) ?? "",
     year: toNumber(d.year, 0),
     type: (d.instrumentType as "si" | "ssi" | "wsi" | "sr") ?? "si",
-    number: toNumber(d.number, 0),
+    number: siNumber || undefined,
     pinpoint: extractOscolaPinpoint(d),
   });
 }

@@ -729,6 +729,15 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
       "Title, Parties, signed SignedDate, TreatySeries (Memorandum of Understanding) Pinpoint <URL>.",
   },
   {
+    type: "un.charter",
+    ruleNumber: "9.1",
+    label: "Charter of the United Nations",
+    category: "international",
+    requiredFields: [],
+    optionalFields: ["article", "pinpoint"],
+    formatTemplate: "Charter of the United Nations art Article. (fixed italic title, rule 9.1)",
+  },
+  {
     type: "un.document",
     ruleNumber: "9.2",
     label: "United Nations Document",
