@@ -28,15 +28,28 @@ node scripts/generate-skill-icons.js >/dev/null
 
 # Version comes from the generated unified manifest (single source of truth).
 VERSION=$(node -p "require('./manifest.skill.json').version")
-ZIP_NAME="obiter-copilot-skill-v${VERSION}.zip"
 
-echo "==> Packaging Obiter Copilot skill v${VERSION}"
+# BETA=1 targets the staging slot https://obiter.com.au/app/beta (see
+# docs/beta-testing.md) so the skill can be tested without deploying to production.
+if [ "${BETA:-0}" = "1" ]; then
+  ZIP_NAME="obiter-copilot-skill-v${VERSION}-beta.zip"
+  echo "==> Packaging Obiter Copilot skill v${VERSION} (BETA → /app/beta)"
+else
+  ZIP_NAME="obiter-copilot-skill-v${VERSION}.zip"
+  echo "==> Packaging Obiter Copilot skill v${VERSION}"
+fi
 
 STAGING_DIR=$(mktemp -d)
 trap 'rm -rf "$STAGING_DIR"' EXIT
 
 # manifest.json at the package root (any lingering dev URL → production).
 sed "s|${DEV_URL}|${PROD_URL}|g" manifest.skill.json > "$STAGING_DIR/manifest.json"
+
+# Beta: repoint the production host at the /app/beta staging slot.
+if [ "${BETA:-0}" = "1" ]; then
+  sed -i.bak "s#obiter\.com\.au/app/#obiter.com.au/app/beta/#g" "$STAGING_DIR/manifest.json"
+  rm -f "$STAGING_DIR/manifest.json.bak"
+fi
 
 cp declarativeAgent.json "$STAGING_DIR/declarativeAgent.json"
 cp assets/color.png "$STAGING_DIR/color.png"
