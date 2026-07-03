@@ -203,9 +203,7 @@ function searchAbbreviations(query: string, standardId: CitationStandardId): Abb
   };
 }
 
-function reportTypeLabel(
-  type: "authorised" | "unauthorised_generalist" | "unauthorised_subject",
-): string {
+function reportTypeLabel(type: ReportSeriesEntry["type"]): string {
   switch (type) {
     case "authorised":
       return "Authorised";
@@ -213,6 +211,8 @@ function reportTypeLabel(
       return "Generalist";
     case "unauthorised_subject":
       return "Subject";
+    case "medium_neutral":
+      return "Medium neutral";
   }
 }
 

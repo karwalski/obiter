@@ -303,7 +303,11 @@ export function deserializeStore(xml: string): CitationStoreData {
   const aglcVersion = (root.getAttribute("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
   const standardId = root.getAttribute("standardId") ?? "aglc4";
   const writingMode = (root.getAttribute("writingMode") ?? "academic") as "academic" | "court";
-  const courtJurisdiction = root.getAttribute("courtJurisdiction") ?? undefined;
+  const rawCourtJurisdiction = root.getAttribute("courtJurisdiction") ?? undefined;
+  // Migration: "TASCSC" was a typo for the AGLC4 rule 2.3.1 identifier
+  // "TASSC" (PARITY-117); documents saved before the rename keep resolving
+  // the Tasmanian Supreme Court preset.
+  const courtJurisdiction = rawCourtJurisdiction === "TASCSC" ? "TASSC" : rawCourtJurisdiction;
   const headingListIdStr = root.getAttribute("headingListId");
   const headingListId = headingListIdStr ? parseInt(headingListIdStr, 10) : undefined;
   const ccModel = (root.getAttribute("ccModel") as "flat" | "parent-child" | null) ?? undefined;

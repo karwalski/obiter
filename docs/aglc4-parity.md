@@ -54,9 +54,19 @@ Nine automated parity reviews compared the engine against the reference (finding
 
 Work is tracked in the **PARITY epic** (`footnote-backlog.md`): PARITY-001..009 triage reviews, PARITY-101..120 grouped fixes. New open decisions: DECISION-013 (em-dash spacing), DECISION-014 (5.5 ampersand), DECISION-015 (ACTR/appendix-dependent rows).
 
+## PARITY epic execution (2026-07-02)
+
+The PARITY fix waves ran on branch `fix/parity-epic`, all agents working from the review docs in `docs/parity-reviews/` (each finding now carries a Status line: FIXED / WONTFIX / INVALID / DEFERRED / HANDOFF→FIXED).
+
+- **Wave 1** — six parallel fix agents (chapter 1; cases; legislation; secondary 4–7; international 8–14; datasets/styling): **~120 findings fixed** in formatters, validator, and data modules, with exact-string tests keyed to the guide's own examples. Out-of-scope changes recorded in handoff files.
+- **Wave 2** — engine wiring (PARITY-102 subsequent-reference defects; PARITY-114 foreign dispatch) plus **~60 wiring items** from the wave-1 handoffs (dispatch passthroughs, dead formatters connected) and **22 foreign-module fixes** (PARITY-115/116; `chapter15-26.test.ts` now 140 exact-string tests, green, plus green nzlsg/oscola suites).
+- **Wave 3** — in flight: PARITY-118 (SOURCE_TYPE_METADATA rebuild), PARITY-119 (test-suite hardening / full-suite sweep), UI form fields for the newly wired optional data fields, and this documentation consolidation (PARITY-120: audit + coverage rebased; DECISION-016..029 filed).
+
+**Remaining open items:** DATA-004 (Appendices A–C scan) and DATA-005 (official Erratum) block final verification of ~230 provisional data rows and several guide-anomaly calls (DECISION-015); open decisions DECISION-013..029 need researcher sign-off; seven resolver-routed short-title rules (8.8, 9.5, 10.5, 11.3, 12.4, 13.4, 14.6) and a handful of low-severity gaps (2.1.15, 8.4, 9.2.14, 10.3, 12.1.2, 14.4.3–14.4.4) remain RE-AUDIT; wave-3 UI field work is tracked in the wave-2 handoff (engine-leftovers).
+
 ## Related work
 
-- `aglc4-audit.md` — April 2026 chapter-by-chapter implementation audit (predates this reference)
-- `aglc4-coverage.md` — coverage matrix, last audited 2026-06-30
+- `aglc4-audit.md` — April 2026 chapter-by-chapter implementation audit; **rebased 2026-07-02** against the reference + PARITY wave fixes
+- `aglc4-coverage.md` — coverage matrix; **rebased 2026-07-02** likewise
 - `erratum-audit.md` — inferred erratum mapping; to be replaced by DATA-005
 - PARITY epic (footnote-backlog.md) — category-by-category reviews of the engine against this reference

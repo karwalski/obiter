@@ -2387,12 +2387,157 @@ function parseForeignCaseCore(d: Record<string, unknown>): ForeignCaseCore | und
 }
 
 /**
+ * Renders UK judicial officers (Rule 24.1.6) from stored data. An array
+ * of {name, title} objects goes through foreignUk.formatJudicialOfficers
+ * (before-name titles, LJ→LJJ grouping); a plain string — e.g. the
+ * guide's own mixed forms like 'Lord Hughes JSC, Baroness Hale PSC' —
+ * passes through verbatim. Returns "" when nothing usable is stored.
+ */
+function renderUkJudicialOfficers(raw: unknown): string {
+  if (typeof raw === "string") return raw.trim();
+  if (!Array.isArray(raw)) return "";
+  const officers: Array<{ name: string; title: string }> = [];
+  for (const entry of raw) {
+    if (typeof entry === "object" && entry !== null) {
+      const record = entry as Record<string, unknown>;
+      const name = toStr(record.name);
+      if (name) officers.push({ name, title: toStr(record.title) });
+    }
+  }
+  return officers.length > 0 ? foreignUk.formatJudicialOfficers(officers) : "";
+}
+
+/**
+ * Prefers the chapter 15–26 court-decision formatters where stored
+ * fields indicate their shapes (PARITY wave 3): the court-led forms of
+ * Rules 17.1/18.1 (court + full date), unreported judgments with docket
+ * numbers (Rules 16.2.3 and 25.1.7), Māori Land Court minute books
+ * (Rule 21.1.4) and the Rule 26.2 non-common-law element list. Returns
+ * null when the fields do not indicate one of these, so the wave-2
+ * structured routing (and generic fallback) still applies.
+ */
+function dispatchForeignCourtDecision(
+  citation: Citation,
+  caseName: string
+): FormattedRun[] | null {
+  const d = citation.data;
+  const date = toStr(d.fullDate) || toStr(d.date);
+  const caseNumber = toStr(d.caseNumber) || toStr(d.docketNumber);
+  const court = toStr(d.court);
+  const reportedIn = toStr(d.reportedIn);
+  const pinpoint = normalisePinpoint(d.pinpoint)?.value;
+  const hasReportCore = parseForeignCaseCore(d) !== undefined;
+
+  switch (citation.sourceType) {
+    case "foreign.france":
+    case "foreign.germany": {
+      // Rules 17.1/18.1: the court-led decision form applies to ALL
+      // French/German cases — used whenever a court and full date exist
+      if (!court || !date) return null;
+      const shape = {
+        popularName: toStr(d.popularName) || caseName || undefined,
+        court,
+        translation: toStr(d.courtTranslation) || toStr(d.translation) || undefined,
+        caseNumber: caseNumber || undefined,
+        ecli: toStr(d.ecli) || undefined,
+        date,
+        reportedIn: reportedIn || undefined,
+      };
+      return citation.sourceType === "foreign.france"
+        ? foreignFrance.formatCourtDecision(shape)
+        : foreignGermany.formatCourtDecision(shape);
+    }
+    case "foreign.china": {
+      // Rule 16.2.3: unreported judgment — indicated by a case number
+      // (or the absence of any parseable report citation)
+      if (!caseName || !court || !date) return null;
+      if (hasReportCore && !caseNumber) return null;
+      return foreignChina.formatUnreportedCase({
+        caseName,
+        translation: toStr(d.translation) || toStr(d.translatedCaseName) || undefined,
+        court,
+        courtTranslation: toStr(d.courtTranslation) || undefined,
+        caseNumber: caseNumber || undefined,
+        caseNumberTranslation: toStr(d.caseNumberTranslation) || undefined,
+        date,
+        pinpoint,
+      });
+    }
+    case "foreign.new_zealand": {
+      // Rule 21.1.4: Māori Land Court minute books — indicated by a registry
+      const registry = toStr(d.registry);
+      const year = toOptionalNumber(d.year);
+      const minuteBookNumber = toStr(d.caseNumber);
+      const startingPage = toStr(d.startingPage);
+      if (!caseName || !registry || year === undefined || !minuteBookNumber || !startingPage) {
+        return null;
+      }
+      const minuteBook =
+        d.minuteBook === "MB" || d.minuteBook === "ACMB" || d.minuteBook === "CJMB"
+          ? d.minuteBook
+          : undefined;
+      return foreignNewZealand.formatMaoriLandCourt({
+        parties: caseName,
+        blockName: toStr(d.blockName) || undefined,
+        year,
+        caseNumber: minuteBookNumber,
+        registry,
+        minuteBook,
+        startingPage,
+        pinpoint,
+        judicialOfficer: toStr(d.judicialOfficer) || toStr(d.judges) || undefined,
+      });
+    }
+    case "foreign.usa": {
+      // Rule 25.1.7: unreported/slip opinions — indicated by a docket
+      // number without a parseable reporter citation
+      const docketNumber = toStr(d.docketNumber) || toStr(d.caseNumber);
+      const usCourt = court || toStr(d.courtId);
+      if (!caseName || !docketNumber || !usCourt || !date || hasReportCore) return null;
+      return foreignUsa.formatUnreportedCase({
+        caseName,
+        court: usCourt,
+        docketNumber,
+        date,
+        slipOpStartingPage: toOptionalNumber(d.slipOpStartingPage),
+        slipOpPinpoint: toStr(d.slipOpPinpoint) || undefined,
+      });
+    }
+    case "foreign.other": {
+      // Rule 26.2: non-common-law decisions — comma-separated element
+      // list, indicated by a case/decision number, a 'reported in'
+      // reference, or a dated decision with no common-law report core
+      if (!court) return null;
+      if (!caseNumber && !reportedIn && !(date && !hasReportCore)) return null;
+      return foreignOther.formatOtherDecision({
+        caseName: caseName || undefined,
+        court,
+        courtTranslation: toStr(d.courtTranslation) || undefined,
+        caseNumber: caseNumber || undefined,
+        date: date || undefined,
+        reportedIn: reportedIn || undefined,
+        pinpoint,
+        translator: toStr(d.translator) || undefined,
+      });
+    }
+    default:
+      return null;
+  }
+}
+
+/**
  * Routes a foreign case to its per-country formatter (PARITY-114).
- * Returns null when the stored data has no derivable citation core, in
+ * Field-indicated court-decision forms (PARITY wave 3) are preferred;
+ * returns null when the stored data has no derivable citation core, in
  * which case the caller falls back to the generic rendering.
  */
 function dispatchForeignCase(citation: Citation, caseName: string): FormattedRun[] | null {
   const d = citation.data;
+
+  // Prefer the new court-decision formatters where fields indicate them
+  const courtDecision = dispatchForeignCourtDecision(citation, caseName);
+  if (courtDecision) return courtDecision;
+
   const core = parseForeignCaseCore(d);
   if (!core || !caseName) return null;
 
@@ -2423,28 +2568,42 @@ function dispatchForeignCase(citation: Citation, caseName: string): FormattedRun
 
   switch (citation.sourceType) {
     case "foreign.canada":
-      return foreignCanada.formatCase(simpleShape);
+      // Rule 15.1.2 via 2.2.3–2.2.4: round years for volume-organised series
+      return foreignCanada.formatCase({ ...simpleShape, yearType: core.yearType });
     case "foreign.china":
-      return foreignChina.formatCase(simpleShape);
+      return foreignChina.formatCase({
+        ...simpleShape,
+        translation: toStr(d.translatedCaseName) || undefined,
+        seriesTranslation: toStr(d.seriesTranslation) || undefined,
+        pinpoint,
+      });
     case "foreign.france":
       return foreignFrance.formatCase(simpleShape);
     case "foreign.germany":
       return foreignGermany.formatCase(simpleShape);
     case "foreign.hong_kong":
-      return foreignHongKong.formatCase(simpleShape);
+      return foreignHongKong.formatCase({ ...simpleShape, yearType: core.yearType, pinpoint });
     case "foreign.malaysia":
-      return foreignMalaysia.formatCase(simpleShape);
+      return foreignMalaysia.formatCase({ ...simpleShape, pinpoint });
     case "foreign.new_zealand":
       return foreignNewZealand.formatCase(fullShape);
     case "foreign.singapore":
       return foreignSingapore.formatCase(fullShape);
     case "foreign.south_africa":
       return foreignSouthAfrica.formatCase(fullShape);
-    case "foreign.uk":
-      return foreignUk.formatCase({
+    case "foreign.uk": {
+      // Rule 24.1.6: judicial officers follow the pinpoint in parentheses
+      const officers = renderUkJudicialOfficers(d.judicialOfficers);
+      const runs = foreignUk.formatCase({
         ...fullShape,
+        pinpoint: officers && pinpoint ? `${pinpoint} (${officers})` : pinpoint,
         ewhcDivision: toStr(d.ewhcDivision) || undefined,
       });
+      if (officers && !pinpoint) {
+        runs.push({ text: ` (${officers})` });
+      }
+      return runs;
+    }
     case "foreign.usa": {
       // USCaseData requires a volume; fall back to generic when absent
       if (core.volume === undefined) return null;
@@ -2481,25 +2640,78 @@ function dispatchForeignCase(citation: Citation, caseName: string): FormattedRun
  */
 function dispatchForeignLegislation(citation: Citation, title: string): FormattedRun[] | null {
   const d = citation.data;
+  const pinpoint = normalisePinpoint(d.pinpoint)?.value;
+
+  // Rule 15.3.1 fixed federal constitutional forms need no stored title
+  if (citation.sourceType === "foreign.canada") {
+    const instrument = toStr(d.constitutionInstrument);
+    if (
+      instrument === "constitution1982" ||
+      instrument === "constitution1867" ||
+      instrument === "charter"
+    ) {
+      return foreignCanada.formatFederalConstitution({ instrument, pinpoint });
+    }
+  }
+
   if (!title) return null;
 
-  const pinpoint = normalisePinpoint(d.pinpoint)?.value;
   const year = toOptionalNumber(d.year);
   const jurisdiction = toStr(d.jurisdiction) || undefined;
+  const isConstitution =
+    toStr(d.foreignSubType).toLowerCase() === "constitution" || toBool(d.isConstitution);
   // Shape shared by the canada/china/france/germany/hong-kong/malaysia modules
   const simpleShape = { title, year, jurisdiction, pinpoint };
 
   switch (citation.sourceType) {
-    case "foreign.canada":
-      return foreignCanada.formatLegislation(simpleShape);
+    case "foreign.canada": {
+      // Rules 15.4.1–15.4.3: regulations — indicated by a CRC/SOR/Reg citation
+      const regulationCitation =
+        toStr(d.regulationCitation) ||
+        (/^(CRC\b|SOR\/|RRO\b)|\bReg\b/.test(toStr(d.citationDetails))
+          ? toStr(d.citationDetails)
+          : "");
+      if (regulationCitation) {
+        return foreignCanada.formatRegulation({
+          title,
+          citation: regulationCitation,
+          pinpoint,
+          consolidationYear: toOptionalNumber(d.consolidationYear),
+        });
+      }
+      return foreignCanada.formatLegislation({
+        ...simpleShape,
+        sessionOrSupplement: toStr(d.sessionOrSupplement) || undefined,
+      });
+    }
     case "foreign.china":
-      return foreignChina.formatLegislation(simpleShape);
+      // Rule 16.3.2: fixed constitutional forms
+      if (isConstitution) {
+        return foreignChina.formatConstitution({
+          title,
+          translation: toStr(d.translation) || toStr(d.translatedTitle) || undefined,
+          pinpoint,
+        });
+      }
+      // Rule 16.3.1: promulgating body, order number, full date, gazette
+      return foreignChina.formatLegislation({
+        ...simpleShape,
+        translation: toStr(d.translation) || toStr(d.translatedTitle) || undefined,
+        promulgatingBody: toStr(d.promulgatingBody) || undefined,
+        instrumentNumber: toStr(d.instrumentNumber) || undefined,
+        promulgationDate: toStr(d.promulgationDate) || toStr(d.date) || undefined,
+        gazette: toStr(d.gazette) || undefined,
+      });
     case "foreign.france":
       return foreignFrance.formatLegislation(simpleShape);
     case "foreign.germany":
       return foreignGermany.formatLegislation(simpleShape);
     case "foreign.hong_kong":
-      return foreignHongKong.formatLegislation(simpleShape);
+      // Rule 19.2.1: chapter number after the (Hong Kong) parenthetical
+      return foreignHongKong.formatLegislation({
+        ...simpleShape,
+        capNumber: toStr(d.capNumber) || undefined,
+      });
     case "foreign.malaysia":
       return foreignMalaysia.formatLegislation(simpleShape);
     case "foreign.new_zealand":
@@ -2512,8 +2724,10 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
         year,
         jurisdiction,
         pinpoint,
+        isConstitution: isConstitution || undefined,
         capNumber: toStr(d.capNumber) || undefined,
         revisedEdition: toStr(d.revisedEdition) || undefined,
+        reprint: toStr(d.reprint) || undefined,
       });
     case "foreign.south_africa":
       return year === undefined
@@ -2525,29 +2739,90 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
             pinpoint,
             actNumber: toStr(d.actNumber) || undefined,
           });
-    case "foreign.uk":
+    case "foreign.uk": {
       if (toStr(d.siNumber)) {
+        // Rule 24.3: SI/SR/SR & O — explicit type or defaulted in uk.ts
+        const instrumentType =
+          d.instrumentType === "SI" || d.instrumentType === "SR" || d.instrumentType === "SR & O"
+            ? d.instrumentType
+            : undefined;
         return foreignUk.formatStatutoryInstrument({
           title,
           year: year ?? 0,
           siNumber: toStr(d.siNumber),
           jurisdiction,
           pinpoint,
+          instrumentType,
         });
       }
-      return year === undefined
-        ? null
-        : foreignUk.formatLegislation({
-            title,
-            year,
-            jurisdiction,
-            pinpoint,
-            regnalYear: toStr(d.regnalYear) || undefined,
-            chapter: toStr(d.chapter) || undefined,
-          });
+      if (year === undefined) return null;
+      // Rule 24.2.3: build the regnal year from structured fields where stored
+      const monarch = toStr(d.monarch);
+      const yearsOfReign = toStr(d.yearsOfReign);
+      const regnalYear =
+        toStr(d.regnalYear) ||
+        (monarch && yearsOfReign
+          ? foreignUk.formatRegnalYear({
+              yearsOfReign,
+              monarch,
+              regnalNumber: toOptionalNumber(d.regnalNumber),
+              session: toOptionalNumber(d.session),
+            })
+          : "");
+      return foreignUk.formatLegislation({
+        title,
+        year,
+        jurisdiction,
+        pinpoint,
+        regnalYear: regnalYear || undefined,
+        chapter: toStr(d.chapter) || undefined,
+      });
+    }
     case "foreign.usa": {
+      // Rule 25.4: federal and state constitutions (italic titles)
+      const constitutionParts = {
+        amendment: toStr(d.amendment) || undefined,
+        article: toStr(d.article) || undefined,
+        section: toStr(d.section) || undefined,
+        clause: toStr(d.clause) || undefined,
+      };
+      const hasConstitutionParts = Object.values(constitutionParts).some(Boolean);
+      if (isConstitution || (hasConstitutionParts && /Constitution$/.test(title))) {
+        return foreignUsa.formatConstitution({ title, ...constitutionParts });
+      }
+      // Rule 25.5.1 (CFR form)
+      const cfrTitle = toOptionalNumber(d.cfrTitle);
+      const cfrSection = toStr(d.cfrSection);
+      if (cfrTitle !== undefined && cfrSection) {
+        return foreignUsa.formatRegulation({
+          title: title || undefined,
+          cfrTitle,
+          cfrSection,
+          year,
+          pinpoint,
+        });
+      }
       const uscTitle = toOptionalNumber(d.uscTitle);
       const uscSection = toStr(d.uscSection);
+      // Rule 25.5.1 (Federal Register form) — indicated by a volume,
+      // starting page and full date without a USC reference
+      const fedRegVolume = toOptionalNumber(d.fedRegVolume) ?? toOptionalNumber(d.volume);
+      const fedRegPage = toOptionalNumber(d.startingPage);
+      const fedRegDate = toStr(d.date) || toStr(d.fullDate);
+      if (
+        uscTitle === undefined &&
+        fedRegVolume !== undefined &&
+        fedRegPage !== undefined &&
+        fedRegDate
+      ) {
+        return foreignUsa.formatFederalRegister({
+          title: title || undefined,
+          volume: fedRegVolume,
+          startingPage: fedRegPage,
+          pinpoint,
+          date: fedRegDate,
+        });
+      }
       if (uscTitle === undefined || !uscSection) return null;
       return foreignUsa.formatLegislation({
         title,
@@ -2566,7 +2841,88 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
             jurisdiction,
             pinpoint,
             translatedTitle: toStr(d.translatedTitle) || undefined,
+            // Rule 26.3: comma-separated body/number/date/gazette elements
+            otherInformation: toStr(d.otherInformation) || toStr(d.gazette) || undefined,
+            // Rule 26.1.1: '[tr …]' as the final element
+            translator: toStr(d.translator) || undefined,
+            isAuthorTranslation: toBool(d.isAuthorTranslation) || undefined,
           });
+  }
+}
+
+/**
+ * Routes foreign secondary-source forms that are neither cases nor
+ * legislation (PARITY wave 3): US Congressional Record (Rule 25.6.1)
+ * and Restatements (Rule 25.7), and South African TRC reports
+ * (Rule 23.3). Indicated by the `foreignSubType` values
+ * "congressional_record" / "restatement" / "trc_report" or by the
+ * fields themselves on a "secondary" subtype. Returns null when
+ * nothing matches, so the generic fallback applies.
+ */
+function dispatchForeignSecondary(citation: Citation, title: string): FormattedRun[] | null {
+  const d = citation.data;
+  const subType = toStr(d.foreignSubType).toLowerCase();
+  const pinpoint = normalisePinpoint(d.pinpoint)?.value;
+  const year = toOptionalNumber(d.year);
+
+  switch (citation.sourceType) {
+    case "foreign.usa": {
+      // Rule 25.7: Restatements — subject, ordinal edition and section
+      const subject = toStr(d.restatementSubject) || toStr(d.subject);
+      const restatementEdition = toStr(d.edition);
+      const section = toStr(d.section);
+      const editionIsOrdinal =
+        restatementEdition !== "" &&
+        restatementEdition !== "daily" &&
+        restatementEdition !== "bound";
+      if (subject && section && year !== undefined && editionIsOrdinal) {
+        return foreignUsa.formatRestatement({
+          subject,
+          edition: restatementEdition,
+          section,
+          year,
+          topic: toStr(d.topic) || undefined,
+          pinpoint,
+        });
+      }
+      // Rule 25.6.1: Congressional Record — volume, page and year, with
+      // a speaker/edition/chamber indicator
+      const volume = toOptionalNumber(d.volume);
+      const page = toStr(d.page) || toStr(d.startingPage);
+      const speaker = toStr(d.speaker);
+      const chamber = toStr(d.chamber);
+      const edition = d.edition === "daily" ? "daily" : d.edition === "bound" ? "bound" : undefined;
+      if (
+        volume !== undefined &&
+        page &&
+        year !== undefined &&
+        (subType === "congressional_record" || speaker || chamber || edition)
+      ) {
+        return foreignUsa.formatCongressionalRecord({
+          volume,
+          page,
+          year,
+          speaker: speaker || undefined,
+          edition,
+          date: toStr(d.date) || toStr(d.fullDate) || undefined,
+          chamber: chamber || undefined,
+        });
+      }
+      return null;
+    }
+    case "foreign.south_africa": {
+      // Rule 23.3: TRC reports as chapter 6 books
+      const years = toStr(d.years);
+      if (!years || !(subType === "trc_report" || toBool(d.isTRC))) return null;
+      return foreignSouthAfrica.formatTRCReport({
+        title: title || undefined,
+        years,
+        volume: toOptionalNumber(d.volume) ?? (toStr(d.volume) || undefined),
+        pinpoint,
+      });
+    }
+    default:
+      return null;
   }
 }
 
@@ -2575,10 +2931,16 @@ function dispatchForeignLegislation(citation: Citation, title: string): Formatte
  *
  * Routes to the per-country formatters in src/engine/rules/v4/foreign/*
  * based on the `foreignSubType` data field ("case" | "legislation" |
- * "secondary"). Where the stored data is too unstructured for a country
- * module (free-text `citationDetails` that does not parse), falls back to
- * a generic rendering: italic case/legislation title, citation details
- * verbatim, court parenthetical, space-separated pinpoint.
+ * "constitution" | "secondary", plus the explicit secondary forms
+ * "congressional_record" / "restatement" / "trc_report"). Within the
+ * case and legislation routes, field-indicated shapes (docket numbers,
+ * gazettes, minute books, regulation designations) prefer the wave-3
+ * court-decision and delegated-legislation formatters, with the wave-2
+ * structured routing as fallback. Where the stored data is too
+ * unstructured for a country module (free-text `citationDetails` that
+ * does not parse), falls back to a generic rendering: italic
+ * case/legislation title, citation details verbatim, court
+ * parenthetical, space-separated pinpoint.
  */
 function dispatchForeign(citation: Citation): FormattedRun[] {
   const d = citation.data;
@@ -2593,7 +2955,8 @@ function dispatchForeign(citation: Citation): FormattedRun[] {
 
   const subType = toStr(d.foreignSubType).toLowerCase();
   const isCase = subType === "case" || (!subType && caseName.includes(" v "));
-  const isLegislation = subType === "legislation";
+  const isLegislation =
+    subType === "legislation" || subType === "constitution" || toBool(d.isConstitution);
 
   // Per-country structured routing
   if (isCase) {
@@ -2601,6 +2964,9 @@ function dispatchForeign(citation: Citation): FormattedRun[] {
     if (routed) return routed;
   } else if (isLegislation) {
     const routed = dispatchForeignLegislation(citation, caseName);
+    if (routed) return routed;
+  } else {
+    const routed = dispatchForeignSecondary(citation, caseName);
     if (routed) return routed;
   }
 

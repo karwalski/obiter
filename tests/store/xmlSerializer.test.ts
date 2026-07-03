@@ -289,6 +289,22 @@ describeIfDOMParser("xmlSerializer store round-trip", () => {
     expect(store.metadata.ccModel).toBe("parent-child");
   });
 
+  test("legacy TASCSC court jurisdiction migrates to TASSC on load (PARITY-117)", () => {
+    const xml = serializeStore(
+      [makeCitation()],
+      "2",
+      "4",
+      "aglc4",
+      "court",
+      "TASCSC",
+      undefined,
+      "1.0.0",
+    );
+    const store = deserializeStore(xml);
+
+    expect(store.metadata.courtJurisdiction).toBe("TASSC");
+  });
+
   test("generator info is preserved", () => {
     const xml = serializeStore([], "2", "4", "aglc4", "academic", undefined, undefined, "1.2.3");
     const store = deserializeStore(xml);

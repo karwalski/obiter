@@ -236,4 +236,116 @@ Rule 5.5 says journal titles appear "as on the title page" with two stated excep
 
 **Status:** OPEN (blocked on DATA-004)
 **Raised:** 2026-07-02 (PARITY review, review-data-styling.md)
-The 2.2.2/2.2.3 in-chapter tables conflict on ACT Reports' status, and ~230 report-series/court-identifier rows plus several yearOrganised flags can only be authoritatively verified against Appendices A–B, which are absent from the free PDF. Resolve when the scanned appendices arrive (DATA-004); until then rows are tagged provisional and the engine keeps current behaviour.
+The 2.2.2/2.2.3 in-chapter tables conflict on ACT Reports' status, and ~230 report-series/court-identifier rows plus several yearOrganised flags can only be authoritatively verified against Appendices A–B, which are absent from the free PDF. Resolve when the scanned appendices arrive (DATA-004); until then rows are tagged provisional and the engine keeps current behaviour. (Note: the formatter currently ranks ACTR unauthorised-generalist per the rule 2.2.2 table; researchers to confirm whether the 2.2.3 authorised listing 'ACTR (in ALR) 1973–2008' governs instead.)
+
+## DECISION-016: Rule 1.8.3 — Macquarie-Dependent Latin/Foreign Terms
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch1.md HIGH-1 / review-data-styling.md A13)
+Rule 1.8.3 italicises foreign words only if absent from the latest Macquarie Dictionary. `LATIN_TERMS_ITALICISED` (src/engine/data/latin-terms.ts) retains ~40 terms on neither of the rule's explicit lists (actus reus, certiorari, mens rea, mandamus, de novo, in camera, pro bono, pro rata, quasi, res judicata, sub judice, modus operandi, …), grouped and commented "provisional".
+**Interim:** provisional rows kept italicised; the rule's own two lists are encoded verbatim. 'bona fides', 'dicta', 'dictum', 'obiter dicta' were placed in `LATIN_TERMS_EXCEPTIONS` by parity with the listed 'bona fide'/'obiter dictum'.
+**Researchers:** verify each provisional term against the current Macquarie Dictionary; confirm the four exception-parity placements.
+
+## DECISION-017: Rule 1.5.5 — Italicisation of [sic]
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch1.md)
+AGLC4 (PDF p 44) is silent on whether 'sic' is italicised. The Styling.tsx Insert [sic] button italicises 'sic' with roman brackets.
+**Interim:** italic 'sic', roman brackets.
+**Researchers:** confirm against the printed guide / MULR house practice.
+
+## DECISION-018: Rule 1.2 — Lowercase Signals After a Colon
+
+**Status:** OPEN (documented limitation)
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch1.md)
+Rule 1.2 shows signals lowercased when a citation follows a colon mid-sentence ('…: see generally at 198–205'). The engine always renders signals capitalised at the start of a citation.
+**Interim:** capitalised signals only; the after-colon lowercase context is unsupported.
+**Researchers:** confirm this is acceptable as a documented limitation, or specify the contexts in which the engine should offer a lowercase signal form.
+
+## DECISION-019: `book.ebook` [Platform] Format Is a Non-AGLC Extension
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch6-7.md)
+AGLC4 rule 6.8 is Forthcoming Books; the guide has no ebook rule and the `[Platform]` bracket emitted by `book.ebook` is invented. Engine JSDoc was corrected in wave 2 to label it a non-AGLC extension; the coverage matrix mislabel is fixed by PARITY-120.
+**Interim:** `book.ebook` retained as an explicitly non-AGLC convenience type.
+**Researchers:** confirm keeping the extension (and its format) vs retiring the type in favour of rule 6.1–6.5 + URL.
+
+## DECISION-020: Rule 7.10 — Example 79 Partial Date vs 'Full Date' Template
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch6-7.md)
+The rule 7.10 template for constitutive documents requires `(at Full Date)`, but the guide's own ex 79 uses a partial date '(at September 2017)'.
+**Interim:** per DECISION-012 the engine follows the template and passes the user's date string through unvalidated, so partial dates still render.
+**Researchers:** confirm whether partial dates are permissible when that is all the source states.
+
+## DECISION-021: Rule 4.2 — Embedded Italics Inside Article Titles
+
+**Status:** OPEN (DEFERRED — needs a title markup convention)
+**Raised:** 2026-07-02 (PARITY wave 1, review-ch4-5.md)
+Rule 4.2 preserves italics inside secondary-source titles (eg a case name like *IceTV* within an article title). Titles are stored as plain strings, so embedded italics are unrepresentable end-to-end.
+**Interim:** titles render entirely roman inside quotes (or entirely italic for books); embedded italics are lost.
+**Researchers/design:** approve a title markup convention (and UI affordance) before the formatter layer can honour this.
+
+## DECISION-022: Rule 21.1.3 — NZ Neutral-Citation Adoption Years (AGLC4 vs NZLII)
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
+`nz-court-identifiers.ts` `neutralCitationFrom` now holds the AGLC4 rule 21.1.3 years (NZSC 2005, NZCA 2007, NZHC 2012, NZEmpC 2010, NZEnvC 2010, NZFC 2012), which diverge from real-world NZLII adoption (eg NZHC 2003 on NZLII).
+**Interim:** AGLC4 years govern per project policy.
+**Researchers:** confirm AGLC4 years suffice, or approve a dual field (aglcFrom/nzliiFrom) for validator tolerance.
+
+## DECISION-023: yearOrganised Flags — Series That Switched Systems (Appendix A)
+
+**Status:** OPEN (blocked on DATA-004)
+**Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
+NSWLR and VR switched between year- and volume-organisation (both bracket forms appear in the guide's own illustrations), which a single `yearOrganised` boolean cannot represent. Tas R, ACTLR and ALJR have no in-chapter bracket evidence; the seven re-added historical series (SR (NSW), NSWR, St R Qd, SALR, Tas LR, Tas SR, VLR, WALR) are likewise provisional.
+**Interim:** current single-boolean values kept, rows tagged provisional.
+**Researchers:** verify against Appendix A when the scan arrives; decide whether a switch-year field is needed for NSWLR/VR.
+
+## DECISION-024: Rule 3.1.4 — Plural of 'ord'
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
+The rule 3.1.4 table gives only the singular 'ord' (order); no plural is stated anywhere in the chapter.
+**Interim:** dataset uses 'ords' provisionally, by analogy with the table's other regular plurals.
+**Researchers:** confirm 'ords' (or specify the correct plural) against Appendix C / MULR practice.
+
+## DECISION-025: NZ Report-Series Duplicates and Typing (Appendix A)
+
+**Status:** OPEN (blocked on DATA-004)
+**Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
+Duplicate NZAR and NZCPR rows were removed (surviving rows provisional); NZPC and NZPCC both claim 'New Zealand Privy Council Cases'; GLR's authorised typing has no in-chapter source.
+**Interim:** survivors kept as-is, tagged provisional.
+**Researchers:** verify survivors, resolve NZPC vs NZPCC, and source GLR's status against Appendix A / NZLSG.
+
+## DECISION-026: Bare 'Ex' Entry in uk-report-series.ts
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
+A bare 'Ex' abbreviation appears in no AGLC4 table — the rule 24.1.2 forms are 'Ex D' and 'LR Ex'.
+**Interim:** the row is kept but flagged likely wrong; nothing emits it on the AGLC4 path.
+**Researchers:** confirm deletion (or identify the nominate series it was meant to represent).
+
+## DECISION-027: Rule 25.4 — US Constitution Article Numerals (Roman vs Arabic)
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 2, review-ch15-26.md)
+Guide ex 75 uses Roman numerals ('art IV'); ex 77 uses Arabic ('art 1'); the rule text gives no guidance.
+**Interim:** `usa.formatConstitution` passes the caller's numerals through unchanged.
+**Researchers:** confirm passthrough, or state a normalisation rule.
+
+## DECISION-028: Rule 20.1.1 — Pre-1966 MLJ Year Brackets
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 2, review-ch15-26.md)
+The rule 20.1.1 note says MLJ was volume-organised until 1965 (which via 2.2.3–2.2.4 implies a round-bracket year), but the guide's own pre-1966 examples use square brackets ('[1964] 1 MLJ 399').
+**Interim:** `malaysia.formatCase` follows the examples (square brackets) — a deliberate deviation from the DECISION-012 rule-text-wins default, because every illustration agrees against the note.
+**Researchers:** confirm square brackets, or direct the note's round-bracket form.
+
+## DECISION-029: Rule 26.2 — Italics of Written-Out Foreign Report Series
+
+**Status:** OPEN
+**Raised:** 2026-07-02 (PARITY wave 2, review-ch15-26.md)
+Rule 26.2 ex 12 italicises a written-out series title ('*Il Foro Italiano*…'), while rule 2.2.3 (the common-law limb) renders written-out series roman.
+**Interim:** `formatOtherDecision` accepts `reportedIn` as `string | FormattedRun[]`, so the caller decides the styling; no default italicisation is applied.
+**Researchers:** confirm which styling governs non-common-law series names, so a default can be encoded.

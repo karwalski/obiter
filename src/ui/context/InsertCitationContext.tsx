@@ -26,6 +26,11 @@ import type { CourtJurisdiction } from "../../engine/court/presets";
 export interface AuthorEntry {
   givenNames: string;
   surname: string;
+  /**
+   * Rule 4.1.5: judicial title, populated ONLY when the title is printed
+   * on the source itself. Never autofilled for serving judges.
+   */
+  judicialTitle?: string;
 }
 
 // ─── Context Shape ──────────────────────────────────────────────────────────

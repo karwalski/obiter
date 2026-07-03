@@ -1394,3 +1394,27 @@ target the release *after* v1.14.0, deployed alongside the jurisd Copilot skill.
 document-mutation story carries the sideload checklist and (per DoD) the v1.14 accessibility bar.
 
 ---
+
+## EPIC: PARITY — AGLC4 Parity Reviews & Corrections (status entry 2026-07-02)
+
+Nine automated parity reviews (`docs/parity-reviews/`) compared the engine against the derived
+AGLC4 rule reference; fixes ran in waves on branch `fix/parity-epic` (stories in
+`../footnote-backlog.md` under EPIC: PARITY).
+
+- **Wave 1** (six parallel agents): ~120 findings fixed across chapter 1, cases, legislation,
+  secondary 4–7, international 8–14, and datasets/styling — including four inverted rules
+  (1.8.3, 1.10.1, 1.5.3, 2.2.7), case-name splitting, roman *v*, and the fabricated "QR" series.
+  New dataset `judicial-titles.ts`.
+- **Wave 2** (wiring + foreign): PARITY-102 subsequent-reference defects; PARITY-114 per-country
+  foreign dispatch; ~60 handoff wiring items (dead formatters connected); 22 foreign-module
+  fixes (PARITY-115/116; `chapter15-26.test.ts` 140 exact-string tests green).
+- **Wave 3** (in flight): PARITY-118 metadata rebuild, PARITY-119 test sweep, UI form fields for
+  newly wired data fields, and PARITY-120 (**done**: `aglc4-audit.md` + `aglc4-coverage.md`
+  rebased row-by-row from the review-doc Status lines; DECISION-016..029 filed;
+  execution summary appended to `aglc4-parity.md`).
+
+Open: DATA-004/DATA-005 block final verification of provisional data rows (DECISION-015);
+DECISION-013..029 await researcher sign-off; seven resolver-routed short-title rules and a
+handful of low-severity gaps are marked RE-AUDIT in the rebased docs.
+
+---
