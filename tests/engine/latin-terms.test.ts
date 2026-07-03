@@ -131,6 +131,63 @@ describe("Rule 1.8.3 — Latin terms data", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rule 1.8.3 — Free-source proxy pass (RESEARCH-009 / DECISION-016, 2026-07-03)
+//
+// Conservative reclassification: general-English borrowings with a
+// Merriam-Webster main entry + strong conventional-dictionary coverage moved to
+// the not-italicised set; legal-Latin terms of art kept italic pending a
+// Macquarie check (de-italicising a non-Macquarie term would violate the rule).
+// These assertions are placement checks, not Macquarie confirmations.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Rule 1.8.3 — proxy pass (RESEARCH-009)", () => {
+  /** General-English borrowings moved to not-italicised (proxy; DECISION-016). */
+  const PROXY_ROMANISED = [
+    "ex officio",
+    "in situ",
+    "modus operandi",
+    "mutatis mutandis",
+    "pro bono",
+    "pro forma",
+    "pro rata",
+    "pro tempore",
+    "qua",
+    "quasi",
+  ];
+
+  /**
+   * Legal-Latin terms of art kept italic under the conservative rule despite a
+   * mainstream-dictionary presence — the class the free proxy cannot safely
+   * de-italicise (cf 'stare decisis': in every dictionary, absent from Macquarie).
+   */
+  const KEPT_ITALIC_LEGAL_TERMS = [
+    "certiorari",
+    "mandamus",
+    "mens rea",
+    "actus reus",
+    "res judicata",
+    "sub judice",
+    "in rem",
+    "in personam",
+    "locus standi",
+  ];
+
+  test("general-English borrowings are not italicised", () => {
+    for (const term of PROXY_ROMANISED) {
+      expect(LATIN_TERMS_EXCEPTIONS.has(term)).toBe(true);
+      expect(LATIN_TERMS_ITALICISED.has(term)).toBe(false);
+    }
+  });
+
+  test("legal-Latin terms of art stay italic pending Macquarie confirmation", () => {
+    for (const term of KEPT_ITALIC_LEGAL_TERMS) {
+      expect(LATIN_TERMS_ITALICISED.has(term)).toBe(true);
+      expect(LATIN_TERMS_EXCEPTIONS.has(term)).toBe(false);
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Rule 1.8.3 — Sorted Output
 // ─────────────────────────────────────────────────────────────────────────────
 
