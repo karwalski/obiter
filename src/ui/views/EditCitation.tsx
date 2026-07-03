@@ -138,7 +138,16 @@ function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
   switch (sourceType) {
     case "case.reported":
       return [
-        { key: "caseName", label: "Case Name", required: true, placeholder: "Smith v Jones" },
+        // Reported cases are stored/formatted with party1 + party2 (matching the
+        // engine's required fields and the insert form). Using a single caseName
+        // field here left the parties blank on edit (BUG-005).
+        { key: "party1", label: "Party 1", required: true, placeholder: "e.g. Smith" },
+        {
+          key: "party2",
+          label: "Party 2",
+          required: true,
+          placeholder: "e.g. Land & House Property Corporation",
+        },
         { key: "year", label: "Year", required: true, placeholder: "2024" },
         { key: "yearType", label: "Year Brackets", placeholder: "round or square" },
         { key: "volume", label: "Volume", placeholder: "123" },
