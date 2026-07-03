@@ -36,6 +36,7 @@
     "deploy:website": "bash scripts/deploy-website.sh",
     "deploy:server": "bash scripts/deploy-server.sh",
     "deploy:app": "bash scripts/deploy-app.sh",
+    "deploy:beta": "bash scripts/deploy-beta.sh",
     "restart:server": "bash scripts/restart-server.sh"
   },
   "dependencies": {
