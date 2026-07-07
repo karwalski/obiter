@@ -18,6 +18,7 @@ import {
 import { formatJournalArticle } from "../../src/engine/rules/v4/secondary/journals";
 import { formatBook, formatBookChapter } from "../../src/engine/rules/v4/secondary/books";
 import { formatShortReference, formatShortTitleIntroduction } from "../../src/engine/resolver";
+import { formatBibliographyEntry } from "../../src/engine/rules/v4/general/bibliography";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -296,5 +297,101 @@ describe("Title markup in short titles (rules 4.3/1.4.4 via 4.2)", () => {
     const runs = formatShortReference(citation, 7);
     expect(toPlainText(runs)).toBe("IceTV Review (n 7)");
     expect(italicText(runs)).toBe("IceTV Review");
+  });
+});
+
+// ─── WEB-005: markup in the footnote AND bibliography paths ─────────────────
+
+describe("WEB-005: embedded-title markup in footnote and bibliography output (rule 4.2)", () => {
+  const MABO_MEMOIR = "A *Mabo* Memoir: Islan Kustom to Native Title";
+
+  it("footnote path: formatBook consumes the markers and keeps the book title wholly italic", () => {
+    // AGLC4 rule 4.2 (PDF p 113 / printed p 88): 'If the title of a source
+    // being cited should be italicised according to the rules of this Guide
+    // (eg books), no part of the title should appear in roman font.' The
+    // markers are consumed but never invert the marked span to roman.
+    const runs = formatBook({
+      authors: [{ givenNames: "Bryan", surname: "Keon-Cohen" }],
+      title: MABO_MEMOIR,
+      publisher: "Zemvic Press",
+      year: 2013,
+    });
+
+    expect(runs).toEqual([
+      { text: "Bryan Keon-Cohen" },
+      { text: ", " },
+      { text: "A Mabo Memoir: Islan Kustom to Native Title", italic: true },
+      { text: " (" },
+      { text: "Zemvic Press" },
+      { text: ", " },
+      { text: "2013" },
+      { text: ")" },
+    ]);
+  });
+
+  it("bibliography path: formatBibliographyEntry consumes the markers (no literal asterisks)", () => {
+    const citation = makeCitation("book", {
+      authors: [{ givenNames: "Bryan", surname: "Keon-Cohen" }],
+      title: MABO_MEMOIR,
+      publisher: "Zemvic Press",
+      year: 2013,
+    });
+
+    const runs = formatBibliographyEntry(citation);
+    expect(runs).toEqual([
+      { text: "Keon-Cohen, Bryan" },
+      { text: ", " },
+      { text: "A Mabo Memoir: Islan Kustom to Native Title", italic: true },
+      { text: " (Zemvic Press, 2013)" },
+    ]);
+    expect(toPlainText(runs)).not.toContain("*");
+  });
+
+  it("bibliography path: a marked span inside a quoted article title renders italic", () => {
+    const citation = makeCitation("journal.article", {
+      authors: [{ givenNames: "Jani", surname: "McCutcheon" }],
+      title: "Talking to *IceTV*: A Reply",
+      year: 2013,
+      volume: 37,
+      journal: "Melbourne University Law Review",
+      startingPage: 46,
+    });
+
+    const runs = formatBibliographyEntry(citation);
+    expect(runs.slice(0, 5)).toEqual([
+      { text: "McCutcheon, Jani" },
+      { text: ", " },
+      { text: "‘Talking to " },
+      { text: "IceTV", italic: true },
+      { text: ": A Reply’" },
+    ]);
+    expect(toPlainText(runs)).not.toContain("*");
+  });
+
+  it("bibliography path: report titles route through the markup parser too", () => {
+    const citation = makeCitation("report", {
+      author: "Productivity Commission",
+      title: "Review of the *IceTV* Framework",
+      year: 2017,
+    });
+
+    const runs = formatBibliographyEntry(citation);
+    expect(runs).toContainEqual({
+      text: "Review of the IceTV Framework",
+      italic: true,
+    });
+    expect(toPlainText(runs)).not.toContain("*");
+  });
+
+  it("bibliography path: unmarked titles are unchanged (regression)", () => {
+    const citation = makeCitation("book", {
+      authors: [{ givenNames: "Jane", surname: "Doe" }],
+      title: "International Law",
+      publisher: "OUP",
+      year: 2020,
+    });
+
+    const runs = formatBibliographyEntry(citation);
+    expect(runs).toContainEqual({ text: "International Law", italic: true });
   });
 });

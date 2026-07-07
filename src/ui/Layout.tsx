@@ -111,12 +111,21 @@ export default function Layout(): JSX.Element {
     announce("Refreshing all footnotes…");
     try {
       const store = await getSharedStore();
+      let result = { updated: 0, unchanged: 0 };
       await Word.run(async (context) => {
-        await refreshAllCitations(context, store);
+        result = await refreshAllCitations(context, store);
         await renumberAllHeadings(context);
       });
       triggerRefresh();
-      announce("All footnotes refreshed.", "success");
+      // Report real counts — a document whose footnotes the refresher cannot
+      // manage must not read as a successful full refresh.
+      const total = result.updated + result.unchanged;
+      announce(
+        total === 0
+          ? "Refresh complete — no managed citation footnotes found."
+          : `Footnotes refreshed: ${result.updated} updated, ${result.unchanged} already current.`,
+        total === 0 ? "info" : "success"
+      );
     } catch {
       // Surface the failure instead of swallowing it (WCAG 3.3.1).
       announce("Could not refresh footnotes. Please check the document and try again.", "error");

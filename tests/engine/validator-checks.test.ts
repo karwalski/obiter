@@ -13,7 +13,10 @@
 import {
   checkHeadingFormat,
   checkCitationCapitalisation,
+  checkCitationCompleteness,
   checkTitlePresence,
+  getCitationLabel,
+  validateDocument,
 } from "../../src/engine/validator";
 import type { HeadingEntry } from "../../src/engine/validator";
 import type { Citation } from "../../src/types/citation";
@@ -304,5 +307,258 @@ describe("VALID-013: checkTitlePresence (Rule 1.8.2)", () => {
     const issues = checkTitlePresence(citation);
     expect(issues).toHaveLength(1);
     expect(issues[0].severity).toBe("error");
+  });
+
+  it("passes case whose name is stored as caseName rather than party1 (Rule 2.1.1)", () => {
+    const citation = makeCitation({
+      sourceType: "case.reported",
+      data: { caseName: "Mabo v Queensland (No 2)", year: 1992, reportSeries: "CLR" },
+    });
+
+    expect(checkTitlePresence(citation)).toHaveLength(0);
+  });
+});
+
+// ─── VALID-005 / WEB-006: Citation completeness — structured shapes ──────────
+
+describe("VALID-005 / WEB-006: checkCitationCompleteness understands structured author shapes", () => {
+  it("reports NO missing-author finding for a journal article with a structured authors array (Rule 5)", () => {
+    // WEB-006 repro: given 'Justine', surname 'Bell' stored in the
+    // structured authors array — the footnote renders 'Justine Bell, ...'
+    // so the validator must not report a missing author.
+    const citation = makeCitation({
+      id: "b7122b3b-06b3-457d-a4d0-48bc61e0f2ff",
+      sourceType: "journal.article",
+      data: {
+        authors: [{ givenNames: "Justine", surname: "Bell" }],
+        title: "Climate Change Adaptation and Coastal Property",
+        year: 2014,
+        volume: 31,
+        journal: "Environmental and Planning Law Journal",
+        startingPage: 152,
+      },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("reports NO missing-author finding for a book with a structured authors array (Rule 6.1)", () => {
+    const citation = makeCitation({
+      sourceType: "book",
+      data: {
+        authors: [{ givenNames: "Jane", surname: "Doe" }],
+        title: "The Mabo Legacy",
+        publisher: "Federation Press",
+        year: 2020,
+      },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("reports NO missing-author finding for a multi-author book (Rule 4.1.2)", () => {
+    const citation = makeCitation({
+      sourceType: "book",
+      data: {
+        authors: [
+          { givenNames: "James", surname: "Edelman" },
+          { givenNames: "Elise", surname: "Bant" },
+        ],
+        title: "Unjust Enrichment",
+        publisher: "Hart Publishing",
+        year: 2016,
+      },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("accepts an editors-only book — editors replace the author (Rule 6.6.3)", () => {
+    const citation = makeCitation({
+      sourceType: "book",
+      data: {
+        editors: [{ givenNames: "Janet", surname: "McLean" }],
+        title: "Property and the Constitution",
+        publisher: "Hart Publishing",
+        year: 1999,
+      },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("accepts a book chapter stored with chapterAuthors/chapterTitle (Rule 6.6.1)", () => {
+    const citation = makeCitation({
+      sourceType: "book.chapter",
+      data: {
+        chapterAuthors: [{ givenNames: "Jane", surname: "Doe" }],
+        chapterTitle: "Native Title after Mabo",
+        editors: [{ givenNames: "John", surname: "Smith" }],
+        bookTitle: "Australian Property Law",
+        publisher: "Federation Press",
+        year: 2020,
+        startingPage: 101,
+      },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("still accepts the legacy flat author string (backward compatibility)", () => {
+    const citation = makeCitation({
+      sourceType: "journal.article",
+      data: { author: "Harold Luntz", title: "Torts", year: 2005, journal: "Sydney Law Review" },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("flags a journal article whose author element is genuinely absent", () => {
+    const citation = makeCitation({
+      id: "b7122b3b-06b3-457d-a4d0-48bc61e0f2ff",
+      sourceType: "journal.article",
+      data: {
+        title: "Climate Change Adaptation and Coastal Property",
+        year: 2014,
+        journal: "Environmental and Planning Law Journal",
+      },
+    });
+
+    const issues = checkCitationCompleteness(citation);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toBe(
+      "Journal article citation 'Climate Change Adaptation and Coastal Property' is missing required field 'author'"
+    );
+    // Human-readable label in the message; the raw UUID travels in citationId.
+    expect(issues[0].message).not.toContain("b7122b3b-06b3-457d-a4d0-48bc61e0f2ff");
+    expect(issues[0].citationId).toBe("b7122b3b-06b3-457d-a4d0-48bc61e0f2ff");
+    expect(issues[0].severity).toBe("error");
+    expect(issues[0].ruleNumber).toBe("5");
+  });
+
+  it("treats an empty authors array (or all-blank entries) as missing", () => {
+    const emptyArray = makeCitation({
+      sourceType: "journal.article",
+      data: { authors: [], title: "T", year: 2020, journal: "MULR" },
+    });
+    const blankEntries = makeCitation({
+      sourceType: "journal.article",
+      data: { authors: [{ givenNames: "", surname: "" }], title: "T", year: 2020, journal: "MULR" },
+    });
+
+    expect(checkCitationCompleteness(emptyArray).some((i) => i.message.includes("'author'"))).toBe(
+      true
+    );
+    expect(
+      checkCitationCompleteness(blankEntries).some((i) => i.message.includes("'author'"))
+    ).toBe(true);
+  });
+
+  it("accepts a case whose name is stored as caseName rather than party1 (Rule 2.1.1)", () => {
+    const citation = makeCitation({
+      sourceType: "case.reported",
+      data: { caseName: "Mabo v Queensland (No 2)", year: 1992, reportSeries: "CLR" },
+    });
+
+    const issues = checkCitationCompleteness(citation);
+    expect(issues.some((i) => i.message.includes("case name"))).toBe(false);
+  });
+
+  it("does not require a report series for unreported cases (Rules 2.3.1-2.3.2)", () => {
+    const citation = makeCitation({
+      sourceType: "case.unreported.mnc",
+      data: { party1: "Quarmby", party2: "Keating", year: 2009, court: "TASSC", caseNumber: 80 },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("still flags a reported case with no report series (Rule 2.2)", () => {
+    const citation = makeCitation({
+      sourceType: "case.reported",
+      data: { party1: "Mabo", party2: "Queensland (No 2)", year: 1992 },
+    });
+
+    const issues = checkCitationCompleteness(citation);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toBe(
+      "Case citation 'Mabo v Queensland (No 2)' is missing required field 'reportSeries'"
+    );
+  });
+
+  it("does not demand year/jurisdiction of the Commonwealth Constitution (Rule 3.6)", () => {
+    const citation = makeCitation({
+      sourceType: "legislation.constitution",
+      data: { title: "Australian Constitution" },
+    });
+
+    expect(checkCitationCompleteness(citation)).toEqual([]);
+  });
+
+  it("produces no missing-author error through validateDocument for the WEB-006 repro", () => {
+    const journal = makeCitation({
+      id: "b7122b3b-06b3-457d-a4d0-48bc61e0f2ff",
+      sourceType: "journal.article",
+      data: {
+        authors: [{ givenNames: "Justine", surname: "Bell" }],
+        title: "Climate Change Adaptation and Coastal Property",
+        year: 2014,
+        journal: "Environmental and Planning Law Journal",
+      },
+    });
+    const book = makeCitation({
+      id: "book-1",
+      sourceType: "book",
+      data: {
+        authors: [{ givenNames: "Jane", surname: "Doe" }],
+        title: "The Mabo Legacy",
+        publisher: "Federation Press",
+        year: 2020,
+      },
+    });
+
+    const result = validateDocument([], [journal, book]);
+    const all = [...result.errors, ...result.warnings, ...result.info];
+    expect(all.filter((i) => i.message.includes("missing required field 'author'"))).toEqual([]);
+  });
+});
+
+// ─── WEB-006: Human-readable finding labels ───────────────────────────────────
+
+describe("WEB-006: getCitationLabel", () => {
+  it("prefers the user's short title", () => {
+    const citation = makeCitation({
+      sourceType: "book",
+      data: { title: "The Mabo Legacy" },
+      shortTitle: "Mabo Legacy",
+    });
+    expect(getCitationLabel(citation)).toBe("Mabo Legacy");
+  });
+
+  it("builds 'Party1 v Party2' for cases", () => {
+    const citation = makeCitation({
+      sourceType: "case.reported",
+      data: { party1: "Mabo", party2: "Queensland (No 2)", year: 1992, reportSeries: "CLR" },
+    });
+    expect(getCitationLabel(citation)).toBe("Mabo v Queensland (No 2)");
+  });
+
+  it("falls back to the title and strips rule 4.2 asterisk markers", () => {
+    const citation = makeCitation({
+      sourceType: "book",
+      data: { title: "A *Mabo* Memoir: Islan Kustom to Native Title" },
+    });
+    expect(getCitationLabel(citation)).toBe("A Mabo Memoir: Islan Kustom to Native Title");
+  });
+
+  it("uses chapterTitle for book chapters and the raw id only as a last resort", () => {
+    const chapter = makeCitation({
+      sourceType: "book.chapter",
+      data: { chapterTitle: "Native Title after Mabo" },
+    });
+    expect(getCitationLabel(chapter)).toBe("Native Title after Mabo");
+
+    const bare = makeCitation({ id: "raw-uuid", sourceType: "book", data: {} });
+    expect(getCitationLabel(bare)).toBe("raw-uuid");
   });
 });

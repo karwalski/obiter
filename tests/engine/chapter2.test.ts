@@ -862,6 +862,34 @@ describe("Rule 2.3.2 — Unreported Decisions without MNC", () => {
       "Smith v Jones (Supreme Court of New South Wales, 15 March 2021)"
     );
   });
+
+  test("WEB-007a: no court, judges or date yields the bare case name (rule 2.3.2)", () => {
+    // Regression: rendered 'Barton v Chibber (, )' when the parenthetical
+    // elements were all absent.
+    const runs = formatUnreportedNoMnc({
+      caseName: [
+        { text: "Barton", italic: true },
+        { text: " v ", italic: true },
+        { text: "Chibber", italic: true },
+      ],
+      courtIdentifier: "",
+      fullDate: "",
+    });
+    expect(toPlainText(runs)).toBe("Barton v Chibber");
+  });
+
+  test("WEB-007a: court-only data yields a single-element parenthetical (rule 2.3.2)", () => {
+    const runs = formatUnreportedNoMnc({
+      caseName: [
+        { text: "Barton", italic: true },
+        { text: " v ", italic: true },
+        { text: "Chibber", italic: true },
+      ],
+      courtIdentifier: "Supreme Court of Victoria",
+      fullDate: "",
+    });
+    expect(toPlainText(runs)).toBe("Barton v Chibber (Supreme Court of Victoria)");
+  });
 });
 
 // ─── Rule 2.3.3 — Proceedings ────────────────────────────────────────────────
@@ -878,6 +906,20 @@ describe("Rule 2.3.3 — Proceedings", () => {
     expect(text).toBe(
       "ACCC v Olex Australia Pty Ltd (Federal Court of Australia, VID725/2014, commenced 3 December 2014)"
     );
+  });
+
+  test("WEB-007a defect class: empty proceeding elements never render '(, , commenced )' (rule 2.3.3)", () => {
+    const runs = formatProceeding({
+      caseName: [
+        { text: "Barton", italic: true },
+        { text: " v ", italic: true },
+        { text: "Chibber", italic: true },
+      ],
+      court: "",
+      proceedingNumber: "",
+      commencedDate: "",
+    });
+    expect(toPlainText(runs)).toBe("Barton v Chibber");
   });
 });
 
@@ -937,6 +979,20 @@ describe("Rule 2.3.4 — Court Orders", () => {
     expect(toPlainText(runs)).toBe(
       "Order of Murphy J in Duffy v Darmanin (Federal Court of Australia, 10 November 2017)"
     );
+  });
+
+  test("WEB-007a defect class: empty court order elements never render '(, )' (rule 2.3.4)", () => {
+    const runs = formatCourtOrder({
+      caseName: [
+        { text: "Barton", italic: true },
+        { text: " v ", italic: true },
+        { text: "Chibber", italic: true },
+      ],
+      judicialOfficers: "Murphy J",
+      court: "",
+      orderDate: "",
+    });
+    expect(toPlainText(runs)).toBe("Order of Murphy J in Barton v Chibber");
   });
 });
 

@@ -23,6 +23,7 @@ import {
   ReportData,
   HansardData,
 } from "../../src/engine/rules/v4/secondary/other";
+import { formatGenaiOutput } from "../../src/engine/rules/v4/secondary/genai";
 import {
   formatParliamentaryEvidence,
   formatConstitutionalConvention,
@@ -85,6 +86,22 @@ describe("Rule 7.1.1 — Reports", () => {
     expect(text).toBe("Review of the Law of Negligence (Final Report, September 2002) 37\u201357");
     // Title should be italic
     expectItalic(runs, "Review of the Law of Negligence");
+  });
+
+  /*
+   * WEB-007b regression (rule 7.1.1): a report stored with no document
+   * type, number or date rendered a bare '()' after the title.
+   */
+  it("WEB-007b: omits the parenthetical entirely when type, number and date are absent", () => {
+    const data: ReportData = {
+      title: "Motorcycle Lane Filtering Trial: Summary of Trial Results",
+      date: "",
+    };
+    const runs = formatReport(data);
+    const text = toPlainText(runs);
+
+    expect(text).toBe("Motorcycle Lane Filtering Trial: Summary of Trial Results");
+    expect(text).not.toContain("()");
   });
 
   /*
@@ -858,6 +875,98 @@ describe("Rule 7.5.1 — Hansard", () => {
       "Victoria, Parliamentary Debates, Legislative Council, 14 December 2017, 6854"
     );
     expectItalic(runs, "Parliamentary Debates");
+  });
+
+  /*
+   * WEB-009a regression (rule 7.5.1): a stored jurisdiction abbreviation
+   * ('Cth') rendered verbatim. Rule 7.5.1's examples write the jurisdiction
+   * in full ('Commonwealth', ex 47; 'Victoria', ex 48).
+   */
+  it("WEB-009a: expands a stored jurisdiction abbreviation to its full name", () => {
+    const data: HansardData = {
+      jurisdiction: "Cth",
+      chamber: "House of Representatives",
+      date: "12 May 2021",
+      page: "4501",
+      speaker: "Anthony Albanese",
+    };
+    const runs = formatHansard(data);
+
+    expect(toPlainText(runs)).toBe(
+      "Commonwealth, Parliamentary Debates, House of Representatives, 12 May 2021, 4501 " +
+        "(Anthony Albanese)"
+    );
+    expectNotItalic(runs, "Commonwealth");
+  });
+
+  /*
+   * WEB-009b regression (rule 7.5.1): a missing pinpoint left a stray
+   * comma and double space before the speaker parenthetical.
+   */
+  it("WEB-009b: omits a missing pinpoint without stray punctuation", () => {
+    const data: HansardData = {
+      jurisdiction: "NSW",
+      chamber: "Legislative Assembly",
+      date: "15 December 1909",
+      page: "",
+      speaker: "Anthony Albanese",
+    };
+    const runs = formatHansard(data);
+    const text = toPlainText(runs);
+
+    expect(text).toBe(
+      "New South Wales, Parliamentary Debates, Legislative Assembly, 15 December 1909 " +
+        "(Anthony Albanese)"
+    );
+    expect(text).not.toContain("  ");
+    expect(text).not.toContain(", (");
+  });
+});
+
+// ─── Rule 7.12 (MULR interim guidance) — GenAI Output ────────────────────────
+
+describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
+  /*
+   * WEB-008 regression: the ISO date from the form's date input rendered
+   * verbatim ('2026-07-07') instead of the Rule 1.11.1 'Day Month Year'
+   * form, and an empty model slot rendered a bare '()'.
+   */
+  it("WEB-008a: renders an ISO output date per rule 1.11.1", () => {
+    const runs = formatGenaiOutput({
+      platform: "ChatGPT",
+      model: "GPT-4o",
+      outputDate: "2026-07-07",
+    });
+
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from ChatGPT (GPT-4o) to the author, 7 July 2026"
+    );
+  });
+
+  it("WEB-008b: omits the model parenthetical entirely when the model is absent", () => {
+    const runs = formatGenaiOutput({
+      platform: "ChatGPT",
+      model: "",
+      outputDate: "2026-07-07",
+    });
+    const text = toPlainText(runs);
+
+    expect(text).toBe("Correspondence from ChatGPT to the author, 7 July 2026");
+    expect(text).not.toContain("()");
+  });
+
+  it("passes an already-formatted date through unchanged (rule 1.11.1 form)", () => {
+    const runs = formatGenaiOutput({
+      platform: "Claude",
+      model: "Claude 3.5 Sonnet",
+      outputDate: "10 January 2026",
+      url: "https://claude.ai/chat/abc123",
+    });
+
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from Claude (Claude 3.5 Sonnet) to the author, 10 January 2026 " +
+        "<https://claude.ai/chat/abc123>"
+    );
   });
 });
 

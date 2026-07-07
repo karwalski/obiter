@@ -14,6 +14,7 @@ import {
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import type { LoaType } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
+import { runsToHtml } from "../../word/formattedRunsHtml";
 
 // ─── FormattedRun Renderer ──────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ async function insertBibliographyIntoDocument(
     // document grows forward. Anchoring every insert against `selection`
     // stacks paragraphs in reverse order at the cursor.
     let anchor: Word.Paragraph | null = null;
+    const headingParagraphs: Word.Paragraph[] = [];
 
     function insertAfter(text: string): Word.Paragraph {
       return anchor
@@ -72,14 +74,27 @@ async function insertBibliographyIntoDocument(
         : selection.insertParagraph(text, Word.InsertLocation.after);
     }
 
+    // Pass 1 — build the full paragraph skeleton (headings with their text,
+    // entries empty). Entry content is deliberately NOT written here: on
+    // Word on the web, `insertHtml(..., "Replace")` invalidates the
+    // paragraph proxy, so a paragraph that has received its content can no
+    // longer serve as the anchor for the next `insertParagraph("After")`
+    // (ItemNotFound). All anchoring therefore happens before any content
+    // write.
+    const entryParagraphs: Array<{ paragraph: Word.Paragraph; runs: FormattedRun[] }> = [];
     for (const section of sections) {
       const headingParagraph = insertAfter(section.heading);
-      headingParagraph.style = "AGLC4 Bibliography Heading";
+      // Direct formatting mirrors the "AGLC4 Bibliography Heading" style
+      // (Rule 1.13: centred, italic) so the output is correct even when the
+      // AGLC4 styles are not installed in this document. Assigning the named
+      // style throws InvalidArgument on such documents and — because the
+      // batch is not atomic — used to abort the insert after the first
+      // heading; the style is applied as an optional pass below.
       headingParagraph.alignment = Word.Alignment.centered;
-      // Apply spacing directly so the visual separation works even when
-      // the user has not installed the AGLC4 paragraph styles yet.
       headingParagraph.spaceBefore = 18;
       headingParagraph.spaceAfter = 6;
+      headingParagraph.font.italic = true;
+      headingParagraphs.push(headingParagraph);
       anchor = headingParagraph;
 
       for (const entry of section.entries) {
@@ -89,28 +104,51 @@ async function insertBibliographyIntoDocument(
         // and left-align so each entry renders as flowing body text.
         entryParagraph.style = "Normal";
         entryParagraph.alignment = Word.Alignment.left;
-
-        // Build the paragraph content run-by-run. Explicitly set italic
-        // (and bold / superscript / smallCaps) to the run's value rather
-        // than only setting them when truthy — otherwise inherited
-        // formatting from the prior paragraph leaks through.
-        for (const run of entry) {
-          const range = entryParagraph.insertText(
-            run.text,
-            Word.InsertLocation.end
-          );
-          range.font.italic = run.italic === true;
-          range.font.bold = run.bold === true;
-          range.font.superscript = run.superscript === true;
-          range.font.smallCaps = run.smallCaps === true;
-          if (run.font) range.font.name = run.font;
-          if (run.size) range.font.size = run.size;
-        }
+        entryParagraphs.push({ paragraph: entryParagraph, runs: entry });
         anchor = entryParagraph;
       }
     }
-
     await context.sync();
+
+    // Pass 2 — write each entry's content as one HTML fragment. Word on the
+    // web does not reliably honour font assignments on insertText's
+    // returned ranges (italics leaked across runs); insertHtml applies
+    // inline formatting atomically on both hosts. Each paragraph proxy is
+    // used for the last time here. Entries with no runs are skipped —
+    // insertHtml("") throws InvalidArgument. If the batched write fails
+    // (e.g. one entry's content is rejected), fall back to per-entry writes
+    // so a single bad entry cannot abort the whole bibliography.
+    const writable = entryParagraphs.filter(({ runs }) => runs.length > 0);
+    try {
+      for (const { paragraph, runs } of writable) {
+        paragraph.insertHtml(runsToHtml(runs), Word.InsertLocation.replace);
+      }
+      await context.sync();
+    } catch {
+      let skipped = 0;
+      for (const { paragraph, runs } of writable) {
+        try {
+          paragraph.insertHtml(runsToHtml(runs), Word.InsertLocation.replace);
+          await context.sync();
+        } catch {
+          skipped += 1;
+        }
+      }
+      if (skipped > 0) {
+        console.warn(`[bibliography] ${skipped} entries could not be written`);
+      }
+    }
+
+    // Pass 3 — upgrade headings to the named style where installed; the
+    // direct formatting above already matches the style's appearance.
+    try {
+      for (const headingParagraph of headingParagraphs) {
+        headingParagraph.style = "AGLC4 Bibliography Heading";
+      }
+      await context.sync();
+    } catch {
+      // Style not installed — keep direct formatting.
+    }
   });
 }
 
@@ -215,10 +253,12 @@ export default function Bibliography(): JSX.Element {
       await insertBibliographyIntoDocument(sections);
       setSuccessMessage(`${getBibliographyHeading(writingMode, bibStructure)} inserted successfully.`);
     } catch (err) {
+      // Unwrap OfficeExtension.Error debugInfo — the generic message alone
+      // ("Sorry, something went wrong") is undiagnosable in field reports.
+      const debug = err as { debugInfo?: { errorLocation?: string; message?: string } };
+      const location = debug.debugInfo?.errorLocation ? ` (at ${debug.debugInfo.errorLocation})` : "";
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to insert bibliography."
+        err instanceof Error ? `${err.message}${location}` : "Failed to insert bibliography."
       );
     } finally {
       setInserting(false);

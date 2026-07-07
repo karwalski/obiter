@@ -1767,11 +1767,16 @@ function dispatchConstitutiveDocument(citation: Citation): FormattedRun[] {
  */
 function dispatchHansard(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // The insert form stores the Hansard pinpoint under the canonical
+  // `pinpoint` key (as a plain string); `page` survives as a legacy/parser
+  // alias. Reading only `page` dropped the pinpoint entirely (WEB-009b).
+  const pinpointValue =
+    typeof d.pinpoint === "string" ? d.pinpoint : (normalisePinpoint(d.pinpoint)?.value ?? "");
   return formatHansard({
     jurisdiction: (d.jurisdiction as string) ?? "",
     chamber: (d.chamber as string) ?? "",
     date: (d.date as string) ?? "",
-    page: (d.page as string) ?? "",
+    page: pickString(pinpointValue, d.page),
     speaker: d.speaker as string | undefined,
   });
 }
