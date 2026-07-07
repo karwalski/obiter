@@ -34,6 +34,48 @@ export function toRoman(num: number): string {
   return result;
 }
 
+// ─── Selection Paragraph Resolution ──────────────────────────────────────────
+
+/**
+ * Returns the paragraphs the user's selection visibly covers, for
+ * paragraph-level styling.
+ *
+ * Word's `selection.paragraphs` includes any paragraph the range merely
+ * touches at a zero-width boundary — e.g. a selection anchored at the end of
+ * the previous paragraph, or one that swallows the target line's trailing
+ * paragraph mark. Styling those boundary paragraphs restyles text the user
+ * never selected. When the selection spans multiple paragraphs, this drops
+ * the ones whose intersection with the selection contains no text; a
+ * collapsed selection (cursor only) keeps its single paragraph.
+ */
+export async function getSelectedStyleParagraphs(
+  context: Word.RequestContext
+): Promise<Word.Paragraph[]> {
+  const selection = context.document.getSelection();
+  const paragraphs = context.document.getSelection().paragraphs;
+  paragraphs.load("items");
+  await context.sync();
+
+  const items = paragraphs.items ?? [];
+  if (items.length <= 1) return items;
+
+  const intersections = items.map((para) =>
+    para.getRange("Whole").intersectWithOrNullObject(selection)
+  );
+  for (const range of intersections) {
+    range.load("isNullObject,text");
+  }
+  await context.sync();
+
+  const covered = items.filter((_, i) => {
+    const range = intersections[i];
+    return !range.isNullObject && range.text.length > 0;
+  });
+  // If every intersection is empty (e.g. only paragraph marks selected),
+  // fall back to Word's own answer rather than styling nothing.
+  return covered.length > 0 ? covered : items;
+}
+
 // ─── Heading Numbering Prefixes (Rule 1.12.2) ───────────────────────────────
 
 /**
