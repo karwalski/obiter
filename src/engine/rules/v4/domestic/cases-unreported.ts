@@ -97,16 +97,23 @@ export function formatUnreportedNoMnc(data: {
   // Case name in italics
   runs.push(...data.caseName.map((r) => ({ ...r, italic: true })));
 
-  // Parenthetical: (Court, Judge(s), Full Date)
-  const parts: string[] = [data.courtIdentifier];
-
-  if (data.judges) {
-    parts.push(data.judges);
+  // Parenthetical: (Court, Judge(s), Full Date). Each element is emitted
+  // only where data exists; with no court, judges or date there is no
+  // parenthetical at all — a bare case name must never render placeholder
+  // punctuation such as '(, )' (WEB-007a; same defect class as BUG-005(b)).
+  const parts: string[] = [];
+  if (data.courtIdentifier && data.courtIdentifier.trim()) {
+    parts.push(data.courtIdentifier.trim());
   }
-
-  parts.push(data.fullDate);
-
-  runs.push({ text: ` (${parts.join(", ")})` });
+  if (data.judges && data.judges.trim()) {
+    parts.push(data.judges.trim());
+  }
+  if (data.fullDate && data.fullDate.trim()) {
+    parts.push(data.fullDate.trim());
+  }
+  if (parts.length > 0) {
+    runs.push({ text: ` (${parts.join(", ")})` });
+  }
 
   // Pinpoint: follows the closing parenthesis with no intervening
   // punctuation (ex 84: '… 5 April 1956) 77–8').
@@ -141,10 +148,22 @@ export function formatProceeding(data: {
   // Case name in italics
   runs.push(...data.caseName.map((r) => ({ ...r, italic: true })));
 
-  // Parenthetical: (Court, Proceeding Number, commenced Full Date)
-  runs.push({
-    text: ` (${data.court}, ${data.proceedingNumber}, commenced ${data.commencedDate})`,
-  });
+  // Parenthetical: (Court, Proceeding Number, commenced Full Date). Each
+  // element is emitted only where present so missing data never renders
+  // placeholder punctuation like '(, , commenced )' (WEB-007a defect class).
+  const parts: string[] = [];
+  if (data.court && data.court.trim()) {
+    parts.push(data.court.trim());
+  }
+  if (data.proceedingNumber && data.proceedingNumber.trim()) {
+    parts.push(data.proceedingNumber.trim());
+  }
+  if (data.commencedDate && data.commencedDate.trim()) {
+    parts.push(`commenced ${data.commencedDate.trim()}`);
+  }
+  if (parts.length > 0) {
+    runs.push({ text: ` (${parts.join(", ")})` });
+  }
 
   return runs;
 }
@@ -187,14 +206,22 @@ export function formatCourtOrder(data: {
   // Case name in italics
   runs.push(...data.caseName.map((r) => ({ ...r, italic: true })));
 
-  // Parenthetical: (Court, [Proceeding Number,] Full Date of Court Order)
-  const parts: string[] = [data.court];
-  if (data.proceedingNumber) {
-    parts.push(data.proceedingNumber);
+  // Parenthetical: (Court, [Proceeding Number,] Full Date of Court Order).
+  // Each element is emitted only where present so missing data never
+  // renders placeholder punctuation like '(, )' (WEB-007a defect class).
+  const parts: string[] = [];
+  if (data.court && data.court.trim()) {
+    parts.push(data.court.trim());
   }
-  parts.push(data.orderDate);
-
-  runs.push({ text: ` (${parts.join(", ")})` });
+  if (data.proceedingNumber && data.proceedingNumber.trim()) {
+    parts.push(data.proceedingNumber.trim());
+  }
+  if (data.orderDate && data.orderDate.trim()) {
+    parts.push(data.orderDate.trim());
+  }
+  if (parts.length > 0) {
+    runs.push({ text: ` (${parts.join(", ")})` });
+  }
 
   return runs;
 }

@@ -33,6 +33,7 @@
 /* global Word */
 
 import { FormattedRun } from "../types/formattedRun";
+import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -129,15 +130,10 @@ export function writeFormattedRunsToControl(cc: Word.ContentControl, runs: Forma
     return;
   }
 
-  // Replace all existing content with the first run
-  const firstRange = cc.insertText(runs[0].text, "Replace" as Word.InsertLocation.replace);
-  applyRunFormatting(firstRange, runs[0]);
-
-  // Append remaining runs
-  for (let i = 1; i < runs.length; i++) {
-    const range = cc.insertText(runs[i].text, "End");
-    applyRunFormatting(range, runs[i]);
-  }
+  // Written as one HTML fragment: Word on the web does not reliably honour
+  // font assignments on insertText's returned range proxies (WEB-002), while
+  // insertHtml applies inline formatting atomically on both hosts.
+  cc.insertHtml(runsToHtml(runs), "Replace" as Word.InsertLocation.replace);
 }
 
 // ─── Child CC Insertion ─────────────────────────────────────────────────────
@@ -158,19 +154,26 @@ export function insertChildCitation(
   parentCC: Word.ContentControl,
   citationId: string,
   title: string,
-  formattedRuns: FormattedRun[]
+  formattedRuns: FormattedRun[],
+  location: "Replace" | "End" = "End"
 ): void {
-  const endRange = parentCC.getRange("End");
-  const childCC = endRange.insertContentControl("RichText");
+  // Write the citation content INTO the parent first, then wrap the returned
+  // range in the child CC. On Word on the web, `parentCC.getRange("End")
+  // .insertContentControl()` lands the child OUTSIDE the parent (as a
+  // sibling) and leaves the parent's placeholder text showing (WEB-001);
+  // writing through the parent's own insertHtml keeps the content inside it
+  // on both hosts. "Replace" also clears a fresh parent's placeholder state.
+  //
+  // The parent CC must exist in the document before this call — callers that
+  // have just created it must sync once first.
+  const contentRange = parentCC.insertHtml(
+    runsToHtml(formattedRuns),
+    location as Word.InsertLocation.replace | Word.InsertLocation.end
+  );
+  const childCC = contentRange.insertContentControl("RichText");
   childCC.tag = citationId;
   childCC.title = title;
   childCC.appearance = "Hidden" as Word.ContentControlAppearance;
-
-  // Insert citation text inside the child content control
-  for (const run of formattedRuns) {
-    const range = childCC.insertText(run.text, "End");
-    applyRunFormatting(range, run);
-  }
 }
 
 // ─── CC Lookup Helpers ──────────────────────────────────────────────────────
@@ -540,8 +543,13 @@ export async function insertCitationFootnote(
       parentCC.title = PARENT_CC_TITLE;
       parentCC.appearance = "Hidden" as Word.ContentControlAppearance;
 
+      // Commit the parent CC before writing into it — writing into a
+      // same-batch CC proxy places content outside it on Word on the web.
+      await context.sync();
+
       // Insert child CC inside the parent CC with the citation content.
-      insertChildCitation(parentCC, citationId, title, formattedRuns);
+      // "Replace" clears the fresh parent's placeholder ("Click or tap…").
+      insertChildCitation(parentCC, citationId, title, formattedRuns, "Replace");
 
       // Closing punctuation is NOT inserted here -- the refresher adds "."
       // inside the parent CC after the last child on its first cycle.
@@ -795,11 +803,16 @@ export async function setOccurrenceText(
     parentCC.clear();
     await context.sync();
 
-    const childCC = parentCC.getRange("End").insertContentControl("RichText");
+    // Write into the parent, then wrap — getRange("End").insertContentControl
+    // creates the child OUTSIDE the parent on Word on the web (WEB-001).
+    const contentRange = parentCC.insertHtml(
+      escapeHtml(text),
+      "Replace" as Word.InsertLocation.replace
+    );
+    const childCC = contentRange.insertContentControl("RichText");
     childCC.tag = citationId;
     childCC.title = buildOccurrenceTitle("auto");
     childCC.appearance = "Hidden" as Word.ContentControlAppearance;
-    childCC.insertText(text, "End");
 
     // Keep the footnote frozen so the refresher leaves the override in place.
     parentCC.title = LOCKED_PARENT_CC_TITLE;

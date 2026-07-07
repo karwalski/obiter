@@ -481,15 +481,25 @@ export function formatTranscript(data: {
   runs.push({ text: "Transcript of Proceedings, " });
   runs.push(...data.caseName);
 
-  const parts: string[] = [data.court];
+  // Each parenthetical element is emitted only where present so missing
+  // data never renders placeholder punctuation like '(, )' (WEB-007a
+  // defect class).
+  const parts: string[] = [];
+  if (data.court && data.court.trim()) {
+    parts.push(data.court.trim());
+  }
   if (data.proceedingNumber && data.proceedingNumber.trim()) {
     parts.push(data.proceedingNumber.trim());
   }
   if (data.judicialOfficers && data.judicialOfficers.trim()) {
     parts.push(data.judicialOfficers.trim());
   }
-  parts.push(data.date);
-  runs.push({ text: ` (${parts.join(", ")})` });
+  if (data.date && data.date.trim()) {
+    parts.push(data.date.trim());
+  }
+  if (parts.length > 0) {
+    runs.push({ text: ` (${parts.join(", ")})` });
+  }
 
   if (data.pinpoints && data.pinpoints.length > 0) {
     runs.push({ text: ` ${renderTranscriptPinpoints(data.pinpoints)}` });

@@ -5,6 +5,7 @@
 
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
+import { parseTitleMarkup, quoteTitleRuns } from "./titleMarkup";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
 import type { CaseEntry, LegislationEntry } from "../../oscola/tables";
@@ -387,6 +388,14 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
   }
 
   // Title — formatting depends on source type.
+  //
+  // PARITY-122 / WEB-005: titles are stored with the rule 4.2 asterisk
+  // markup convention (titleMarkup.ts), so every title is routed through
+  // parseTitleMarkup rather than emitted verbatim. AGLC4 rule 4.2 (PDF
+  // p 113): inside a quoted (roman) title, marked spans render italic;
+  // where the title itself is italicised (eg books), 'no part of the title
+  // should appear in roman font' — the markers are consumed and the title
+  // stays wholly italic. Unmarked titles render byte-for-byte as before.
   const title = data["title"] as string | undefined;
   const hasTitle = title && !st.startsWith("case."); // cases already handled above
   if (hasTitle) {
@@ -396,29 +405,26 @@ export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
 
     const category = getBibliographyCategory(citation.sourceType, citation.data);
 
-    if (category === "A") {
-      // Secondary sources: books get italic titles; articles get single-quoted.
-      if (
+    if (
+      category === "A" &&
+      !(
         citation.sourceType.startsWith("book") ||
         citation.sourceType.startsWith("report") ||
         citation.sourceType === "thesis" ||
         citation.sourceType === "looseleaf" ||
         citation.sourceType === "legal_encyclopedia" ||
         citation.sourceType === "dictionary"
-      ) {
-        runs.push({ text: title, italic: true });
-      } else {
-        runs.push({ text: `'${title}'` });
-      }
-    } else if (category === "B") {
-      // Cases: italic.
-      runs.push({ text: title, italic: true });
-    } else if (category === "C") {
-      // Legislation: italic.
-      runs.push({ text: title, italic: true });
+      )
+    ) {
+      // Secondary-source components (articles etc): quoted, roman base,
+      // marked spans italic (rule 4.2). Quotation marks are the curly
+      // quotes of rule 1.6 — matching the footnote formatter's output.
+      runs.push(...quoteTitleRuns(parseTitleMarkup(title, false)));
     } else {
-      // Treaties, Other: italic.
-      runs.push({ text: title, italic: true });
+      // Books/reports (section A), cases (B), legislation (C), treaties
+      // and other (D/E): italic title; markers consumed, no roman part
+      // (rule 4.2).
+      runs.push(...parseTitleMarkup(title, true));
     }
   }
 

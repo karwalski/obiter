@@ -23,6 +23,7 @@ import {
 } from "./court/presets";
 import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
 import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
+import { parseTitleMarkup } from "./rules/v4/general/titleMarkup";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -863,52 +864,210 @@ export function checkLatinTermsItalicised(
 // ─── VALID-005: Citation completeness checks ─────────────────────────────────
 
 /**
+ * A single required citation element.
+ *
+ * `field` is the canonical element name used in the finding message;
+ * `keys` are the data keys — canonical structured shape first, then
+ * legacy/alias shapes — any one of which satisfies the element.
+ */
+interface RequiredFieldSpec {
+  field: string;
+  keys: string[];
+}
+
+/**
+ * Data keys that can carry a book's author element. The canonical shape is
+ * the structured `authors: [{givenNames, surname}]` array; `author` is the
+ * legacy flat string; `editors` satisfies the element for editor-only books
+ * (rule 6.6.3: '«Editor(s)» (ed/eds)' replaces the author); `chapterAuthors`
+ * is the book-chapter shape (rule 6.6.1); `institutionalAuthor`/`body`
+ * cover body authors (rule 4.1.6).
+ */
+const BOOK_AUTHOR_KEYS = [
+  "authors",
+  "author",
+  "editors",
+  "chapterAuthors",
+  "institutionalAuthor",
+  "body",
+];
+
+/** Data keys that can carry a journal article's author element (rule 4.1). */
+const JOURNAL_AUTHOR_KEYS = ["authors", "author", "institutionalAuthor", "body"];
+
+/** Data keys that can carry a case name (rule 2.1.1). */
+const CASE_NAME_KEYS = ["party1", "caseName", "caseTitle", "title"];
+
+/**
  * Required fields per major source type category.
  *
- * Each entry maps a source type prefix (or exact type) to the data fields
- * that must be present for the citation to be considered complete.
+ * Each entry maps a source type prefix (or exact type) to the elements
+ * that must be present for the citation to be considered complete. The
+ * first matching entry wins, so exact types precede prefix matches.
  */
 const REQUIRED_FIELDS: ReadonlyArray<{
   match: (sourceType: string) => boolean;
   label: string;
-  fields: string[];
+  fields: RequiredFieldSpec[];
 }> = [
+  {
+    // Rule 2.2: only reported cases require a report series; unreported
+    // cases (rules 2.3.1–2.3.2) and other case forms have no such element.
+    match: (st) => st === "case.reported",
+    label: "Case",
+    fields: [
+      { field: "case name", keys: CASE_NAME_KEYS },
+      { field: "year", keys: ["year"] },
+      { field: "reportSeries", keys: ["reportSeries"] },
+    ],
+  },
   {
     match: (st) => st.startsWith("case."),
     label: "Case",
-    fields: ["party1", "year", "reportSeries"],
+    fields: [
+      { field: "case name", keys: CASE_NAME_KEYS },
+      { field: "year", keys: ["year"] },
+    ],
+  },
+  {
+    // Rule 3.6: the Commonwealth Constitution is cited without year or
+    // jurisdiction ('Australian Constitution'), so nothing is mandatory.
+    match: (st) => st === "legislation.constitution",
+    label: "Legislation",
+    fields: [],
+  },
+  {
+    // Rule 3.9 quasi-legislative materials (gazettes, rulings, practice
+    // directions) have per-form templates with no common mandatory field.
+    match: (st) => st === "legislation.quasi",
+    label: "Legislation",
+    fields: [],
+  },
+  {
+    // Rule 3.7: explanatory memoranda carry the bill's title and year.
+    match: (st) => st === "legislation.explanatory",
+    label: "Legislation",
+    fields: [
+      { field: "title", keys: ["billTitle", "title"] },
+      { field: "year", keys: ["billYear", "year"] },
+      { field: "jurisdiction", keys: ["jurisdiction"] },
+    ],
   },
   {
     match: (st) => st.startsWith("legislation."),
     label: "Legislation",
-    fields: ["title", "year", "jurisdiction"],
+    fields: [
+      { field: "title", keys: ["title"] },
+      { field: "year", keys: ["year"] },
+      { field: "jurisdiction", keys: ["jurisdiction"] },
+    ],
   },
   {
     match: (st) => st.startsWith("journal."),
     label: "Journal article",
-    fields: ["author", "title", "year", "journal"],
+    fields: [
+      { field: "author", keys: JOURNAL_AUTHOR_KEYS },
+      { field: "title", keys: ["title"] },
+      { field: "year", keys: ["year"] },
+      { field: "journal", keys: ["journal", "journalName"] },
+    ],
   },
   {
     match: (st) => st.startsWith("book"),
     label: "Book",
-    fields: ["author", "title", "publisher", "year"],
+    fields: [
+      { field: "author", keys: BOOK_AUTHOR_KEYS },
+      { field: "title", keys: ["title", "chapterTitle", "bookTitle"] },
+      { field: "publisher", keys: ["publisher"] },
+      { field: "year", keys: ["year"] },
+    ],
   },
   {
     match: (st) => st === "treaty",
     label: "Treaty",
-    fields: ["title", "treatySeries"],
+    fields: [
+      { field: "title", keys: ["title"] },
+      { field: "treatySeries", keys: ["treatySeries"] },
+    ],
   },
 ];
+
+/**
+ * Returns true if a data value counts as a populated citation field.
+ *
+ * Understands the structured shapes the engine actually stores: non-blank
+ * strings, numbers, non-empty arrays (eg `authors: [{givenNames, surname}]`
+ * — at least one element must itself be populated), and objects with at
+ * least one non-blank string property (eg a single Author record).
+ */
+function isFieldValuePresent(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "number") return true;
+  if (Array.isArray(value)) return value.some((element) => isFieldValuePresent(element));
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).some(
+      (v) => typeof v === "string" && v.trim() !== ""
+    );
+  }
+  return Boolean(value);
+}
+
+/**
+ * Returns a human-readable label for a citation, for use in validation
+ * finding messages: the user's short title, else the case name
+ * ('«Party 1» v «Party 2»'), else the first available title, else the raw
+ * citation id as a last resort. Rule 4.2 asterisk markers (titleMarkup.ts)
+ * are stripped so labels read as plain text. The machine-usable id travels
+ * separately in `ValidationIssue.citationId`.
+ */
+export function getCitationLabel(citation: Citation): string {
+  const stripMarkers = (value: string): string =>
+    parseTitleMarkup(value, false)
+      .map((run) => run.text)
+      .join("");
+
+  if (typeof citation.shortTitle === "string" && citation.shortTitle.trim() !== "") {
+    return stripMarkers(citation.shortTitle.trim());
+  }
+
+  const d = citation.data;
+  const str = (key: string): string => {
+    const v = d[key];
+    return typeof v === "string" && v.trim() !== "" ? v.trim() : "";
+  };
+
+  const party1 = str("party1");
+  if (party1) {
+    const party2 = str("party2");
+    return party2 ? `${party1} v ${party2}` : party1;
+  }
+
+  const title =
+    str("caseName") || str("caseTitle") || str("title") || str("chapterTitle") || str("bookTitle");
+  if (title) {
+    return stripMarkers(title);
+  }
+
+  return citation.id;
+}
 
 /**
  * Checks that a citation record has all mandatory fields for its source type.
  *
  * Required fields per major source type category:
- * - **Case** (`case.*`): party1, year, reportSeries (Rules 2.2–2.3)
- * - **Legislation** (`legislation.*`): title, year, jurisdiction (Rule 3.1)
+ * - **Reported case** (`case.reported`): case name, year, reportSeries
+ *   (Rule 2.2); other `case.*` forms: case name, year (Rule 2.3)
+ * - **Legislation** (`legislation.*`): title, year, jurisdiction (Rule 3.1);
+ *   the Constitution (Rule 3.6) and quasi-legislative materials (Rule 3.9)
+ *   have no common mandatory fields
  * - **Journal** (`journal.*`): author, title, year, journal (Rule 5)
  * - **Book** (`book*`): author, title, publisher, year (Rule 6)
  * - **Treaty** (`treaty`): title, treatySeries (Rule 8)
+ *
+ * Each element accepts every data shape the engine stores — eg the author
+ * element is satisfied by the structured `authors` array, the legacy flat
+ * `author` string, or (for books) an `editors`-only record (rule 6.6.3).
  *
  * @remarks AGLC4 Rules 2.2, 3.1, 5, 6, 8 — mandatory citation elements.
  */
@@ -920,21 +1079,17 @@ export function checkCitationCompleteness(citation: Citation): ValidationIssue[]
     return issues;
   }
 
-  for (const field of rule.fields) {
-    const value = citation.data[field];
-    const isMissing =
-      value === undefined ||
-      value === null ||
-      value === "" ||
-      (typeof value === "string" && value.trim() === "");
+  for (const spec of rule.fields) {
+    const present = spec.keys.some((key) => isFieldValuePresent(citation.data[key]));
 
-    if (isMissing) {
+    if (!present) {
       issues.push({
         ruleNumber: getRuleForSourceType(citation.sourceType),
-        message: `${rule.label} citation '${citation.shortTitle || citation.id}' is missing required field '${field}'`,
+        message: `${rule.label} citation '${getCitationLabel(citation)}' is missing required field '${spec.field}'`,
         severity: "error",
         offset: 0,
         length: 0,
+        citationId: citation.id,
       });
     }
   }
@@ -964,7 +1119,7 @@ export function checkCourtOrderOfficers(citation: Citation): ValidationIssue[] {
   return [
     {
       ruleNumber: "2.3.4",
-      message: `Court order citation '${citation.shortTitle || citation.id}' names no judicial officer — rule 2.3.4 requires 'Order of «Judicial Officer(s)» in «Case Name» …', naming every officer who issued the order`,
+      message: `Court order citation '${getCitationLabel(citation)}' names no judicial officer — rule 2.3.4 requires 'Order of «Judicial Officer(s)» in «Case Name» …', naming every officer who issued the order`,
       severity: "warning",
       offset: 0,
       length: 0,
@@ -1169,7 +1324,7 @@ export function checkHeadingFormat(headings: HeadingEntry[]): ValidationIssue[] 
  */
 export function checkCitationCapitalisation(citation: Citation): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const label = citation.shortTitle || citation.id;
+  const label = getCitationLabel(citation);
 
   if (citation.sourceType.startsWith("case.")) {
     // Check party1 and party2
@@ -1192,6 +1347,7 @@ export function checkCitationCapitalisation(citation: Citation): ValidationIssue
           severity: "warning",
           offset: 0,
           length: 0,
+          citationId: citation.id,
         });
       } else if (letterContent === letterContent.toUpperCase() && letterContent.length > 1) {
         issues.push({
@@ -1200,6 +1356,7 @@ export function checkCitationCapitalisation(citation: Citation): ValidationIssue
           severity: "warning",
           offset: 0,
           length: 0,
+          citationId: citation.id,
         });
       }
     }
@@ -1218,6 +1375,7 @@ export function checkCitationCapitalisation(citation: Citation): ValidationIssue
             severity: "warning",
             offset: 0,
             length: 0,
+            citationId: citation.id,
           });
         } else if (letterContent === letterContent.toUpperCase() && letterContent.length > 1) {
           issues.push({
@@ -1226,6 +1384,7 @@ export function checkCitationCapitalisation(citation: Citation): ValidationIssue
             severity: "warning",
             offset: 0,
             length: 0,
+            citationId: citation.id,
           });
         }
       }
@@ -1255,16 +1414,20 @@ export function checkCitationCapitalisation(citation: Citation): ValidationIssue
  */
 export function checkTitlePresence(citation: Citation): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const label = citation.shortTitle || citation.id;
+  const label = getCitationLabel(citation);
 
   if (!shouldItaliciseTitle(citation.sourceType as SourceType)) {
     return issues;
   }
 
   if (citation.sourceType.startsWith("case.")) {
-    // Cases use party1 as the primary identifier
+    // Cases use party1 as the primary identifier; a stored caseName (the
+    // single-field shape some case forms use) also satisfies the element.
     const party1 = citation.data.party1 as string | undefined;
-    const isEmpty = !party1 || (typeof party1 === "string" && party1.trim() === "");
+    const caseName = citation.data.caseName as string | undefined;
+    const isEmpty =
+      (!party1 || (typeof party1 === "string" && party1.trim() === "")) &&
+      (!caseName || (typeof caseName === "string" && caseName.trim() === ""));
 
     if (isEmpty) {
       issues.push({
@@ -1273,6 +1436,7 @@ export function checkTitlePresence(citation: Citation): ValidationIssue[] {
         severity: "warning",
         offset: 0,
         length: 0,
+        citationId: citation.id,
       });
     }
   } else {
@@ -1287,6 +1451,7 @@ export function checkTitlePresence(citation: Citation): ValidationIssue[] {
         severity: "error",
         offset: 0,
         length: 0,
+        citationId: citation.id,
       });
     }
   }
@@ -1318,7 +1483,7 @@ export function checkLegislativeHistoryHint(citation: Citation): ValidationIssue
   const PASSIVE_AMENDMENT = new Set(["as amended by", "amended by", "later amended by"]);
 
   if (connector && PASSIVE_AMENDMENT.has(connector)) {
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     issues.push({
       ruleNumber: "3.1.2",
       message:
@@ -1427,7 +1592,7 @@ export function checkOscolaRules(
 
   // Check citations for OSCOLA-specific issues
   for (const citation of citations) {
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
 
     // Flag italicised legislation (OSCOLA uses roman)
     if (citation.sourceType.startsWith("legislation.")) {
@@ -1589,7 +1754,7 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
 
   // Check citations for NZLSG-specific issues
   for (const citation of citations) {
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
 
     // Flag italicised legislation (NZLSG uses roman)
     if (citation.sourceType.startsWith("legislation.")) {
@@ -1621,7 +1786,7 @@ export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue
   for (const citation of citations) {
     if (!citation.sourceType.startsWith("case.")) continue;
 
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     const treatment = citation.data.subsequentTreatment as string | undefined;
 
     if (!treatment || treatment.trim() === "") {
@@ -1667,7 +1832,7 @@ export function checkParallelCitations(citations: Citation[]): ValidationIssue[]
       continue;
     }
 
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
     const hasParallels = Array.isArray(parallels) && parallels.length > 0;
 
@@ -1721,7 +1886,7 @@ export function checkParallelCitationEnforcement(
       continue;
     }
 
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
     const hasParallels = Array.isArray(parallels) && parallels.length > 0;
 
@@ -1778,7 +1943,7 @@ export function checkMncYearValidity(citations: Citation[]): ValidationIssue[] {
       continue;
     }
 
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     const num = d.caseNumber ?? d.mnc ?? d.judgmentNumber;
     const mnc = `[${year}] ${code}${num !== undefined && num !== "" ? ` ${num}` : ""}`;
     issues.push({
@@ -1912,7 +2077,7 @@ export function validateCourtMode(
       }
 
       const d = citation.data;
-      const label = citation.shortTitle || citation.id;
+      const label = getCitationLabel(citation);
       const reportSeries = d.reportSeries as string | undefined;
       const mncValue = d.mnc as string | undefined;
       const parallels = d.parallelCitations as ParallelCitation[] | undefined;
@@ -1979,7 +2144,7 @@ export function validateCourtMode(
         continue;
       }
 
-      const label = citation.shortTitle || citation.id;
+      const label = getCitationLabel(citation);
       const confirmed =
         citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
 
@@ -2005,7 +2170,7 @@ export function validateCourtMode(
         continue;
       }
 
-      const label = citation.shortTitle || citation.id;
+      const label = getCitationLabel(citation);
       const treatment = citation.data.subsequentTreatment as string | undefined;
 
       if (!treatment || treatment.trim() === "") {
@@ -2047,7 +2212,7 @@ export function validateCourtMode(
       continue;
     }
 
-    const label = citation.shortTitle || citation.id;
+    const label = getCitationLabel(citation);
     const jurisdiction = citation.data.jurisdiction as string | undefined;
 
     if (!jurisdiction || jurisdiction.trim() === "") {

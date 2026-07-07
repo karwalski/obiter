@@ -23,10 +23,16 @@ function formatQuotedTitle(title: string): FormattedRun[] {
 }
 
 /**
- * Joins parenthetical parts with commas, skipping empties.
+ * Joins parenthetical parts with commas, skipping empties. Returns "" when
+ * every part is empty — callers must then omit the parenthetical entirely,
+ * so a source with no date/type data never renders a bare '()' (WEB-007b).
  */
 function parenthetical(parts: Array<string | undefined>): string {
-  return `(${parts.filter((p) => p && p.trim().length > 0).join(", ")})`;
+  const filled = parts.filter((p): p is string => Boolean(p && p.trim().length > 0));
+  if (filled.length === 0) {
+    return "";
+  }
+  return `(${filled.join(", ")})`;
 }
 
 /**
@@ -185,9 +191,11 @@ export interface PressReleaseData {
 }
 
 export interface HansardData {
-  jurisdiction: string; // e.g. "Commonwealth"
+  /** Abbreviation ('Cth') or full name ('Commonwealth') — rendered in full. */
+  jurisdiction: string;
   chamber: string; // e.g. "House of Representatives", "Senate"
   date: string;
+  /** Pinpoint (Hansard page number), e.g. "4501". */
   page: string;
   speaker?: string;
 }
@@ -240,16 +248,19 @@ export function formatReport(data: ReportData): FormattedRun[] {
   // Title (italic)
   runs.push(...formatSecondaryTitle(data.title, "report"));
 
-  // Parenthetical: (Report Type No X, Date)
-  runs.push({
-    text: ` ${parenthetical([
-      docTypeWithNumber(
-        data.reportType ?? (data.reportNumber ? "Report" : undefined),
-        data.reportNumber
-      ),
-      data.date,
-    ])}`,
-  });
+  // Parenthetical: (Report Type No X, Date) — omitted entirely when no
+  // type, number or date exists, so a title-only report never renders a
+  // trailing '()' (WEB-007b).
+  const paren = parenthetical([
+    docTypeWithNumber(
+      data.reportType ?? (data.reportNumber ? "Report" : undefined),
+      data.reportNumber
+    ),
+    data.date,
+  ]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   // Pinpoint
   if (data.pinpoint) {
@@ -284,10 +295,11 @@ export function formatParliamentaryReport(data: ParliamentaryReportData): Format
   // Title (italic)
   runs.push(...formatSecondaryTitle(data.title, "report.parliamentary"));
 
-  // Parenthetical
-  runs.push({
-    text: ` ${parenthetical([docTypeWithNumber(data.documentType, data.number), data.date])}`,
-  });
+  // Parenthetical — omitted entirely when empty (WEB-007b)
+  const paren = parenthetical([docTypeWithNumber(data.documentType, data.number), data.date]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   // Pinpoint
   if (data.pinpoint) {
@@ -423,14 +435,16 @@ export function formatResearchPaper(data: ResearchPaperData): FormattedRun[] {
   // Title in single quotes
   runs.push(...formatQuotedTitle(data.title));
 
-  // Parenthetical: (Doc Type No Number, Institution, Full Date)
-  runs.push({
-    text: ` ${parenthetical([
-      docTypeWithNumber(data.documentType, data.number),
-      data.institution,
-      dateOrYear(data.date, data.year),
-    ])}`,
-  });
+  // Parenthetical: (Doc Type No Number, Institution, Full Date) — omitted
+  // entirely when empty (WEB-007b)
+  const paren = parenthetical([
+    docTypeWithNumber(data.documentType, data.number),
+    data.institution,
+    dateOrYear(data.date, data.year),
+  ]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   // Pinpoint
   if (data.pinpoint) {
@@ -476,15 +490,17 @@ export function formatParliamentaryResearchPaper(
   // Title in single quotes
   runs.push(...formatQuotedTitle(data.title));
 
-  // Parenthetical: (Doc Type No Number, Provider, Legislature, Full Date)
-  runs.push({
-    text: ` ${parenthetical([
-      docTypeWithNumber(data.documentType, data.number),
-      data.body,
-      data.legislature ?? data.jurisdiction,
-      dateOrYear(data.date, data.year),
-    ])}`,
-  });
+  // Parenthetical: (Doc Type No Number, Provider, Legislature, Full Date) —
+  // omitted entirely when empty (WEB-007b)
+  const paren = parenthetical([
+    docTypeWithNumber(data.documentType, data.number),
+    data.body,
+    data.legislature ?? data.jurisdiction,
+    dateOrYear(data.date, data.year),
+  ]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   // Pinpoint (Rules 7.2.1, 1.1.6–1.1.7)
   if (data.pinpoint) {
@@ -520,14 +536,16 @@ export function formatConferencePaper(data: ConferencePaperData): FormattedRun[]
   // Title in single quotes
   runs.push(...formatQuotedTitle(data.title));
 
-  // Parenthetical: (Document Type, Conference Name, Date)
-  runs.push({
-    text: ` ${parenthetical([
-      data.documentType ?? "Conference Paper",
-      data.conferenceName,
-      data.date,
-    ])}`,
-  });
+  // Parenthetical: (Document Type, Conference Name, Date) — omitted
+  // entirely when empty (WEB-007b)
+  const paren = parenthetical([
+    data.documentType ?? "Conference Paper",
+    data.conferenceName,
+    data.date,
+  ]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   return runs;
 }
@@ -556,10 +574,12 @@ export function formatThesis(data: ThesisData): FormattedRun[] {
   // Title in single quotation marks (Rule 7.2.1 via 7.2.5)
   runs.push(...formatQuotedTitle(data.title));
 
-  // Parenthetical: (Thesis Type, University, Date)
-  runs.push({
-    text: ` ${parenthetical([data.thesisType, data.university, dateOrYear(data.date, data.year)])}`,
-  });
+  // Parenthetical: (Thesis Type, University, Date) — omitted entirely
+  // when empty (WEB-007b)
+  const paren = parenthetical([data.thesisType, data.university, dateOrYear(data.date, data.year)]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   return runs;
 }
@@ -591,8 +611,12 @@ export function formatSpeech(data: SpeechData): FormattedRun[] {
   // dropped from the lecture name (Rule 7.3).
   const speechType = (data.speechType ?? "Speech").trim().replace(/^The\s+/i, "");
 
-  // Parenthetical: (Speech/Lecture Name, Forum, Date)
-  runs.push({ text: ` ${parenthetical([speechType, data.event, data.date])}` });
+  // Parenthetical: (Speech/Lecture Name, Forum, Date) — omitted entirely
+  // when empty (WEB-007b)
+  const paren = parenthetical([speechType, data.event, data.date]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   return runs;
 }
@@ -644,8 +668,12 @@ export function formatPressRelease(data: PressReleaseData): FormattedRun[] {
       ? data.issuingBody
       : undefined;
 
-  // Parenthetical: (Release Type Number, Body, Full Date)
-  runs.push({ text: ` ${parenthetical([typeAndNumber, issuingBody, data.date])}` });
+  // Parenthetical: (Release Type Number, Body, Full Date) — omitted
+  // entirely when empty (WEB-007b)
+  const paren = parenthetical([typeAndNumber, issuingBody, data.date]);
+  if (paren) {
+    runs.push({ text: ` ${paren}` });
+  }
 
   // Pinpoint
   if (data.pinpoint) {
@@ -659,10 +687,46 @@ export function formatPressRelease(data: PressReleaseData): FormattedRun[] {
 // ─── OTHER-012: Rule 7.5.1 — Hansard ───────────────────────────────────────
 
 /**
+ * Full jurisdiction names keyed by the statute-style abbreviations
+ * (AustralianJurisdiction values) that forms and stored data use.
+ *
+ * AGLC4 Rule 7.5.1's examples write the jurisdiction out in full
+ * ('Commonwealth, *Parliamentary Debates*, Senate, …' — ex 47;
+ * 'Victoria, *Parliamentary Debates*, Legislative Council, …' — ex 48),
+ * never as the '(Cth)'/'(Vic)' abbreviations used for legislation.
+ */
+export const JURISDICTION_FULL_NAMES: Record<string, string> = {
+  Cth: "Commonwealth",
+  ACT: "Australian Capital Territory",
+  NSW: "New South Wales",
+  NT: "Northern Territory",
+  Qld: "Queensland",
+  SA: "South Australia",
+  Tas: "Tasmania",
+  Vic: "Victoria",
+  WA: "Western Australia",
+};
+
+/**
+ * Expands a statute-style jurisdiction abbreviation ('Cth', 'NSW', …) to
+ * its full name ('Commonwealth', 'New South Wales', …). Values that are
+ * not known abbreviations (including already-full names) pass through
+ * unchanged.
+ */
+export function jurisdictionFullName(jurisdiction: string): string {
+  const key = jurisdiction.trim();
+  return JURISDICTION_FULL_NAMES[key] ?? key;
+}
+
+/**
  * Formats a Hansard citation per AGLC4 Rule 7.5.1.
  *
- * Format: `Jurisdiction, Parliamentary Debates, Chamber, Date, Page (Speaker).`
- * "Parliamentary Debates" is italic. Speaker is optional.
+ * Template: `«Jurisdiction», *Parliamentary Debates*, «Chamber»,
+ * «Full Date of Debate», «Pinpoint» («Name of Speaker»)`.
+ * "Parliamentary Debates" is italic. The jurisdiction is written in full
+ * ('Commonwealth', not 'Cth' — exx 47–8; WEB-009a). The speaker is
+ * optional; chamber, date and pinpoint are emitted only where present so
+ * missing data never leaves stray commas or double spaces (WEB-009b).
  *
  * @param data - Hansard citation data.
  * @returns FormattedRun[] representing the formatted citation.
@@ -672,14 +736,19 @@ export function formatPressRelease(data: PressReleaseData): FormattedRun[] {
 export function formatHansard(data: HansardData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Jurisdiction
-  runs.push({ text: `${data.jurisdiction}, ` });
+  // Jurisdiction — expanded to its full name (Rule 7.5.1 exx 47–8)
+  runs.push({ text: `${jurisdictionFullName(data.jurisdiction)}, ` });
 
   // "Parliamentary Debates" (italic)
   runs.push({ text: "Parliamentary Debates", italic: true });
 
-  // Chamber, Date, Page
-  runs.push({ text: `, ${data.chamber}, ${data.date}, ${data.page}` });
+  // Chamber, Full Date, Pinpoint — skip empties
+  const tail = [data.chamber, data.date, data.page]
+    .map((p) => (p ?? "").trim())
+    .filter((p) => p.length > 0);
+  if (tail.length > 0) {
+    runs.push({ text: `, ${tail.join(", ")}` });
+  }
 
   // Speaker (optional, in parentheses)
   if (data.speaker) {

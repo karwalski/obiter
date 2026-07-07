@@ -4,7 +4,12 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyHeadingLevel, findExistingHeadingListId, renumberAllHeadings } from "../../word/styles";
+import {
+  applyHeadingLevel,
+  findExistingHeadingListId,
+  getSelectedStyleParagraphs,
+  renumberAllHeadings,
+} from "../../word/styles";
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template, insertTitleParagraph, insertAuthorParagraph } from "../../word/template";
 import { getSharedStore } from "../../store/singleton";
@@ -147,11 +152,7 @@ export default function Styling(): JSX.Element {
       setStatus(null);
       setError(null);
       await Word.run(async (context) => {
-        const selection = context.document.getSelection();
-        selection.load("paragraphs");
-        await context.sync();
-
-        const paraItems = selection.paragraphs.items ?? [];
+        const paraItems = await getSelectedStyleParagraphs(context);
         for (let i = 0; i < paraItems.length; i++) {
           await applyHeadingLevel(
             context,
@@ -177,11 +178,7 @@ export default function Styling(): JSX.Element {
       setStatus(null);
       setError(null);
       await Word.run(async (context) => {
-        const selection = context.document.getSelection();
-        selection.load("paragraphs");
-        await context.sync();
-
-        for (const para of (selection.paragraphs.items ?? [])) {
+        for (const para of await getSelectedStyleParagraphs(context)) {
           try {
             para.style = "AGLC4 Block Quote";
           } catch {

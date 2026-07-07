@@ -39,6 +39,7 @@ import type { CitationContext } from "../engine/engine";
 import { resolveSubsequentReference } from "../engine/resolver";
 import type { SubsequentReferenceContext } from "../engine/resolver";
 import { buildFootnoteMap, updateFirstFootnoteNumbers } from "./footnoteTracker";
+import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
@@ -127,26 +128,6 @@ function stripClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
   const trimmed = last.text.replace(/[.!?]\s*$/, "");
   if (trimmed === last.text) return runs;
   return [...runs.slice(0, -1), { ...last, text: trimmed }];
-}
-
-function applyRunFormatting(range: Word.Range, run: FormattedRun): void {
-  // Set toggle attributes explicitly (default false). An omitted attribute on
-  // a FormattedRun means "off", not "inherit the previous run". Without this,
-  // the citation runs after an italic case name inherited that italic and the
-  // whole citation rendered italic (AGLC4 Rule 2 italicises the case name only)
-  // — and the refresher re-applied it over any manual correction.
-  range.font.italic = run.italic ?? false;
-  range.font.bold = run.bold ?? false;
-  range.font.superscript = run.superscript ?? false;
-  if (run.font !== undefined) {
-    range.font.name = run.font;
-  }
-  if (run.size !== undefined) {
-    range.font.size = run.size;
-  }
-  if (run.smallCaps !== undefined) {
-    range.font.smallCaps = run.smallCaps;
-  }
 }
 
 /**
@@ -662,57 +643,77 @@ async function rebuildParentCC(
   parentCC: Word.ContentControl,
   rendered: RenderedCitation[]
 ): Promise<void> {
-  // Clear parent CC — removes all content including old child CCs
-  parentCC.clear();
-  await context.sync();
-
+  // The parent's entire content — citations, separators, and closing
+  // punctuation — is composed as ONE HTML fragment and written in a single
+  // insertHtml call, then the child CCs are wrapped around each citation's
+  // text afterwards. The piecewise APIs are broken on Word on the web:
+  // `getRange("End").insertContentControl()` lands children outside the
+  // parent (WEB-001), font assignments on ranges returned by insertText
+  // silently no-op (WEB-002), per-piece insertHtml/insertText calls inject
+  // smart-paste join spaces at fragment boundaries, and insertOoxml throws
+  // `unsupportedSelection` inside footnotes on the web. A single HTML
+  // fragment imports with exact text and per-run formatting on both hosts
+  // (verified empirically); "Replace" also clears the placeholder state.
+  const htmlPieces: string[] = [];
+  const childTexts: string[] = [];
   for (let j = 0; j < rendered.length; j++) {
-    const { runs, citationId, signal, formatPreference, pinpoint } = rendered[j];
+    childTexts.push(runsToPlainText(rendered[j].runs));
+    htmlPieces.push(runsToHtml(rendered[j].runs));
 
-    // Create a child CC at the end of the parent CC
-    const endRange = parentCC.getRange("End");
-    const childCC = endRange.insertContentControl("RichText");
-    childCC.tag = citationId;
-    // Preserve the user's format preference (and any pinpoint) in the title.
-    // The rendered format is recomputed from preference + context each refresh.
-    childCC.title = buildOccurrenceTitle(formatPreference, pinpoint);
-    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
-
-    // Write the citation runs into the child CC
-    for (const run of runs) {
-      const range = childCC.insertText(run.text, "End");
-      applyRunFormatting(range, run);
-    }
-
-    // Insert separator after this child (if not the last). The separator is
-    // inserted into the parent CC, so it inherits the formatting of the
-    // preceding character — reset it to roman so a citation ending in an italic
-    // run (e.g. a short-form case name) can't bleed italics into the separator
-    // or the following citation.
+    // Separator after this child (if not the last) — plain text in the
+    // fragment, outside the child CCs (Rules 1.1.3, 1.1.4).
     if (j < rendered.length - 1) {
       const separator = getSeparator(
-        signal,
+        rendered[j].signal,
         rendered[j + 1].signal,
         rendered[j].isNote,
         rendered[j + 1].isNote
       );
-      const sepRange = parentCC.insertText(separator, "End");
-      sepRange.font.italic = false;
-      sepRange.font.bold = false;
-      sepRange.font.superscript = false;
+      htmlPieces.push(escapeHtml(separator));
     }
   }
 
-  // Append closing punctuation after the last child CC (Rule 1.1.4). Reset its
-  // formatting too — otherwise a final italic run would italicise the full stop.
+  // Closing punctuation after the last child CC (Rule 1.1.4).
   const lastCitationText = runsToPlainText(rendered[rendered.length - 1].runs);
   const closingPunct = getClosingPunctuation(lastCitationText);
   if (closingPunct) {
-    const closeRange = parentCC.insertText(closingPunct, "End");
-    closeRange.font.italic = false;
-    closeRange.font.bold = false;
-    closeRange.font.superscript = false;
+    htmlPieces.push(escapeHtml(closingPunct));
   }
 
+  parentCC.insertHtml(htmlPieces.join(""), "Replace" as Word.InsertLocation.replace);
+  await context.sync();
+
+  // Wrap each citation's text in its child CC. Word's Range.search caps the
+  // query at 255 characters, so very long citations search by prefix; when
+  // the same text occurs more than once in the footnote (e.g. two "Ibid"
+  // children), occurrences are assigned to children in document order.
+  const parentRange = parentCC.getRange("Whole" as Word.RangeLocation.whole);
+  const searches = childTexts.map((text) => {
+    const query = text.length > 250 ? text.slice(0, 250) : text;
+    const found = parentRange.search(query, { matchCase: true });
+    found.load("items");
+    return found;
+  });
+  await context.sync();
+
+  const occurrenceCursor = new Map<string, number>();
+  for (let j = 0; j < rendered.length; j++) {
+    const text = childTexts[j];
+    const matches = searches[j].items ?? [];
+    const k = occurrenceCursor.get(text) ?? 0;
+    occurrenceCursor.set(text, k + 1);
+    const target = matches[k] ?? matches[0];
+    if (!target) {
+      // Leave this citation unwrapped rather than corrupting a neighbour —
+      // the next refresh pass rebuilds the footnote and retries.
+      continue;
+    }
+    const childCC = target.insertContentControl("RichText");
+    childCC.tag = rendered[j].citationId;
+    // Preserve the user's format preference (and any pinpoint) in the title.
+    // The rendered format is recomputed from preference + context each refresh.
+    childCC.title = buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint);
+    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+  }
   await context.sync();
 }

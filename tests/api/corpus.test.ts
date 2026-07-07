@@ -279,18 +279,24 @@ describe("Corpus Download (Story 17.8)", () => {
     expect(checkCorpusAvailable()).toBe(false);
   });
 
-  it("downloads mock corpus index with progress", async () => {
-    const progress: Array<[number, number]> = [];
-    await downloadCorpusIndex((loaded, total) => {
-      progress.push([loaded, total]);
-    });
-    expect(getCorpusStatus()).toBe("ready");
-    expect(checkCorpusAvailable()).toBe(true);
-    expect(progress.length).toBeGreaterThan(0);
-    // Final progress should be 100/100
-    const last = progress[progress.length - 1];
-    expect(last[0]).toBe(last[1]);
-  });
+  // The simulated chunked download takes seconds of wall clock; the default
+  // 5 s Jest timeout flakes when the full suite loads the machine.
+  it(
+    "downloads mock corpus index with progress",
+    async () => {
+      const progress: Array<[number, number]> = [];
+      await downloadCorpusIndex((loaded, total) => {
+        progress.push([loaded, total]);
+      });
+      expect(getCorpusStatus()).toBe("ready");
+      expect(checkCorpusAvailable()).toBe(true);
+      expect(progress.length).toBeGreaterThan(0);
+      // Final progress should be 100/100
+      const last = progress[progress.length - 1];
+      expect(last[0]).toBe(last[1]);
+    },
+    20000
+  );
 
   it("sets skip preference", () => {
     expect(isCorpusSkipped()).toBe(false);
