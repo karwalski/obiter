@@ -402,17 +402,22 @@ app.get("/api/signatures", function (req, res) {
  */
 app.post("/api/analytics/load", function (req, res) {
   try {
-    var { obiterVersion, wordVersion, platform, deviceHash } = req.body;
+    var { obiterVersion, wordVersion, platform, deviceHash, variant } = req.body;
 
     if (!obiterVersion) {
       return res.status(400).json({ error: "obiterVersion is required." });
     }
+
+    // Product line reporting the load (SITE-ANALYTICS-01). Only two known
+    // values; anything else falls back to "classic" so the column stays clean.
+    var normalisedVariant = variant === "copilot" ? "copilot" : "classic";
 
     db.insertLoad.run({
       obiterVersion: String(obiterVersion).substring(0, 50),
       wordVersion: wordVersion ? String(wordVersion).substring(0, 100) : null,
       platform: platform ? String(platform).substring(0, 100) : null,
       deviceHash: deviceHash ? String(deviceHash).substring(0, 64) : null,
+      variant: normalisedVariant,
     });
 
     res.json({ received: true });
@@ -639,12 +644,41 @@ app.get("/api/admin/analytics", requireAdmin, function (req, res) {
       ORDER BY day ASC
     `).all(start, end);
 
+    // Range-level totals (SITE-ANALYTICS-01). uniqueUsers here is the CORRECT
+    // figure — a single COUNT(DISTINCT) over the whole range — unlike summing
+    // the per-day unique counts, which double-counts multi-day devices.
+    var rangeUnique = db.getUniqueUsersInRange.get({ start: start, end: end, variant: null }).unique_users;
+    var rangeLoads = db.getTotalLoadsInRange.get({ start: start, end: end, variant: null }).loads;
+    var variantBreakdown = db.getVariantBreakdown.all({ start: start, end: end });
+    var versionAdoption = db.getVersionAdoption.all({ start: start, end: end });
+
+    // 30-day vs prior-30-day headline stats (independent of the chart window).
+    var DAY_MS = 86400000;
+    var iso = function (d) { return new Date(d).toISOString(); };
+    var now30 = now.getTime();
+    var s30 = iso(now30 - 30 * DAY_MS);
+    var s60 = iso(now30 - 60 * DAY_MS);
+    var eNow = iso(now30);
+    var summary = {
+      uniqueUsers30: db.getUniqueUsersInRange.get({ start: s30, end: eNow, variant: null }).unique_users,
+      uniqueUsersPrev30: db.getUniqueUsersInRange.get({ start: s60, end: s30, variant: null }).unique_users,
+      loads30: db.getTotalLoadsInRange.get({ start: s30, end: eNow, variant: null }).loads,
+      loadsPrev30: db.getTotalLoadsInRange.get({ start: s60, end: s30, variant: null }).loads,
+      variants30: db.getVariantBreakdown.all({ start: s30, end: eNow }),
+      versions30: db.getVersionAdoption.all({ start: s30, end: eNow }),
+    };
+
     res.json({
       start: start,
       end: end,
       loads: loads,
       versionChanges: versionChanges,
       crashes: crashesByDay,
+      rangeUnique: rangeUnique,
+      rangeLoads: rangeLoads,
+      variantBreakdown: variantBreakdown,
+      versionAdoption: versionAdoption,
+      summary: summary,
     });
   } catch (err) {
     console.error("GET /api/admin/analytics error:", err);

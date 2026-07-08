@@ -72,6 +72,7 @@ db.exec(`
     word_version TEXT,
     platform TEXT,
     device_hash TEXT,
+    variant TEXT NOT NULL DEFAULT 'classic',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -80,6 +81,20 @@ db.exec(`
     released_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+// -------------------------------------------------------
+// Migrations (idempotent — for databases created before a column existed)
+// -------------------------------------------------------
+
+// SITE-ANALYTICS-01: add the product variant ("classic" | "copilot") to
+// analytics_loads so the two product lines can be told apart. Existing rows
+// backfill to "classic" via the column default.
+{
+  const cols = db.prepare("PRAGMA table_info(analytics_loads)").all();
+  if (!cols.some((c) => c.name === "variant")) {
+    db.exec("ALTER TABLE analytics_loads ADD COLUMN variant TEXT NOT NULL DEFAULT 'classic'");
+  }
+}
 
 // -------------------------------------------------------
 // Prepared statements — signatures
@@ -164,8 +179,48 @@ const markErrorRead = db.prepare(`
 // -------------------------------------------------------
 
 const insertLoad = db.prepare(`
-  INSERT INTO analytics_loads (obiter_version, word_version, platform, device_hash)
-  VALUES (@obiterVersion, @wordVersion, @platform, @deviceHash)
+  INSERT INTO analytics_loads (obiter_version, word_version, platform, device_hash, variant)
+  VALUES (@obiterVersion, @wordVersion, @platform, @deviceHash, @variant)
+`);
+
+// Range-level unique device count. This is the CORRECT unique-user figure:
+// summing per-day COUNT(DISTINCT device_hash) double-counts any device active
+// on multiple days (SITE-ANALYTICS-01). `variant` = null counts all variants.
+const getUniqueUsersInRange = db.prepare(`
+  SELECT COUNT(DISTINCT device_hash) AS unique_users
+  FROM analytics_loads
+  WHERE created_at >= @start AND created_at < @end
+    AND (@variant IS NULL OR variant = @variant)
+`);
+
+const getTotalLoadsInRange = db.prepare(`
+  SELECT COUNT(*) AS loads
+  FROM analytics_loads
+  WHERE created_at >= @start AND created_at < @end
+    AND (@variant IS NULL OR variant = @variant)
+`);
+
+// Loads + unique users per product variant over a range.
+const getVariantBreakdown = db.prepare(`
+  SELECT COALESCE(variant, 'classic') AS variant,
+         COUNT(*) AS loads,
+         COUNT(DISTINCT device_hash) AS unique_users
+  FROM analytics_loads
+  WHERE created_at >= @start AND created_at < @end
+  GROUP BY COALESCE(variant, 'classic')
+  ORDER BY unique_users DESC
+`);
+
+// Version adoption (unique users per version) over a range, per variant.
+const getVersionAdoption = db.prepare(`
+  SELECT obiter_version,
+         COALESCE(variant, 'classic') AS variant,
+         COUNT(DISTINCT device_hash) AS unique_users,
+         COUNT(*) AS loads
+  FROM analytics_loads
+  WHERE created_at >= @start AND created_at < @end
+  GROUP BY obiter_version, COALESCE(variant, 'classic')
+  ORDER BY unique_users DESC, obiter_version DESC
 `);
 
 const getLoadsByDay = db.prepare(`
@@ -239,6 +294,10 @@ module.exports = {
   markErrorRead,
   insertLoad,
   getLoadsByDay,
+  getUniqueUsersInRange,
+  getTotalLoadsInRange,
+  getVariantBreakdown,
+  getVersionAdoption,
   getVersionChanges,
   recordVersionRelease,
   getSetting,

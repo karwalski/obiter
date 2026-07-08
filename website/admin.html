@@ -382,6 +382,21 @@
           <span class="admin-count" id="analytics-range"></span>
           <button class="admin-filter" id="analytics-next" style="cursor:pointer;">Next &rarr;</button>
         </div>
+
+        <!-- SITE-ANALYTICS-01: headline stats (last 30 days vs prior 30) + this-window totals -->
+        <div id="analytics-stats" style="display:flex; flex-wrap:wrap; gap:var(--space-md); margin-bottom:var(--space-lg);"></div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:var(--space-lg); margin-bottom:var(--space-lg);">
+          <div style="flex:1; min-width:240px;">
+            <div style="font-size:0.8125rem; font-weight:600; color:var(--colour-text-secondary); margin-bottom:var(--space-xs);">By product (last 30 days)</div>
+            <div id="analytics-variants" style="font-size:0.875rem;"></div>
+          </div>
+          <div style="flex:1; min-width:240px;">
+            <div style="font-size:0.8125rem; font-weight:600; color:var(--colour-text-secondary); margin-bottom:var(--space-xs);">Version adoption (last 30 days, unique users)</div>
+            <div id="analytics-versions" style="font-size:0.875rem;"></div>
+          </div>
+        </div>
+
         <div style="position:relative; width:100%; max-width:960px;">
           <canvas id="analytics-chart" width="960" height="360" style="width:100%; height:auto; border:1px solid var(--colour-border); border-radius:var(--radius-md);"></canvas>
         </div>
@@ -775,9 +790,57 @@
       fetch(API_BASE + "/admin/analytics?start=" + range.start + "&end=" + range.end, { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+          renderAnalyticsSummary(data);
           renderAnalyticsChart(data, range);
         })
         .catch(function (err) { console.error("Failed to load analytics:", err); });
+    }
+
+    // SITE-ANALYTICS-01: headline stat cards + product/version breakdowns.
+    function renderAnalyticsSummary(data) {
+      var statsEl = document.getElementById("analytics-stats");
+      var variantsEl = document.getElementById("analytics-variants");
+      var versionsEl = document.getElementById("analytics-versions");
+      if (!statsEl) return;
+      var s = data.summary || {};
+
+      function delta(cur, prev) {
+        cur = cur || 0; prev = prev || 0;
+        if (prev === 0) return cur > 0 ? '<span style="color:#859900;">new</span>' : '';
+        var pct = Math.round(((cur - prev) / prev) * 100);
+        var col = pct > 0 ? "#859900" : (pct < 0 ? "#DC322F" : "var(--colour-text-secondary)");
+        var sign = pct > 0 ? "+" : "";
+        return '<span style="color:' + col + ';">' + sign + pct + "% vs prior 30d</span>";
+      }
+      function card(label, value, sub) {
+        return '<div style="flex:1; min-width:160px; padding:var(--space-md); border:1px solid var(--colour-border); border-radius:var(--radius-md); background:var(--colour-surface);">' +
+          '<div style="font-size:0.75rem; color:var(--colour-text-secondary); text-transform:uppercase; letter-spacing:0.04em;">' + label + "</div>" +
+          '<div style="font-size:1.5rem; font-weight:700; margin:2px 0;">' + value + "</div>" +
+          '<div style="font-size:0.75rem;">' + (sub || "") + "</div></div>";
+      }
+
+      statsEl.innerHTML =
+        card("Unique users (30d)", (s.uniqueUsers30 || 0).toLocaleString(), delta(s.uniqueUsers30, s.uniqueUsersPrev30)) +
+        card("Page loads (30d)", (s.loads30 || 0).toLocaleString(), delta(s.loads30, s.loadsPrev30)) +
+        card("Unique (this window)", (data.rangeUnique || 0).toLocaleString(), (data.rangeLoads || 0).toLocaleString() + " loads");
+
+      var variants = (s.variants30 || []);
+      variantsEl.innerHTML = variants.length
+        ? variants.map(function (v) {
+            var name = v.variant === "copilot" ? "Copilot" : "Classic";
+            return '<div style="display:flex; justify-content:space-between; padding:2px 0;"><span>' + name +
+              '</span><span><strong>' + (v.unique_users || 0).toLocaleString() + "</strong> users &middot; " + (v.loads || 0).toLocaleString() + " loads</span></div>";
+          }).join("")
+        : '<span style="color:var(--colour-text-secondary);">No data.</span>';
+
+      var versions = (s.versions30 || []).slice(0, 8);
+      versionsEl.innerHTML = versions.length
+        ? versions.map(function (v) {
+            var tag = v.variant === "copilot" ? ' <span style="color:#6C71C4;">(copilot)</span>' : "";
+            return '<div style="display:flex; justify-content:space-between; padding:2px 0;"><span>v' + v.obiter_version + tag +
+              '</span><span><strong>' + (v.unique_users || 0).toLocaleString() + "</strong> users</span></div>";
+          }).join("")
+        : '<span style="color:var(--colour-text-secondary);">No data.</span>';
     }
 
     function renderAnalyticsChart(data, range) {
