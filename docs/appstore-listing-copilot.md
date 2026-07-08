@@ -36,3 +36,11 @@ Australian law students, academics, and practitioners with a Microsoft 365 Copil
 PRIVACY:
 
 Obiter collects no personal data and no document content. All citation data remains in your document. The Copilot skill passes only the source details you provide to Copilot in order to insert a citation; Obiter's formatting runs locally in the add-in. Optional in-app AI features require user-provided API keys and only process text you explicitly select. Optional error reporting is anonymous and requires explicit consent. See the full privacy policy at https://obiter.com.au/privacy.html.
+
+## Upgrading from the classic Obiter add-in
+
+Obiter Copilot includes everything in the classic add-in — the full task pane, ribbon,
+and AGLC4 engine — plus the Copilot agent. Remove the classic add-in first, then install
+Obiter Copilot: your documents' citation libraries and your device preferences carry over
+automatically. Do not run both at once; the products share document machinery and will
+conflict (the pane will warn if it detects both).

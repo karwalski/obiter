@@ -98,7 +98,7 @@
           "id": "TaskpaneRuntime_home",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot"
           },
           "lifetime": "short",
           "actions": [
@@ -114,7 +114,7 @@
           "id": "TaskpaneRuntime_insert",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot"
           },
           "lifetime": "short",
           "actions": [
@@ -130,7 +130,7 @@
           "id": "TaskpaneRuntime_library",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#library"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#library"
           },
           "lifetime": "short",
           "actions": [
@@ -146,7 +146,7 @@
           "id": "TaskpaneRuntime_validation",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#validation"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#validation"
           },
           "lifetime": "short",
           "actions": [
@@ -162,7 +162,7 @@
           "id": "TaskpaneRuntime_bibliography",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#bibliography"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#bibliography"
           },
           "lifetime": "short",
           "actions": [
@@ -178,7 +178,7 @@
           "id": "TaskpaneRuntime_guide",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#guide"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#guide"
           },
           "lifetime": "short",
           "actions": [
@@ -194,7 +194,7 @@
           "id": "TaskpaneRuntime_styling",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#styling"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#styling"
           },
           "lifetime": "short",
           "actions": [
@@ -210,7 +210,7 @@
           "id": "TaskpaneRuntime_settings",
           "type": "general",
           "code": {
-            "page": "https://obiter.com.au/app/taskpane.html#settings"
+            "page": "https://obiter.com.au/app/taskpane.html?product=copilot#settings"
           },
           "lifetime": "short",
           "actions": [

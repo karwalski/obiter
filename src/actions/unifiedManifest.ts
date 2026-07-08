@@ -192,7 +192,7 @@ export function buildUnifiedManifest(
   const taskpaneRuntimes = TASKPANE_VIEWS.map((v) => ({
     id: `TaskpaneRuntime_${v.view}`,
     type: "general",
-    code: { page: `${host}/taskpane.html${v.hash}` },
+    code: { page: `${host}/taskpane.html?product=copilot${v.hash}` },
     lifetime: "short",
     actions: [{ id: v.id, type: "openPage", pinnable: false, view: v.view }],
   }));

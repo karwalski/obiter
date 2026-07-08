@@ -47,3 +47,24 @@ The Copilot product identity (id, name) is set in `src/actions/unifiedManifest.t
 ## Where the app id is set
 
 `src/actions/unifiedManifest.ts` (`APP_ID`) is the source of truth for the unified manifest and declarative agent; `npm run export-skill` regenerates `manifest.skill.json` + `declarativeAgent.json` from it. `manifest.skill.xml` (the shared-runtime add-in variant) carries the id in its `<Id>` element. Both are set to the Copilot id on the `copilot/*` line only.
+
+## Upgrading from classic Obiter to Obiter Copilot
+
+Obiter Copilot is a strict superset of the classic add-in: the same task pane, the same
+full ribbon (all eleven buttons), the same engine — plus the Copilot agent. The upgrade
+needs **no data migration**: the citation store lives in the document (same Custom XML
+namespace) and device preferences (API keys, standard, comfort mode) live in the shared
+`obiter.com.au` origin localStorage, so both carry over automatically.
+
+Steps:
+1. Remove the classic add-in — admin-deployed: M365 admin → Integrated apps → Obiter →
+   Remove; user-acquired: Word → Home → Add-ins → right-click Obiter → Remove.
+2. Deploy/install "Obiter for Microsoft 365 Copilot" (the unified app package).
+3. Open any Obiter document — the library, footnotes, and preferences are unchanged.
+
+**Running both at once is unsupported.** The two products contend for the document
+selection handler (`src/word/selectionHandler.ts` keeps a single handler — whichever
+pane loads second silently disables the other's click-citation→Edit flow). Each pane
+records a product heartbeat (COPILOT-019, `src/store/devicePreferences.ts`; the Copilot
+manifest marks its panes with `product=copilot`) and warns when the other product has
+been active on the device within 7 days.

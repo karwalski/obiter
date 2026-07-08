@@ -106,12 +106,12 @@ describe("buildUnifiedManifest", () => {
     }
   });
 
-  it("gives each pane view its own runtime with the classic hash-route URL", () => {
+  it("gives each pane view its own runtime with the classic hash route + product marker", () => {
     const library = ext.runtimes.find((r) => r.actions.some((a) => a.id === "openLibrary"))!;
-    expect(library.code.page).toBe(`${SKILL_HOST}/taskpane.html#library`);
+    expect(library.code.page).toBe(`${SKILL_HOST}/taskpane.html?product=copilot#library`);
     expect(library.actions[0].type).toBe("openPage");
     const settings = ext.runtimes.find((r) => r.actions.some((a) => a.id === "openSettings"))!;
-    expect(settings.code.page).toBe(`${SKILL_HOST}/taskpane.html#settings`);
+    expect(settings.code.page).toBe(`${SKILL_HOST}/taskpane.html?product=copilot#settings`);
   });
 
   it("references colour + outline icons and an accent colour", () => {
