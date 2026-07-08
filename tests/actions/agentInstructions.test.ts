@@ -13,7 +13,6 @@ import {
   MAX_AGENT_INSTRUCTIONS_LENGTH,
 } from "../../src/actions/agentInstructions";
 import { CLASSIFY_SOURCE_SYSTEM_PROMPT } from "../../src/llm/classifySource";
-import { PARSE_CITATION_SYSTEM_PROMPT } from "../../src/llm/parseCitation";
 
 describe("buildAgentInstructions", () => {
   const instructions = buildAgentInstructions();
@@ -30,23 +29,24 @@ describe("buildAgentInstructions", () => {
     expect(instructions).toContain(head);
   });
 
-  it("embeds the parse prompt's shared text verbatim (no drift from the BYOK path)", () => {
-    // The agent variant drops two BYOK-only blocks (the source-type value list,
-    // which the classify prompt already embeds, and the JSON response shape,
-    // which action-calling agents don't use) to fit the schema's 8,000-char
-    // cap — but the text it keeps must be verbatim from the BYOK prompt.
-    const head = PARSE_CITATION_SYSTEM_PROMPT.slice(
-      0,
-      PARSE_CITATION_SYSTEM_PROMPT.indexOf("Source types (use these exact string values):")
-    ).trimEnd();
-    const mappings = PARSE_CITATION_SYSTEM_PROMPT.slice(
-      PARSE_CITATION_SYSTEM_PROMPT.indexOf("FIELD MAPPING BY SOURCE TYPE:"),
-      PARSE_CITATION_SYSTEM_PROMPT.indexOf("Respond with ONLY valid JSON")
-    ).trimEnd();
-    expect(head.length).toBeGreaterThan(0);
-    expect(mappings.length).toBeGreaterThan(0);
-    expect(instructions).toContain(head);
-    expect(instructions).toContain(mappings);
+  it("provides concise field guidance for the core source types", () => {
+    // The agent's authoritative field schema is the plugin manifest params +
+    // formatCitation, so field guidance is concise (not the verbatim BYOK
+    // parse prompt) to leave budget for the behavioural rules — but it must
+    // still cover the common types with their field names.
+    expect(instructions).toContain("case.reported");
+    expect(instructions).toContain("legislation.statute");
+    expect(instructions).toContain("journal.article");
+    expect(instructions).toContain("party1");
+    expect(instructions).toContain("jurisdiction");
+  });
+
+  it("hardens invocation + honest-reporting behaviour (COPILOT-022)", () => {
+    // Always call the tool; never claim an insertion that didn't happen;
+    // report tool failures plainly instead of pretending success.
+    expect(AGLC4_AUTHORITY_FRAMING).toContain("NEVER tell the user you are unable to insert");
+    expect(AGLC4_AUTHORITY_FRAMING).toContain("NEVER claim you inserted");
+    expect(AGLC4_AUTHORITY_FRAMING).toContain("was NOT inserted");
   });
 
   it("fits the declarative-agent schema's 8,000-character instructions cap", () => {
@@ -56,7 +56,7 @@ describe("buildAgentInstructions", () => {
   it("keeps Obiter's engine the authority for AGLC4 formatting", () => {
     expect(instructions).toContain(AGLC4_AUTHORITY_FRAMING);
     expect(AGLC4_AUTHORITY_FRAMING).toContain("insertCitation");
-    // Direct-insert review model (COPILOT-006), not pane-driving.
-    expect(AGLC4_AUTHORITY_FRAMING.toLowerCase()).toContain("track changes");
+    // Obiter's engine formats; the agent only supplies fields.
+    expect(AGLC4_AUTHORITY_FRAMING).toContain("never format yourself");
   });
 });
