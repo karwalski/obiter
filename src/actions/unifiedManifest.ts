@@ -33,7 +33,7 @@ export const SKILL_HOST = "https://obiter.com.au/app";
 const APP_ID = "1fe03f6c-b9b7-4a44-a55f-4b08f9813729";
 
 /** App version for the skill package (minor bump over the shipping 1.14.0). */
-export const SKILL_APP_VERSION = "1.15.0";
+export const SKILL_APP_VERSION = "1.15.1";
 
 /**
  * App-manifest schema. v1.25 is the lowest numbered (non-devPreview) schema

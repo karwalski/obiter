@@ -18,7 +18,6 @@
  */
 
 import { OBITER_ACTIONS } from "./actionCatalogue";
-import { CITATION_REQUEST_CONTRACT_VERSION } from "./citationRequest";
 
 /** JSON-schema-ish parameter description for a plugin function. */
 interface PluginParameters {
@@ -46,6 +45,16 @@ export interface PluginManifest {
   description_for_human: string;
   namespace: string;
   functions: PluginFunction[];
+  /**
+   * Binds the functions to the add-in runtime (LocalPlugin →
+   * Microsoft.Office.Addin). Without this the validator expects each function
+   * name to match an OpenAPI operationId and rejects the package.
+   */
+  runtimes: Array<{
+    type: "LocalPlugin";
+    spec: { local_endpoint: "Microsoft.Office.Addin" };
+    run_for_functions: string[];
+  }>;
 }
 
 /**
@@ -167,10 +176,10 @@ export function buildPluginManifest(): PluginManifest {
   return {
     $schema: "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.3/schema.json",
     schema_version: "v2.3",
-    name_for_human: "Obiter — AGLC4 Citations",
+    // Validator caps: name_for_human ≤ 20 chars, description_for_human ≤ 100.
+    name_for_human: "Obiter AGLC4",
     description_for_human:
-      "Insert, preview, update, delete, and refresh AGLC4 citations as native Word footnotes " +
-      `(citation contract v${CITATION_REQUEST_CONTRACT_VERSION}).`,
+      "Insert, preview, update, delete, and refresh AGLC4 citations as native Word footnotes.",
     namespace: "AddInFunctions",
     functions: OBITER_ACTIONS.map((action) => ({
       name: action.name,
@@ -178,5 +187,12 @@ export function buildPluginManifest(): PluginManifest {
       parameters: ACTION_PARAMETERS[action.name] ?? { type: "object", properties: {} },
       states: statesFor(action.name, action.description),
     })),
+    runtimes: [
+      {
+        type: "LocalPlugin",
+        spec: { local_endpoint: "Microsoft.Office.Addin" },
+        run_for_functions: OBITER_ACTIONS.map((a) => a.name),
+      },
+    ],
   };
 }

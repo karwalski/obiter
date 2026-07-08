@@ -183,3 +183,23 @@ describe("buildPluginManifest (COPILOT-017)", () => {
     }
   });
 });
+
+describe("plugin runtimes binding (COPILOT-017 validator requirements)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { buildPluginManifest } = require("../../src/actions/pluginManifest");
+  const plugin = buildPluginManifest();
+
+  it("binds every function to the add-in LocalPlugin runtime", () => {
+    expect(plugin.runtimes).toHaveLength(1);
+    expect(plugin.runtimes[0].type).toBe("LocalPlugin");
+    expect(plugin.runtimes[0].spec.local_endpoint).toBe("Microsoft.Office.Addin");
+    expect(plugin.runtimes[0].run_for_functions.sort()).toEqual(
+      plugin.functions.map((f: { name: string }) => f.name).sort()
+    );
+  });
+
+  it("keeps the human-facing strings within the validator caps", () => {
+    expect(plugin.name_for_human.length).toBeLessThanOrEqual(20);
+    expect(plugin.description_for_human.length).toBeLessThanOrEqual(100);
+  });
+});

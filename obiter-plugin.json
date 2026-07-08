@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.3/schema.json",
   "schema_version": "v2.3",
-  "name_for_human": "Obiter — AGLC4 Citations",
-  "description_for_human": "Insert, preview, update, delete, and refresh AGLC4 citations as native Word footnotes (citation contract v1.0.0).",
+  "name_for_human": "Obiter AGLC4",
+  "description_for_human": "Insert, preview, update, delete, and refresh AGLC4 citations as native Word footnotes.",
   "namespace": "AddInFunctions",
   "functions": [
     {
@@ -193,6 +193,21 @@
           "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
         }
       }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "LocalPlugin",
+      "spec": {
+        "local_endpoint": "Microsoft.Office.Addin"
+      },
+      "run_for_functions": [
+        "insertCitation",
+        "formatCitation",
+        "updateCitation",
+        "deleteCitation",
+        "refreshFootnotes"
+      ]
     }
   ]
 }
