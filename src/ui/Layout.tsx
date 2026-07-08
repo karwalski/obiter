@@ -15,7 +15,12 @@ import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
 import { useInsertCitationContext } from "./context/InsertCitationContext";
-import { getDevicePref } from "../store/devicePreferences";
+import {
+  getDevicePref,
+  detectProduct,
+  recordProductHeartbeat,
+  otherProductActive,
+} from "../store/devicePreferences";
 import {
   initializeSourceLookup,
   shouldShowCorpusBanner,
@@ -90,6 +95,25 @@ export default function Layout(): JSX.Element {
         setCorpusBannerVisible(true);
       }
     })();
+  }, []);
+
+  // Dual-install detection (COPILOT-019): record which product loaded this
+  // pane; if the other product line has also been active on this device
+  // recently, warn once — running the classic add-in and the Copilot package
+  // together is unsupported (they contend for the selection handler).
+  useEffect(() => {
+    const product = detectProduct();
+    const otherWasActive = otherProductActive(product);
+    recordProductHeartbeat(product);
+    if (otherWasActive) {
+      announce(
+        product === "copilot"
+          ? "Both Obiter and Obiter Copilot appear to be installed. Remove the classic Obiter add-in — Obiter Copilot includes everything it does."
+          : "Both Obiter and Obiter Copilot appear to be installed. Remove one of them; running both can cause conflicts.",
+        "error"
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load the active standard and writing mode on mount
