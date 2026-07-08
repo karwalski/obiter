@@ -1,3 +1,13 @@
+> **⏸️ ON HOLD (2026-07-08).** The Obiter Copilot product is paused pending Microsoft's
+> combine-agents-with-add-ins platform issue (the `insertCitation` action invokes on both Word
+> web and desktop but execution returns "failed to get invocation result due to internal error" —
+> a platform bug, cf. [office-js#6467](https://github.com/OfficeDev/office-js/issues/6467) and the
+> Office.js instability open letter [office-js#6513](https://github.com/OfficeDev/office-js/issues/6513)).
+> All Obiter-side work is complete on this `copilot/v1.14` branch (skill package v1.15.4). The
+> classic add-in ships from `main`. Resume when the platform is fixed and/or on a full
+> (non-trial, Teams-enabled) Copilot licence. Evidence + desktop-test checklist:
+> [copilot-platform-support.md](copilot-platform-support.md).
+
 # Two products, one codebase — Obiter (classic) and Obiter for Microsoft 365 Copilot
 
 Obiter ships as **two AppSource/marketplace products that share ~95% of their code**:
