@@ -555,6 +555,37 @@ section:nth-child(even) {
 }
 
 /* ============================================================
+   Copilot companion (soft-launch)
+   ============================================================ */
+
+.copilot {
+  background-color: var(--colour-surface);
+  text-align: center;
+}
+
+.copilot__body {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.copilot__body p {
+  margin: 0 auto var(--space-lg);
+  color: var(--colour-text-secondary);
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+
+.copilot__note {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background-color: var(--colour-accent-subtle);
+  color: var(--colour-accent-hover);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+}
+
+/* ============================================================
    Support / Tip Jar
    ============================================================ */
 
@@ -1197,9 +1228,9 @@ section:nth-child(even) {
 
 .download-options__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: var(--space-xxl);
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -1230,6 +1261,18 @@ section:nth-child(even) {
   letter-spacing: 0.05em;
   padding: 4px 12px;
   border-radius: var(--radius-sm);
+}
+
+/* "Coming soon" variant — muted, so it reads as not-yet-available. */
+.download-card__badge--soon {
+  background-color: var(--colour-text-secondary);
+}
+
+/* Disabled call-to-action for the not-yet-available Copilot product. */
+.btn--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .download-card h2 {
