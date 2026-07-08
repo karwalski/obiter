@@ -14,6 +14,16 @@
 
 /* global Office */
 
+// Polyfills are imported INTO this bundle (not loaded as a separate chunk via
+// the HTML) so sharedRuntime.js is self-contained. When Copilot invokes an
+// executeDataFunction, Office may load this script standalone via the
+// manifest's runtime `code.script` — without the HTML page that would
+// otherwise pull in a shared polyfill chunk. A missing polyfill made the
+// script fail to initialise, so registerSkillFunctions never ran and Copilot
+// reported the tool as "unavailable". Self-containing the bundle fixes that.
+import "core-js/stable";
+import "regenerator-runtime/runtime";
+
 import { registerCommandFunctions } from "./commandHandlers";
 import { registerSkillFunctions } from "../actions/skillFunctions";
 

@@ -113,7 +113,10 @@ module.exports = async (env, options) => {
       new HtmlWebpackPlugin({
         filename: "sharedRuntime.html",
         template: "./src/runtime/sharedRuntime.html",
-        chunks: ["polyfill", "sharedRuntime"],
+        // sharedRuntime bundles its own polyfills (see sharedRuntime.ts) so
+        // the script is self-contained when Office loads it standalone via the
+        // manifest runtime `code.script` for Copilot function execution.
+        chunks: ["sharedRuntime"],
       }),
     ],
     devServer: {
