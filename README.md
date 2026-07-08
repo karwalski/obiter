@@ -1,4 +1,4 @@
-# Obiter v1.14.3
+# Obiter v1.14.4
 
 **AGLC4, applied automatically.**
 
@@ -19,12 +19,6 @@ From *obiter dictum* -- a remark in passing. Citations are the remarks that supp
 Install Obiter from [Microsoft AppSource](https://marketplace.microsoft.com/en-au/product/office/WA200010629). Click **Get it now**, confirm your details, and open in Word. Obiter appears in its own **Obiter** tab in the Word ribbon, ready to use.
 
 Automatic updates are handled by AppSource. No manual steps required after installation.
-
-## Obiter for Microsoft 365 Copilot (coming soon)
-
-A companion product, **Obiter for Microsoft 365 Copilot**, is in preview. It is a superset of the free classic add-in — the same task pane, ribbon, and AGLC4 engine — plus a Copilot skill: describe or paste a source to Copilot in Word ("cite *Mabo v Queensland (No 2)*") and Obiter inserts a correctly formatted AGLC4 footnote. Copilot handles the language understanding; Obiter's engine remains the sole authority for citation correctness, so every footnote still traces to a numbered AGLC4 rule.
-
-It requires a Microsoft 365 Copilot licence and ships as a separate Microsoft 365 app. It is not yet on Microsoft Marketplace — the listing link will be added here when it goes live. Upgrading is seamless: your documents' citation libraries and preferences carry over automatically (remove the classic add-in first; the two are not designed to run side by side).
 
 ## Features
 
@@ -74,7 +68,6 @@ It requires a Microsoft 365 Copilot licence and ships as a separate Microsoft 36
 - **Check Reference** -- verify citation details against known legal databases
 - **Error reporting** -- AI-assisted explanation of validation errors with suggested fixes
 - BYO API key. No data is sent without explicit user action. Works fully without AI enabled.
-- This optional BYO-key AI is independent of the Copilot companion; the classic add-in never requires a Copilot licence.
 
 ### Other
 

@@ -1331,6 +1331,20 @@ Flags to resolve in the review:
 
 ## EPIC: COPILOT — Obiter Copilot Skill Readiness
 
+**STATUS: ON HOLD (2026-07-08)** — paused pending Microsoft's combine-agents-with-add-ins
+platform issue. All Obiter-side work is complete and verified: the package validates 0-errors,
+the agent gives correct AGLC4 output and prepares the exact structured citation, the add-in half
+(pane + Obiter tab) works, and the `insertCitation` action now fully *invokes* on both Word web
+and Word desktop (confirmation card → Confirm). The final execution fails with a **platform**
+transport error — "failed to get invocation result due to internal error" — reproduced by others
+with Microsoft's own Agents Toolkit template (office-js#6467), inside the broader Office.js
+instability documented in the community open letter (office-js#6513). Not an Obiter config bug.
+All Copilot code lives on the `copilot/v1.14` branch (skill package v1.15.4); the classic add-in
+ships from `main` unaffected. Resume when the platform is fixed and/or on a full (non-trial,
+with-Teams) Copilot licence. Full evidence + desktop-test checklist:
+`docs/copilot-platform-support.md` (copilot/v1.14 branch). Website/README Copilot marketing was
+backed out (main) so the public site reflects only the shipping standard add-in.
+
 **Phase:** Post-backlog (starts after v1.14.0 ships) | **Stories:** 16 | **Completed:** 4 DONE + 9 BUILT (3 BLOCKED on Copilot licence / DECISION-011)
 
 Statuses: DONE = built + tested now; BUILT = code + generator + tests + staged manifest landed and
