@@ -96,3 +96,46 @@ combine-agents-with-add-ins docs.
 - Known Issues in Microsoft 365 Copilot Extensibility — Microsoft Learn:
   https://learn.microsoft.com/microsoft-365/copilot/extensibility/known-issues
 - Working samples (Windows Beta Channel prereq): OfficeRedlineAgent, poemwriter-copilot-and-addin.
+
+## Update 2 (2026-07-08 pm): invocation now works on both surfaces; remaining failure is platform-level
+
+After the runtime fixes (plugin binding v1.15.1, custom Obiter tab + code.script v1.15.2,
+self-contained sharedRuntime bundle v1.15.4) and the hardened agent instructions (v1.15.3):
+
+**Both Word on the web AND Word desktop (Mac) now fully invoke the action.** The agent shows the
+confirmation card (sourceType/data/shortTitle + Confirm/Cancel) and, on Confirm, attempts the
+insertion. This is a large advance — web previously only echoed the tool-call JSON with no
+invocation at all. The registration/"tool unavailable" problems are resolved.
+
+**The remaining failure is a platform invocation-transport error, not our config.** On Confirm,
+the insertion fails and the agent (honestly, per the v1.15.3 instructions) reports:
+> "The footnote was not inserted due to a tool error (internal invocation failure). … The system
+> returned: 'failed to get invocation result due to internal error'."
+Document unchanged on both surfaces.
+
+Why this is platform-side, not ours:
+- If our JS threw, `wrapForCopilot` would return `{status:"error", message}` and the agent would
+  relay THAT specific message. Instead the platform reports the invocation result never came back.
+- The name/id/associate invariant is enforced at export time; actions are `executeDataFunction`;
+  the manifest validates 0-errors — the config causes the search results flag are all satisfied.
+- **office-js#6467** ("Copilot integration with Office Add-in not working", CLOSED 2026-02) is the
+  SAME failure ("Something went wrong… no change applied", after Confirm) reproduced with
+  Microsoft's OWN canonical Agents Toolkit template ("Declarative Agent with Office Add-in
+  actions"). There the root cause turned out to be **the account lacked a Copilot subscription**.
+
+Our account HAS Copilot (badge: "M365 Copilot (Premium)"), but the trial SKU is "Microsoft 365
+Business Standard with Copilot (no Teams)" — the unified package deploys as a Teams/M365 app, so
+the "no Teams" trial and admin-center (vs Agents-Toolkit) deployment are candidate factors for
+the invocation bridge failing.
+
+Also relevant from #6467: there should be only ONE agent under development — stale/duplicate
+registrations from repeated uploads (we've published 1.15.0→1.15.4) can interfere. And Word
+desktop "Agent Mode" is a DIFFERENT surface: attempt 1 there did NOT call the add-in action, it
+fabricated a "footnote-style paragraph" — the action path requires selecting the Obiter agent
+directly, not Agent Mode.
+
+Conclusion: everything verifiable on our side is correct and the invocation now reaches the
+platform on both surfaces. The residual "internal invocation failure" is a preview-platform issue
+(cf. office-js#6467). Definitive next step is an Agents-Toolkit F5 debug session (real runtime
+error visibility) and/or confirming the licensing/Teams/SKU factors; otherwise treat Copilot
+auto-insert as preview-pending while the classic add-in and the agent's AGLC4 guidance ship.
