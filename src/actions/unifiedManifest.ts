@@ -33,8 +33,8 @@ const APP_ID = "1fe03f6c-b9b7-4a44-a55f-4b08f9813729";
 /** App version for the skill package (minor bump over the shipping 1.14.0). */
 export const SKILL_APP_VERSION = "1.15.0";
 
-const SHORT_DESCRIPTION =
-  "Insert AGLC4-formatted citations as native Word footnotes through Microsoft 365 Copilot.";
+// Manifest schema caps description.short at 80 characters.
+const SHORT_DESCRIPTION = "Insert AGLC4 citations as native Word footnotes via Microsoft 365 Copilot.";
 
 const FULL_DESCRIPTION =
   "Obiter Skill for Copilot connects the Obiter AGLC4 citation engine to Microsoft 365 Copilot. " +
@@ -99,16 +99,18 @@ export interface UnifiedManifest {
 
 export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest {
   // Each catalogued action becomes a runtime function Copilot can invoke.
+  // The manifest schema allows only id/type/displayName etc. here — no
+  // description property. The LLM-facing action descriptions reach Copilot
+  // through the agent instructions (buildAgentInstructions) instead.
   const runtimeActions = OBITER_ACTIONS.map((a) => ({
     id: a.name,
     type: "executeFunction",
     displayName: a.name,
-    description: a.description,
   }));
 
   return {
-    $schema: "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
-    manifestVersion: "1.17",
+    $schema: "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+    manifestVersion: "1.19",
     id: APP_ID,
     version: SKILL_APP_VERSION,
     developer: {
@@ -130,8 +132,10 @@ export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest
     validDomains: ["obiter.com.au"],
     extensions: [
       {
-        // Contract version travels with the extension for external-caller sanity.
-        contractVersion: CITATION_REQUEST_CONTRACT_VERSION,
+        // NOTE: the citation contract version is deliberately NOT emitted here —
+        // the manifest schema rejects unknown extension properties
+        // (CITATION_REQUEST_CONTRACT_VERSION travels in the skill manifest and
+        // docs/copilot-skill-contract.md instead).
         requirements: {
           scopes: ["document"],
           capabilities: [{ name: "SharedRuntime", minVersion: "1.1" }],

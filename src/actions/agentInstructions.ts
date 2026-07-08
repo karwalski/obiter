@@ -30,20 +30,73 @@ When the user describes or pastes a source:
 1. Determine the AGLC4 source type and extract its structured fields (guidance below).
 2. Call the insertCitation action with a CitationInsertRequest ({ sourceType, data, shortTitle? }). Obiter formats and inserts the footnote.
 3. To preview the formatted text without inserting, call formatCitation instead.
-4. Before building the data object, read the machine-readable per-source-type field schema (required/optional fields, rule numbers, templates) from the skill's citation contract (contractVersion + sourceTypeSchema).
+4. Build the data object from the field mappings below; for source types not listed, use the same camelCase field conventions and verify with formatCitation before inserting.
 
 Review model: insertion is direct — Obiter inserts the native footnote and returns a structured result (status, citationId, mode). The user reviews via Copilot's confirmation and Word's track changes; do not attempt to open or prefill Obiter's task-pane form.`;
 
 /**
+ * Hard cap on declarative-agent instructions imposed by Microsoft's
+ * declarative-agent schema (v1.0+): "MUST be 8,000 characters or less".
+ * `npm run export-skill` fails the build when the composed block exceeds it.
+ */
+export const MAX_AGENT_INSTRUCTIONS_LENGTH = 8000;
+
+/**
+ * The agent variant of the classify guidance, derived mechanically from the
+ * BYOK CLASSIFY_SOURCE_SYSTEM_PROMPT (single source of truth — the shared
+ * text, including the full source-type value list, is never re-worded). The
+ * BYOK-only JSON response-shape block is dropped: the agent calls the
+ * insertCitation / formatCitation actions instead of answering with JSON.
+ * Falls back to the full prompt if the marker ever moves.
+ */
+function buildAgentClassifyGuidance(): string {
+  const src = CLASSIFY_SOURCE_SYSTEM_PROMPT;
+  const jsonShapeStart = src.indexOf("Respond with ONLY valid JSON");
+  if (jsonShapeStart === -1) {
+    return src;
+  }
+  return src.slice(0, jsonShapeStart).trimEnd();
+}
+
+/**
+ * The agent variant of the parse guidance, derived mechanically from the BYOK
+ * PARSE_CITATION_SYSTEM_PROMPT (single source of truth — the shared text is
+ * never re-worded). Two BYOK-only blocks are dropped to fit the schema's
+ * 8,000-character instructions cap:
+ *  - the source-type value list (already embedded verbatim via the
+ *    classification guidance, which the agent reads first), and
+ *  - the JSON response-shape block (the agent calls the insertCitation /
+ *    formatCitation actions instead of answering with JSON).
+ * Falls back to the full prompt if the markers ever move.
+ */
+function buildAgentParseGuidance(): string {
+  const src = PARSE_CITATION_SYSTEM_PROMPT;
+  const typeListStart = src.indexOf("Source types (use these exact string values):");
+  const mappingStart = src.indexOf("FIELD MAPPING BY SOURCE TYPE:");
+  const jsonShapeStart = src.indexOf("Respond with ONLY valid JSON");
+  if (typeListStart === -1 || mappingStart === -1 || jsonShapeStart === -1) {
+    return src;
+  }
+  return (
+    src.slice(0, typeListStart).trimEnd() +
+    "\n\n(Use exactly the source type values listed in the classification guidance above.)\n\n" +
+    src.slice(mappingStart, jsonShapeStart).trimEnd() +
+    "\n\nDo not answer with formatted citation text — call insertCitation or formatCitation with { sourceType, data, shortTitle? }."
+  );
+}
+
+/**
  * Build the full Copilot agent instruction block. Order: authority framing →
  * source-type classification guidance → citation-parsing/field-mapping guidance.
- * The two prompt constants are embedded verbatim (no re-wording) so the Copilot
- * path stays exactly as AGLC4-accurate as the BYOK path.
+ * The classification prompt is embedded verbatim; the parse prompt is embedded
+ * via {@link buildAgentParseGuidance} (verbatim text, two BYOK-only blocks
+ * dropped) so the Copilot path stays exactly as AGLC4-accurate as BYOK while
+ * fitting the declarative-agent schema's 8,000-character cap.
  */
 export function buildAgentInstructions(): string {
   return [
     AGLC4_AUTHORITY_FRAMING,
-    "## Classifying a source type\n\n" + CLASSIFY_SOURCE_SYSTEM_PROMPT,
-    "## Parsing a formatted citation into fields\n\n" + PARSE_CITATION_SYSTEM_PROMPT,
+    "## Classifying a source type\n\n" + buildAgentClassifyGuidance(),
+    "## Parsing a formatted citation into fields\n\n" + buildAgentParseGuidance(),
   ].join("\n\n---\n\n");
 }

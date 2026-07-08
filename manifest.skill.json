@@ -1,6 +1,6 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
-  "manifestVersion": "1.17",
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
   "id": "1fe03f6c-b9b7-4a44-a55f-4b08f9813729",
   "version": "1.15.0",
   "developer": {
@@ -14,7 +14,7 @@
     "full": "Obiter for Microsoft 365 Copilot"
   },
   "description": {
-    "short": "Insert AGLC4-formatted citations as native Word footnotes through Microsoft 365 Copilot.",
+    "short": "Insert AGLC4 citations as native Word footnotes via Microsoft 365 Copilot.",
     "full": "Obiter Skill for Copilot connects the Obiter AGLC4 citation engine to Microsoft 365 Copilot. Describe a source or paste a rough reference in Copilot and Obiter formats it to the Australian Guide to Legal Citation, 4th edition, and inserts a native Word footnote. Copilot handles the language understanding; Obiter's engine remains the authority for citation correctness, so every footnote traces to a numbered AGLC4 rule rather than being written by a language model. No separate API key is required on the Copilot path. Companion to the free, open-source Obiter Word add-in."
   },
   "icons": {
@@ -40,7 +40,6 @@
   ],
   "extensions": [
     {
-      "contractVersion": "1.0.0",
       "requirements": {
         "scopes": [
           "document"
@@ -64,32 +63,27 @@
             {
               "id": "insertCitation",
               "type": "executeFunction",
-              "displayName": "insertCitation",
-              "description": "Insert an AGLC4 citation into the Word document as a native footnote. Accepts structured citation fields (source type + data); Obiter formats them per AGLC4 and inserts a real Word footnote, reusing an existing citation for subsequent references."
+              "displayName": "insertCitation"
             },
             {
               "id": "formatCitation",
               "type": "executeFunction",
-              "displayName": "formatCitation",
-              "description": "Return the AGLC4-formatted text of a citation without inserting it. Use to preview or to obtain the formatted string for display."
+              "displayName": "formatCitation"
             },
             {
               "id": "updateCitation",
               "type": "executeFunction",
-              "displayName": "updateCitation",
-              "description": "Re-format and update every occurrence of an existing citation (identified by its id) from new structured fields."
+              "displayName": "updateCitation"
             },
             {
               "id": "deleteCitation",
               "type": "executeFunction",
-              "displayName": "deleteCitation",
-              "description": "Remove a specific footnote occurrence of a citation from the document."
+              "displayName": "deleteCitation"
             },
             {
               "id": "refreshFootnotes",
               "type": "executeFunction",
-              "displayName": "refreshFootnotes",
-              "description": "Re-render every managed footnote: fix ibid and short references, renumber, and normalise separators/punctuation."
+              "displayName": "refreshFootnotes"
             }
           ]
         }

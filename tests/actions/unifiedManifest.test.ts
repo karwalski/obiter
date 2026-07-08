@@ -19,7 +19,7 @@ describe("buildUnifiedManifest", () => {
   const manifest = buildUnifiedManifest();
 
   it("is a v1.17+ manifest with both extensions and copilotAgents", () => {
-    expect(manifest.manifestVersion).toBe("1.17");
+    expect(manifest.manifestVersion).toBe("1.19");
     expect(Array.isArray(manifest.extensions)).toBe(true);
     expect(manifest.copilotAgents.declarativeAgents.length).toBeGreaterThan(0);
   });
