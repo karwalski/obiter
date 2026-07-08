@@ -129,7 +129,9 @@ jobs:
           npm ci
           npm run build:prod
 
-          rsync -avz --delete \
+          # --exclude 'beta/' — /app/beta/ is the staging slot (see
+          # docs/beta-testing.md); promoting production must never wipe it.
+          rsync -avz --delete --exclude 'beta/' \
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
