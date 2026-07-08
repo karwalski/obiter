@@ -52,12 +52,15 @@ if [ "${BETA:-0}" = "1" ]; then
 fi
 
 cp declarativeAgent.json "$STAGING_DIR/declarativeAgent.json"
+# The plugin file binds the agent to the add-in's executeDataFunction actions
+# (COPILOT-017) — without it the agent is chat-only.
+cp obiter-plugin.json "$STAGING_DIR/obiter-plugin.json"
 cp assets/color.png "$STAGING_DIR/color.png"
 cp assets/outline.png "$STAGING_DIR/outline.png"
 
 echo "==> Creating ${ZIP_NAME}..."
 rm -f "$PROJECT_ROOT/$ZIP_NAME"
-(cd "$STAGING_DIR" && zip -r -q "$PROJECT_ROOT/$ZIP_NAME" manifest.json declarativeAgent.json color.png outline.png)
+(cd "$STAGING_DIR" && zip -r -q "$PROJECT_ROOT/$ZIP_NAME" manifest.json declarativeAgent.json obiter-plugin.json color.png outline.png)
 
 echo "==> Package created: ${ZIP_NAME}"
 echo "    $(du -h "$PROJECT_ROOT/$ZIP_NAME" | cut -f1) compressed"

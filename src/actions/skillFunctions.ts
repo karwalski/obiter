@@ -142,6 +142,31 @@ export const SKILL_DISPATCHERS: Record<string, (raw: unknown) => Promise<unknown
 };
 
 /**
+ * Wraps a dispatcher for Copilot invocation (COPILOT-020). executeDataFunction
+ * handlers receive the arguments as a JSON string and must return a string —
+ * the working combine-agents-with-add-ins samples return plain text, which
+ * Copilot relays. Success returns the result object as JSON (so the agent can
+ * quote e.g. the formatted citation text or the citationId); failures return a
+ * structured error string instead of throwing, so Copilot can tell the user
+ * which field was missing rather than reporting a generic failure.
+ */
+export function wrapForCopilot(
+  name: string,
+  dispatch: (raw: unknown) => Promise<unknown>
+): (raw: unknown) => Promise<string> {
+  return async (raw: unknown): Promise<string> => {
+    try {
+      const result = await dispatch(raw);
+      return JSON.stringify({ status: "ok", action: name, result: result ?? null });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      const kind = err instanceof SkillRequestError ? "invalid_request" : "error";
+      return JSON.stringify({ status: kind, action: name, message });
+    }
+  };
+}
+
+/**
  * Register every catalogued action as an Office runtime function so Copilot can
  * invoke it. Called from the shared runtime page (COPILOT-010). Guarded so the
  * module stays importable (and testable) outside the Office runtime.
@@ -153,9 +178,10 @@ export function registerSkillFunctions(): void {
   for (const action of OBITER_ACTIONS) {
     const dispatch = SKILL_DISPATCHERS[action.name];
     if (dispatch) {
-      // The preview skill-invocation contract passes the action input as the
-      // handler argument; marshalling is finalised at COPILOT-014.
-      Office.actions.associate(action.name, dispatch as (arg: unknown) => void);
+      Office.actions.associate(
+        action.name,
+        wrapForCopilot(action.name, dispatch) as unknown as (arg: unknown) => void
+      );
     }
   }
 }

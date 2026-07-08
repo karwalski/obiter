@@ -122,3 +122,28 @@ describe("SKILL_DISPATCHERS coverage", () => {
     }
   });
 });
+
+describe("wrapForCopilot (COPILOT-020)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { wrapForCopilot } = require("../../src/actions/skillFunctions");
+
+  it("returns the dispatcher result as a JSON string", async () => {
+    const wrapped = wrapForCopilot("demo", async () => ({ status: "inserted", citationId: "abc" }));
+    const out = JSON.parse(await wrapped("{}"));
+    expect(out).toEqual({
+      status: "ok",
+      action: "demo",
+      result: { status: "inserted", citationId: "abc" },
+    });
+  });
+
+  it("returns a structured error string instead of throwing", async () => {
+    const wrapped = wrapForCopilot("demo", async () => {
+      throw new Error("sourceType is required");
+    });
+    const out = JSON.parse(await wrapped("{}"));
+    expect(out.status).toBe("error");
+    expect(out.action).toBe("demo");
+    expect(out.message).toContain("sourceType is required");
+  });
+});

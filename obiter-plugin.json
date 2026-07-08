@@ -1,0 +1,232 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.3/schema.json",
+  "schema_version": "v2.3",
+  "name_for_human": "Obiter — AGLC4 Citations",
+  "description_for_human": "Insert, preview, update, delete, and refresh AGLC4 citations as native Word footnotes (citation contract v1.0.0).",
+  "namespace": "AddInFunctions",
+  "functions": [
+    {
+      "name": "insertCitation",
+      "description": "Insert an AGLC4 citation into the Word document as a native footnote. Accepts structured citation fields (source type + data); Obiter formats them per AGLC4 and inserts a real Word footnote, reusing an existing citation for subsequent references.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
+          },
+          "data": {
+            "type": "object",
+            "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
+          },
+          "shortTitle": {
+            "type": "string",
+            "description": "Optional short title for subsequent references (AGLC4 rule 1.4.4)."
+          },
+          "signal": {
+            "type": "string",
+            "description": "Optional introductory signal (AGLC4 rule 1.3), e.g. 'See', 'See also', 'Cf'."
+          },
+          "commentaryBefore": {
+            "type": "string",
+            "description": "Optional text to place before the citation inside the footnote."
+          },
+          "commentaryAfter": {
+            "type": "string",
+            "description": "Optional text to place after the citation inside the footnote."
+          },
+          "overrideText": {
+            "type": "string",
+            "description": "Optional verbatim footnote text. Only when the user explicitly wants exact text instead of engine formatting."
+          },
+          "appendToFootnoteIndex": {
+            "type": "number",
+            "description": "Optional 1-based footnote number to append this citation to an existing footnote (AGLC4 rule 1.1.3)."
+          }
+        },
+        "required": [
+          "sourceType",
+          "data"
+        ]
+      },
+      "states": {
+        "reasoning": {
+          "description": "Decides when to call insertCitation.",
+          "instructions": "Call insertCitation when the user's request matches: Insert an AGLC4 citation into the Word document as a native footnote. Accepts structured citation fields (source type + data); Obiter formats them per AGLC4 and inserts a real Word footnote, reusing an existing citation for subsequent references. Build the arguments from the field mappings in the agent instructions; never write footnote text yourself — Obiter's engine formats it."
+        },
+        "responding": {
+          "description": "Reports the result of insertCitation.",
+          "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
+        }
+      }
+    },
+    {
+      "name": "formatCitation",
+      "description": "Return the AGLC4-formatted text of a citation without inserting it. Use to preview or to obtain the formatted string for display.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
+          },
+          "data": {
+            "type": "object",
+            "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
+          },
+          "shortTitle": {
+            "type": "string",
+            "description": "Optional short title for subsequent references (AGLC4 rule 1.4.4)."
+          },
+          "signal": {
+            "type": "string",
+            "description": "Optional introductory signal (AGLC4 rule 1.3), e.g. 'See', 'See also', 'Cf'."
+          },
+          "commentaryBefore": {
+            "type": "string",
+            "description": "Optional text to place before the citation inside the footnote."
+          },
+          "commentaryAfter": {
+            "type": "string",
+            "description": "Optional text to place after the citation inside the footnote."
+          },
+          "overrideText": {
+            "type": "string",
+            "description": "Optional verbatim footnote text. Only when the user explicitly wants exact text instead of engine formatting."
+          },
+          "appendToFootnoteIndex": {
+            "type": "number",
+            "description": "Optional 1-based footnote number to append this citation to an existing footnote (AGLC4 rule 1.1.3)."
+          }
+        },
+        "required": [
+          "sourceType",
+          "data"
+        ]
+      },
+      "states": {
+        "reasoning": {
+          "description": "Decides when to call formatCitation.",
+          "instructions": "Call formatCitation when the user's request matches: Return the AGLC4-formatted text of a citation without inserting it. Use to preview or to obtain the formatted string for display. Build the arguments from the field mappings in the agent instructions; never write footnote text yourself — Obiter's engine formats it."
+        },
+        "responding": {
+          "description": "Reports the result of formatCitation.",
+          "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
+        }
+      }
+    },
+    {
+      "name": "updateCitation",
+      "description": "Re-format and update every occurrence of an existing citation (identified by its id) from new structured fields.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "citationId": {
+            "type": "string",
+            "description": "The id of the existing citation to update (returned by insertCitation)."
+          },
+          "request": {
+            "type": "object",
+            "description": "The new citation fields — same shape as the insertCitation parameters.",
+            "properties": {
+              "sourceType": {
+                "type": "string",
+                "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
+              },
+              "data": {
+                "type": "object",
+                "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
+              },
+              "shortTitle": {
+                "type": "string",
+                "description": "Optional short title for subsequent references (AGLC4 rule 1.4.4)."
+              },
+              "signal": {
+                "type": "string",
+                "description": "Optional introductory signal (AGLC4 rule 1.3), e.g. 'See', 'See also', 'Cf'."
+              },
+              "commentaryBefore": {
+                "type": "string",
+                "description": "Optional text to place before the citation inside the footnote."
+              },
+              "commentaryAfter": {
+                "type": "string",
+                "description": "Optional text to place after the citation inside the footnote."
+              },
+              "overrideText": {
+                "type": "string",
+                "description": "Optional verbatim footnote text. Only when the user explicitly wants exact text instead of engine formatting."
+              },
+              "appendToFootnoteIndex": {
+                "type": "number",
+                "description": "Optional 1-based footnote number to append this citation to an existing footnote (AGLC4 rule 1.1.3)."
+              }
+            }
+          }
+        },
+        "required": [
+          "citationId",
+          "request"
+        ]
+      },
+      "states": {
+        "reasoning": {
+          "description": "Decides when to call updateCitation.",
+          "instructions": "Call updateCitation when the user's request matches: Re-format and update every occurrence of an existing citation (identified by its id) from new structured fields. Build the arguments from the field mappings in the agent instructions; never write footnote text yourself — Obiter's engine formats it."
+        },
+        "responding": {
+          "description": "Reports the result of updateCitation.",
+          "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
+        }
+      }
+    },
+    {
+      "name": "deleteCitation",
+      "description": "Remove a specific footnote occurrence of a citation from the document.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "citationId": {
+            "type": "string",
+            "description": "The id of the citation whose occurrence should be removed."
+          },
+          "footnoteIndex": {
+            "type": "number",
+            "description": "The 1-based footnote number containing the occurrence to remove."
+          }
+        },
+        "required": [
+          "citationId"
+        ]
+      },
+      "states": {
+        "reasoning": {
+          "description": "Decides when to call deleteCitation.",
+          "instructions": "Call deleteCitation when the user's request matches: Remove a specific footnote occurrence of a citation from the document. Build the arguments from the field mappings in the agent instructions; never write footnote text yourself — Obiter's engine formats it."
+        },
+        "responding": {
+          "description": "Reports the result of deleteCitation.",
+          "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
+        }
+      }
+    },
+    {
+      "name": "refreshFootnotes",
+      "description": "Re-render every managed footnote: fix ibid and short references, renumber, and normalise separators/punctuation.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      },
+      "states": {
+        "reasoning": {
+          "description": "Decides when to call refreshFootnotes.",
+          "instructions": "Call refreshFootnotes when the user's request matches: Re-render every managed footnote: fix ibid and short references, renumber, and normalise separators/punctuation. Build the arguments from the field mappings in the agent instructions; never write footnote text yourself — Obiter's engine formats it."
+        },
+        "responding": {
+          "description": "Reports the result of refreshFootnotes.",
+          "instructions": "Relay the function result to the user. On success, confirm what was done (quote the formatted citation text when the result includes it). On an error result, explain which field was missing or invalid and ask for it."
+        }
+      }
+    }
+  ]
+}

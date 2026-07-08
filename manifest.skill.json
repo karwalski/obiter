@@ -1,6 +1,6 @@
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
-  "manifestVersion": "1.19",
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.25",
   "id": "1fe03f6c-b9b7-4a44-a55f-4b08f9813729",
   "version": "1.15.0",
   "developer": {
@@ -61,29 +61,164 @@
           "lifetime": "long",
           "actions": [
             {
+              "id": "refreshAll",
+              "type": "executeFunction"
+            },
+            {
+              "id": "applyTemplate",
+              "type": "executeFunction"
+            },
+            {
+              "id": "applyBlockQuote",
+              "type": "executeFunction"
+            },
+            {
               "id": "insertCitation",
-              "type": "executeFunction",
-              "displayName": "insertCitation"
+              "type": "executeDataFunction"
             },
             {
               "id": "formatCitation",
-              "type": "executeFunction",
-              "displayName": "formatCitation"
+              "type": "executeDataFunction"
             },
             {
               "id": "updateCitation",
-              "type": "executeFunction",
-              "displayName": "updateCitation"
+              "type": "executeDataFunction"
             },
             {
               "id": "deleteCitation",
-              "type": "executeFunction",
-              "displayName": "deleteCitation"
+              "type": "executeDataFunction"
             },
             {
               "id": "refreshFootnotes",
-              "type": "executeFunction",
-              "displayName": "refreshFootnotes"
+              "type": "executeDataFunction"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_home",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openTaskpane",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "home"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_insert",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openInsertCitation",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "insert"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_library",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#library"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openLibrary",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "library"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_validation",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#validation"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openValidate",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "validation"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_bibliography",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#bibliography"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openBibliography",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "bibliography"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_guide",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#guide"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openGuide",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "guide"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_styling",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#styling"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openStyling",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "styling"
+            }
+          ]
+        },
+        {
+          "id": "TaskpaneRuntime_settings",
+          "type": "general",
+          "code": {
+            "page": "https://obiter.com.au/app/taskpane.html#settings"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "openSettings",
+              "type": "openPage",
+              "pinnable": false,
+              "view": "settings"
             }
           ]
         }
@@ -137,7 +272,147 @@
                         "title": "Obiter",
                         "description": "Show the Obiter task pane."
                       },
-                      "actionId": "showTaskpane"
+                      "actionId": "openTaskpane"
+                    },
+                    {
+                      "id": "obiterInsertCitation",
+                      "type": "button",
+                      "label": "Insert Citation",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Insert Citation",
+                        "description": "Insert an AGLC4 citation as a footnote."
+                      },
+                      "actionId": "openInsertCitation"
+                    },
+                    {
+                      "id": "obiterLibrary",
+                      "type": "button",
+                      "label": "Library",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Library",
+                        "description": "Browse and manage the document's citation library."
+                      },
+                      "actionId": "openLibrary"
+                    }
+                  ]
+                },
+                {
+                  "id": "obiterDocumentGroup",
+                  "label": "Document",
+                  "icons": [
+                    {
+                      "size": 16,
+                      "url": "https://obiter.com.au/app/assets/icon-16.png"
+                    },
+                    {
+                      "size": 32,
+                      "url": "https://obiter.com.au/app/assets/icon-32.png"
+                    },
+                    {
+                      "size": 80,
+                      "url": "https://obiter.com.au/app/assets/icon-80.png"
+                    }
+                  ],
+                  "controls": [
+                    {
+                      "id": "obiterValidate",
+                      "type": "button",
+                      "label": "Validate",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Validate",
+                        "description": "Check the document against AGLC4 rules."
+                      },
+                      "actionId": "openValidate"
+                    },
+                    {
+                      "id": "obiterBibliography",
+                      "type": "button",
+                      "label": "Bibliography",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Bibliography",
+                        "description": "Generate and insert the AGLC4 bibliography."
+                      },
+                      "actionId": "openBibliography"
+                    },
+                    {
+                      "id": "obiterGuide",
+                      "type": "button",
+                      "label": "Guide",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Guide",
+                        "description": "Browse the AGLC4 reference guide."
+                      },
+                      "actionId": "openGuide"
                     },
                     {
                       "id": "obiterRefreshAll",
@@ -162,6 +437,122 @@
                         "description": "Rebuild citations, headings, and inline formatting."
                       },
                       "actionId": "refreshAll"
+                    },
+                    {
+                      "id": "obiterApplyTemplate",
+                      "type": "button",
+                      "label": "Apply Template",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Apply Template",
+                        "description": "Apply the AGLC4 document template and styles."
+                      },
+                      "actionId": "applyTemplate"
+                    },
+                    {
+                      "id": "obiterBlockQuote",
+                      "type": "button",
+                      "label": "Block Quote",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Block Quote",
+                        "description": "Format the selection as an AGLC4 block quote (Rule 1.5.1)."
+                      },
+                      "actionId": "applyBlockQuote"
+                    }
+                  ]
+                },
+                {
+                  "id": "obiterToolsGroup",
+                  "label": "Tools",
+                  "icons": [
+                    {
+                      "size": 16,
+                      "url": "https://obiter.com.au/app/assets/icon-16.png"
+                    },
+                    {
+                      "size": 32,
+                      "url": "https://obiter.com.au/app/assets/icon-32.png"
+                    },
+                    {
+                      "size": 80,
+                      "url": "https://obiter.com.au/app/assets/icon-80.png"
+                    }
+                  ],
+                  "controls": [
+                    {
+                      "id": "obiterStyling",
+                      "type": "button",
+                      "label": "Styling",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Styling",
+                        "description": "Headings, quotations, and AGLC4 document styling."
+                      },
+                      "actionId": "openStyling"
+                    },
+                    {
+                      "id": "obiterSettings",
+                      "type": "button",
+                      "label": "Settings",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://obiter.com.au/app/assets/icon-16.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://obiter.com.au/app/assets/icon-32.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://obiter.com.au/app/assets/icon-80.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "Settings",
+                        "description": "Obiter settings: citation standard, integrations, and preferences."
+                      },
+                      "actionId": "openSettings"
                     }
                   ]
                 }

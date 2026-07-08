@@ -2,22 +2,25 @@
  * Obiter — AGLC4 Word Add-in
  * Copyright (C) 2026. Licensed under GPLv3.
  *
- * Unified Microsoft 365 manifest generator (COPILOT-011). Produces the JSON app
- * manifest (v1.17+) that packages the Obiter add-in AND registers it as a Copilot
- * skill, plus the companion declarative-agent file. Both are generated from the
- * live action catalogue + agent instructions so the shipped package can never
- * drift from the one code path (citationService / skillFunctions).
+ * Unified Microsoft 365 manifest generator (COPILOT-011/017/018). Produces the
+ * JSON app manifest that packages the Obiter add-in AND registers it as a
+ * Copilot skill, plus the companion declarative-agent file. Both are generated
+ * from the live action catalogue + agent instructions so the shipped package
+ * can never drift from the one code path (citationService / skillFunctions).
+ *
+ * Copilot-invocable functions are declared as runtime actions of type
+ * "executeDataFunction" (available in app-manifest schema v1.25+ and
+ * devPreview) and bound to the agent through the plugin file emitted by
+ * buildPluginManifest (COPILOT-017). The ribbon mirrors the classic add-in's
+ * full button set (COPILOT-018) so the Copilot package is a strict superset —
+ * replacing the classic add-in loses nothing.
  *
  * The classic add-in XML manifest cannot declare `copilotAgents`; this is the
- * migration to the unified manifest. The exact preview binding of add-in runtime
- * actions to agent skills can shift — validate with the Microsoft 365 Agents
- * Toolkit against a Copilot tenant (COPILOT-014). Production manifest.xml is
- * untouched; this is staged.
+ * migration to the unified manifest. Production manifest.xml is untouched.
  */
 
 import { OBITER_ACTIONS } from "./actionCatalogue";
 import { buildAgentInstructions } from "./agentInstructions";
-import { CITATION_REQUEST_CONTRACT_VERSION } from "./citationRequest";
 
 /** The production host the packaged manifest points at (COPILOT-013 substitutes). */
 export const SKILL_HOST = "https://obiter.com.au/app";
@@ -25,13 +28,24 @@ export const SKILL_HOST = "https://obiter.com.au/app";
 /**
  * App id for the Copilot companion product ("Obiter for Microsoft 365 Copilot").
  * Distinct from the classic add-in id (933c30ed…, live as WA200010629): AppSource
- * keys on the id, so the two products must not share one. Set on the copilot/* line
- * only (see docs/copilot-branching.md).
+ * keys listings on the id and the two products are listed separately.
  */
 const APP_ID = "1fe03f6c-b9b7-4a44-a55f-4b08f9813729";
 
 /** App version for the skill package (minor bump over the shipping 1.14.0). */
 export const SKILL_APP_VERSION = "1.15.0";
+
+/**
+ * App-manifest schema. v1.25 is the lowest numbered (non-devPreview) schema
+ * that defines `executeDataFunction` runtime actions; DEVPREVIEW=1 packaging
+ * falls back to the devPreview schema for Agents-Toolkit sideload testing if
+ * a distribution service rejects the numbered version.
+ */
+const MANIFEST_VERSION = "1.25";
+const MANIFEST_SCHEMA = "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json";
+const DEVPREVIEW_VERSION = "devPreview";
+const DEVPREVIEW_SCHEMA =
+  "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json";
 
 // Manifest schema caps description.short at 80 characters.
 const SHORT_DESCRIPTION = "Insert AGLC4 citations as native Word footnotes via Microsoft 365 Copilot.";
@@ -52,13 +66,18 @@ export interface DeclarativeAgent {
   description: string;
   instructions: string;
   conversation_starters: Array<{ title: string; text: string }>;
+  /** Binds the agent to the add-in's runtime functions via the plugin file (COPILOT-017). */
+  actions: Array<{ id: string; file: string }>;
 }
+
+/** Filename of the plugin manifest inside the app package. */
+export const PLUGIN_FILE_NAME = "obiter-plugin.json";
 
 export function buildDeclarativeAgent(): DeclarativeAgent {
   return {
     $schema:
-      "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.0/schema.json",
-    version: "v1.0",
+      "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.5/schema.json",
+    version: "v1.5",
     name: "Obiter — AGLC4 Citations",
     description: SHORT_DESCRIPTION,
     instructions: buildAgentInstructions(),
@@ -76,10 +95,11 @@ export function buildDeclarativeAgent(): DeclarativeAgent {
         text: "Refresh the footnotes so ibid and short references are correct.",
       },
     ],
+    actions: [{ id: "obiterAddInActions", file: PLUGIN_FILE_NAME }],
   };
 }
 
-/** The unified Microsoft 365 app manifest (subset of the v1.17+ schema Obiter uses). */
+/** The unified Microsoft 365 app manifest (subset of the schema Obiter uses). */
 export interface UnifiedManifest {
   $schema: string;
   manifestVersion: string;
@@ -97,20 +117,89 @@ export interface UnifiedManifest {
   copilotAgents: { declarativeAgents: Array<{ id: string; file: string }> };
 }
 
-export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest {
-  // Each catalogued action becomes a runtime function Copilot can invoke.
-  // The manifest schema allows only id/type/displayName etc. here — no
-  // description property. The LLM-facing action descriptions reach Copilot
-  // through the agent instructions (buildAgentInstructions) instead.
-  const runtimeActions = OBITER_ACTIONS.map((a) => ({
+/** Options for buildUnifiedManifest. */
+export interface UnifiedManifestOptions {
+  /** Emit the devPreview schema (Agents-Toolkit sideload testing). */
+  devPreview?: boolean;
+}
+
+/**
+ * The task-pane views the classic ribbon links to, with the same hash-route
+ * URLs the classic manifest uses (App.tsx maps `#library` etc. onto
+ * MemoryRouter routes). Each view gets its own short-lived runtime + openPage
+ * action in the unified manifest — the unified equivalent of the classic
+ * per-view `<bt:Url>` resources.
+ */
+const TASKPANE_VIEWS: Array<{ id: string; view: string; hash: string }> = [
+  { id: "openTaskpane", view: "home", hash: "" },
+  { id: "openInsertCitation", view: "insert", hash: "" },
+  { id: "openLibrary", view: "library", hash: "#library" },
+  { id: "openValidate", view: "validation", hash: "#validation" },
+  { id: "openBibliography", view: "bibliography", hash: "#bibliography" },
+  { id: "openGuide", view: "guide", hash: "#guide" },
+  { id: "openStyling", view: "styling", hash: "#styling" },
+  { id: "openSettings", view: "settings", hash: "#settings" },
+];
+
+function icons(host: string, base = "icon"): Array<{ size: number; url: string }> {
+  return [
+    { size: 16, url: `${host}/assets/${base}-16.png` },
+    { size: 32, url: `${host}/assets/${base}-32.png` },
+    { size: 80, url: `${host}/assets/${base}-80.png` },
+  ];
+}
+
+function paneButton(
+  host: string,
+  id: string,
+  label: string,
+  description: string,
+  actionId: string
+): Record<string, unknown> {
+  return {
+    id,
+    type: "button",
+    label,
+    icons: icons(host),
+    supertip: { title: label, description },
+    actionId,
+  };
+}
+
+export function buildUnifiedManifest(
+  host: string = SKILL_HOST,
+  options: UnifiedManifestOptions = {}
+): UnifiedManifest {
+  // Copilot-invocable functions (COPILOT-017): one executeDataFunction action
+  // per catalogued action. The ids MUST match the plugin manifest's function
+  // names and the ids registered via Office.actions.associate — Copilot
+  // resolves agent → plugin function name → runtime action id → JS handler.
+  // The manifest schema allows no description property here; the LLM-facing
+  // descriptions live in the plugin file and the agent instructions.
+  const skillActions = OBITER_ACTIONS.map((a) => ({
     id: a.name,
-    type: "executeFunction",
-    displayName: a.name,
+    type: "executeDataFunction",
+  }));
+
+  // Ribbon command functions handled by src/runtime/commandHandlers.ts.
+  const commandActions = [
+    { id: "refreshAll", type: "executeFunction" },
+    { id: "applyTemplate", type: "executeFunction" },
+    { id: "applyBlockQuote", type: "executeFunction" },
+  ];
+
+  // One short-lived runtime per task-pane view (openPage actions).
+  const taskpaneRuntimes = TASKPANE_VIEWS.map((v) => ({
+    id: `TaskpaneRuntime_${v.view}`,
+    type: "general",
+    code: { page: `${host}/taskpane.html${v.hash}` },
+    lifetime: "short",
+    actions: [{ id: v.id, type: "openPage", pinnable: false, view: v.view }],
   }));
 
   return {
-    $schema: "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
-    manifestVersion: "1.19",
+    $schema: options.devPreview ? DEVPREVIEW_SCHEMA : MANIFEST_SCHEMA,
+    manifestVersion: options.devPreview ? DEVPREVIEW_VERSION : MANIFEST_VERSION,
     id: APP_ID,
     version: SKILL_APP_VERSION,
     developer: {
@@ -132,10 +221,6 @@ export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest
     validDomains: ["obiter.com.au"],
     extensions: [
       {
-        // NOTE: the citation contract version is deliberately NOT emitted here —
-        // the manifest schema rejects unknown extension properties
-        // (CITATION_REQUEST_CONTRACT_VERSION travels in the skill manifest and
-        // docs/copilot-skill-contract.md instead).
         requirements: {
           scopes: ["document"],
           capabilities: [{ name: "SharedRuntime", minVersion: "1.1" }],
@@ -146,9 +231,13 @@ export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest
             type: "general",
             code: { page: `${host}/sharedRuntime.html` },
             lifetime: "long",
-            actions: runtimeActions,
+            actions: [...commandActions, ...skillActions],
           },
+          ...taskpaneRuntimes,
         ],
+        // Full parity with the classic add-in ribbon (COPILOT-018) — same
+        // three groups and eleven controls as manifest.prod.xml, so replacing
+        // the classic add-in with this package loses no UI.
         ribbons: [
           {
             contexts: ["default"],
@@ -159,42 +248,105 @@ export function buildUnifiedManifest(host: string = SKILL_HOST): UnifiedManifest
                   {
                     id: "obiterCitationGroup",
                     label: "Obiter",
-                    icons: [
-                      { size: 16, url: `${host}/assets/icon-16.png` },
-                      { size: 32, url: `${host}/assets/icon-32.png` },
-                      { size: 80, url: `${host}/assets/icon-80.png` },
-                    ],
+                    icons: icons(host),
                     controls: [
-                      {
-                        id: "obiterShowPane",
-                        type: "button",
-                        label: "Obiter",
-                        icons: [
-                          { size: 16, url: `${host}/assets/icon-16.png` },
-                          { size: 32, url: `${host}/assets/icon-32.png` },
-                          { size: 80, url: `${host}/assets/icon-80.png` },
-                        ],
-                        supertip: {
-                          title: "Obiter",
-                          description: "Show the Obiter task pane.",
-                        },
-                        actionId: "showTaskpane",
-                      },
+                      paneButton(host, "obiterShowPane", "Obiter", "Show the Obiter task pane.", "openTaskpane"),
+                      paneButton(
+                        host,
+                        "obiterInsertCitation",
+                        "Insert Citation",
+                        "Insert an AGLC4 citation as a footnote.",
+                        "openInsertCitation"
+                      ),
+                      paneButton(
+                        host,
+                        "obiterLibrary",
+                        "Library",
+                        "Browse and manage the document's citation library.",
+                        "openLibrary"
+                      ),
+                    ],
+                  },
+                  {
+                    id: "obiterDocumentGroup",
+                    label: "Document",
+                    icons: icons(host),
+                    controls: [
+                      paneButton(
+                        host,
+                        "obiterValidate",
+                        "Validate",
+                        "Check the document against AGLC4 rules.",
+                        "openValidate"
+                      ),
+                      paneButton(
+                        host,
+                        "obiterBibliography",
+                        "Bibliography",
+                        "Generate and insert the AGLC4 bibliography.",
+                        "openBibliography"
+                      ),
+                      paneButton(
+                        host,
+                        "obiterGuide",
+                        "Guide",
+                        "Browse the AGLC4 reference guide.",
+                        "openGuide"
+                      ),
                       {
                         id: "obiterRefreshAll",
                         type: "button",
                         label: "Refresh All",
-                        icons: [
-                          { size: 16, url: `${host}/assets/icon-refresh-16.png` },
-                          { size: 32, url: `${host}/assets/icon-refresh-32.png` },
-                          { size: 80, url: `${host}/assets/icon-refresh-80.png` },
-                        ],
+                        icons: icons(host, "icon-refresh"),
                         supertip: {
                           title: "Refresh All",
                           description: "Rebuild citations, headings, and inline formatting.",
                         },
                         actionId: "refreshAll",
                       },
+                      {
+                        id: "obiterApplyTemplate",
+                        type: "button",
+                        label: "Apply Template",
+                        icons: icons(host),
+                        supertip: {
+                          title: "Apply Template",
+                          description: "Apply the AGLC4 document template and styles.",
+                        },
+                        actionId: "applyTemplate",
+                      },
+                      {
+                        id: "obiterBlockQuote",
+                        type: "button",
+                        label: "Block Quote",
+                        icons: icons(host),
+                        supertip: {
+                          title: "Block Quote",
+                          description: "Format the selection as an AGLC4 block quote (Rule 1.5.1).",
+                        },
+                        actionId: "applyBlockQuote",
+                      },
+                    ],
+                  },
+                  {
+                    id: "obiterToolsGroup",
+                    label: "Tools",
+                    icons: icons(host),
+                    controls: [
+                      paneButton(
+                        host,
+                        "obiterStyling",
+                        "Styling",
+                        "Headings, quotations, and AGLC4 document styling.",
+                        "openStyling"
+                      ),
+                      paneButton(
+                        host,
+                        "obiterSettings",
+                        "Settings",
+                        "Obiter settings: citation standard, integrations, and preferences.",
+                        "openSettings"
+                      ),
                     ],
                   },
                 ],
