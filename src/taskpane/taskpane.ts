@@ -20,6 +20,7 @@ import { hideAddinNotice, setDocumentMetadata } from "../word/documentMeta";
 import { removeTemplateNotice } from "../word/templateExporter";
 import { writeObiterProperties } from "../word/documentProperties";
 import { APP_VERSION } from "../constants";
+import { detectProduct } from "../store/devicePreferences";
 
 /** Check if this document has already been set up by Obiter. */
 async function isDocumentSetUp(): Promise<boolean> {
@@ -143,6 +144,12 @@ Office.onReady((info) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             obiterVersion: APP_VERSION,
+            // Product line reporting the load: "classic" (the free add-in) or
+            // "copilot" (the Obiter for Microsoft 365 Copilot package, whose
+            // task-pane URLs carry ?product=copilot). Lets analytics separate
+            // the two variants (WEB-ANALYTICS-01). The server ignores this
+            // field until its schema is extended — safe to send now.
+            variant: detectProduct(),
             wordVersion,
             platform,
             deviceHash,
