@@ -69,7 +69,10 @@ export function parseInsertRequest(raw: unknown): CitationInsertRequest {
   if (typeof r.sourceType !== "string" || r.sourceType.length === 0) {
     throw new SkillRequestError("sourceType is required");
   }
-  if (!r.data || typeof r.data !== "object" || Array.isArray(r.data)) {
+  // Copilot's plugin schema forbids object parameters, so `data` may arrive
+  // as a JSON object string (COPILOT-017) — coerce before validating.
+  const data = typeof r.data === "string" ? safeParse(r.data, "data") : r.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new SkillRequestError("data object is required");
   }
   const version = r.aglcVersion === "4" || r.aglcVersion === "5" ? r.aglcVersion : undefined;
@@ -77,7 +80,7 @@ export function parseInsertRequest(raw: unknown): CitationInsertRequest {
     typeof r.appendToFootnoteIndex === "number" ? r.appendToFootnoteIndex : undefined;
   return {
     sourceType: r.sourceType as SourceType,
-    data: r.data as SourceData,
+    data: data as SourceData,
     shortTitle: optionalString(r.shortTitle),
     signal: optionalString(r.signal),
     commentaryBefore: optionalString(r.commentaryBefore),

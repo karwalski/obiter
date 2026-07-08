@@ -113,8 +113,7 @@ export default function Layout(): JSX.Element {
         "error"
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [announce]);
 
   // Load the active standard and writing mode on mount
   useEffect(() => {

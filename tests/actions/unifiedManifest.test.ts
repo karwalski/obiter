@@ -165,7 +165,13 @@ describe("buildPluginManifest (COPILOT-017)", () => {
     const insert = plugin.functions.find((f) => f.name === "insertCitation")!;
     expect(insert.parameters.required).toEqual(["sourceType", "data"]);
     expect(Object.keys(insert.parameters.properties)).toEqual(
-      expect.arrayContaining(["sourceType", "data", "shortTitle", "signal", "appendToFootnoteIndex"])
+      expect.arrayContaining([
+        "sourceType",
+        "data",
+        "shortTitle",
+        "signal",
+        "appendToFootnoteIndex",
+      ])
     );
   });
 

@@ -16,8 +16,8 @@
             "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
           },
           "data": {
-            "type": "object",
-            "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
+            "type": "string",
+            "description": "A JSON object string with the structured citation fields for the source type, using the field mappings in the agent instructions. Example: '{\"party1\":\"Mabo\",\"party2\":\"Queensland (No 2)\",\"year\":\"1992\",\"volume\":\"175\",\"reportSeries\":\"CLR\",\"startingPage\":\"1\"}'."
           },
           "shortTitle": {
             "type": "string",
@@ -71,8 +71,8 @@
             "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
           },
           "data": {
-            "type": "object",
-            "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
+            "type": "string",
+            "description": "A JSON object string with the structured citation fields for the source type, using the field mappings in the agent instructions. Example: '{\"party1\":\"Mabo\",\"party2\":\"Queensland (No 2)\",\"year\":\"1992\",\"volume\":\"175\",\"reportSeries\":\"CLR\",\"startingPage\":\"1\"}'."
           },
           "shortTitle": {
             "type": "string",
@@ -126,42 +126,8 @@
             "description": "The id of the existing citation to update (returned by insertCitation)."
           },
           "request": {
-            "type": "object",
-            "description": "The new citation fields — same shape as the insertCitation parameters.",
-            "properties": {
-              "sourceType": {
-                "type": "string",
-                "description": "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book')."
-              },
-              "data": {
-                "type": "object",
-                "description": "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case)."
-              },
-              "shortTitle": {
-                "type": "string",
-                "description": "Optional short title for subsequent references (AGLC4 rule 1.4.4)."
-              },
-              "signal": {
-                "type": "string",
-                "description": "Optional introductory signal (AGLC4 rule 1.3), e.g. 'See', 'See also', 'Cf'."
-              },
-              "commentaryBefore": {
-                "type": "string",
-                "description": "Optional text to place before the citation inside the footnote."
-              },
-              "commentaryAfter": {
-                "type": "string",
-                "description": "Optional text to place after the citation inside the footnote."
-              },
-              "overrideText": {
-                "type": "string",
-                "description": "Optional verbatim footnote text. Only when the user explicitly wants exact text instead of engine formatting."
-              },
-              "appendToFootnoteIndex": {
-                "type": "number",
-                "description": "Optional 1-based footnote number to append this citation to an existing footnote (AGLC4 rule 1.1.3)."
-              }
-            }
+            "type": "string",
+            "description": "A JSON object string with the new citation fields — same shape as the insertCitation parameters (sourceType, data, shortTitle, ...)."
           }
         },
         "required": [

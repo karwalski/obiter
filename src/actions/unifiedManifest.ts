@@ -42,13 +42,15 @@ export const SKILL_APP_VERSION = "1.15.0";
  * a distribution service rejects the numbered version.
  */
 const MANIFEST_VERSION = "1.25";
-const MANIFEST_SCHEMA = "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json";
+const MANIFEST_SCHEMA =
+  "https://developer.microsoft.com/json-schemas/teams/v1.25/MicrosoftTeams.schema.json";
 const DEVPREVIEW_VERSION = "devPreview";
 const DEVPREVIEW_SCHEMA =
   "https://developer.microsoft.com/json-schemas/teams/vDevPreview/MicrosoftTeams.schema.json";
 
 // Manifest schema caps description.short at 80 characters.
-const SHORT_DESCRIPTION = "Insert AGLC4 citations as native Word footnotes via Microsoft 365 Copilot.";
+const SHORT_DESCRIPTION =
+  "Insert AGLC4 citations as native Word footnotes via Microsoft 365 Copilot.";
 
 const FULL_DESCRIPTION =
   "Obiter Skill for Copilot connects the Obiter AGLC4 citation engine to Microsoft 365 Copilot. " +
@@ -250,7 +252,13 @@ export function buildUnifiedManifest(
                     label: "Obiter",
                     icons: icons(host),
                     controls: [
-                      paneButton(host, "obiterShowPane", "Obiter", "Show the Obiter task pane.", "openTaskpane"),
+                      paneButton(
+                        host,
+                        "obiterShowPane",
+                        "Obiter",
+                        "Show the Obiter task pane.",
+                        "openTaskpane"
+                      ),
                       paneButton(
                         host,
                         "obiterInsertCitation",

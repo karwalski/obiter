@@ -60,10 +60,13 @@ const INSERT_REQUEST_PROPERTIES: Record<string, unknown> = {
     description:
       "The AGLC4 source type identifier, exactly as listed in the agent instructions (e.g. 'case.reported', 'legislation.statute', 'journal.article', 'book').",
   },
+  // NOTE: the plugin schema (v2.3) forbids object-typed parameters — nested
+  // payloads travel as JSON strings and the skill boundary parses them
+  // (parseInsertRequest accepts a JSON string for `data`).
   data: {
-    type: "object",
+    type: "string",
     description:
-      "The structured citation fields for the source type, using the field mappings in the agent instructions (e.g. party1, party2, year, volume, reportSeries, startingPage for a reported case).",
+      'A JSON object string with the structured citation fields for the source type, using the field mappings in the agent instructions. Example: \'{"party1":"Mabo","party2":"Queensland (No 2)","year":"1992","volume":"175","reportSeries":"CLR","startingPage":"1"}\'.',
   },
   shortTitle: {
     type: "string",
@@ -113,9 +116,9 @@ const ACTION_PARAMETERS: Record<string, PluginParameters> = {
         description: "The id of the existing citation to update (returned by insertCitation).",
       },
       request: {
-        type: "object",
-        description: "The new citation fields — same shape as the insertCitation parameters.",
-        properties: INSERT_REQUEST_PROPERTIES,
+        type: "string",
+        description:
+          "A JSON object string with the new citation fields — same shape as the insertCitation parameters (sourceType, data, shortTitle, ...).",
       },
     },
     required: ["citationId", "request"],

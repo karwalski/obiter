@@ -147,3 +147,22 @@ describe("wrapForCopilot (COPILOT-020)", () => {
     expect(out.message).toContain("sourceType is required");
   });
 });
+
+describe("parseInsertRequest — JSON-string data (COPILOT-017 plugin constraint)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { parseInsertRequest } = require("../../src/actions/skillFunctions");
+
+  it("accepts data supplied as a JSON object string", () => {
+    const req = parseInsertRequest({
+      sourceType: "legislation.statute",
+      data: '{"title":"Evidence Act","year":"1995","jurisdiction":"NSW"}',
+    });
+    expect(req.data).toEqual({ title: "Evidence Act", year: "1995", jurisdiction: "NSW" });
+  });
+
+  it("rejects a data string that is not JSON", () => {
+    expect(() =>
+      parseInsertRequest({ sourceType: "legislation.statute", data: "not json" })
+    ).toThrow(/not valid JSON/);
+  });
+});
