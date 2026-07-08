@@ -16,3 +16,5 @@ client_secret*.json
 .claude/worktrees/
 /corpus/
 obiter-v*.zip
+obiter-copilot-skill-*.zip
+release/obiter-copilot-skill-*.zip
