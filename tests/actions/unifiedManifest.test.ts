@@ -203,3 +203,27 @@ describe("plugin runtimes binding (COPILOT-017 validator requirements)", () => {
     expect(plugin.description_for_human.length).toBeLessThanOrEqual(100);
   });
 });
+
+describe("runtime + ribbon fixes (Word desktop tool-error + missing Obiter tab)", () => {
+  const manifest = buildUnifiedManifest();
+  const ext = extension(manifest);
+
+  it("gives the executeDataFunction runtime an explicit code.script", () => {
+    const sr = ext.runtimes.find((r) => r.id === "SharedRuntime") as unknown as {
+      code: { page: string; script?: string };
+    };
+    expect(sr.code.script).toBe(`${SKILL_HOST}/sharedRuntime.js`);
+    expect(sr.code.page).toBe(`${SKILL_HOST}/sharedRuntime.html`);
+  });
+
+  it("puts the ribbon on a dedicated Obiter tab, not the built-in Home tab", () => {
+    const tab = ext.ribbons[0].tabs[0] as unknown as {
+      id?: string;
+      label?: string;
+      builtInTabId?: string;
+    };
+    expect(tab.id).toBe("ObiterTab");
+    expect(tab.label).toBe("Obiter");
+    expect(tab.builtInTabId).toBeUndefined();
+  });
+});

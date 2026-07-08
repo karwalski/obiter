@@ -33,7 +33,7 @@ export const SKILL_HOST = "https://obiter.com.au/app";
 const APP_ID = "1fe03f6c-b9b7-4a44-a55f-4b08f9813729";
 
 /** App version for the skill package (minor bump over the shipping 1.14.0). */
-export const SKILL_APP_VERSION = "1.15.1";
+export const SKILL_APP_VERSION = "1.15.2";
 
 /**
  * App-manifest schema. v1.25 is the lowest numbered (non-devPreview) schema
@@ -231,7 +231,17 @@ export function buildUnifiedManifest(
           {
             id: "SharedRuntime",
             type: "general",
-            code: { page: `${host}/sharedRuntime.html` },
+            // The executeDataFunction/executeFunction runtime needs BOTH the
+            // page and an explicit headless script URL — Copilot invokes the
+            // function through `code.script`. Word desktop showed a "tool
+            // error" on execution when only `code.page` was present; the
+            // working combine-agents-with-add-ins sample supplies both.
+            // sharedRuntime.js keeps a stable (unhashed) name (webpack.config)
+            // so this URL is valid across builds.
+            code: {
+              page: `${host}/sharedRuntime.html`,
+              script: `${host}/sharedRuntime.js`,
+            },
             lifetime: "long",
             actions: [...commandActions, ...skillActions],
           },
@@ -245,7 +255,12 @@ export function buildUnifiedManifest(
             contexts: ["default"],
             tabs: [
               {
-                builtInTabId: "TabHome",
+                // A dedicated "Obiter" ribbon tab (matching the classic add-in's
+                // <CustomTab id="ObiterTab">), rather than nesting the groups
+                // under the built-in Home tab — so the Copilot package shows its
+                // own Obiter tab like the standalone add-in does.
+                id: "ObiterTab",
+                label: "Obiter",
                 groups: [
                   {
                     id: "obiterCitationGroup",

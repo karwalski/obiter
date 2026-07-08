@@ -26,7 +26,17 @@ module.exports = async (env, options) => {
     },
     output: {
       clean: true,
-      filename: dev ? "[name].js" : "[name].[contenthash:8].js",
+      // sharedRuntime keeps a stable (unhashed) filename so the unified
+      // manifest's runtime `code.script` can reference it across builds — the
+      // Copilot executeDataFunction runtime needs an explicit script URL
+      // (matching Microsoft's combine-agents-with-add-ins sample). Other
+      // entries stay content-hashed for cache-busting.
+      filename: (pathData) =>
+        pathData.chunk.name === "sharedRuntime"
+          ? "sharedRuntime.js"
+          : dev
+            ? "[name].js"
+            : "[name].[contenthash:8].js",
     },
     resolve: {
       extensions: [".ts", ".tsx", ".html", ".js"],
