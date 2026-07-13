@@ -153,6 +153,7 @@ export default function Settings(): JSX.Element {
   const [migrationNotice, setMigrationNotice] = useState(false);
   const [ackStatus, setAckStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [standardNotice, setStandardNotice] = useState<string | null>(null);
   const [, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
   // Confirmation shown when leaving Manual Citations Mode (resuming auto would
@@ -392,17 +393,23 @@ export default function Settings(): JSX.Element {
   }, []);
 
   const handleStandardChange = useCallback(async (newStandardId: CitationStandardId) => {
-    // Warn when changing standard mid-document
+    if (standardId === newStandardId) return;
+    // Note when changing standard mid-document. We must NOT use window.confirm():
+    // it is blocked in the Office web add-in iframe (returns false immediately),
+    // which silently aborted the change so the dropdown snapped back to AGLC on
+    // Word online (WEB-013). A non-blocking notice works on web + desktop, and
+    // switching standards is non-destructive/reversible so a hard confirm isn't
+    // warranted — existing citations reflow on the next Refresh All.
     const store = await getSharedStore();
-    if (standardId !== newStandardId && store.getAll().length > 0) {
-      const confirmed = window.confirm(
-        "This will not reformat existing citations. Continue?"
-      );
-      if (!confirmed) return;
-    }
+    const hadExistingCitations = store.getAll().length > 0;
     try {
       await store.setStandardId(newStandardId);
       setStandardId(newStandardId);
+      setStandardNotice(
+        hadExistingCitations
+          ? "Standard updated. Run Refresh All to reformat existing citations to the new standard."
+          : null
+      );
       // INFRA-009: Persist as document-level and device-level default
       setDocSetting("obiter-standardId", newStandardId);
       setDevicePref("defaultStandard", newStandardId);
@@ -752,6 +759,12 @@ export default function Settings(): JSX.Element {
               ))}
           </div>
         </label>
+
+        {standardNotice && (
+          <p style={{ fontSize: 11, margin: "8px 0 0", color: "var(--colour-text-secondary)" }}>
+            {standardNotice}
+          </p>
+        )}
       </fieldset>
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
