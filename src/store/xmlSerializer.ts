@@ -207,7 +207,7 @@ export function deserializeCitation(xml: string | Element): Citation {
     for (const el of fieldEls) {
       const name = el.getAttribute("name");
       if (name) {
-        data[name] = deserializeValue(el.textContent ?? "");
+        data[name] = deserializeValue(el.textContent ?? "", name);
       }
     }
   } else {
@@ -239,7 +239,7 @@ export function deserializeCitation(xml: string | Element): Citation {
         const tagName = child.localName;
         if (tagName === "data") continue; // skip nested data wrappers
         const textContent = child.textContent ?? "";
-        data[tagName] = deserializeValue(textContent);
+        data[tagName] = deserializeValue(textContent, tagName);
       }
     }
   }
@@ -472,10 +472,35 @@ function serializeValue(value: unknown): string {
 }
 
 /**
- * Deserialize a string value from XML back to a JS value.
- * Attempts JSON parse for arrays/objects; returns string otherwise.
+ * Data fields that are genuinely numeric and may be coerced from a digit-only
+ * string back to a number on deserialization. Everything NOT in this set stays
+ * a string — critically ID-like fields such as `proceedingNumber` and `mnc`
+ * that are frequently digit-only but are consumed as strings (used with
+ * `.trim()` etc. in the formatters). Blindly coercing every digit-only string
+ * corrupted those fields to numbers on the store round-trip, so a later
+ * rebuild/refresh threw `proceedingNumber.trim is not a function` (WEB-012).
+ *
+ * Numeric consumers coerce via toNumber/toOptionalNumber (string-safe), so a
+ * field mistakenly omitted here is harmless; a string field wrongly included
+ * would re-introduce the crash — keep this list to true numeric fields only.
  */
-function deserializeValue(str: string): unknown {
+const NUMERIC_DATA_FIELDS = new Set<string>([
+  "year", "billYear", "consolidationYear", "neutralCitationYear",
+  "volume", "seriesVolume", "fedRegVolume",
+  "startingPage", "startPage", "shortPage", "endingPage", "slipOpStartingPage", "icjReportsPage", "page",
+  "issue", "edition", "reissue", "number", "caseNumber", "partNumber", "reportNumber",
+  "decisionNumber", "blockNumber", "shortBlockNumber", "siNumber", "neutralCitationNumber", "waiNumber",
+  "regnalNumber", "column", "article", "session", "cfrTitle", "uscTitle",
+]);
+
+/**
+ * Deserialize a string value from XML back to a JS value.
+ * Objects/arrays are JSON-decoded; only known-numeric fields (see
+ * {@link NUMERIC_DATA_FIELDS}) are coerced from digit strings to numbers.
+ * @param str - the stored string value
+ * @param fieldName - the data field name (drives numeric coercion)
+ */
+function deserializeValue(str: string, fieldName?: string): unknown {
   const trimmed = str.trim();
   if (trimmed === "") return "";
   // Try JSON parse for objects/arrays
@@ -489,7 +514,9 @@ function deserializeValue(str: string): unknown {
       return trimmed;
     }
   }
-  // Try numeric
-  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+  // Coerce to number ONLY for genuinely-numeric fields (WEB-012).
+  if (fieldName && NUMERIC_DATA_FIELDS.has(fieldName) && /^\d+$/.test(trimmed)) {
+    return parseInt(trimmed, 10);
+  }
   return trimmed;
 }

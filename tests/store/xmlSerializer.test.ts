@@ -530,3 +530,52 @@ describeIfDOMParser("xmlSerializer nested-encoded v1 data", () => {
     expect(citation.data.title).toBe("Test Act");
   });
 });
+
+// ─── WEB-012 regression: digit-only string fields must not become numbers ─────
+
+import { formatCitation } from "../../src/engine/engine";
+import { getStandardConfig } from "../../src/engine/standards";
+
+describeIfDOMParser("WEB-012 — digit-only string fields survive the store round-trip as strings", () => {
+  test("proceedingNumber '12' stays a STRING (not coerced to number)", () => {
+    const original = makeCitation({
+      sourceType: "case.proceeding",
+      data: { party1: "Smith", party2: "Jones", court: "Federal Court of Australia", proceedingNumber: "12", commencedDate: "1 January 2020" },
+    });
+    const restored = deserializeCitation(serializeCitation(original));
+    expect(typeof restored.data.proceedingNumber).toBe("string");
+    expect(restored.data.proceedingNumber).toBe("12");
+  });
+
+  test("mnc '12' stays a STRING", () => {
+    const original = makeCitation({
+      sourceType: "case.unreported.mnc",
+      data: { party1: "Kozarov", party2: "Victoria", year: 2022, court: "HCA", mnc: "12" },
+    });
+    const restored = deserializeCitation(serializeCitation(original));
+    expect(typeof restored.data.mnc).toBe("string");
+    expect(restored.data.mnc).toBe("12");
+  });
+
+  test("genuinely-numeric fields (year/volume/startingPage) still deserialize to numbers", () => {
+    const original = makeCitation({
+      sourceType: "case.reported",
+      data: { party1: "Mabo", party2: "Queensland (No 2)", year: 1992, volume: 175, reportSeries: "CLR", startingPage: 1 },
+    });
+    const restored = deserializeCitation(serializeCitation(original));
+    expect(restored.data.year).toBe(1992);
+    expect(restored.data.volume).toBe(175);
+    expect(restored.data.startingPage).toBe(1);
+  });
+
+  test("formatting a store-round-tripped proceeding with digit proceedingNumber does NOT throw", () => {
+    const original = makeCitation({
+      sourceType: "case.proceeding",
+      data: { party1: "Smith", party2: "Jones", court: "Federal Court of Australia", proceedingNumber: "12", commencedDate: "1 January 2020" },
+    });
+    const restored = deserializeCitation(serializeCitation(original));
+    const config = getStandardConfig("aglc4");
+    // Before the fix this threw "proceedingNumber.trim is not a function".
+    expect(() => formatCitation(restored, undefined, config)).not.toThrow();
+  });
+});

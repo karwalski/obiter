@@ -725,7 +725,7 @@ function dispatchProceeding(citation: Citation): FormattedRun[] {
   return formatProceeding({
     caseName,
     court: (d.court as string) ?? "",
-    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    proceedingNumber: toStr(d.proceedingNumber),
     commencedDate: (d.commencedDate as string) ?? (d.date as string) ?? "",
   });
 }
@@ -831,7 +831,7 @@ function dispatchTranscript(citation: Citation): FormattedRun[] {
   return formatTranscript({
     caseName,
     court: (d.court as string) ?? "",
-    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    proceedingNumber: toStr(d.proceedingNumber),
     // Rule 2.7.1: all judicial officers hearing the matter (exs 116–17)
     judicialOfficers: pickString(d.judicialOfficers, d.judges) || undefined,
     date: (d.date as string) ?? "",
@@ -854,7 +854,7 @@ function dispatchSubmission(citation: Citation): FormattedRun[] {
     partyName: (d.partyName as string) ?? "",
     submissionTitle: (d.submissionTitle as string) ?? (d.title as string) ?? "",
     caseName,
-    proceedingNumber: (d.proceedingNumber as string) ?? "",
+    proceedingNumber: toStr(d.proceedingNumber),
     date: (d.date as string) ?? "",
     pinpoint: normalisePinpoint(d.pinpoint),
   });
