@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Obiter</title>
+  <meta name="description" content="Sign in to your Obiter account.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="account.css">
+  <!-- Office.js: present so the page can messageParent back to the task pane
+       when opened in an Office Dialog. Harmless on a plain browser visit. -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <!-- Cloudflare Turnstile (ACCT-002 header CSP already allows this host). -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+  <div class="account-shell">
+    <div class="account-card">
+
+      <!-- ── Login ────────────────────────────────────────────────────── -->
+      <div id="view-login">
+        <h1>Sign in</h1>
+        <p class="account-lead">Sign in to sync your settings and use your stored API key across devices.</p>
+        <form id="form-login" autocomplete="on">
+          <label class="account-field">Email
+            <input type="email" id="login-email" name="email" autocomplete="username" required>
+          </label>
+          <label class="account-field">Password
+            <input type="password" id="login-password" name="password" autocomplete="current-password" required>
+          </label>
+          <div class="account-turnstile cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY"></div>
+          <button type="submit" class="account-btn" id="login-submit">Sign in</button>
+        </form>
+      </div>
+
+      <!-- ── MFA challenge ────────────────────────────────────────────── -->
+      <div id="view-mfa" class="account-hidden">
+        <h1>Verification code</h1>
+        <p class="account-lead">Enter the code from your authenticator app, or a recovery code.</p>
+        <form id="form-mfa" autocomplete="off">
+          <label class="account-field">Authenticator code
+            <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" required>
+          </label>
+          <button type="submit" class="account-btn" id="mfa-submit">Verify</button>
+        </form>
+      </div>
+
+      <!-- ── Register ─────────────────────────────────────────────────── -->
+      <div id="view-register" class="account-hidden">
+        <h1>Create account</h1>
+        <p class="account-lead">Obiter works fully without an account. Create one only to sync settings and store your API key across devices.</p>
+        <form id="form-register" autocomplete="on">
+          <label class="account-field">Email
+            <input type="email" id="register-email" name="email" autocomplete="username" required>
+          </label>
+          <label class="account-field">Password
+            <input type="password" id="register-password" name="password" autocomplete="new-password" minlength="8" required>
+          </label>
+          <div class="account-turnstile cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY"></div>
+          <button type="submit" class="account-btn" id="register-submit">Create account</button>
+        </form>
+      </div>
+
+      <div id="account-status" class="account-status account-hidden" role="status" aria-live="polite"></div>
+
+      <div class="account-links">
+        <span id="link-to-register">
+          New to Obiter? <button type="button" id="btn-show-register">Create an account</button>
+        </span>
+        <span id="link-to-login" class="account-hidden">
+          Already have an account? <button type="button" id="btn-show-login">Sign in</button>
+        </span>
+        <div style="margin-top: 8px;">
+          <a href="reset.html" target="_blank" rel="noopener">Forgot your password?</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="account.js"></script>
+  <script>
+    (function () {
+      var A = window.ObiterAccount;
+      var pendingEmail = "";
+
+      function show(id) {
+        ["view-login", "view-mfa", "view-register"].forEach(function (v) {
+          document.getElementById(v).classList.toggle("account-hidden", v !== id);
+        });
+        document.getElementById("link-to-register").classList.toggle("account-hidden", id !== "view-login");
+        document.getElementById("link-to-login").classList.toggle("account-hidden", id !== "view-register");
+      }
+
+      function status(message, kind) {
+        var el = document.getElementById("account-status");
+        el.textContent = message;
+        el.className = "account-status account-status--" + (kind || "info");
+      }
+
+      function clearStatus() {
+        document.getElementById("account-status").className = "account-status account-hidden";
+      }
+
+      function finishWithTokens(tokens, email) {
+        // Deliver to the task pane (Office Dialog); if not in a dialog, guide
+        // the user to the profile page instead.
+        var sent = A.messageTokensToParent(tokens, email);
+        if (!sent) {
+          status("Signed in. You can close this window and return to Word.", "success");
+        }
+      }
+
+      // Login
+      document.getElementById("form-login").addEventListener("submit", function (e) {
+        e.preventDefault();
+        clearStatus();
+        var btn = document.getElementById("login-submit");
+        btn.disabled = true;
+        var email = document.getElementById("login-email").value.trim();
+        pendingEmail = email;
+        A.postJson("/auth/login", {
+          email: email,
+          password: document.getElementById("login-password").value,
+          turnstileToken: A.turnstileToken(),
+        }).then(function (data) {
+          if (data.mfaRequired && data.mfaToken) {
+            window.__mfaToken = data.mfaToken;
+            show("view-mfa");
+            clearStatus();
+          } else {
+            finishWithTokens(data, email);
+          }
+        }).catch(function (err) {
+          status(err.message, "error");
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
+
+      // MFA completion
+      document.getElementById("form-mfa").addEventListener("submit", function (e) {
+        e.preventDefault();
+        clearStatus();
+        var btn = document.getElementById("mfa-submit");
+        btn.disabled = true;
+        A.postJson("/auth/mfa/login", {
+          mfaToken: window.__mfaToken,
+          code: document.getElementById("mfa-code").value.trim(),
+        }).then(function (data) {
+          finishWithTokens(data, pendingEmail);
+        }).catch(function (err) {
+          status(err.message, "error");
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
+
+      // Register
+      document.getElementById("form-register").addEventListener("submit", function (e) {
+        e.preventDefault();
+        clearStatus();
+        var btn = document.getElementById("register-submit");
+        btn.disabled = true;
+        A.postJson("/auth/register", {
+          email: document.getElementById("register-email").value.trim(),
+          password: document.getElementById("register-password").value,
+          turnstileToken: A.turnstileToken(),
+        }).then(function (data) {
+          status(data.message || "Check your email to verify your account, then sign in.", "success");
+          show("view-login");
+        }).catch(function (err) {
+          status(err.message, "error");
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
+
+      document.getElementById("btn-show-register").addEventListener("click", function () {
+        clearStatus();
+        show("view-register");
+      });
+      document.getElementById("btn-show-login").addEventListener("click", function () {
+        clearStatus();
+        show("view-login");
+      });
+
+      // Open on the mode requested by the pane (?mode=register).
+      if (A.queryParam("mode") === "register") {
+        show("view-register");
+      } else {
+        show("view-login");
+      }
+    })();
+  </script>
+</body>
+</html>

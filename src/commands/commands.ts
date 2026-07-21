@@ -8,7 +8,7 @@
  * page cannot resolve.
  */
 
-/* global Office, Word */
+/* global Office, Word, localStorage */
 
 // NOTE: All logic is inlined here to avoid import chains that bloat the
 // commands bundle or fail due to chunk-loading in the commands.html context.
@@ -17,6 +17,32 @@
 Office.onReady(() => {
   // Office.js is ready.
 });
+
+// ── SAFE-006: ribbon command error recording ──
+// This runtime has no UI, so failures are appended to a small localStorage
+// ring (`obiter-command-errors`, max 5 entries, oldest evicted) that the task
+// pane drains and announces on mount, focus, and the `storage` event.
+// Inlined — no imports, per the bundle constraint above. Must never throw:
+// localStorage can be unavailable in some webviews, and a failure here must
+// not stop event.completed().
+function recordCommandError(name: string, err: unknown): void {
+  const key = "obiter-command-errors";
+  let ring: unknown[] = [];
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) ring = parsed;
+  } catch {
+    /* corrupt or unavailable ring — start fresh */
+  }
+  try {
+    const message = err instanceof Error ? err.message : String(err);
+    ring.push({ name, message, timestamp: new Date().toISOString() });
+    localStorage.setItem(key, JSON.stringify(ring.slice(-5)));
+  } catch {
+    /* localStorage unavailable — the failure stays in the console only */
+  }
+}
 
 // ── Refresh All — shows task pane which triggers refresh ──
 async function refreshAll(event: Office.AddinCommands.Event) {
@@ -34,8 +60,8 @@ async function applyTemplate(event: Office.AddinCommands.Event) {
       body.font.size = 12;
       await context.sync();
     });
-  } catch {
-    /* silent */
+  } catch (err) {
+    recordCommandError("Apply Template", err);
   }
   event.completed();
 }
@@ -51,6 +77,7 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
       const selection = context.document.getSelection();
       selection.paragraphs.load("items");
       await context.sync();
+      // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
       for (const para of selection.paragraphs.items ?? []) {
         para.style = "AGLC4 Block Quote";
       }
@@ -62,6 +89,7 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
         const selection = context.document.getSelection();
         selection.paragraphs.load("items");
         await context.sync();
+        // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
         for (const para of selection.paragraphs.items ?? []) {
           para.font.size = 10;
           para.leftIndent = 36;
@@ -69,8 +97,10 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
         }
         await context.sync();
       });
-    } catch {
-      /* silent */
+    } catch (err) {
+      // Only the fallback failing is an error — the styled path failing just
+      // means the named style is absent and the fallback formatting applies.
+      recordCommandError("Block Quote", err);
     }
   }
   event.completed();
@@ -85,6 +115,7 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       selection.paragraphs.load("items");
       await context.sync();
 
+      // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
       for (const para of selection.paragraphs.items ?? []) {
         // Apply built-in Heading style
         para.style = "Heading " + level;
@@ -108,8 +139,8 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       }
       await context.sync();
     });
-  } catch {
-    /* silent */
+  } catch (err) {
+    recordCommandError("Heading " + level, err);
   }
   event.completed();
 }

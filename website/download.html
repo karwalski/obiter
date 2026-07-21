@@ -71,6 +71,11 @@
             Download the add-in manifest from GitHub and sideload it into Word.
             Useful for testing, development, or restricted environments.
           </p>
+          <p>
+            Each release includes a <code>SHA256SUMS.txt</code> file so you can
+            verify your download &mdash; see the &ldquo;Verifying
+            downloads&rdquo; section of the bundled <code>INSTALL.md</code>.
+          </p>
           <a href="https://github.com/karwalski/obiter/releases/latest" class="btn btn--secondary" target="_blank" rel="noopener noreferrer">Download from GitHub</a>
         </div>
 
@@ -230,7 +235,9 @@
             <p>
               No. After the initial installation, Obiter works fully offline.
               All citation formatting, validation, and bibliography generation
-              happens locally within your document.
+              happens locally within your document. Optional features &mdash;
+              AI assistance, source lookup, and update checks &mdash; require
+              a connection when used.
             </p>
           </div>
         </details>
@@ -238,9 +245,12 @@
           <summary class="faq__question">What data does Obiter collect?</summary>
           <div class="faq__answer">
             <p>
-              None. Obiter does not collect, transmit, or store any personal
-              data. All citation data remains in your document. See the
-              <a href="contact.html">contact page</a> for any privacy questions.
+              No personal data. All citation data remains in your document.
+              When the task pane opens, Obiter sends a single anonymous load
+              event (version numbers, platform, and a random device
+              identifier) so we can count usage. Optional features you enable
+              &mdash; AI assistance, source lookup, and error reporting &mdash;
+              are described in the <a href="privacy.html">privacy policy</a>.
             </p>
           </div>
         </details>

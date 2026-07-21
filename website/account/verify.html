@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify email — Obiter</title>
+  <meta name="description" content="Verify your Obiter account email address.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="account.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="../favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="/docs.html">Docs</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+        <li><a href="/download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main-content" role="main">
+    <div class="account-shell">
+      <div class="account-card">
+        <h1>Verify your email</h1>
+        <p class="account-lead" id="verify-lead">Confirm the email address on your Obiter account.</p>
+        <button type="button" class="account-btn" id="verify-btn">Verify my email</button>
+        <div id="account-status" class="account-status account-hidden" role="status" aria-live="polite"></div>
+        <div class="account-links">
+          <a href="auth.html">Go to sign in</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p class="site-footer__copy">&copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.</p>
+    </div>
+  </footer>
+
+  <script src="account.js"></script>
+  <script>
+    (function () {
+      var A = window.ObiterAccount;
+      var token = A.queryParam("token");
+      var btn = document.getElementById("verify-btn");
+      var statusEl = document.getElementById("account-status");
+
+      function status(message, kind) {
+        statusEl.textContent = message;
+        statusEl.className = "account-status account-status--" + (kind || "info");
+      }
+
+      if (!token) {
+        status("This verification link is missing its token. Please use the link from your email.", "error");
+        btn.disabled = true;
+        return;
+      }
+
+      btn.addEventListener("click", function () {
+        btn.disabled = true;
+        status("Verifying...", "info");
+        // The server responds with an HTML confirmation page (200) rather than
+        // JSON, so treat any 2xx as success.
+        fetch("/api/auth/verify-email/" + encodeURIComponent(token), { method: "POST" })
+          .then(function (res) {
+            if (res.ok) {
+              status("Your email is verified. You can now sign in.", "success");
+            } else {
+              status("This verification link is invalid or has already been used.", "error");
+            }
+          })
+          .catch(function () {
+            status("Something went wrong. Please try again later.", "error");
+            btn.disabled = false;
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

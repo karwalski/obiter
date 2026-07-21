@@ -53,7 +53,7 @@
       <div class="explainer">
 
         <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
-          Last updated: 27 April 2026
+          Last updated: 22 July 2026
         </p>
 
         <h2>Who We Are</h2>
@@ -73,6 +73,12 @@
           names, titles, years, report series, pinpoints, and short titles.
         </p>
         <p>
+          Obiter also keeps periodic backup snapshots of your citation library
+          inside the same Custom XML Part, and stores short fingerprint values
+          (hashes) in footnote content-control titles so it can detect manual
+          edits. These, too, live entirely inside the <code>.docx</code> file.
+        </p>
+        <p>
           All citation data remains under your full control. It is saved as part
           of your Word document and is not transmitted to any server during
           normal add-in operation.
@@ -90,8 +96,70 @@
           <li>LLM API keys (if configured)</li>
         </ul>
         <p>
-          No data stored in <code>localStorage</code> is transmitted to Obiter
-          servers.
+          You can delete all stored API keys at any time using the
+          <strong>Remove stored keys</strong> option in Settings.
+        </p>
+        <p>
+          Data stored in <code>localStorage</code> is not transmitted to Obiter
+          servers, with one exception: if you configure a custom LLM endpoint,
+          your API key accompanies each relayed request through the Obiter
+          server. See "Third-Party LLM Integration" below.
+        </p>
+
+        <h2>Optional Obiter Accounts</h2>
+        <p>
+          An Obiter account is entirely optional. Obiter works fully without an
+          account, and the "no account required, citation data never leaves the
+          document" promise is unchanged: using your own API key without an
+          account (BYOK) remains fully supported. You only create an account if
+          you want your settings to roam between devices, or to store your LLM
+          API keys server-side instead of on each device.
+        </p>
+        <p>
+          When you do create an account, we store on the obiter.com.au server:
+        </p>
+        <ul class="explainer__list">
+          <li>Your email address (for sign-in, verification, and account
+            notices).</li>
+          <li>Your password as an <strong>argon2id hash</strong> &mdash; never
+            the plain password, and the hash is not reversible.</li>
+          <li>Your LLM API keys, if you choose to store them, encrypted at rest
+            with <strong>AES-256-GCM</strong>.</li>
+          <li>Your synced settings (LLM configuration without any key, template
+            preferences, source toggles, and similar device preferences).</li>
+          <li>Account audit events (for example sign-in, key save, settings
+            update) recorded with the action, a timestamp, and a one-way
+            <strong>hashed</strong> IP address &mdash; never your raw IP.</li>
+          <li>If you enable multi-factor authentication, your TOTP secret,
+            encrypted at rest.</li>
+        </ul>
+        <p>
+          An account <strong>never stores your citation data or your
+          documents</strong>. Those stay inside your <code>.docx</code> file, as
+          described above, and are never synced to an account.
+        </p>
+        <p>
+          <strong>Stored API keys are write-only.</strong> Once a key is saved,
+          it is never returned to any browser again. It is decrypted only
+          in-process, on the server, at the moment the Obiter relay makes a
+          request to your chosen provider on your behalf; no endpoint exists that
+          reads a stored key back out. The task pane only ever sees the provider
+          name and the last four characters, for display.
+        </p>
+        <p>
+          <strong>Your data rights.</strong> While signed in, you can export a
+          JSON copy of your account data (your email, settings, and audit trail)
+          from Settings, and you can delete your account from Settings after a
+          re-authentication step. Deleting your account immediately purges your
+          synced settings and stored keys, revokes your sessions on all devices,
+          and anonymises your account record; both export and deletion are
+          recorded in the audit trail.
+        </p>
+        <p>
+          <strong>Retention.</strong> Account data is kept while the account is
+          active. Audit events are retained for up to 12 months and then pruned.
+          Deleted accounts are anonymised rather than kept, and their settings
+          and stored keys are removed at deletion time.
         </p>
 
         <h2>Anonymous Load Counting</h2>
@@ -155,13 +223,25 @@
         </ul>
         <p>
           API keys are stored locally in your browser and are never written to
-          your document or transmitted to the Obiter server. All LLM requests
-          go directly from your browser to the provider you have selected
-          (OpenAI, Anthropic, Google Gemini, xAI Grok, DeepSeek, or a custom
-          endpoint). No
-          request data, API keys, prompts, or responses pass through the Obiter
-          server. Obiter has no access to your LLM provider account or usage
-          data.
+          your document. Requests to the built-in providers (OpenAI, Anthropic,
+          Google Gemini, xAI Grok, DeepSeek) go directly from your browser to
+          the provider you have selected &mdash; no request data, API keys,
+          prompts, or responses pass through the Obiter server.
+        </p>
+        <p>
+          <strong>Custom endpoints are the exception.</strong> The add-in's
+          security policy only permits direct connections to the built-in
+          providers, so requests to a custom (user-configured) endpoint are
+          relayed through the Obiter server (obiter.com.au). Each relayed
+          request contains the prompt text, your API key, and the address of
+          your chosen endpoint. The server forwards the request to that
+          endpoint and returns the response to you. It does not log, store, or
+          retain any part of the request or response, including the API key.
+          If you prefer that no LLM traffic transit the Obiter server, use one
+          of the built-in providers instead.
+        </p>
+        <p>
+          Obiter has no access to your LLM provider account or usage data.
         </p>
         <p>
           You can disable LLM integration at any time in Settings.
@@ -201,6 +281,7 @@
           <li>The action that caused the error (e.g., "Insert Citation")</li>
           <li>Microsoft Word version and operating system</li>
           <li>Obiter version number</li>
+          <li>The citation standard and writing mode in use</li>
           <li>
             Form data (only if the user explicitly checks the "Include current
             form data" checkbox)
@@ -211,6 +292,15 @@
           reports are stored on the Obiter server and are used solely for
           debugging and improving the add-in. Reports can be deleted on request
           via the <a href="contact.html">contact form</a>.
+        </p>
+
+        <h2>Update Check</h2>
+        <p>
+          Once every 24 hours, the add-in queries GitHub's public releases API
+          to check whether a newer version of Obiter is available. The request
+          is unauthenticated and contains no personal data or identifiers.
+          Like any web request, it is subject to
+          <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's privacy statement</a>.
         </p>
 
         <h2>Website Contact Forms and Signatures</h2>
@@ -224,6 +314,15 @@
           a database. Email addresses are used for verification only and are
           never displayed publicly. Signatures can be withdrawn at any time by
           contacting the developer.
+        </p>
+
+        <h2>Security</h2>
+        <p>
+          A technical description of Obiter's data flows and security controls
+          is published in the project's
+          <a href="https://github.com/karwalski/obiter/blob/main/docs/THREAT-MODEL.md" target="_blank" rel="noopener noreferrer">threat model</a>
+          on GitHub. Release downloads can be verified against the
+          <code>SHA256SUMS.txt</code> file attached to each GitHub release.
         </p>
 
         <h2>Children</h2>

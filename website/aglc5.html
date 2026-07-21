@@ -8,7 +8,7 @@
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -380,7 +380,10 @@
               .edu.au email addresses are verified automatically. Other email domains
               require brief manual review.
             </p>
-            <div class="h-captcha" data-sitekey="cdacac10-5f38-4022-85e0-6198a8e6d19a" style="margin-bottom: 16px;"></div>
+            <!-- Cloudflare Turnstile (ACCT-002). The site key is public (non-secret)
+                 but environment-specific; replace TURNSTILE_SITE_KEY with the real
+                 site key at deploy. The matching server secret is TURNSTILE_SECRET. -->
+            <div class="cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY" style="margin-bottom: 16px;"></div>
             <div class="form-status" role="alert" aria-live="polite"></div>
             <button type="submit" class="btn btn--primary">Add My Name</button>
           </form>
@@ -464,13 +467,16 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Submitting\u2026";
 
-        // hCaptcha token
+        // Cloudflare Turnstile token
         var captchaResponse = "";
-        var captchaEl = form.querySelector('[name="h-captcha-response"]');
+        var captchaEl = form.querySelector('[name="cf-turnstile-response"]');
         if (captchaEl) captchaResponse = captchaEl.value;
+        if (!captchaResponse && typeof turnstile !== "undefined") {
+          try { captchaResponse = turnstile.getResponse(); } catch (e) { captchaResponse = ""; }
+        }
         if (!captchaResponse) {
           statusEl.className = "form-status form-status--error";
-          statusEl.textContent = "Please complete the captcha.";
+          statusEl.textContent = "Please complete the verification.";
           submitBtn.disabled = false;
           submitBtn.textContent = "Add My Name";
           return;
@@ -509,7 +515,7 @@
           .finally(function () {
             submitBtn.disabled = false;
             submitBtn.textContent = "Add My Name";
-            if (typeof hcaptcha !== "undefined") hcaptcha.reset();
+            if (typeof turnstile !== "undefined") turnstile.reset();
           });
       });
 

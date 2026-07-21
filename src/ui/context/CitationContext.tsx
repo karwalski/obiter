@@ -11,8 +11,12 @@ import {
 } from "../../word/selectionHandler";
 import { registerChangeListener, unregisterChangeListener } from "../../word/changeListener";
 import { refreshAllCitations } from "../../word/citationRefresher";
+import type { RefreshIssuesDetail } from "../../word/citationRefresher";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
+import { createLogger } from "../../debug/logger";
+
+const log = createLogger("CitationContext");
 
 /** Which field to auto-focus after navigating to Edit from a CC click. */
 export type FocusField = "pinpoint" | "format" | null;
@@ -73,9 +77,26 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
       void Word.run(async (context) => {
         try {
           const store = await getSharedStore();
-          await refreshAllCitations(context, store);
-        } catch {
+          const result = await refreshAllCitations(context, store);
+          // SAFE-003: surface partial failures and detected user edits
+          // instead of silently swallowing them. The Status/Recovery UI
+          // listens for `obiter:refresh-issues`.
+          if (result.failures.length > 0 || result.userEdits.length > 0) {
+            log.warn("Auto-refresh completed with issues", {
+              failures: result.failures,
+              userEditedFootnotes: result.userEdits.map((edit) => edit.footnoteNumber),
+            });
+            const detail: RefreshIssuesDetail = {
+              failures: result.failures,
+              userEdits: result.userEdits,
+            };
+            window.dispatchEvent(new CustomEvent("obiter:refresh-issues", { detail }));
+          }
+        } catch (err) {
           // Refresh failed — non-critical, will catch up on next trigger
+          log.error("Auto-refresh failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
         } finally {
           refreshingRef.current = false;
         }

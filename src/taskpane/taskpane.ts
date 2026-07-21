@@ -21,6 +21,7 @@ import { removeTemplateNotice } from "../word/templateExporter";
 import { writeObiterProperties } from "../word/documentProperties";
 import { APP_VERSION } from "../constants";
 import { detectProduct } from "../store/devicePreferences";
+import { installGlobalErrorHandlers } from "../debug/globalErrors";
 
 /** Check if this document has already been set up by Obiter. */
 async function isDocumentSetUp(): Promise<boolean> {
@@ -77,6 +78,10 @@ async function autoSetupDocument(): Promise<void> {
 }
 
 Office.onReady((info) => {
+  // SAFE-006: capture unhandled errors and promise rejections for the whole
+  // pane runtime. Idempotent — safe if onReady ever fires more than once.
+  installGlobalErrorHandlers();
+
   if (info.host === Office.HostType.Word) {
     const root = document.getElementById("root");
     if (!root) return;

@@ -49,6 +49,7 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
       const selection = context.document.getSelection();
       selection.paragraphs.load("items");
       await context.sync();
+      // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
       for (const para of selection.paragraphs.items ?? []) {
         para.style = "AGLC4 Block Quote";
       }
@@ -60,6 +61,7 @@ async function applyBlockQuote(event: Office.AddinCommands.Event) {
         const selection = context.document.getSelection();
         selection.paragraphs.load("items");
         await context.sync();
+        // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
         for (const para of selection.paragraphs.items ?? []) {
           para.font.size = 10;
           para.leftIndent = 36;
@@ -81,6 +83,7 @@ async function applyHeading(event: Office.AddinCommands.Event, level: number) {
       const selection = context.document.getSelection();
       selection.paragraphs.load("items");
       await context.sync();
+      // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
       for (const para of selection.paragraphs.items ?? []) {
         para.style = "Heading " + level;
         para.font.italic = level >= 2;
@@ -116,7 +119,9 @@ export function registerCommandFunctions(): void {
   Office.actions.associate("applyBlockQuote", applyBlockQuote);
   Office.actions.associate("applyHeadingI", (e: Office.AddinCommands.Event) => applyHeading(e, 1));
   Office.actions.associate("applyHeadingII", (e: Office.AddinCommands.Event) => applyHeading(e, 2));
-  Office.actions.associate("applyHeadingIII", (e: Office.AddinCommands.Event) => applyHeading(e, 3));
+  Office.actions.associate("applyHeadingIII", (e: Office.AddinCommands.Event) =>
+    applyHeading(e, 3)
+  );
   Office.actions.associate("applyHeadingIV", (e: Office.AddinCommands.Event) => applyHeading(e, 4));
   Office.actions.associate("applyHeadingV", (e: Office.AddinCommands.Event) => applyHeading(e, 5));
 }

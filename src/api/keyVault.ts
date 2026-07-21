@@ -52,11 +52,38 @@ export function removeKey(adapterId: string): void {
 }
 
 /**
+ * TRUST-006: Remove ALL stored source-adapter API keys.
+ *
+ * Enumerates every localStorage entry under the key-vault namespace
+ * (`obiter-device.sourceKey.*`) and deletes it, so keys survive even for
+ * adapters that no longer exist in the registry. Returns the number of
+ * entries removed.
+ */
+export function removeAllKeys(): number {
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const name = localStorage.key(i);
+      if (name && name.startsWith(KEY_PREFIX)) {
+        toRemove.push(name);
+      }
+    }
+    for (const name of toRemove) {
+      localStorage.removeItem(name);
+    }
+    return toRemove.length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Check whether an API key is stored for a source adapter.
  */
 export function hasKey(adapterId: string): boolean {
   try {
     const val = localStorage.getItem(KEY_PREFIX + adapterId);
+    // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain string from localStorage, not an Office proxy
     return val !== null && val.length > 0;
   } catch {
     return false;

@@ -6,6 +6,7 @@
   <title>Admin — Obiter</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     /* Admin-specific styles using existing CSS variables */
 
@@ -240,6 +241,96 @@
       overflow: visible;
     }
 
+    /* ADM-002/003/004 additions */
+
+    .status-badge--active { background: #E8F5E9; color: #2E7D32; }
+    .status-badge--locked { background: #FFEBEE; color: #C62828; }
+    .status-badge--deleted { background: var(--colour-surface); color: var(--colour-text-secondary); }
+
+    .btn-neutral {
+      background: var(--colour-surface);
+      color: var(--colour-text-secondary);
+      border-color: var(--colour-border);
+    }
+
+    .btn-neutral:hover { background: var(--colour-border); }
+
+    .stat-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .stat-card {
+      flex: 1;
+      min-width: 160px;
+      padding: var(--space-md);
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-md);
+      background: var(--colour-surface);
+    }
+
+    .stat-card__label {
+      font-size: 0.75rem;
+      color: var(--colour-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-card__value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 2px 0;
+    }
+
+    .stat-card__sub {
+      font-size: 0.75rem;
+      color: var(--colour-text-secondary);
+    }
+
+    /* In-page confirmation modal (no window.confirm / window.prompt) */
+    .admin-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 42, 56, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: var(--space-lg);
+    }
+
+    .admin-modal-overlay.is-open { display: flex; }
+
+    .admin-modal {
+      background: var(--colour-bg);
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      max-width: 460px;
+      width: 100%;
+    }
+
+    .admin-modal h3 { font-size: 1.125rem; margin-bottom: var(--space-md); }
+    .admin-modal p { color: var(--colour-text-secondary); font-size: 0.9375rem; line-height: 1.5; }
+    .admin-modal input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--colour-border);
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      box-sizing: border-box;
+      margin-top: var(--space-md);
+    }
+    .admin-modal__actions {
+      display: flex;
+      gap: var(--space-sm);
+      justify-content: flex-end;
+      margin-top: var(--space-lg);
+    }
+    .admin-modal__status { font-size: 0.8125rem; color: #C62828; margin-top: var(--space-sm); min-height: 1em; }
+
     @media (max-width: 768px) {
       .admin-table {
         font-size: 0.8125rem;
@@ -262,9 +353,18 @@
       <h1>Admin</h1>
       <form id="login-form">
         <div class="form-group">
-          <label for="admin-token">Token</label>
-          <input type="password" id="admin-token" name="token" autocomplete="off" required>
+          <label for="admin-email">Email</label>
+          <input type="email" id="admin-email" name="email" autocomplete="username" required>
         </div>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" name="password" autocomplete="current-password" required>
+        </div>
+        <div class="form-group" id="mfa-group" style="display: none;">
+          <label for="admin-mfa">Authentication code</label>
+          <input type="text" id="admin-mfa" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9A-Za-z-]*">
+        </div>
+        <div class="cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY"></div>
         <div class="form-status" id="login-status" role="alert" aria-live="polite"></div>
         <button type="submit" class="btn btn--primary" style="width: 100%; justify-content: center; margin-top: var(--space-lg);">Sign In</button>
       </form>
@@ -292,6 +392,8 @@
         <button class="admin-tab is-active" data-tab="signatures">Signatures</button>
         <button class="admin-tab" data-tab="contacts">Contacts</button>
         <button class="admin-tab" data-tab="errors">Error Reports</button>
+        <button class="admin-tab" data-tab="users">Users</button>
+        <button class="admin-tab" data-tab="audit">Audit</button>
         <button class="admin-tab" data-tab="analytics">Analytics</button>
         <button class="admin-tab" data-tab="settings">Settings</button>
       </div>
@@ -370,6 +472,61 @@
         <div class="admin-empty" id="error-empty" style="display: none;">No error reports found.</div>
       </div>
 
+      <!-- Users Panel (ADM-002) -->
+      <div class="admin-panel" id="panel-users">
+        <div class="admin-toolbar">
+          <input type="text" class="admin-filter" id="user-search" placeholder="Search by email" style="min-width: 240px;">
+          <button class="admin-filter" id="user-search-btn" style="cursor:pointer;">Search</button>
+          <button class="admin-filter" id="user-prev" style="cursor:pointer;">&larr; Previous</button>
+          <button class="admin-filter" id="user-next" style="cursor:pointer;">Next &rarr;</button>
+          <span class="admin-count" id="user-count"></span>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Status</th>
+              <th>MFA</th>
+              <th>Keys</th>
+              <th>Failed</th>
+              <th>Created</th>
+              <th>Last login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-tbody"></tbody>
+        </table>
+        <div class="admin-empty" id="user-empty" style="display: none;">No users found.</div>
+      </div>
+
+      <!-- Audit Panel (ADM-003) -->
+      <div class="admin-panel" id="panel-audit">
+        <div class="stat-cards" id="audit-summary"></div>
+        <div class="admin-toolbar">
+          <input type="text" class="admin-filter" id="audit-user" placeholder="User id" style="width: 100px;">
+          <input type="text" class="admin-filter" id="audit-action" placeholder="Action" style="min-width: 180px;">
+          <input type="date" class="admin-filter" id="audit-from" title="From date">
+          <input type="date" class="admin-filter" id="audit-to" title="To date">
+          <button class="admin-filter" id="audit-apply" style="cursor:pointer;">Apply</button>
+          <button class="admin-filter" id="audit-prev" style="cursor:pointer;">&larr; Previous</button>
+          <button class="admin-filter" id="audit-next" style="cursor:pointer;">Next &rarr;</button>
+          <span class="admin-count" id="audit-count"></span>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>User</th>
+              <th>Actor</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody id="audit-tbody"></tbody>
+        </table>
+        <div class="admin-empty" id="audit-empty" style="display: none;">No audit entries found.</div>
+      </div>
+
       <!-- Analytics Panel -->
       <div class="admin-panel" id="panel-analytics">
         <div class="admin-toolbar">
@@ -385,6 +542,10 @@
 
         <!-- SITE-ANALYTICS-01: headline stats (last 30 days vs prior 30) + this-window totals -->
         <div id="analytics-stats" style="display:flex; flex-wrap:wrap; gap:var(--space-md); margin-bottom:var(--space-lg);"></div>
+
+        <!-- ADM-004: account stats (last 30 days; counts only, no per-user data) -->
+        <div style="font-size:0.8125rem; font-weight:600; color:var(--colour-text-secondary); margin-bottom:var(--space-xs);">Accounts (last 30 days)</div>
+        <div class="stat-cards" id="account-stats"></div>
 
         <div style="display:flex; flex-wrap:wrap; gap:var(--space-lg); margin-bottom:var(--space-lg);">
           <div style="flex:1; min-width:240px;">
@@ -432,12 +593,31 @@
     </div>
   </div>
 
+  <!-- In-page typed-confirmation modal (ADM-002) -->
+  <div class="admin-modal-overlay" id="confirm-modal">
+    <div class="admin-modal">
+      <h3 id="confirm-title">Confirm</h3>
+      <p id="confirm-message"></p>
+      <input type="text" id="confirm-input" autocomplete="off" spellcheck="false">
+      <div class="admin-modal__status" id="confirm-status"></div>
+      <div class="admin-modal__actions">
+        <button class="btn-mark-read" id="confirm-cancel" style="padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer; border:1px solid var(--colour-border);">Cancel</button>
+        <button class="btn-reject" id="confirm-ok" style="padding:8px 16px; border-radius:var(--radius-sm); cursor:pointer;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   (function () {
     "use strict";
 
     var API_BASE = "/api";
-    var token = sessionStorage.getItem("adminToken") || "";
+    // Account access token (short-lived) held in memory + mirrored to
+    // sessionStorage; refresh token (long-lived) rotates via /api/auth/refresh.
+    var accessToken = sessionStorage.getItem("adminAccessToken") || "";
+    var refreshToken = sessionStorage.getItem("adminRefreshToken") || "";
+    // Set while an MFA challenge is pending after a password step.
+    var pendingMfaToken = "";
 
     // -------------------------------------------------------
     // Elements
@@ -448,7 +628,10 @@
     var adminNav = document.getElementById("admin-nav");
     var loginForm = document.getElementById("login-form");
     var loginStatus = document.getElementById("login-status");
-    var tokenInput = document.getElementById("admin-token");
+    var emailInput = document.getElementById("admin-email");
+    var passwordInput = document.getElementById("admin-password");
+    var mfaGroup = document.getElementById("mfa-group");
+    var mfaInput = document.getElementById("admin-mfa");
     var logoutLink = document.getElementById("logout-link");
     var sigFilter = document.getElementById("sig-filter");
     var sigTbody = document.getElementById("sig-tbody");
@@ -466,7 +649,64 @@
     // -------------------------------------------------------
 
     function authHeaders() {
-      return { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+      return { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" };
+    }
+
+    function storeTokens(access, refresh) {
+      accessToken = access || "";
+      refreshToken = refresh || "";
+      sessionStorage.setItem("adminAccessToken", accessToken);
+      sessionStorage.setItem("adminRefreshToken", refreshToken);
+    }
+
+    function clearTokens() {
+      accessToken = "";
+      refreshToken = "";
+      pendingMfaToken = "";
+      sessionStorage.removeItem("adminAccessToken");
+      sessionStorage.removeItem("adminRefreshToken");
+    }
+
+    // Attempt an access-token refresh. Resolves true on success.
+    function tryRefresh() {
+      if (!refreshToken) return Promise.resolve(false);
+      return fetch(API_BASE + "/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refreshToken })
+      })
+        .then(function (r) {
+          if (!r.ok) return false;
+          return r.json().then(function (data) {
+            if (data && data.accessToken) {
+              storeTokens(data.accessToken, data.refreshToken || refreshToken);
+              return true;
+            }
+            return false;
+          });
+        })
+        .catch(function () { return false; });
+    }
+
+    // Authenticated fetch: injects the current access token and, on a 401,
+    // refreshes once and retries. On terminal 401 it returns to the login screen.
+    function apiFetch(url, opts) {
+      opts = opts || {};
+      var headers = Object.assign({}, opts.headers || {});
+      headers["Authorization"] = "Bearer " + accessToken;
+      var attempt = Object.assign({}, opts, { headers: headers });
+      return fetch(url, attempt).then(function (r) {
+        if (r.status !== 401) return r;
+        return tryRefresh().then(function (ok) {
+          if (!ok) { showLogin(); return r; }
+          var retryHeaders = Object.assign({}, opts.headers || {});
+          retryHeaders["Authorization"] = "Bearer " + accessToken;
+          return fetch(url, Object.assign({}, opts, { headers: retryHeaders })).then(function (r2) {
+            if (r2.status === 401) showLogin();
+            return r2;
+          });
+        });
+      });
     }
 
     function showDashboard() {
@@ -476,6 +716,8 @@
       loadSignatures();
       loadContacts();
       loadErrors();
+      loadUsers();
+      loadAudit();
       loadAnalytics();
     }
 
@@ -483,13 +725,20 @@
       loginScreen.style.display = "";
       dashboard.style.display = "none";
       adminNav.style.display = "none";
-      token = "";
-      sessionStorage.removeItem("adminToken");
+      clearTokens();
+      mfaGroup.style.display = "none";
+      if (typeof turnstile !== "undefined") { try { turnstile.reset(); } catch (e) {} }
     }
 
-    // Auto-login if token is stored
-    if (token) {
-      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+    function turnstileToken() {
+      var el = document.querySelector("[name='cf-turnstile-response']");
+      return el ? el.value : "";
+    }
+
+    // Auto-login if a session is stored: probe an admin endpoint (apiFetch will
+    // refresh a stale access token transparently).
+    if (accessToken || refreshToken) {
+      apiFetch(API_BASE + "/admin/signatures", { headers: {} })
         .then(function (r) {
           if (r.ok) { showDashboard(); }
           else { showLogin(); }
@@ -497,34 +746,92 @@
         .catch(function () { showLogin(); });
     }
 
+    function loginFailed(message) {
+      loginStatus.className = "form-status form-status--error";
+      loginStatus.textContent = message;
+      if (typeof turnstile !== "undefined") { try { turnstile.reset(); } catch (e) {} }
+    }
+
+    // Exchange a pending MFA challenge for a full token pair, then enter.
+    function submitMfa(code) {
+      fetch(API_BASE + "/auth/mfa/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mfaToken: pendingMfaToken, code: code })
+      })
+        .then(function (r) {
+          return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+        })
+        .then(function (res) {
+          if (res.ok && res.data.accessToken) {
+            pendingMfaToken = "";
+            storeTokens(res.data.accessToken, res.data.refreshToken);
+            showDashboard();
+          } else {
+            loginFailed((res.data && res.data.error) || "That code is not valid.");
+          }
+        })
+        .catch(function () { loginFailed("Unable to connect to server."); });
+    }
+
     loginForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      token = tokenInput.value.trim();
-      if (!token) return;
-
       loginStatus.className = "form-status";
       loginStatus.textContent = "";
 
-      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+      // If an MFA challenge is already pending, submit the code.
+      if (pendingMfaToken) {
+        var code = mfaInput.value.trim();
+        if (!code) { loginFailed("Enter your authentication code."); return; }
+        submitMfa(code);
+        return;
+      }
+
+      var email = emailInput.value.trim();
+      var password = passwordInput.value;
+      if (!email || !password) return;
+
+      fetch(API_BASE + "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password, turnstileToken: turnstileToken() })
+      })
         .then(function (r) {
-          if (r.ok) {
-            sessionStorage.setItem("adminToken", token);
+          return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+        })
+        .then(function (res) {
+          if (!res.ok) {
+            loginFailed((res.data && res.data.error) || "Invalid credentials.");
+            return;
+          }
+          if (res.data.mfaRequired) {
+            // Admins always have MFA — prompt for the code and re-submit.
+            pendingMfaToken = res.data.mfaToken;
+            mfaGroup.style.display = "";
+            mfaInput.focus();
+            loginStatus.className = "form-status";
+            loginStatus.textContent = "Enter your authentication code.";
+            return;
+          }
+          if (res.data.accessToken) {
+            storeTokens(res.data.accessToken, res.data.refreshToken);
             showDashboard();
           } else {
-            loginStatus.className = "form-status form-status--error";
-            loginStatus.textContent = "Invalid token.";
-            token = "";
+            loginFailed("Invalid credentials.");
           }
         })
-        .catch(function () {
-          loginStatus.className = "form-status form-status--error";
-          loginStatus.textContent = "Unable to connect to server.";
-          token = "";
-        });
+        .catch(function () { loginFailed("Unable to connect to server."); });
     });
 
     logoutLink.addEventListener("click", function (e) {
       e.preventDefault();
+      if (refreshToken) {
+        fetch(API_BASE + "/auth/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken: refreshToken })
+        }).catch(function () {});
+      }
       showLogin();
     });
 
@@ -548,7 +855,7 @@
     var allSignatures = [];
 
     function loadSignatures() {
-      fetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
+      apiFetch(API_BASE + "/admin/signatures", { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           allSignatures = data.signatures || [];
@@ -585,7 +892,7 @@
         btn.addEventListener("click", function () {
           var action = btn.dataset.action;
           var id = btn.dataset.id;
-          fetch(API_BASE + "/admin/signatures/" + id + "/" + action, {
+          apiFetch(API_BASE + "/admin/signatures/" + id + "/" + action, {
             method: "POST",
             headers: authHeaders()
           })
@@ -625,7 +932,7 @@
       var institution = prompt("Institution (leave blank to clear):", btn.dataset.institution);
       if (institution === null) return;
 
-      fetch(API_BASE + "/admin/signatures/" + id + "/edit", {
+      apiFetch(API_BASE + "/admin/signatures/" + id + "/edit", {
         method: "POST",
         headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
         body: JSON.stringify({ name: name, title: title, institution: institution })
@@ -641,7 +948,7 @@
     // -------------------------------------------------------
 
     function loadContacts() {
-      fetch(API_BASE + "/admin/contacts", { headers: authHeaders() })
+      apiFetch(API_BASE + "/admin/contacts", { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var contacts = data.contacts || [];
@@ -667,7 +974,7 @@
 
           contactTbody.querySelectorAll("[data-contact-id]").forEach(function (btn) {
             btn.addEventListener("click", function () {
-              fetch(API_BASE + "/admin/contacts/" + btn.dataset.contactId + "/read", {
+              apiFetch(API_BASE + "/admin/contacts/" + btn.dataset.contactId + "/read", {
                 method: "POST",
                 headers: authHeaders()
               })
@@ -686,7 +993,7 @@
     // -------------------------------------------------------
 
     function loadErrors() {
-      fetch(API_BASE + "/admin/errors", { headers: authHeaders() })
+      apiFetch(API_BASE + "/admin/errors", { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var errors = data.errors || [];
@@ -725,7 +1032,7 @@
 
           errorTbody.querySelectorAll("[data-error-id]").forEach(function (btn) {
             btn.addEventListener("click", function () {
-              fetch(API_BASE + "/admin/errors/" + btn.dataset.errorId + "/read", {
+              apiFetch(API_BASE + "/admin/errors/" + btn.dataset.errorId + "/read", {
                 method: "POST",
                 headers: authHeaders()
               })
@@ -787,13 +1094,15 @@
       var range = getAnalyticsDateRange();
       analyticsRange.textContent = range.start + " to " + range.end;
 
-      fetch(API_BASE + "/admin/analytics?start=" + range.start + "&end=" + range.end, { headers: authHeaders() })
+      apiFetch(API_BASE + "/admin/analytics?start=" + range.start + "&end=" + range.end, { headers: authHeaders() })
         .then(function (r) { return r.json(); })
         .then(function (data) {
           renderAnalyticsSummary(data);
           renderAnalyticsChart(data, range);
         })
         .catch(function (err) { console.error("Failed to load analytics:", err); });
+
+      loadAccountStats();
     }
 
     // SITE-ANALYTICS-01: headline stat cards + product/version breakdowns.
@@ -1020,6 +1329,244 @@
     });
 
     // -------------------------------------------------------
+    // Confirmation modal (ADM-002) — in-page, no window.confirm/prompt
+    // -------------------------------------------------------
+
+    var confirmModal = document.getElementById("confirm-modal");
+    var confirmTitle = document.getElementById("confirm-title");
+    var confirmMessage = document.getElementById("confirm-message");
+    var confirmInput = document.getElementById("confirm-input");
+    var confirmStatus = document.getElementById("confirm-status");
+    var confirmOk = document.getElementById("confirm-ok");
+    var confirmCancel = document.getElementById("confirm-cancel");
+    var confirmResolver = null;
+    var confirmExpected = null;
+
+    function openConfirm(title, message, expectedPhrase) {
+      confirmTitle.textContent = title;
+      confirmMessage.textContent = message;
+      confirmExpected = expectedPhrase;
+      confirmInput.value = "";
+      confirmInput.placeholder = expectedPhrase;
+      confirmStatus.textContent = "";
+      confirmModal.classList.add("is-open");
+      confirmInput.focus();
+      return new Promise(function (resolve) { confirmResolver = resolve; });
+    }
+
+    function closeConfirm(value) {
+      confirmModal.classList.remove("is-open");
+      if (confirmResolver) { confirmResolver(value); confirmResolver = null; }
+    }
+
+    confirmOk.addEventListener("click", function () {
+      if (confirmInput.value !== confirmExpected) {
+        confirmStatus.textContent = "The phrase does not match.";
+        return;
+      }
+      closeConfirm(confirmInput.value);
+    });
+    confirmCancel.addEventListener("click", function () { closeConfirm(null); });
+    confirmModal.addEventListener("click", function (e) { if (e.target === confirmModal) closeConfirm(null); });
+
+    // -------------------------------------------------------
+    // Users (ADM-002)
+    // -------------------------------------------------------
+
+    var userSearch = document.getElementById("user-search");
+    var userSearchBtn = document.getElementById("user-search-btn");
+    var userPrev = document.getElementById("user-prev");
+    var userNext = document.getElementById("user-next");
+    var userCount = document.getElementById("user-count");
+    var userTbody = document.getElementById("user-tbody");
+    var userEmpty = document.getElementById("user-empty");
+    var userLimit = 50;
+    var userOffset = 0;
+
+    function loadUsers() {
+      var q = userSearch.value.trim();
+      var url = API_BASE + "/admin/users?limit=" + userLimit + "&offset=" + userOffset;
+      if (q) url += "&q=" + encodeURIComponent(q);
+      apiFetch(url, { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var users = data.users || [];
+          userCount.textContent = (data.total || 0) + " user" + (data.total !== 1 ? "s" : "") +
+            " (showing " + (users.length ? (userOffset + 1) : 0) + "-" + (userOffset + users.length) + ")";
+          userEmpty.style.display = users.length === 0 ? "" : "none";
+          userTbody.innerHTML = "";
+          users.forEach(function (u) {
+            var tr = document.createElement("tr");
+            tr.innerHTML = [
+              "<td>" + esc(u.email) + (u.role === "admin" ? " <span class=\"status-badge status-badge--verified\">admin</span>" : "") + "</td>",
+              "<td><span class=\"status-badge status-badge--" + esc(u.status) + "\">" + esc(u.status) + "</span></td>",
+              "<td>" + (u.mfaEnabled ? "On" : "Off") + "</td>",
+              "<td>" + (u.keyCount || 0) + "</td>",
+              "<td>" + (u.failedLoginCount || 0) + "</td>",
+              "<td>" + formatDate(u.createdAt) + "</td>",
+              "<td>" + (u.lastLoginAt ? formatDate(u.lastLoginAt) : "&mdash;") + "</td>",
+              "<td class=\"admin-actions\">" + userActions(u) + "</td>"
+            ].join("");
+            userTbody.appendChild(tr);
+          });
+          attachUserActions();
+        })
+        .catch(function (err) { console.error("Failed to load users:", err); });
+    }
+
+    function userActions(u) {
+      var btns = "";
+      if (u.status === "locked") {
+        btns += "<button class=\"btn-approve\" data-user-action=\"unlock\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Unlock</button>";
+      } else if (u.status !== "deleted") {
+        btns += "<button class=\"btn-reject\" data-user-action=\"lock\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Lock</button>";
+      }
+      if (u.status !== "deleted") {
+        btns += "<button class=\"btn-neutral\" data-user-action=\"force-password-reset\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Reset password</button>";
+        if (u.mfaEnabled) {
+          btns += "<button class=\"btn-neutral\" data-user-action=\"mfa-reset\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Reset MFA</button>";
+        }
+        if (!u.emailVerified) {
+          btns += "<button class=\"btn-neutral\" data-user-action=\"resend-verification\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Resend verify</button>";
+        }
+        btns += "<button class=\"btn-reject\" data-user-action=\"delete\" data-id=\"" + u.id + "\" data-email=\"" + esc(u.email) + "\">Delete</button>";
+      }
+      return btns;
+    }
+
+    function postUserAction(id, action, body) {
+      return apiFetch(API_BASE + "/admin/users/" + id + "/" + action, {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+        body: JSON.stringify(body || {})
+      });
+    }
+
+    function attachUserActions() {
+      userTbody.querySelectorAll("[data-user-action]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var action = btn.dataset.userAction;
+          var id = btn.dataset.id;
+          var email = btn.dataset.email;
+
+          if (action === "mfa-reset") {
+            openConfirm("Reset MFA", "Complete an out-of-band identity check before resetting MFA. Type the phrase below to confirm.", "RESET MFA " + email)
+              .then(function (phrase) { if (phrase) postUserAction(id, "mfa-reset", { confirm: phrase }).then(function (r) { if (r.ok) loadUsers(); }); });
+            return;
+          }
+          if (action === "delete") {
+            openConfirm("Delete account", "This purges the account's keys, settings and sessions and anonymises the record. This cannot be undone. Type the phrase below to confirm.", "DELETE " + email)
+              .then(function (phrase) { if (phrase) postUserAction(id, "delete", { confirm: phrase }).then(function (r) { if (r.ok) loadUsers(); }); });
+            return;
+          }
+          if (action === "lock") {
+            postUserAction(id, "lock", { reason: "" }).then(function (r) { if (r.ok) loadUsers(); });
+            return;
+          }
+          postUserAction(id, action, {}).then(function (r) { if (r.ok) loadUsers(); });
+        });
+      });
+    }
+
+    userSearchBtn.addEventListener("click", function () { userOffset = 0; loadUsers(); });
+    userSearch.addEventListener("keydown", function (e) { if (e.key === "Enter") { userOffset = 0; loadUsers(); } });
+    userPrev.addEventListener("click", function () { if (userOffset >= userLimit) { userOffset -= userLimit; loadUsers(); } });
+    userNext.addEventListener("click", function () { userOffset += userLimit; loadUsers(); });
+
+    // -------------------------------------------------------
+    // Audit viewer (ADM-003)
+    // -------------------------------------------------------
+
+    var auditUser = document.getElementById("audit-user");
+    var auditAction = document.getElementById("audit-action");
+    var auditFrom = document.getElementById("audit-from");
+    var auditTo = document.getElementById("audit-to");
+    var auditApply = document.getElementById("audit-apply");
+    var auditPrev = document.getElementById("audit-prev");
+    var auditNext = document.getElementById("audit-next");
+    var auditCount = document.getElementById("audit-count");
+    var auditTbody = document.getElementById("audit-tbody");
+    var auditEmpty = document.getElementById("audit-empty");
+    var auditSummary = document.getElementById("audit-summary");
+    var auditLimit = 50;
+    var auditOffset = 0;
+
+    function loadAudit() {
+      var url = API_BASE + "/admin/audit?limit=" + auditLimit + "&offset=" + auditOffset;
+      var u = auditUser.value.trim();
+      var a = auditAction.value.trim();
+      if (u) url += "&user=" + encodeURIComponent(u);
+      if (a) url += "&action=" + encodeURIComponent(a);
+      if (auditFrom.value) url += "&from=" + encodeURIComponent(auditFrom.value);
+      if (auditTo.value) url += "&to=" + encodeURIComponent(auditTo.value);
+
+      apiFetch(url, { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          renderAuditSummary(data.summary || {});
+          var entries = data.entries || [];
+          auditCount.textContent = (data.total || 0) + " entr" + (data.total !== 1 ? "ies" : "y") +
+            " (showing " + (entries.length ? (auditOffset + 1) : 0) + "-" + (auditOffset + entries.length) + ")";
+          auditEmpty.style.display = entries.length === 0 ? "" : "none";
+          auditTbody.innerHTML = "";
+          entries.forEach(function (e) {
+            var tr = document.createElement("tr");
+            tr.innerHTML = [
+              "<td>" + formatDateTime(e.createdAt) + "</td>",
+              "<td>" + esc(e.action) + "</td>",
+              "<td>" + (e.userId != null ? esc(String(e.userId)) : "&mdash;") + "</td>",
+              "<td>" + esc(e.actor || "") + "</td>",
+              "<td class=\"message-cell\" title=\"" + esc(e.detail || "") + "\">" + esc(e.detail || "") + "</td>"
+            ].join("");
+            auditTbody.appendChild(tr);
+          });
+        })
+        .catch(function (err) { console.error("Failed to load audit log:", err); });
+    }
+
+    function renderAuditSummary(s) {
+      function card(label, value, sub) {
+        return '<div class="stat-card"><div class="stat-card__label">' + label + '</div>' +
+          '<div class="stat-card__value">' + value + '</div>' +
+          '<div class="stat-card__sub">' + (sub || "") + '</div></div>';
+      }
+      auditSummary.innerHTML =
+        card("Failed logins (24h)", s.failedLogins24h || 0, (s.failedLogins7d || 0) + " in 7 days") +
+        card("Lockouts (24h)", s.lockouts24h || 0, (s.lockouts7d || 0) + " in 7 days") +
+        card("MFA resets (7d)", s.mfaResets7d || 0, "") +
+        card("Admin actions (24h)", s.adminActions24h || 0, "");
+    }
+
+    auditApply.addEventListener("click", function () { auditOffset = 0; loadAudit(); });
+    auditPrev.addEventListener("click", function () { if (auditOffset >= auditLimit) { auditOffset -= auditLimit; loadAudit(); } });
+    auditNext.addEventListener("click", function () { auditOffset += auditLimit; loadAudit(); });
+
+    // -------------------------------------------------------
+    // Account stats (ADM-004) — rendered inside the Analytics tab
+    // -------------------------------------------------------
+
+    function loadAccountStats() {
+      apiFetch(API_BASE + "/admin/account-stats", { headers: authHeaders() })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var el = document.getElementById("account-stats");
+          if (!el) return;
+          function card(label, value, sub) {
+            return '<div class="stat-card"><div class="stat-card__label">' + label + '</div>' +
+              '<div class="stat-card__value">' + value + '</div>' +
+              '<div class="stat-card__sub">' + (sub || "") + '</div></div>';
+          }
+          el.innerHTML =
+            card("Total accounts", (data.totalAccounts || 0).toLocaleString(), (data.newAccounts || 0) + " new in window") +
+            card("Active (30d)", (data.activeAccounts || 0).toLocaleString(), "signed in this window") +
+            card("MFA adoption", (data.mfaAdoptionPct || 0) + "%", (data.mfaAccounts || 0) + " accounts") +
+            card("Vault-key adoption", (data.vaultKeyAdoptionPct || 0) + "%", (data.vaultKeyAccounts || 0) + " accounts") +
+            card("Synced settings", (data.settingsAdoptionPct || 0) + "%", (data.settingsAccounts || 0) + " accounts");
+        })
+        .catch(function (err) { console.error("Failed to load account stats:", err); });
+    }
+
+    // -------------------------------------------------------
     // Helpers
     // -------------------------------------------------------
 
@@ -1034,6 +1581,12 @@
       if (!iso) return "";
       var d = new Date(iso);
       return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      return d.toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     }
   })();
   </script>

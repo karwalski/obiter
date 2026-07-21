@@ -178,6 +178,60 @@ async function sendVerificationEmail(to, name, token) {
 }
 
 /**
+ * Send an account email-verification message (ACCT-001).
+ * Mirrors sendVerificationEmail: the link points at a GET confirmation page and
+ * the POST-confirm anti-scanner pattern performs the actual verification.
+ */
+async function sendAccountVerification(to, token) {
+  var siteUrl = process.env.SITE_URL || "https://obiter.com.au";
+  var verifyUrl = siteUrl + "/api/auth/verify-email/" + token;
+
+  var subject = "Verify your email - Obiter account";
+
+  var html = [
+    "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #1E2A38;\">",
+    "  <h2 style=\"font-size: 1.25rem; margin-bottom: 16px;\">Verify your email</h2>",
+    "  <p>Thank you for creating an Obiter account.</p>",
+    "  <p>Please confirm your email address by clicking the link below:</p>",
+    "  <p style=\"margin: 24px 0;\">",
+    "    <a href=\"" + verifyUrl + "\" style=\"display: inline-block; padding: 12px 24px; background-color: #2AA198; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 600;\">Verify my email</a>",
+    "  </p>",
+    "  <p style=\"font-size: 0.875rem; color: #5A6577;\">If you did not create this account, you can safely ignore this email.</p>",
+    "  <hr style=\"border: none; border-top: 1px solid #D1D5DB; margin: 24px 0;\">",
+    "  <p style=\"font-size: 0.8125rem; color: #5A6577;\">Obiter &mdash; obiter.com.au</p>",
+    "</div>"
+  ].join("\n");
+
+  await sendEmail(to, subject, html);
+}
+
+/**
+ * Send a password-reset email (ACCT-006).
+ * Mirrors sendAccountVerification: the link points at a GET confirmation page
+ * and the POST-confirm anti-scanner pattern performs the actual reset. The
+ * resetUrl is built by the caller; passed through verbatim.
+ */
+async function sendPasswordReset(to, resetUrl) {
+  var subject = "Reset your password - Obiter account";
+
+  var html = [
+    "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #1E2A38;\">",
+    "  <h2 style=\"font-size: 1.25rem; margin-bottom: 16px;\">Reset your password</h2>",
+    "  <p>We received a request to reset the password on your Obiter account.</p>",
+    "  <p>Click the link below to choose a new password. This link expires in 30 minutes and can be used only once.</p>",
+    "  <p style=\"margin: 24px 0;\">",
+    "    <a href=\"" + resetUrl + "\" style=\"display: inline-block; padding: 12px 24px; background-color: #2AA198; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 600;\">Reset my password</a>",
+    "  </p>",
+    "  <p style=\"font-size: 0.875rem; color: #5A6577;\">If you did not request a password reset, you can safely ignore this email. Your password will not change.</p>",
+    "  <hr style=\"border: none; border-top: 1px solid #D1D5DB; margin: 24px 0;\">",
+    "  <p style=\"font-size: 0.8125rem; color: #5A6577;\">Obiter &mdash; obiter.com.au</p>",
+    "</div>"
+  ].join("\n");
+
+  await sendEmail(to, subject, html);
+}
+
+/**
  * Send a notification to the admin when a new contact form submission arrives.
  */
 async function sendContactNotification(contact) {
@@ -292,6 +346,8 @@ async function sendErrorNotification(report) {
 
 module.exports = {
   sendVerificationEmail,
+  sendAccountVerification,
+  sendPasswordReset,
   sendContactNotification,
   sendAdminNotification,
   sendErrorNotification

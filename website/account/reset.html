@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset password — Obiter</title>
+  <meta name="description" content="Reset your Obiter account password.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="account.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="../favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="/docs.html">Docs</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+        <li><a href="/download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main-content" role="main">
+    <div class="account-shell">
+      <div class="account-card">
+
+        <!-- ── Request a reset (no token in URL) ────────────────────────── -->
+        <div id="view-request">
+          <h1>Reset your password</h1>
+          <p class="account-lead">Enter your account email. If it matches an account, we will send a reset link.</p>
+          <form id="form-request">
+            <label class="account-field">Email
+              <input type="email" id="request-email" autocomplete="username" required>
+            </label>
+            <div class="account-turnstile cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY"></div>
+            <button type="submit" class="account-btn" id="request-submit">Send reset link</button>
+          </form>
+        </div>
+
+        <!-- ── Confirm a reset (token in URL) ───────────────────────────── -->
+        <div id="view-confirm" class="account-hidden">
+          <h1>Choose a new password</h1>
+          <p class="account-lead">Enter a new password. Accounts with multi-factor authentication also need a current code.</p>
+          <form id="form-confirm">
+            <label class="account-field">New password
+              <input type="password" id="confirm-password" autocomplete="new-password" minlength="8" required>
+            </label>
+            <label class="account-field">Authenticator code (only if MFA is enabled)
+              <input type="text" id="confirm-code" inputmode="numeric" autocomplete="one-time-code">
+            </label>
+            <button type="submit" class="account-btn" id="confirm-submit">Reset password</button>
+          </form>
+        </div>
+
+        <div id="account-status" class="account-status account-hidden" role="status" aria-live="polite"></div>
+
+        <div class="account-links">
+          <a href="auth.html">Back to sign in</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p class="site-footer__copy">&copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.</p>
+    </div>
+  </footer>
+
+  <script src="account.js"></script>
+  <script>
+    (function () {
+      var A = window.ObiterAccount;
+      var token = A.queryParam("token");
+      var statusEl = document.getElementById("account-status");
+
+      function status(message, kind) {
+        statusEl.textContent = message;
+        statusEl.className = "account-status account-status--" + (kind || "info");
+      }
+
+      if (token) {
+        document.getElementById("view-request").classList.add("account-hidden");
+        document.getElementById("view-confirm").classList.remove("account-hidden");
+      }
+
+      // Request a reset link.
+      document.getElementById("form-request").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var btn = document.getElementById("request-submit");
+        btn.disabled = true;
+        A.postJson("/auth/reset/request", {
+          email: document.getElementById("request-email").value.trim(),
+          turnstileToken: A.turnstileToken(),
+        }).then(function (data) {
+          status(data.message || "If that account exists, a reset link has been sent. Check your email.", "success");
+        }).catch(function () {
+          // Stay generic — never reveal account state.
+          status("If that account exists, a reset link has been sent. Check your email.", "success");
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
+
+      // Confirm the new password.
+      document.getElementById("form-confirm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var btn = document.getElementById("confirm-submit");
+        btn.disabled = true;
+        var body = { password: document.getElementById("confirm-password").value };
+        var code = document.getElementById("confirm-code").value.trim();
+        if (code) body.code = code;
+        A.postJson("/auth/reset/confirm/" + encodeURIComponent(token), body)
+          .then(function (data) {
+            status(data.message || "Your password has been reset. You can now sign in.", "success");
+          })
+          .catch(function (err) {
+            status(err.message, "error");
+            btn.disabled = false;
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

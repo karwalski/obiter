@@ -34,6 +34,18 @@ if (typeof globalThis.fetch === "undefined") {
 const db = require("./db");
 const { requireAdmin } = require("./auth");
 const email = require("./email");
+// ACCT-004: the LLM proxy can inject a session user's stored key. tokens verifies
+// the optional bearer, vaultCrypto decrypts the stored key in-process, rateLimit
+// caps proxy usage per-account and per-IP.
+const tokens = require("./lib/tokens");
+const vaultCrypto = require("./lib/crypto");
+const proxyRateLimit = require("./lib/rateLimit");
+// ACCT-007: self-service data-rights endpoints (delete / export / me) live
+// inline here next to the other /api/user usage. They reuse the session-auth
+// middleware, step-up re-authentication, and audit trail from the ACCT stories.
+const { requireAuth } = require("./lib/requireAuth");
+const stepUp = require("./lib/stepUp");
+const audit = require("./lib/audit");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,27 +56,32 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+// urlencoded bodies are needed for the POST-confirm verify pages (HTML forms).
+app.use(express.urlencoded({ extended: false }));
 
 // -------------------------------------------------------
-// hCaptcha verification
+// Domain routers (ACCT epic)
+//
+// Each accounts story owns its own router file under routes/ and edits only that
+// file — the mounts below already exist, so later stories never touch index.js.
 // -------------------------------------------------------
 
-const HCAPTCHA_SECRET = process.env.HCAPTCHA_SECRET || "";
+app.use("/api/auth", require("./routes/auth")); // ACCT-001
+app.use("/api/auth/mfa", require("./routes/mfa")); // ACCT-003 (stub)
+app.use("/api/auth/reset", require("./routes/reset")); // ACCT-006 (stub)
+app.use("/api/user/keys", require("./routes/vault")); // ACCT-004 (stub)
+app.use("/api/user/settings", require("./routes/settings")); // ACCT-004 (stub)
+app.use("/api/admin/users", require("./routes/adminUsers")); // ADM-002 (stub)
 
-async function verifyCaptcha(token) {
-  if (!HCAPTCHA_SECRET) return true; // Skip if not configured
-  try {
-    const res = await fetch("https://api.hcaptcha.com/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `response=${encodeURIComponent(token)}&secret=${encodeURIComponent(HCAPTCHA_SECRET)}`,
-    });
-    const data = await res.json();
-    return data.success === true;
-  } catch {
-    return false;
-  }
-}
+// -------------------------------------------------------
+// Human verification (Cloudflare Turnstile — ACCT-002)
+//
+// Single vendor across the site: the contact and signature forms use the same
+// Turnstile check as the account auth routes. verifyHuman() fails closed when
+// TURNSTILE_SECRET is configured and passes through when it is not (dev).
+// -------------------------------------------------------
+
+const { verifyHuman } = require("./lib/humanCheck");
 
 // -------------------------------------------------------
 // Public routes
@@ -80,9 +97,9 @@ app.post("/api/contact", async function (req, res) {
   try {
     var { name, email: contactEmail, type, message, captcha } = req.body;
 
-    // hCaptcha verification
-    if (HCAPTCHA_SECRET && !(await verifyCaptcha(captcha || ""))) {
-      return res.status(403).json({ error: "Captcha verification failed." });
+    // Turnstile human verification (fails closed when the secret is configured).
+    if (!(await verifyHuman(captcha || "", req))) {
+      return res.status(403).json({ error: "Human verification failed." });
     }
 
     // Validation
@@ -182,9 +199,9 @@ app.post("/api/signatures", async function (req, res) {
   try {
     var { name, title, institution, email: sigEmail, captcha } = req.body;
 
-    // hCaptcha verification
-    if (HCAPTCHA_SECRET && !(await verifyCaptcha(captcha || ""))) {
-      return res.status(403).json({ error: "Captcha verification failed." });
+    // Turnstile human verification (fails closed when the secret is configured).
+    if (!(await verifyHuman(captcha || "", req))) {
+      return res.status(403).json({ error: "Human verification failed." });
     }
 
     // Validation
@@ -730,6 +747,375 @@ app.post("/api/admin/contacts/:id/read", requireAdmin, function (req, res) {
 });
 
 // -------------------------------------------------------
+// Admin — audit log viewer + security signals (ADM-003)
+//
+// Filterable, paginated, newest-first view over audit_log, plus a security
+// summary (failed logins 24h/7d, lockouts, MFA resets, admin actions) with a
+// threshold alert emailed to ADMIN_EMAIL when the 24h failed-login count spikes.
+// Retention: rows older than 12 months are pruned (deleteOldAuditRows) on a
+// light guarded interval below; the pattern also documents a cron alternative.
+// All endpoints are requireAdmin (actor recorded at the auth layer).
+// -------------------------------------------------------
+
+var DAY_MS = 24 * 60 * 60 * 1000;
+
+// Failed-login spike threshold over 24h. Above this, a single notification is
+// emailed to ADMIN_EMAIL (de-duplicated per calendar-ish window below).
+var FAILED_LOGIN_ALERT_THRESHOLD = Number(process.env.FAILED_LOGIN_ALERT_THRESHOLD || 25);
+var ALERT_COOLDOWN_MS = 60 * 60 * 1000; // at most one spike alert per hour
+var _lastFailedLoginAlertAt = 0;
+
+/**
+ * Build the security-summary counts from audit_log. Returned by both the audit
+ * endpoint and the dedicated /summary endpoint so the UI can render cards.
+ */
+function buildSecuritySummary() {
+  var now = Date.now();
+  var since24h = new Date(now - DAY_MS).toISOString();
+  var since7d = new Date(now - 7 * DAY_MS).toISOString();
+
+  var failed24h = db.adminCountAuditSince.get({ pattern: "auth.login.fail%", since: since24h }).count;
+  var failed7d = db.adminCountAuditSince.get({ pattern: "auth.login.fail%", since: since7d }).count;
+  var lockouts24h = db.adminCountAuditSince.get({ pattern: "auth.login.lockout", since: since24h }).count;
+  var lockouts7d = db.adminCountAuditSince.get({ pattern: "auth.login.lockout", since: since7d }).count;
+  var mfaResets7d = db.adminCountAuditSince.get({ pattern: "admin.user.mfa_reset", since: since7d }).count;
+  var adminActions24h = db.adminCountAuditSince.get({ pattern: "admin.user.%", since: since24h }).count;
+
+  return {
+    failedLogins24h: failed24h,
+    failedLogins7d: failed7d,
+    lockouts24h: lockouts24h,
+    lockouts7d: lockouts7d,
+    mfaResets7d: mfaResets7d,
+    adminActions24h: adminActions24h,
+    failedLoginThreshold: FAILED_LOGIN_ALERT_THRESHOLD,
+  };
+}
+
+/**
+ * Fire a one-shot admin email when the 24h failed-login count crosses the
+ * threshold, rate-limited by ALERT_COOLDOWN_MS so a sustained spike does not
+ * spam. Non-blocking; never throws.
+ */
+function maybeAlertOnFailedLoginSpike(summary) {
+  try {
+    if (summary.failedLogins24h < FAILED_LOGIN_ALERT_THRESHOLD) return;
+    var now = Date.now();
+    if (now - _lastFailedLoginAlertAt < ALERT_COOLDOWN_MS) return;
+    _lastFailedLoginAlertAt = now;
+    email.sendAdminNotification(
+      "Obiter security alert — failed login spike",
+      "Failed login attempts in the last 24 hours: " + summary.failedLogins24h +
+        " (threshold " + FAILED_LOGIN_ALERT_THRESHOLD + ").\n" +
+        "Lockouts in the last 24 hours: " + summary.lockouts24h + ".\n\n" +
+        "Review the audit viewer in the admin console."
+    );
+  } catch (err) {
+    console.error("failed-login spike alert error:", err.message);
+  }
+}
+
+/**
+ * GET /api/admin/audit
+ *
+ * Filterable, paginated audit log. Query params:
+ *   user   — numeric user id
+ *   action — exact action string
+ *   from   — ISO timestamp (inclusive lower bound on created_at)
+ *   to     — ISO timestamp (exclusive upper bound)
+ *   limit  — 1..200 (default 50)
+ *   offset — >= 0 (default 0)
+ * Newest first. Also returns the security summary for convenience.
+ */
+app.get("/api/admin/audit", requireAdmin, function (req, res) {
+  try {
+    var q = req.query || {};
+
+    var userId = null;
+    if (q.user !== undefined && String(q.user).trim() !== "") {
+      var uid = Number.parseInt(String(q.user), 10);
+      if (!Number.isInteger(uid) || uid <= 0) {
+        return res.status(400).json({ error: "Invalid user filter." });
+      }
+      userId = uid;
+    }
+
+    var action = q.action !== undefined && String(q.action).trim() !== "" ? String(q.action).slice(0, 100) : null;
+    var from = q.from !== undefined && String(q.from).trim() !== "" ? String(q.from).slice(0, 40) : null;
+    var to = q.to !== undefined && String(q.to).trim() !== "" ? String(q.to).slice(0, 40) : null;
+
+    var limit = Number.parseInt(String(q.limit), 10);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) limit = 50;
+    var offset = Number.parseInt(String(q.offset), 10);
+    if (!Number.isInteger(offset) || offset < 0) offset = 0;
+
+    var params = { userId: userId, action: action, from: from, to: to, limit: limit, offset: offset };
+    var total = db.adminCountAudit.get({ userId: userId, action: action, from: from, to: to }).total;
+    var rows = db.adminQueryAudit.all(params);
+
+    var entries = rows.map(function (r) {
+      return {
+        id: r.id,
+        userId: r.user_id,
+        actor: r.actor,
+        action: r.action,
+        detail: r.detail,
+        createdAt: r.created_at,
+      };
+    });
+
+    res.json({ entries: entries, total: total, limit: limit, offset: offset, summary: buildSecuritySummary() });
+  } catch (err) {
+    console.error("GET /api/admin/audit error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /api/admin/audit/summary
+ *
+ * Security-signal counts only (no rows). Evaluating the summary also checks the
+ * failed-login spike threshold and may fire a one-shot admin notification.
+ */
+app.get("/api/admin/audit/summary", requireAdmin, function (req, res) {
+  try {
+    var summary = buildSecuritySummary();
+    maybeAlertOnFailedLoginSpike(summary);
+    res.json({ summary: summary });
+  } catch (err) {
+    console.error("GET /api/admin/audit/summary error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// -------------------------------------------------------
+// Admin — account stats (ADM-004)
+//
+// Counts only, no per-user PII. Window (?start/?end) follows the analytics
+// convention (inclusive-from, exclusive-to; defaults to the last 30 days).
+// -------------------------------------------------------
+
+/**
+ * GET /api/admin/account-stats
+ *
+ * total accounts, new accounts in window, active accounts (login within window),
+ * MFA adoption %, vault-key adoption %, synced-settings adoption %.
+ */
+app.get("/api/admin/account-stats", requireAdmin, function (req, res) {
+  try {
+    var now = new Date();
+    var start, end;
+    if (req.query.start && req.query.end) {
+      start = String(req.query.start);
+      end = String(req.query.end);
+    } else {
+      end = now.toISOString();
+      start = new Date(now.getTime() - 30 * DAY_MS).toISOString();
+    }
+
+    var total = db.adminCountAccounts.get().total;
+    var newInWindow = db.adminCountNewAccounts.get({ start: start, end: end }).count;
+    var active = db.adminCountActiveAccounts.get({ start: start, end: end }).count;
+    var mfa = db.adminCountMfaAccounts.get().count;
+    var vaultKeys = db.adminCountVaultKeyAccounts.get().count;
+    var settings = db.adminCountSettingsAccounts.get().count;
+
+    function pct(n) {
+      return total > 0 ? Math.round((n / total) * 1000) / 10 : 0;
+    }
+
+    res.json({
+      start: start,
+      end: end,
+      totalAccounts: total,
+      newAccounts: newInWindow,
+      activeAccounts: active,
+      mfaAccounts: mfa,
+      mfaAdoptionPct: pct(mfa),
+      vaultKeyAccounts: vaultKeys,
+      vaultKeyAdoptionPct: pct(vaultKeys),
+      settingsAccounts: settings,
+      settingsAdoptionPct: pct(settings),
+    });
+  } catch (err) {
+    console.error("GET /api/admin/account-stats error:", err);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// -------------------------------------------------------
+// Self-service data rights (ACCT-007)
+//
+// Three endpoints let a signed-in user manage their own account without an
+// admin: erase it, export their data, and read their live status. They sit
+// inline here beside the other /api/user usage and reuse requireAuth, the
+// step-up gate, and the audit trail. Paths are deliberately distinct from the
+// already-mounted /api/user/keys and /api/user/settings routers.
+//   DELETE /api/user/account  (requireAuth + step-up)  -> { deleted: true }
+//   GET    /api/user/export   (requireAuth)            -> the caller's own data
+//   GET    /api/user/me       (requireAuth)            -> live status flags
+//
+// Isolation guarantee: every read scopes strictly to req.user.sub — a caller
+// can only ever see or erase their OWN account. No key material or password
+// hash is ever returned, and export omits ip_hash and any other user's rows.
+// -------------------------------------------------------
+
+/**
+ * DELETE /api/user/account — self-service account erasure (APP 12/13-style
+ * right to erasure). Step-up gated: MFA users supply a current TOTP code,
+ * non-MFA users re-enter their password (handled inside lib/stepUp). In a
+ * single transaction we purge synced settings and stored vault keys, revoke
+ * every refresh token, anonymise the user row (same soft-delete semantics as
+ * the ADM-002 admin delete: email -> a non-routable placeholder, password_hash
+ * NULL, MFA cleared, status='deleted'), and null the detail on the user's audit
+ * rows so no PII survives in the retained trail. The deletion itself is audited.
+ */
+app.delete("/api/user/account", requireAuth, async function (req, res) {
+  try {
+    const gate = await stepUp.requireRecentTotp(req);
+    if (!gate.ok) {
+      return res.status(gate.status).json({ error: gate.error, code: gate.code });
+    }
+
+    const userId = req.user.sub;
+    const placeholder = "deleted+" + userId + "@obiter.invalid";
+
+    const purge = db.db.transaction(function () {
+      db.deleteAllUserSettings.run(userId);
+      db.deleteAllUserKeys.run(userId);
+      db.revokeAllRefreshTokensForUser.run({ userId, revokedAt: new Date().toISOString() });
+      db.adminAnonymiseUser.run({ id: userId, email: placeholder });
+      db.adminAnonymiseAuditForUser.run(userId);
+    });
+    purge();
+
+    // Record AFTER anonymising so the deletion event itself carries no detail.
+    audit.record(userId, "self", "account.delete", req, null);
+    return res.json({ deleted: true });
+  } catch (err) {
+    console.error("DELETE /api/user/account error:", err);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /api/user/export — the caller's own data as JSON (APP 12-style access /
+ * data portability). Returns account basics, their namespaced synced settings,
+ * and their audit trail (action + timestamp only). Deliberately omits ip_hash,
+ * key material, the password hash, and every other user's rows.
+ */
+app.get("/api/user/export", requireAuth, function (req, res) {
+  try {
+    const userId = req.user.sub;
+    const user = db.findUserById.get(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Account not found." });
+    }
+
+    // Settings: reuse the raw rows and parse each namespace's JSON. The reserved
+    // version key is not user data, so it is skipped.
+    const settings = {};
+    for (const row of db.getUserSettings.all(userId)) {
+      if (row.key === "_settingsVersion") continue;
+      let parsed = null;
+      try {
+        parsed = row.value_json == null ? null : JSON.parse(row.value_json);
+      } catch {
+        parsed = null;
+      }
+      settings[row.key] = parsed;
+    }
+
+    // Audit: action + created_at only. Never the ip_hash or the detail column.
+    const auditRows = db.db
+      .prepare("SELECT action, created_at FROM audit_log WHERE user_id = ? ORDER BY created_at ASC, id ASC")
+      .all(userId)
+      .map(function (r) {
+        return { action: r.action, created_at: r.created_at };
+      });
+
+    return res.json({
+      account: {
+        email: user.email,
+        created_at: user.created_at,
+        mfa_enabled: user.mfa_enabled === 1,
+      },
+      settings,
+      audit: auditRows,
+    });
+  } catch (err) {
+    console.error("GET /api/user/export error:", err);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+/**
+ * GET /api/user/me — live account status the task pane can render (which key
+ * providers are stored, whether MFA is on, whether settings have been synced).
+ * Counts and flags only; never any key material or the password hash.
+ */
+app.get("/api/user/me", requireAuth, function (req, res) {
+  try {
+    const userId = req.user.sub;
+    const user = db.findUserById.get(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Account not found." });
+    }
+
+    const keyProviders = db.listUserKeys.all(userId).map(function (k) {
+      return k.provider;
+    });
+
+    // "Synced settings" is true once any real namespace has been stored (the
+    // reserved version row alone does not count).
+    const syncedSettings = db.getUserSettings
+      .all(userId)
+      .some(function (row) {
+        return row.key !== "_settingsVersion";
+      });
+
+    return res.json({
+      email: user.email,
+      mfaEnabled: user.mfa_enabled === 1,
+      keyProviders,
+      syncedSettings,
+    });
+  } catch (err) {
+    console.error("GET /api/user/me error:", err);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// -------------------------------------------------------
+// Audit retention (ADM-003): prune rows older than 12 months.
+//
+// Run once at startup and then daily via a guarded setInterval (unref'd so it
+// never keeps the process alive). No node-cron dependency is added. Skipped
+// under the test runner (NODE_ENV === "test") to keep tests deterministic; a
+// production cron could call the same statement instead.
+// -------------------------------------------------------
+
+var AUDIT_RETENTION_MS = 365 * DAY_MS; // 12 months
+
+function pruneOldAuditRows() {
+  try {
+    var cutoff = new Date(Date.now() - AUDIT_RETENTION_MS).toISOString();
+    var info = db.deleteOldAuditRows.run({ cutoff: cutoff });
+    if (info.changes > 0) {
+      console.log("Audit retention: pruned " + info.changes + " row(s) older than 12 months.");
+    }
+  } catch (err) {
+    console.error("Audit retention prune error:", err.message);
+  }
+}
+
+if (require.main === module && process.env.NODE_ENV !== "test") {
+  pruneOldAuditRows();
+  var _auditPruneTimer = setInterval(pruneOldAuditRows, DAY_MS);
+  if (_auditPruneTimer.unref) _auditPruneTimer.unref();
+}
+
+// -------------------------------------------------------
 // Helper: verification result page
 // -------------------------------------------------------
 
@@ -813,7 +1199,9 @@ function verificationPage(title, message, success) {
  */
 var proxyCors = cors({
   origin: true,
-  methods: ["GET"],
+  // GET for the search proxies; POST for /api/proxy/llm (TRUST-001 routes
+  // custom LLM endpoints through the proxy, so preflights must pass).
+  methods: ["GET", "POST"],
 });
 
 /** User-Agent header sent with all upstream proxy requests. */
@@ -1037,14 +1425,103 @@ app.get("/api/proxy/legislation", proxyCors, async function (req, res) {
 });
 
 // -------------------------------------------------------
-// LLM Proxy — bypasses CORS for providers that block browser requests
+// LLM Proxy — bypasses CORS for providers that block browser requests,
+// and relays custom (user-configured) endpoints so the add-in's strict
+// Content-Security-Policy connect-src can stay a fixed allowlist (TRUST-001).
 // No data is logged, stored, or retained. The proxy relays the request
 // server-side and returns the response.
 // -------------------------------------------------------
 
+/**
+ * Validate a user-supplied custom LLM endpoint (TRUST-001).
+ * Requires https and rejects loopback/private/IP-literal hosts and our own
+ * infrastructure so the relay cannot be used to reach internal services.
+ * Returns { url } on success or { error } on rejection.
+ */
+function resolveCustomLlmEndpoint(rawEndpoint) {
+  var parsed;
+  try {
+    parsed = new URL(String(rawEndpoint));
+  } catch (_e) {
+    return { error: "Custom endpoint is not a valid URL." };
+  }
+  if (parsed.protocol !== "https:") {
+    return { error: "Custom endpoints must use https." };
+  }
+  var host = parsed.hostname.toLowerCase();
+  var isIpv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+  var isIpv6 = host.indexOf(":") !== -1 || host.indexOf("[") !== -1;
+  if (
+    isIpv4 ||
+    isIpv6 ||
+    host === "localhost" ||
+    host === "obiter.com.au" ||
+    host.slice(-14) === ".obiter.com.au" ||
+    host.slice(-6) === ".local" ||
+    host.indexOf(".") === -1
+  ) {
+    return { error: "Custom endpoint host is not allowed." };
+  }
+  return { url: parsed.toString() };
+}
+
+// ACCT-004 proxy rate limits (in-memory sliding windows via lib/rateLimit).
+//   - Authenticated: 60 LLM calls per account per 5 minutes. Keyed by user id.
+//   - Anonymous BYOK: 20 LLM calls per IP per 5 minutes. Closes the previous
+//     no-account-rate-limit gap on this endpoint. Keyed by client IP.
+// Both are per-process (single screen-session host), consistent with ACCT-001.
+var LLM_RATE_ACCOUNT = { limit: 60, windowMs: 5 * 60 * 1000 };
+var LLM_RATE_ANON = { limit: 20, windowMs: 5 * 60 * 1000 };
+
+// ACCT-004: map a proxy provider name to the vault provider it is stored under.
+// The vault's canonical set is openai/anthropic/gemini/xai/deepseek/custom; the
+// proxy historically names xAI "grok", so alias it for key lookup only.
+var VAULT_PROVIDER_ALIAS = { grok: "xai" };
+
 app.post("/api/proxy/llm", proxyCors, async function (req, res) {
   try {
-    var { provider, model, apiKey, maxTokens, systemPrompt, userPrompt } = req.body;
+    var { provider, model, apiKey, maxTokens, systemPrompt, userPrompt, endpoint } = req.body;
+
+    // Optional session auth: a valid Bearer access token lets the server inject a
+    // stored key when the caller sends none. Anonymous callers (no bearer) keep
+    // the original BYOK behaviour byte-for-byte.
+    var authHeader = req.headers.authorization;
+    var claims = null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      claims = tokens.verifyAccess(authHeader.slice(7));
+    }
+
+    // Rate limit: per-account when authenticated, per-IP for anonymous BYOK.
+    if (claims) {
+      var acctGate = proxyRateLimit.hit("llm.account", "u:" + claims.sub, LLM_RATE_ACCOUNT);
+      if (!acctGate.allowed) {
+        res.set("Retry-After", String(Math.ceil(acctGate.retryAfterMs / 1000)));
+        return res.status(429).json({ error: "Too many requests. Please try again later." });
+      }
+    } else {
+      var ipGate = proxyRateLimit.hit("llm.anon", proxyRateLimit.clientIp(req), LLM_RATE_ANON);
+      if (!ipGate.allowed) {
+        res.set("Retry-After", String(Math.ceil(ipGate.retryAfterMs / 1000)));
+        return res.status(429).json({ error: "Too many requests. Please try again later." });
+      }
+    }
+
+    // Key injection: authenticated request WITHOUT an inline apiKey -> decrypt the
+    // user's stored key for this provider in-process. The plaintext is used only
+    // to call upstream and is never returned. If an inline apiKey is present the
+    // stored key is ignored (explicit BYOK-on-device wins).
+    if (claims && (!apiKey || String(apiKey).trim() === "")) {
+      var vaultProvider = VAULT_PROVIDER_ALIAS[provider] || provider;
+      var row = db.getUserKey.get({ userId: claims.sub, provider: vaultProvider });
+      if (row && row.key_ciphertext) {
+        try {
+          apiKey = vaultCrypto.decrypt(row.key_ciphertext);
+        } catch (_e) {
+          return res.status(500).json({ error: "Stored key could not be decrypted." });
+        }
+      }
+    }
+
     if (!provider || !model || !apiKey || !systemPrompt || !userPrompt) {
       return res.status(400).json({ error: "Missing required fields." });
     }
@@ -1057,6 +1534,16 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
     };
 
     var url = endpoints[provider];
+    if (endpoint) {
+      // TRUST-001: custom endpoint relay. The add-in sends the true target in
+      // `endpoint`; requests use the OpenAI-compatible wire format below
+      // (unless provider is "anthropic", which keeps the Anthropic format).
+      var resolved = resolveCustomLlmEndpoint(endpoint);
+      if (resolved.error) {
+        return res.status(400).json({ error: resolved.error });
+      }
+      url = resolved.url;
+    }
     if (!url) {
       return res.status(400).json({ error: "Unsupported provider: " + provider });
     }
@@ -1127,6 +1614,13 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
 // Start server
 // -------------------------------------------------------
 
-app.listen(PORT, function () {
-  console.log("Obiter server listening on port " + PORT);
-});
+// Only bind a port when run directly (node index.js). When required (tests, or
+// a smoke `require("./index.js")` check) the app is returned without listening
+// so callers can start it on an ephemeral port themselves.
+if (require.main === module) {
+  app.listen(PORT, function () {
+    console.log("Obiter server listening on port " + PORT);
+  });
+}
+
+module.exports = app;

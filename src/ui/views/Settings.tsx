@@ -19,6 +19,7 @@ import {
   type UnreportedGate,
   type IbidSuppression,
   type LoaType,
+  type ParallelOrder,
 } from "../../engine/court/presets";
 import { hasAttribution, insertAcknowledgment, getAcknowledgmentText } from "../../word/branding";
 import { writeObiterProperties } from "../../word/documentProperties";
@@ -27,7 +28,30 @@ import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
-import { loadLlmConfig, saveLlmConfig, testConnection, type LLMConfig } from "../../llm/config";
+import { loadLlmConfig, saveLlmConfig, testConnection, clearStoredKeys, type LLMConfig } from "../../llm/config";
+import {
+  isSignedIn as authIsSignedIn,
+  getEmail as authGetEmail,
+  signOut as authSignOut,
+  deleteAccount as authDeleteAccount,
+  exportData as authExportData,
+  fetchMe as authFetchMe,
+  clearSession as authClearSession,
+  type StepUp,
+} from "../../api/authClient";
+import { openAuthDialog, isDialogAuthSupported, type AuthMode } from "../../api/authDialog";
+import {
+  listVaultKeys,
+  deleteVaultKey,
+  type VaultKeyMeta,
+  type StepUpCredential,
+} from "../../api/vaultKeys";
+import {
+  setVaultKeyProviders,
+  hasLocalKeyOverride,
+  setLocalKeyOverride,
+  clearVaultMode,
+} from "../../llm/vaultMode";
 import {
   getAllAdapters,
   getAdaptersByTier,
@@ -140,6 +164,28 @@ function setDocSetting(key: string, value: unknown): void {
 /** Debug/test/screenshot tools only visible on localhost (dev server). */
 const isDev = typeof window !== "undefined" && window.location.hostname === "localhost";
 
+/**
+ * Builds the non-blocking notice shown after a writing-mode or jurisdiction
+ * change. Same mechanism as the standardNotice (WEB-013: window.confirm is
+ * blocked in the Office web add-in iframe, so a hard confirm is never used).
+ *
+ * Always includes the locked-footnote line — counting locked footnotes would
+ * need a Word.run scan, and the refresher already reports them via
+ * lockedSkipped — and adds the Manual Citations Mode line only when that
+ * device preference is on (refreshes are gated off entirely in that mode).
+ */
+function buildReformatNotice(lead: string): string {
+  const parts = [
+    lead,
+    "Existing citations reformat on the next refresh.",
+    "Locked footnotes keep their current formatting. Unlock a footnote and run Refresh All to update it.",
+  ];
+  if (getDevicePref("manualCitationMode") === true) {
+    parts.push("Manual Citations Mode is on, so citations will not update until it is turned off.");
+  }
+  return parts.join(" ");
+}
+
 export default function Settings(): JSX.Element {
   // Ensure adapters are instantiated and registered in the sourceRegistry
   // before any state initialisation reads from it.
@@ -154,6 +200,8 @@ export default function Settings(): JSX.Element {
   const [ackStatus, setAckStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [standardNotice, setStandardNotice] = useState<string | null>(null);
+  // Non-blocking warning after a writing-mode / jurisdiction change (WEB-013).
+  const [modeNotice, setModeNotice] = useState<string | null>(null);
   const [, setFormatStatus] = useState<string | null>(null);
   const [autoRefreshCitations, setAutoRefreshCitations] = useState(true);
   // Confirmation shown when leaving Manual Citations Mode (resuming auto would
@@ -167,6 +215,8 @@ export default function Settings(): JSX.Element {
     unreportedGate: UnreportedGate;
     ibidSuppression: IbidSuppression;
     loaType: LoaType;
+    /** PD-driven parallel citation order (e.g. WA MNC-first); no UI control. */
+    parallelOrder?: ParallelOrder;
   }>({
     parallelCitations: "mandatory",
     pinpointStyle: "para-and-page",
@@ -182,13 +232,39 @@ export default function Settings(): JSX.Element {
 
   // LLM configuration state
   const [llmProvider, setLlmProvider] = useState<LLMConfig["provider"]>("openai");
+  // TRUST-006: the stored key is never echoed back into the input. The field
+  // holds only what the user types this session; llmKeyHint carries at most
+  // the last 4 characters of the stored key for the "key on file" notice.
   const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmKeyHint, setLlmKeyHint] = useState("");
+  const [removeKeysConfirm, setRemoveKeysConfirm] = useState(false);
   const [llmModel, setLlmModel] = useState(LLM_MODELS.openai[0].value);
   const [llmEndpoint, setLlmEndpoint] = useState("");
   const [llmMaxTokens, setLlmMaxTokens] = useState(1024);
   const [llmEnabled, setLlmEnabled] = useState(false);
   const [llmTestStatus, setLlmTestStatus] = useState<string | null>(null);
   const [llmSaveStatus, setLlmSaveStatus] = useState<string | null>(null);
+
+  // ACCT-005: Account state (sign in / out, vault keys, step-up).
+  const [signedIn, setSignedIn] = useState(() => authIsSignedIn());
+  const [accountEmail, setAccountEmail] = useState<string | null>(() => authGetEmail());
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [vaultKeys, setVaultKeys] = useState<VaultKeyMeta[]>([]);
+  const [syncedSettings, setSyncedSettings] = useState<boolean>(
+    () => getDevicePref("syncedSettings") === true
+  );
+  // Local-BYOK override for the active LLM provider (per-device, ACCT-005).
+  const [localKeyOverride, setLocalKeyOverrideState] = useState(false);
+  // Step-up modal for removing a vaulted key (WEB-013: never window.confirm).
+  const [stepUpProvider, setStepUpProvider] = useState<string | null>(null);
+  const [stepUpCode, setStepUpCode] = useState("");
+  const [stepUpPassword, setStepUpPassword] = useState("");
+  const [stepUpError, setStepUpError] = useState<string | null>(null);
+  // Delete-account confirmation modal (step-up).
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  // ACCT-007: live MFA status from GET /api/user/me (null until loaded).
+  const [mfaEnabled, setMfaEnabled] = useState<boolean | null>(null);
 
   // Source registry master toggle + adapter state (17.2 / 17.3)
   const [masterEnabled, setMasterEnabledState] = useState(() => isMasterEnabled());
@@ -209,10 +285,17 @@ export default function Settings(): JSX.Element {
     }
     return map;
   });
-  const [adapterKeys, setAdapterKeys] = useState<Record<string, string>>(() => {
+  // TRUST-006: stored adapter keys are never echoed back into the inputs.
+  // adapterKeys holds only what the user types this session; adapterKeyHints
+  // carries at most the last 4 characters of each stored key.
+  const [adapterKeys, setAdapterKeys] = useState<Record<string, string>>({});
+  const [adapterKeyHints, setAdapterKeyHints] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const a of getAllAdapters()) {
-      if (a.requiresKey) map[a.id] = getKey(a.id);
+      if (a.requiresKey) {
+        const stored = getKey(a.id);
+        if (stored) map[a.id] = stored.slice(-4);
+      }
     }
     return map;
   });
@@ -243,6 +326,173 @@ export default function Settings(): JSX.Element {
       if (meta.entryCount) setCorpusEntryCount(meta.entryCount);
       if (meta.savedAt) setCorpusSavedAt(meta.savedAt);
     });
+  }, []);
+
+  // ─── ACCT-005: Account handlers ───────────────────────────────────────────
+
+  const refreshVaultKeys = useCallback(async () => {
+    if (!authIsSignedIn()) {
+      setVaultKeys([]);
+      return;
+    }
+    try {
+      const keys = await listVaultKeys();
+      setVaultKeys(keys);
+      // Cache which providers have a vaulted key so the LLM client can decide
+      // to omit the local key (ACCT-005).
+      setVaultKeyProviders(keys.map((k) => k.provider));
+    } catch {
+      /* leave the previous list; a transient network error is non-fatal */
+    }
+  }, []);
+
+  // Load vault keys when signed in on mount.
+  useEffect(() => {
+    if (signedIn) void refreshVaultKeys();
+  }, [signedIn, refreshVaultKeys]);
+
+  // Track the local-BYOK override for the currently selected provider.
+  useEffect(() => {
+    setLocalKeyOverrideState(hasLocalKeyOverride(llmProvider));
+  }, [llmProvider]);
+
+  const handleSignIn = useCallback(async (mode: AuthMode) => {
+    setAccountStatus(null);
+    setAccountBusy(true);
+    try {
+      const result = await openAuthDialog(mode);
+      if (result.status === "success") {
+        setSignedIn(true);
+        setAccountEmail(result.email);
+        setAccountStatus("Signed in.");
+        await refreshVaultKeys();
+      } else if (result.status === "cancelled") {
+        setAccountStatus(null);
+      } else if (result.status === "unavailable") {
+        setAccountStatus(result.message);
+      } else {
+        setAccountStatus(result.message);
+      }
+    } finally {
+      setAccountBusy(false);
+    }
+  }, [refreshVaultKeys]);
+
+  const handleSignOut = useCallback(async () => {
+    setAccountBusy(true);
+    try {
+      await authSignOut();
+    } finally {
+      clearVaultMode();
+      setSignedIn(false);
+      setAccountEmail(null);
+      setVaultKeys([]);
+      setAccountStatus("Signed out.");
+      setAccountBusy(false);
+    }
+  }, []);
+
+  const handleSyncedSettingsToggle = useCallback((next: boolean) => {
+    setSyncedSettings(next);
+    setDevicePref("syncedSettings", next);
+  }, []);
+
+  const handleLocalKeyOverrideToggle = useCallback(
+    (next: boolean) => {
+      setLocalKeyOverride(llmProvider, next);
+      setLocalKeyOverrideState(next);
+    },
+    [llmProvider]
+  );
+
+  const handleConfirmRemoveKey = useCallback(async () => {
+    if (!stepUpProvider) return;
+    setStepUpError(null);
+    const credential: StepUpCredential = stepUpCode.trim()
+      ? { code: stepUpCode.trim() }
+      : { password: stepUpPassword };
+    try {
+      await deleteVaultKey(stepUpProvider, credential);
+      setStepUpProvider(null);
+      setStepUpCode("");
+      setStepUpPassword("");
+      setAccountStatus("Stored key removed.");
+      await refreshVaultKeys();
+    } catch (err: unknown) {
+      setStepUpError(err instanceof Error ? err.message : "Could not remove the key.");
+    }
+  }, [stepUpProvider, stepUpCode, stepUpPassword, refreshVaultKeys]);
+
+  // ACCT-007: load live account status (MFA flag) so the header shows the real
+  // state rather than a static note. Non-fatal on error.
+  const refreshMe = useCallback(async () => {
+    if (!authIsSignedIn()) {
+      setMfaEnabled(null);
+      return;
+    }
+    try {
+      const me = await authFetchMe();
+      setMfaEnabled(me.mfaEnabled);
+    } catch {
+      /* leave the previous value; a transient network error is non-fatal */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (signedIn) void refreshMe();
+  }, [signedIn, refreshMe]);
+
+  // ACCT-007: self-service delete. Step-up gated (TOTP code or password). On
+  // success revoke server-side, clear local auth, and return to signed-out.
+  const handleConfirmDeleteAccount = useCallback(async () => {
+    setStepUpError(null);
+    const credential: StepUp = stepUpCode.trim()
+      ? { code: stepUpCode.trim() }
+      : { password: stepUpPassword };
+    setAccountBusy(true);
+    try {
+      await authDeleteAccount(credential);
+      // The account is gone server-side; drop all local session + vault state.
+      authClearSession();
+      clearVaultMode();
+      setDeleteAccountOpen(false);
+      setStepUpCode("");
+      setStepUpPassword("");
+      setSignedIn(false);
+      setAccountEmail(null);
+      setVaultKeys([]);
+      setMfaEnabled(null);
+      setAccountStatus("Your account has been deleted.");
+    } catch (err: unknown) {
+      setStepUpError(err instanceof Error ? err.message : "Could not delete the account.");
+    } finally {
+      setAccountBusy(false);
+    }
+  }, [stepUpCode, stepUpPassword]);
+
+  // ACCT-007: export the caller's own data as a downloaded JSON file (Blob).
+  const handleExportData = useCallback(async () => {
+    setAccountStatus(null);
+    setAccountBusy(true);
+    try {
+      const data = await authExportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "obiter-account-data.json";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      setAccountStatus("Your data was exported.");
+    } catch (err: unknown) {
+      setAccountStatus(
+        err instanceof Error ? err.message : "Could not export your data."
+      );
+    } finally {
+      setAccountBusy(false);
+    }
   }, []);
 
   const handleCorpusDownload = useCallback(async () => {
@@ -329,14 +579,23 @@ export default function Settings(): JSX.Element {
             setCourtJurisdiction(savedJurisdiction);
             const preset = getCourtPreset(savedJurisdiction);
             if (preset) {
-              // Load saved toggle overrides, falling back to preset defaults
-              const savedToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+              // Load saved toggle overrides, falling back to preset defaults.
+              // Document metadata is authoritative (cross-device); the device
+              // pref is a legacy fallback for documents customised before the
+              // migration — adopted into the store on the next court save.
+              const savedToggles =
+                store.getCourtToggles() ??
+                (getDevicePref("courtToggles") as Record<string, string> | undefined);
               setCourtToggles({
+                // Spread first so unknown (future engine) toggle keys are
+                // preserved opaquely through subsequent saves.
+                ...(savedToggles as Partial<Record<string, string>>),
                 parallelCitations: (savedToggles?.parallelCitations as ParallelCitationMode) ?? preset.parallelCitations,
                 pinpointStyle: (savedToggles?.pinpointStyle as PinpointStyle) ?? preset.pinpointStyle,
                 unreportedGate: (savedToggles?.unreportedGate as UnreportedGate) ?? preset.unreportedGate,
                 ibidSuppression: (savedToggles?.ibidSuppression as IbidSuppression) ?? preset.ibidSuppression,
                 loaType: (savedToggles?.loaType as LoaType) ?? preset.loaType,
+                parallelOrder: (savedToggles?.parallelOrder as ParallelOrder) ?? preset.parallelOrder,
               });
             }
           }
@@ -351,7 +610,8 @@ export default function Settings(): JSX.Element {
           const savedLlmConfig = loadLlmConfig();
           if (savedLlmConfig) {
             setLlmProvider(savedLlmConfig.provider);
-            setLlmApiKey(savedLlmConfig.apiKey);
+            // TRUST-006: never echo the stored key back — surface last 4 only.
+            setLlmKeyHint(savedLlmConfig.apiKey ? savedLlmConfig.apiKey.slice(-4) : "");
             setLlmModel(savedLlmConfig.model);
             setLlmEndpoint(savedLlmConfig.endpoint ?? "");
             setLlmMaxTokens(savedLlmConfig.maxTokens);
@@ -425,6 +685,7 @@ export default function Settings(): JSX.Element {
           setWritingMode("academic");
           setCourtJurisdiction("");
           await store.setCourtJurisdiction(undefined);
+          await store.setCourtToggles(undefined);
           setDocSetting("obiter-writingMode", "academic");
           setDevicePref("courtToggles", undefined);
         }
@@ -439,15 +700,29 @@ export default function Settings(): JSX.Element {
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {
       const store = await getSharedStore();
+      const hadExistingCitations = store.getAll().length > 0;
       await store.setWritingMode(mode);
       setWritingMode(mode);
       setDocSetting("obiter-writingMode", mode);
-      // Clear jurisdiction when switching to academic mode
       if (mode === "academic") {
+        // Clear jurisdiction and toggle overrides when switching to academic
         setCourtJurisdiction("");
         await store.setCourtJurisdiction(undefined);
+        await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
+      } else if (store.getCourtToggles() === undefined) {
+        // One-release migration: toggle overrides used to live only in the
+        // device prefs, so a document customised before the migration lost
+        // them on other devices. Adopt the legacy device value into the
+        // document store here (a Settings save — the refresher stays
+        // read-only) and delete the legacy key.
+        const legacyToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+        if (legacyToggles) {
+          await store.setCourtToggles(legacyToggles);
+          setDevicePref("courtToggles", undefined);
+        }
       }
+      setModeNotice(hadExistingCitations ? buildReformatNotice("Writing mode updated.") : null);
       triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save writing mode";
@@ -484,10 +759,14 @@ export default function Settings(): JSX.Element {
   const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
     try {
       const store = await getSharedStore();
+      const hadExistingCitations = store.getAll().length > 0;
       if (!jurisdictionId) {
         setCourtJurisdiction("");
         await store.setCourtJurisdiction(undefined);
+        await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
+        setModeNotice(hadExistingCitations ? buildReformatNotice("Jurisdiction cleared.") : null);
+        triggerRefresh();
         return;
       }
       if (!isCourtJurisdiction(jurisdictionId)) return;
@@ -497,32 +776,45 @@ export default function Settings(): JSX.Element {
       setCourtJurisdiction(jurisdictionId as CourtJurisdiction);
       await store.setCourtJurisdiction(jurisdictionId);
 
-      // Apply preset defaults and clear any previous overrides
+      // Apply preset defaults and clear any previous overrides. Toggles are
+      // document metadata now; the device pref is only deleted (legacy key).
       const newToggles = {
         parallelCitations: preset.parallelCitations,
         pinpointStyle: preset.pinpointStyle,
         unreportedGate: preset.unreportedGate,
         ibidSuppression: preset.ibidSuppression,
         loaType: preset.loaType,
+        ...(preset.parallelOrder ? { parallelOrder: preset.parallelOrder } : {}),
       };
       setCourtToggles(newToggles);
-      setDevicePref("courtToggles", newToggles);
+      await store.setCourtToggles(newToggles);
+      setDevicePref("courtToggles", undefined);
+      setModeNotice(hadExistingCitations ? buildReformatNotice("Jurisdiction updated.") : null);
+      triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save jurisdiction";
       setError(message);
     }
-  }, []);
+  }, [triggerRefresh]);
 
   const handleToggleOverride = useCallback(<K extends keyof typeof courtToggles>(
     key: K,
     value: (typeof courtToggles)[K],
   ) => {
-    setCourtToggles((prev) => {
-      const updated = { ...prev, [key]: value };
-      setDevicePref("courtToggles", updated);
-      return updated;
-    });
-  }, []);
+    const updated = { ...courtToggles, [key]: value };
+    setCourtToggles(updated);
+    void (async () => {
+      try {
+        // Persist into the DOCUMENT so the override applies on every device,
+        // and delete the legacy device-level copy.
+        const store = await getSharedStore();
+        await store.setCourtToggles(updated);
+        setDevicePref("courtToggles", undefined);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to save court toggles");
+      }
+    })();
+  }, [courtToggles]);
 
   if (loading) {
     return (
@@ -804,6 +1096,12 @@ export default function Settings(): JSX.Element {
             : "Standard academic footnote citation with ibid, short references, and bibliography."}
         </p>
 
+        {modeNotice && (
+          <p style={{ fontSize: 11, margin: "8px 0 0", color: "var(--colour-text-secondary)" }}>
+            {modeNotice}
+          </p>
+        )}
+
         {writingMode === "court" && (
           <>
             <label style={{ fontSize: 12, display: "block", marginTop: 10, marginBottom: 6 }}>
@@ -907,6 +1205,9 @@ export default function Settings(): JSX.Element {
                     <option value="off">Off</option>
                     <option value="simple">Simple</option>
                     <option value="part-ab">Part A / Part B</option>
+                    <option value="part-abc">Part A / B / C (Vic Court of Appeal)</option>
+                    <option value="two-part-read">Two parts (read / not read)</option>
+                    <option value="three-part-tas">Three parts (Tas, legislation separate)</option>
                   </select>
                 </label>
               </div>
@@ -1575,10 +1876,18 @@ export default function Settings(): JSX.Element {
                             className="ic-input"
                             style={{ flex: 1 }}
                             value={adapterKeys[adapter.id] ?? ""}
-                            placeholder="Enter API key"
+                            placeholder={
+                              adapterKeyHints[adapter.id]
+                                ? `Key stored (ends in ${adapterKeyHints[adapter.id]})`
+                                : "Enter API key"
+                            }
                             onChange={(e) => {
                               const val = e.target.value;
                               setAdapterKeys((prev) => ({ ...prev, [adapter.id]: val }));
+                              setAdapterKeyHints((prev) => ({
+                                ...prev,
+                                [adapter.id]: val ? val.slice(-4) : "",
+                              }));
                               saveKey(adapter.id, val);
                             }}
                           />
@@ -1601,6 +1910,7 @@ export default function Settings(): JSX.Element {
                               onClick={() => {
                                 removeKey(adapter.id);
                                 setAdapterKeys((prev) => ({ ...prev, [adapter.id]: "" }));
+                                setAdapterKeyHints((prev) => ({ ...prev, [adapter.id]: "" }));
                               }}
                             >
                               Remove
@@ -1619,6 +1929,266 @@ export default function Settings(): JSX.Element {
         </div>
       </fieldset>
 
+      {/* ── ACCT-005: Account ────────────────────────────────────────────── */}
+      <fieldset className="settings-section" style={{ marginTop: 12 }}>
+        <legend className="settings-section-title">Account</legend>
+
+        {!signedIn ? (
+          <>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+              Obiter works fully without an account; sign in only to sync
+              settings and store your API key across devices.
+            </p>
+            <div style={{ display: "flex", gap: 4 }}>
+              <button
+                className="library-btn library-btn--insert"
+                disabled={accountBusy}
+                onClick={() => void handleSignIn("login")}
+              >
+                Sign in
+              </button>
+              <button
+                className="library-btn"
+                disabled={accountBusy}
+                onClick={() => void handleSignIn("register")}
+              >
+                Create account
+              </button>
+            </div>
+            {!isDialogAuthSupported() && (
+              <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
+                Signing in from Word requires a newer version of Word. You can
+                also manage your account at obiter.com.au.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 12, margin: "0 0 8px" }}>
+              Signed in as{" "}
+              <strong>{accountEmail ?? "your account"}</strong>.
+            </p>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+              {mfaEnabled === null
+                ? "Multi-factor authentication is set up when you enrol an authenticator app; you are prompted for a code at sign-in when it is enabled."
+                : mfaEnabled
+                  ? "Multi-factor authentication is on. You are prompted for an authenticator code at sign-in."
+                  : "Multi-factor authentication is off. Enrol an authenticator app to be prompted for a code at sign-in."}
+            </p>
+
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={syncedSettings}
+                onChange={(e) => handleSyncedSettingsToggle(e.target.checked)}
+              />
+              <span className="settings-toggle-label">Sync settings to my account</span>
+            </label>
+
+            <div style={{ marginTop: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 600, margin: "0 0 4px" }}>Stored API keys</p>
+              {vaultKeys.length === 0 ? (
+                <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: 0 }}>
+                  No API keys are stored on your account. Save a key in the AI
+                  Assistant section below to use it across devices.
+                </p>
+              ) : (
+                <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {vaultKeys.map((k) => (
+                    <li
+                      key={k.provider}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 12,
+                        padding: "4px 0",
+                        borderBottom: "1px solid var(--colour-border)",
+                      }}
+                    >
+                      <span>
+                        {LLM_PROVIDER_LABELS[k.provider] ?? k.provider} — ending {k.last4}
+                      </span>
+                      <button
+                        className="library-btn"
+                        onClick={() => {
+                          setStepUpError(null);
+                          setStepUpCode("");
+                          setStepUpPassword("");
+                          setStepUpProvider(k.provider);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 12 }}>
+              <button
+                className="library-btn"
+                disabled={accountBusy}
+                onClick={() => void handleSignOut()}
+              >
+                Sign out
+              </button>
+              <button
+                className="library-btn"
+                disabled={accountBusy}
+                onClick={() => void handleExportData()}
+              >
+                Export my data
+              </button>
+              <button
+                className="library-btn"
+                disabled={accountBusy}
+                onClick={() => {
+                  setStepUpError(null);
+                  setStepUpCode("");
+                  setStepUpPassword("");
+                  setDeleteAccountOpen(true);
+                }}
+              >
+                Delete account
+              </button>
+            </div>
+          </>
+        )}
+
+        <div aria-live="polite" role="status">
+          {accountStatus && (
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "8px 0 0" }}>
+              {accountStatus}
+            </p>
+          )}
+        </div>
+      </fieldset>
+
+      {/* ACCT-005: step-up modal for removing a vaulted key (WEB-013 — no
+          window.confirm/prompt in the Word web iframe). */}
+      {stepUpProvider && (
+        <div className="error-reporter-overlay" role="dialog" aria-modal="true">
+          <div className="error-reporter-modal">
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Remove stored key?</h3>
+            <p style={{ fontSize: 12, color: "var(--colour-text-secondary)" }}>
+              To remove the {LLM_PROVIDER_LABELS[stepUpProvider] ?? stepUpProvider} key
+              from your account, confirm it is you. Enter a current authenticator
+              code if you use multi-factor authentication, otherwise your account
+              password.
+            </p>
+            <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              Authenticator code
+              <input
+                type="text"
+                className="ic-input"
+                style={{ width: "100%", marginTop: 4 }}
+                value={stepUpCode}
+                inputMode="numeric"
+                onChange={(e) => setStepUpCode(e.target.value)}
+                placeholder="123456"
+              />
+            </label>
+            <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              Or account password
+              <input
+                type="password"
+                className="ic-input"
+                style={{ width: "100%", marginTop: 4 }}
+                value={stepUpPassword}
+                onChange={(e) => setStepUpPassword(e.target.value)}
+                placeholder="Your password"
+              />
+            </label>
+            {stepUpError && (
+              <p style={{ fontSize: 11, color: "var(--colour-error)", margin: "8px 0 0" }}>
+                {stepUpError}
+              </p>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                className="error-reporter-btn-primary"
+                onClick={() => void handleConfirmRemoveKey()}
+              >
+                Remove key
+              </button>
+              <button
+                type="button"
+                className="error-reporter-btn"
+                onClick={() => setStepUpProvider(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ACCT-005: delete-account confirmation (step-up). */}
+      {deleteAccountOpen && (
+        <div className="error-reporter-overlay" role="dialog" aria-modal="true">
+          <div className="error-reporter-modal">
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Delete your account?</h3>
+            <p style={{ fontSize: 12, color: "var(--colour-text-secondary)" }}>
+              This permanently removes your account, synced settings, and every
+              stored API key, and signs you out on all devices. This cannot be
+              undone. Confirm it is you with a current authenticator code, or
+              your account password.
+            </p>
+            <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              Authenticator code
+              <input
+                type="text"
+                className="ic-input"
+                style={{ width: "100%", marginTop: 4 }}
+                value={stepUpCode}
+                inputMode="numeric"
+                onChange={(e) => setStepUpCode(e.target.value)}
+                placeholder="123456"
+              />
+            </label>
+            <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              Or account password
+              <input
+                type="password"
+                className="ic-input"
+                style={{ width: "100%", marginTop: 4 }}
+                value={stepUpPassword}
+                onChange={(e) => setStepUpPassword(e.target.value)}
+                placeholder="Your password"
+              />
+            </label>
+            {stepUpError && (
+              <p style={{ fontSize: 11, color: "var(--colour-error)", margin: "8px 0 0" }}>
+                {stepUpError}
+              </p>
+            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                className="error-reporter-btn-primary"
+                disabled={accountBusy}
+                onClick={() => void handleConfirmDeleteAccount()}
+              >
+                Delete account
+              </button>
+              <button
+                type="button"
+                className="error-reporter-btn"
+                onClick={() => {
+                  setDeleteAccountOpen(false);
+                  setStepUpError(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">AI Assistant (Optional)</legend>
 
@@ -1626,6 +2196,16 @@ export default function Settings(): JSX.Element {
           Connect an AI provider to verify citations, parse raw citation text,
           and suggest short titles. You provide your own API key — no data is
           sent without your explicit action.
+        </p>
+
+        {/* TRUST-006: plain-language disclosure of where key material lives. */}
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
+          Your API key is stored only on this device, in the add-in&rsquo;s browser
+          storage. It is never written to the document, and it is sent only to the
+          provider you select (or to the obiter.com.au proxy when you use a custom
+          endpoint). Use a key with the lowest privileges your provider allows, and
+          set a spending cap on it. Use Remove stored keys below to delete all keys
+          from this device.
         </p>
 
         <label className="settings-toggle">
@@ -1672,6 +2252,34 @@ export default function Settings(): JSX.Element {
             placeholder={llmProvider === "openai" ? "sk-..." : llmProvider === "anthropic" ? "sk-ant-..." : "Enter API key"}
           />
         </label>
+
+        {/* ACCT-005: when signed in with a vaulted key for this provider, the
+            request omits the local key and the proxy injects the stored key.
+            The user can override to force local BYOK on this device. */}
+        {signedIn && vaultKeys.some((k) => k.provider === llmProvider) && (
+          <div style={{ marginTop: 8 }}>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 4px" }}>
+              {localKeyOverride
+                ? "Using the key entered on this device for this provider."
+                : `Using your stored ${LLM_PROVIDER_LABELS[llmProvider] ?? llmProvider} key across devices. Your key stays on the server and is never sent to this device.`}
+            </p>
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={localKeyOverride}
+                onChange={(e) => handleLocalKeyOverrideToggle(e.target.checked)}
+              />
+              <span className="settings-toggle-label">Use my own key on this device instead</span>
+            </label>
+          </div>
+        )}
+
+        {llmKeyHint && !llmApiKey && (
+          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+            A key ending in {llmKeyHint} is stored on this device. Leave this field
+            blank to keep using it, or enter a new key to replace it.
+          </p>
+        )}
         {llmProvider !== "custom" && LLM_API_KEY_URLS[llmProvider] && (
           <p style={{ fontSize: 11, margin: "4px 0 0" }}>
             <a
@@ -1712,17 +2320,25 @@ export default function Settings(): JSX.Element {
         </label>
 
         {llmProvider === "custom" && (
-          <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
-            Custom Endpoint
-            <input
-              type="text"
-              className="ic-input"
-              style={{ width: "100%", marginTop: 4 }}
-              value={llmEndpoint}
-              onChange={(e) => setLlmEndpoint(e.target.value)}
-              placeholder="https://api.example.com/v1/chat"
-            />
-          </label>
+          <>
+            <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+              Custom Endpoint
+              <input
+                type="text"
+                className="ic-input"
+                style={{ width: "100%", marginTop: 4 }}
+                value={llmEndpoint}
+                onChange={(e) => setLlmEndpoint(e.target.value)}
+                placeholder="https://api.example.com/v1/chat"
+              />
+            </label>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+              Custom endpoints must use HTTPS and accept the OpenAI-compatible chat completions
+              format. Requests are relayed through the obiter.com.au proxy, as the add-in&rsquo;s
+              security policy permits direct connections only to the built-in providers. The
+              proxy does not log or retain requests.
+            </p>
+          </>
         )}
 
         <label style={{ fontSize: 12, display: "block", marginTop: 8 }}>
@@ -1742,9 +2358,11 @@ export default function Settings(): JSX.Element {
             className="library-btn library-btn--insert"
             onClick={async () => {
               setLlmTestStatus("Testing...");
+              // TRUST-006: the input never echoes the stored key, so a blank
+              // field means "keep using the key already stored on this device".
               const config: LLMConfig = {
                 provider: llmProvider,
-                apiKey: llmApiKey,
+                apiKey: llmApiKey.trim() !== "" ? llmApiKey : (loadLlmConfig()?.apiKey ?? ""),
                 model: llmModel,
                 endpoint: llmProvider === "custom" ? llmEndpoint : undefined,
                 maxTokens: llmMaxTokens,
@@ -1759,21 +2377,39 @@ export default function Settings(): JSX.Element {
           <button
             className="library-btn library-btn--insert"
             onClick={() => {
+              // TRUST-006: blank key field means "keep the stored key".
               const config: LLMConfig = {
                 provider: llmProvider,
-                apiKey: llmApiKey,
+                apiKey: llmApiKey.trim() !== "" ? llmApiKey : (loadLlmConfig()?.apiKey ?? ""),
                 model: llmModel,
                 endpoint: llmProvider === "custom" ? llmEndpoint : undefined,
                 maxTokens: llmMaxTokens,
                 enabled: llmEnabled,
               };
               saveLlmConfig(config);
+              // Drop the typed key from component state once persisted; keep
+              // only the last-4 hint so the full key is never rendered back.
+              setLlmApiKey("");
+              setLlmKeyHint(config.apiKey ? config.apiKey.slice(-4) : "");
               setLlmSaveStatus("Saved");
               setTimeout(() => setLlmSaveStatus(null), 2000);
             }}
           >
             Save
           </button>
+        </div>
+
+        <div style={{ marginTop: 10 }}>
+          <button
+            className="library-btn"
+            onClick={() => setRemoveKeysConfirm(true)}
+          >
+            Remove stored keys
+          </button>
+          <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+            Deletes the AI provider key and every source lookup key stored on this
+            device. Other settings are kept.
+          </p>
         </div>
 
         <div aria-live="polite" role="status">
@@ -1797,6 +2433,54 @@ export default function Settings(): JSX.Element {
           )}
         </div>
       </fieldset>
+
+      {/* TRUST-006: in-pane confirmation — window.confirm is blocked in the
+          add-in iframe on Word web (see WEB-013), so reuse the modal pattern. */}
+      {removeKeysConfirm && (
+        <div className="error-reporter-overlay" role="dialog" aria-modal="true">
+          <div className="error-reporter-modal">
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Remove stored keys?</h3>
+            <p style={{ fontSize: 12, color: "var(--colour-text-secondary)" }}>
+              This deletes the AI provider key and every source lookup key stored
+              on this device, including keys saved by earlier versions of Obiter.
+              Your other settings are kept. AI features and source lookups that
+              require a key will stop working until you enter new keys.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <button
+                type="button"
+                className="error-reporter-btn-primary"
+                onClick={() => {
+                  const result = clearStoredKeys();
+                  setLlmApiKey("");
+                  setLlmKeyHint("");
+                  setAdapterKeys({});
+                  setAdapterKeyHints({});
+                  setKeyVisibility({});
+                  setRemoveKeysConfirm(false);
+                  const removed =
+                    (result.llmKeyCleared ? 1 : 0) + result.vaultKeysRemoved;
+                  setLlmSaveStatus(
+                    removed > 0
+                      ? `Removed ${removed} stored ${removed === 1 ? "key" : "keys"} from this device.`
+                      : "No stored keys were found on this device."
+                  );
+                  setTimeout(() => setLlmSaveStatus(null), 5000);
+                }}
+              >
+                Remove keys
+              </button>
+              <button
+                type="button"
+                className="error-reporter-btn"
+                onClick={() => setRemoveKeysConfirm(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDev && <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Debug</legend>

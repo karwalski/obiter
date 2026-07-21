@@ -6,6 +6,45 @@
   "use strict";
 
   // -------------------------------------------------------
+  // Cloudflare Turnstile helpers (ACCT-002)
+  //
+  // Reusable across the contact and signature forms today, and the future
+  // account auth forms (ACCT-005/006). The widget is rendered by the Turnstile
+  // api.js script (see each page's <div class="cf-turnstile">) and exposes the
+  // token via a hidden field named "cf-turnstile-response", or via
+  // turnstile.getResponse() once the script has loaded.
+  // -------------------------------------------------------
+
+  /**
+   * Read the current Turnstile token for a form. Prefers the hidden
+   * cf-turnstile-response field the widget writes; falls back to the global
+   * turnstile.getResponse() API.
+   */
+  function turnstileToken(form) {
+    var field = form.querySelector('[name="cf-turnstile-response"]');
+    if (field && field.value) return field.value;
+    if (typeof window.turnstile !== "undefined") {
+      try {
+        return window.turnstile.getResponse() || "";
+      } catch (err) {
+        return "";
+      }
+    }
+    return "";
+  }
+
+  /** Reset the Turnstile widget (called after a submit attempt). */
+  function turnstileReset() {
+    if (typeof window.turnstile !== "undefined") {
+      try {
+        window.turnstile.reset();
+      } catch (err) {
+        /* no-op */
+      }
+    }
+  }
+
+  // -------------------------------------------------------
   // Mobile navigation toggle
   // -------------------------------------------------------
 
@@ -77,13 +116,11 @@
       submitBtn.disabled = true;
       submitBtn.textContent = "Sending\u2026";
 
-      // hCaptcha token
-      var captchaResponse = "";
-      var captchaEl = form.querySelector('[name="h-captcha-response"]');
-      if (captchaEl) captchaResponse = captchaEl.value;
+      // Turnstile token
+      var captchaResponse = turnstileToken(form);
       if (!captchaResponse) {
         statusEl.className = "form-status form-status--error";
-        statusEl.textContent = "Please complete the captcha.";
+        statusEl.textContent = "Please complete the human verification.";
         submitBtn.disabled = false;
         submitBtn.textContent = "Send Message";
         return;
@@ -121,7 +158,7 @@
         .finally(function () {
           submitBtn.disabled = false;
           submitBtn.textContent = "Send Message";
-          if (typeof hcaptcha !== "undefined") hcaptcha.reset();
+          turnstileReset();
         });
     });
   });
@@ -187,13 +224,11 @@
         return;
       }
 
-      // hCaptcha token
-      var captchaResponse = "";
-      var captchaEl = sigForm.querySelector('[name="h-captcha-response"]');
-      if (captchaEl) captchaResponse = captchaEl.value;
+      // Turnstile token
+      var captchaResponse = turnstileToken(sigForm);
       if (!captchaResponse) {
         statusEl.className = "form-status form-status--error";
-        statusEl.textContent = "Please complete the captcha.";
+        statusEl.textContent = "Please complete the human verification.";
         return;
       }
 
@@ -233,7 +268,7 @@
         .finally(function () {
           submitBtn.disabled = false;
           submitBtn.textContent = "Sign the Letter";
-          if (typeof hcaptcha !== "undefined") hcaptcha.reset();
+          turnstileReset();
         });
     });
   }

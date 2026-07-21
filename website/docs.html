@@ -701,9 +701,9 @@
           Go to <strong>Settings</strong> and find the <strong>AI
           Assistant</strong> section. Select a provider from the dropdown,
           enter your API key, and click <strong>Test Connection</strong> to
-          verify it works. The key is stored locally in your browser
-          and is never written to the document or sent to Obiter&rsquo;s
-          servers.
+          verify it works. The key is stored locally in your browser and is
+          never written to the document. You can delete all stored keys at any
+          time with <strong>Remove stored keys</strong> in Settings.
         </p>
 
         <h3>Supported providers</h3>
@@ -715,8 +715,14 @@
           and pricing.
         </p>
         <p>
-          All requests go directly from your browser to the provider. No data
-          passes through the Obiter server.
+          Requests to the built-in providers go directly from your browser to
+          the provider &mdash; they do not pass through the Obiter server.
+          Custom endpoints are the exception: the add-in&rsquo;s security
+          policy only permits direct connections to the built-in providers, so
+          custom-endpoint requests (including your API key and prompt text)
+          are relayed through the obiter.com.au server, which forwards them to
+          your configured endpoint without logging or retaining them. See the
+          <a href="privacy.html">privacy policy</a> for details.
         </p>
 
         <h3>AI features</h3>

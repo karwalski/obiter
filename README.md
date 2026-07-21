@@ -170,6 +170,13 @@ npm test
 # Tests:       2,000+ passed
 ```
 
+## Security and privacy
+
+Obiter has no remote-control channel and no server-side copy of your work: citation data lives
+in a Custom XML Part inside your own `.docx`, and document content leaves your machine only via
+optional, user-initiated LLM or source-lookup calls. Trust boundaries, threat classes,
+mitigations, and accepted risks are documented in the [threat model](docs/THREAT-MODEL.md).
+
 ## Contributing
 
 Contributions are welcome. Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.

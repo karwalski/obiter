@@ -53,6 +53,25 @@ test a development build.
 2. Go to **Insert** > **Office Add-ins** > **Upload My Add-in**.
 3. Browse to `manifest.xml` and click **Upload**.
 
+## Verifying downloads
+
+Every release zip on GitHub is accompanied by a `SHA256SUMS.txt` file generated
+by the release workflow, and the release notes link the GitHub Actions run that
+built the artifact. To verify a downloaded zip, run the check from the folder
+containing both files.
+
+Mac:
+
+```bash
+shasum -a 256 -c SHA256SUMS.txt
+```
+
+Windows (compare the printed hash with the value in `SHA256SUMS.txt`):
+
+```
+CertUtil -hashfile obiter-vX.Y.Z.zip SHA256
+```
+
 ## Verifying the installation
 
 After installation you should see an **Obiter** tab in the Word ribbon with

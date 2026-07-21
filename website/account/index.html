@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your account — Obiter</title>
+  <meta name="description" content="Manage your Obiter account.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="account.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="../favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="/docs.html">Docs</a></li>
+        <li><a href="/privacy.html">Privacy</a></li>
+        <li><a href="/contact.html">Contact</a></li>
+        <li><a href="/download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main-content" role="main">
+    <div class="account-shell">
+      <div class="account-card">
+        <h1>Your account</h1>
+        <p class="account-lead" id="profile-email">You manage your Obiter account from inside Word.</p>
+
+        <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
+          Obiter accounts sync your settings and let the relay use your stored
+          API key across devices. Signing in, storing a key, and deleting your
+          account all happen in the Obiter task pane in Word, under
+          Settings &rsaquo; Account. The account itself never stores your
+          citations or documents.
+        </p>
+
+        <div class="account-links" style="margin-top: 24px;">
+          <a href="auth.html" class="account-btn" style="display:inline-block; width:auto; text-decoration:none;">Sign in</a>
+        </div>
+        <div class="account-links">
+          <a href="reset.html">Reset your password</a>
+          &nbsp;&middot;&nbsp;
+          <a href="/privacy.html">What an account stores</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p class="site-footer__copy">&copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.</p>
+    </div>
+  </footer>
+
+  <script src="account.js"></script>
+  <script>
+    (function () {
+      var A = window.ObiterAccount;
+      var email = A.queryParam("email");
+      if (email) {
+        document.getElementById("profile-email").textContent = "Signed in as " + email + ".";
+      }
+    })();
+  </script>
+</body>
+</html>

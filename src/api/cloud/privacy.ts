@@ -27,15 +27,15 @@ import { getCloudMode } from "./cloudMode";
  */
 const PII_PATTERNS: [RegExp, string][] = [
   // Email addresses
-  [/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, "[REDACTED]"],
+  [/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[REDACTED]"],
   // Australian phone numbers: 04xx xxx xxx, (0x) xxxx xxxx, +61 x xxxx xxxx
-  [/(?:\+61\s?|\(?0)[2-478]\)?\s?\d{4}[\s\-]?\d{4}/g, "[REDACTED]"],
+  [/(?:\+61\s?|\(?0)[2-478]\)?\s?\d{4}[\s-]?\d{4}/g, "[REDACTED]"],
   // Australian mobile: 04xx or +614xx
-  [/(?:\+614|04)\d{2}[\s\-]?\d{3}[\s\-]?\d{3}/g, "[REDACTED]"],
+  [/(?:\+614|04)\d{2}[\s-]?\d{3}[\s-]?\d{3}/g, "[REDACTED]"],
   // Generic international phone: +<country> followed by 7-12 digits
-  [/\+\d{1,3}[\s\-]?\d{7,12}/g, "[REDACTED]"],
+  [/\+\d{1,3}[\s-]?\d{7,12}/g, "[REDACTED]"],
   // Australian Tax File Numbers (9 digits, sometimes with spaces/dashes)
-  [/\b\d{3}[\s\-]?\d{3}[\s\-]?\d{3}\b/g, "[REDACTED]"],
+  [/\b\d{3}[\s-]?\d{3}[\s-]?\d{3}\b/g, "[REDACTED]"],
 ];
 
 // ---------------------------------------------------------------------------
