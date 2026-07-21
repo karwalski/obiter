@@ -319,6 +319,18 @@ export interface StoreMetadata {
   standardId?: string; // CitationStandardId — defaults to "aglc4" if missing (backward compat)
   writingMode?: "academic" | "court"; // MULTI-014 — defaults to "academic" if missing
   courtJurisdiction?: string; // COURT-002 — CourtJurisdiction ID, present when writingMode is "court"
+  /**
+   * Court toggle overrides (parallel citations, pinpoint style, ibid
+   * suppression, ...). Stored in the DOCUMENT so a customised court document
+   * formats identically on every device (previously device-only, which made
+   * the same document fall back to jurisdiction presets elsewhere).
+   *
+   * Treated as an OPAQUE key/value bag: keys and values are defined by the
+   * engine (`buildCourtConfig`) and passed through without interpretation,
+   * so new toggle keys added to the engine round-trip without store changes.
+   * Absent means "use the jurisdiction preset defaults".
+   */
+  courtToggles?: Record<string, string>;
   headingListId?: number; // Persisted Word multilevel list ID for heading numbering
   ccModel?: "flat" | "parent-child"; // FN-005: content control model version (defaults to "flat" for backward compat)
 }

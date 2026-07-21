@@ -249,13 +249,15 @@
 
 ## EPIC: DATA — Reference Data (Appendices)
 
-**Phase:** 1 | **Stories:** 3 | **Completed:** 3
+**Phase:** 1 | **Stories:** 5 | **Completed:** 5
 
 | ID | Title | Type | Status | Notes |
 |----|-------|------|--------|-------|
-| DATA-001 | Law report abbreviations (Appendix A) | FEATURE | DONE | Placeholder with ~20 entries; full ~500 pending DECISION-001 (copyright) |
-| DATA-002 | Medium neutral court identifiers (Appendix B) | FEATURE | DONE | |
-| DATA-003 | Pinpoint abbreviations (Appendix C) | FEATURE | DONE | |
+| DATA-001 | Law report abbreviations (Appendix A) | FEATURE | DONE | Full Appendix A imported via DATA-004 — all 1,202 entries in `appendix-a-series.ts`, unioned into `ALL_REPORT_SERIES` for search/autocomplete/browse |
+| DATA-002 | Medium neutral court identifiers (Appendix B) | FEATURE | DONE | Extended to the full 89-identifier Appendix B list via DATA-004 |
+| DATA-003 | Pinpoint abbreviations (Appendix C) | FEATURE | DONE | Extended to the full Appendix C (29 rows, incl scoped c/cap/§ variants + `use` scope) via DATA-004 |
+| DATA-004 | Appendices A–C verification + full import (physical scan) | FEATURE | DONE | 2026-07-20: `aglc4-appendix.pdf` OCR'd (37 pp, 6 parallel agents); A/B/C imported; DECISION-015/024/026 resolved, 023/025 updated, DECISION-031 raised (QR/Qd R). See `docs/appendix-verification.md`. Scan not committed (local reference). |
+| DATA-005 | Obtain and apply the AGLC4 Erratum (29 July 2019) | FEATURE | RESOLVED (moot) | 2026-07-21: the reference PDF's imprint is the **2020 corrected printing** ("2018, 2019/2020 with minor corrections"), so the 2019 erratum + 2020 fixes are already in our base text — the audit's premise doesn't hold. 2021-printing spot-check (`aglc4-additional.pdf`) shows corrections are very light (weekday typos still uncorrected) and no engine change is warranted. See `docs/erratum-audit.md` 2026-07-21 update. |
 
 ---
 
@@ -911,13 +913,13 @@ Currently every ribbon button (Insert Citation, Library, Validate, Bibliography,
 
 ## EPIC: INFRA-ENH — Infrastructure Enhancements
 
-**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 2
+**Phase:** Post-backlog | **Stories:** 3 | **Completed:** 3
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
 | INFRA-008 | Tool attribution and acknowledgment — three-layer model replacing visible footer | FEATURE | DONE |
 | INFRA-009 | Separate device-level preferences (localStorage) from document-level settings | FEATURE | DONE |
-| INFRA-010 | Resolve pre-existing typecheck and lint debt so CI's lint-and-typecheck gate goes green | CHORE | PARTIAL |
+| INFRA-010 | Resolve pre-existing typecheck and lint debt so CI's lint-and-typecheck gate goes green | CHORE | DONE |
 
 **INFRA-010 Details:**
 The production build is via Babel (which strips types and does not type-check), so a backlog of
@@ -944,10 +946,34 @@ Representative type errors to fix:
 **Progress (v1.14.0):**
 - **Typecheck: DONE — `tsc --noEmit` now exits 0** (was 10). Fixed: `xmlSerializer.ts` out-of-scope `parser` → local `DOMParser`; `CitationFinder.tsx` Citation literal given `tags`/`createdAt`/`modifiedAt`; `InsertCitationContext` expanded-state setters typed `Dispatch<SetStateAction<boolean>>`. Build and full test suite green.
 - **Lint: reduced from ~1,662 to 98 problems (61 errors, 37 warnings).** Cleared the entire `prettier/prettier` formatting bulk via `eslint --fix` (run directly — note `npm run lint:fix` itself fails on a stale `src/**/*.jsx` glob, see below); disabled core `no-undef` (TypeScript resolves symbols; the rule only misfired on ambient Office.js globals); and **resolved all `no-unused-vars`**: configured the `^_` ignore pattern for intentionally-unused adapter-interface params (~36), removed ~14 genuinely-dead imports/consts/functions, and cleaned the resulting cascades (orphaned imports/state). Typecheck stays 0 and all 2,073 tests pass.
-- **Remaining tracked baseline (61 errors):**
-  - 50 `office-addins/load-object-before-read` + `call-sync-before-read` — Word API best-practice lints in published, tested code. Likely a mix of false positives (loads the linter can't track across helpers) and benign reads; fixing requires careful per-call `Word.run` review **with sideload verification** — must not be mass-fixed blind. This is the main blocker to a green lint gate.
-  - ~11 `no-useless-escape` / `no-useless-catch` — cosmetic.
-- **Also fix `npm run lint:fix`**: office-addin-lint passes a `src/**/*.jsx` glob; with no `.jsx` files, ESLint 9 errors before fixing. Add a `.jsx` shim or override the lint scripts to the real globs.
+- **Lint gate closed (v1.14.6): `npm run lint` exits 0 errors.** The remaining formatting bulk
+  (`prettier/prettier` in sw.js/testRunner/xmlSerializer/commandHandlers/subsequent) was auto-fixed;
+  the `no-useless-escape` (9, all redundant escapes inside regex character classes — semantics
+  verified unchanged, privacy redaction tests green) and `no-useless-catch` (pass-through try/catch
+  in testRunner cleanup) cosmetics were hand-fixed.
+- **The 51 `office-addins/load-object-before-read` + `call-sync-before-read` errors were individually
+  reviewed at each call site and all classified as false positives**, in three patterns: (1) reads of
+  plain in-memory store objects, not Office proxies — `CitationStore.getById()` Citation objects
+  (citationRefresher ×17, testRunner ×19) and a `localStorage` string (keyVault ×2); (2) collection
+  reads where `.load()` + `context.sync()` occur immediately before but the linter can't track them —
+  `selection.paragraphs.items` loops (commands ×3, commandHandlers ×3), `getByTag(...).items` length
+  checks (templateExporter ×2, documentMeta ×1), and navigation-property proxy accesses loaded before
+  any value read (selectionHandler ×3, selectionHelper ×2); (3) a `ClientResult.value` populated by
+  the preceding `context.sync()` (sourceImporter ×1). Suppressed via one file-scoped config override
+  for the debug harness (`src/debug/testRunner.ts` in `eslint.config.mjs`, 19 sites) plus per-line
+  `eslint-disable-next-line` comments with individual justifications everywhere else. No real missing
+  load/sync was found, so no runtime behaviour changed. Live sideload verification of the affected
+  paths (refresh, insert, selection, template export) is covered by the standard release-testing
+  checklist at the next version bump.
+- **Remaining ~42 warnings are performance advisories** (`no-context-sync-in-loop`,
+  `no-navigational-load`) — explicitly non-blocking for this gate; tracked for a future performance
+  story.
+- **`npm run lint:fix` repaired**: office-addin-lint's fix path passed an unquoted
+  `src/**/*.{ts,tsx,js,jsx}` glob, so the shell-expanded `src/**/*.jsx` matched nothing and ESLint 9
+  errored. The script now calls `eslint --fix "src/**/*.{ts,tsx,js,jsx}"` directly — the same quoted
+  glob the (unchanged) check command uses.
+- **Verification (v1.14.6): `npm run lint` 0 errors / 42 warnings, `npm run typecheck` 0 errors, full
+  Jest suite 90 suites / 3,197 tests green.**
 
 ---
 
@@ -1433,8 +1459,53 @@ AGLC4 rule reference; fixes ran in waves on branch `fix/parity-epic` (stories in
 
 - **Final wave** (2026-07-03): PARITY-119 **done** — full verification sweep green (tsc/jest 2709/build; zero epic-introduced lint errors), ~60 `toContain` clusters rewritten to exact-string assertions, two dispatch bugs fixed (NZLSG `(NZ)` suffix, `report.waitangi_tribunal` fall-through); seams reconciled (coverage-doc Part V, review-ch15-26 X-1/X-2 statuses); leftovers consolidated as **PARITY-121** in the backlog.
 
-Open: DATA-004/DATA-005 block final verification of provisional data rows (DECISION-015);
-DECISION-013..029 await researcher sign-off; seven resolver-routed short-title rules and a
-handful of low-severity gaps are marked RE-AUDIT in the rebased docs.
+- **PARITY-121 close-out** (2026-07-21): **done** — the RE-AUDIT tail cleared. Short-title
+  re-audit of rules 8.8/9.5/10.5/11.3/12.4/13.4/14.6 + 2.1.15 + the 8.4 residual against the
+  derived rule reference: 8 PASS, 1 FIXED (rule 9.3.1 UN committee decisions were missing the
+  UN Doc number in subsequent refs and could mis-route to the author-surname form — fixed in
+  international/subsequent.ts; ex 40 exact-string tests). re-audit.test.ts 22 → 47 tests;
+  coverage-doc RE-AUDIT count 7 → 0 (Full 93 → 101); no new DECISION entries needed. The mncTo
+  currency check closed as **not data-backable** (DECISION-032: Appendix B prints no year data;
+  no bench signal in citations) rather than blocked. Carried blocked: two OSCOLA items
+  (standards-authority sign-off) and the NZ neutral-citation check (DECISION-022). Full
+  disposition in the backlog entry. Verification: jest 90 suites / 3,222 green; tsc clean;
+  lint 0 errors (INFRA-010 closed same day).
+
+Open: DATA-004/DATA-005 **resolved 2026-07-20/21**; remaining researcher sign-offs
+DECISION-016/022/023/031/032; the coverage docs carry no RE-AUDIT rows as of 2026-07-21.
+
+---
+
+## Working-tree work log — 21/22 July 2026 (UNCOMMITTED)
+
+All of the following landed in the working tree together and are **not committed and not version-bumped**. They sit alongside pre-existing uncommitted engine-data (appendix-a-series etc.) work. A fresh session should read this block first. Verification at close: add-in `tsc` clean, `jest` 95 suites / 3289 tests, `lint` 0 errors, production build green; website server `npm test` 62/62 (node:test).
+
+### EPIC: SAFE + TRUST — Robustness & Security Uplift (done)
+Backlog: `../obiter-robustness-backlog.md`. 15 stories implemented.
+- SAFE-001..008: backup Custom XML Part snapshot ring (`urn:obiter:aglc:backup`), user-edit detection via FNV-1a hash in the parent CC title, chunked failure-tolerant refresh, pre-refresh footnote snapshots, Recovery view (`src/ui/views/Recovery.tsx`, route `/recovery`, flag `RECOVERY_VIEW_ENABLED`), global/ribbon error surfacing, quarantined-part salvage, schema-v3 forward guard.
+- TRUST-001..007: CSP single source of truth `config/csp.js` + build-injected meta tags + generated nginx snippets (`scripts/nginx/`), custom LLM endpoints routed via `/api/proxy/llm`, font/size sanitization, CI npm-audit + lockfile-lint + dependabot, release SHA256SUMS, LLM-key disclosure/clear, `docs/THREAT-MODEL.md`.
+- Follow-ups for the user: redeploy the website server with the app (custom-endpoint relay); validate CSP Report-Only on `/app/beta/` across Word Win/Mac/web before enforcing; two one-time nginx `include` lines; `npm audit fix` clears two moderate react-router advisories.
+
+### EPIC: COURT-CURRENCY — Court-mode guidance refresh + switching hardening (done)
+Court-submission mode audited against current published practice directions (verified 22 July 2026 from primary court sources) and brought current:
+- Vic SC Gen 3 (Dec 2025) + SC CA 3 (Mar 2026, AGLC mandatory, Part A/B/C); FCA GPN-AUTH (May 2025); WA CPD (Jun 2025, MNC-first parallel order); SA UCR two-part list; Tas PD 3/2022 three-part; FCFCOA FAM-APPEALS two-part; NT PD 1/2025; ACT PD 2/2022; HCA JBA extended A–B → **A–E** per PD 2/2024.
+- New LoaType values `part-abc`, `two-part-read`, `three-part-tas`; new `parallelOrder` toggle (WA mnc-first).
+- Court toggles migrated device-pref → **document metadata** (`courtToggles` attr on the store root, opaque JSON, device-pref fallback + adoption); mode-switch notices (locked footnotes, manual mode); 26 new switching tests; view-level toggle reads made store-first via `getSharedStoreIfReady()`.
+- **DECISION-033**: court-PD verification queue (NSW SC CA 1 currency, Qld CoA PD 3 detail, GPN-AUTH clause numbers) — awaiting the user's confirmation.
+
+### Website / policy updates (done)
+privacy.html/docs.html/download.html updated for the custom-endpoint relay disclosure; terms.html left for the user (two proposed edits) at the time, then updated by ACCT-007 (see below). Analytics admin version capture is fully dynamic (no hardcoded versions). Release-chain hazard: tag `v1.15.1` is taken by the on-hold Copilot pre-release — next classic minor should skip to **v1.16.0** or rename that tag.
+
+### EPIC: ACCT — Optional User Accounts (done; 7 stories + 1 placeholder)
+Backlog: `../obiter-accounts-backlog.md` (per-story status table there). Optional free accounts with secure sign-in: modular Express routers + SQLite schema, argon2id, rotating tokens with reuse-revocation, Cloudflare Turnstile, TOTP MFA + recovery codes, write-only AES-256-GCM key vault used via the LLM relay, settings sync, task-pane UX via the Office Dialog API + `website/account/*` pages, password reset (MFA-gated), and self-service export/delete + policy/threat-model docs. **ACCT-008 (managed free/paid AI tier) is a PLACEHOLDER pending a pricing/billing decision.** Accounts are optional — signed-out BYOK is byte-for-byte unchanged; citation data is never synced.
+
+### EPIC: ADMIN-USERS — Admin uplift (done; 4 stories)
+Admin is now an MFA-gated account (static `ADMIN_TOKEN` behind `ADMIN_TOKEN_SUNSET`, `?token=` removed, `promote-admin.js` bootstrap); user-management console (lock/force-reset/mfa-reset/soft-delete-anonymise), audit viewer with spike alerts + 12-month retention, account-stats cards.
+
+### NEXT STEPS (none started) — see EPIC: ACCT-REL in the accounts backlog
+The accounts/admin epics are code-complete but **cannot go to production without**: (1) **ACCT-REL-001** a dedicated security review of the net-new auth code (`/security-review` or cloud `/code-review ultra`) — nothing here was live-tested; (2) **ACCT-REL-002** provisioning secrets (`AUTH_TOKEN_SECRET`, `AUDIT_IP_SALT`, `VAULT_MASTER_KEY`, `TURNSTILE_SECRET` + public site key), `npm ci --production` to rebuild native argon2, and `deploy:server` before `deploy:app`; (3) **ACCT-REL-003** end-to-end live verification in Word (Win/Mac/web) of every account + admin journey; (4) **ACCT-REL-004** Australian Privacy Act (APP) posture review — **DECISION-034**; (5) **ACCT-REL-005** small integration follow-ups (server LLM-proxy `openai` provider-map entry, etc.). Also pending from earlier epics: the SAFE/TRUST deploy follow-ups above, and **CRIT-001/002** (AGLC4 critique + modern-sources proposal — plan-mode stories in `../footnote-backlog.md`, not started).
+
+### Whole working tree — release checklist for the user
+Nothing is committed. When ready: minor version bump (package.json + `src/constants.ts` APP_VERSION [manual, no sync script] + 4 manifests' `<Version>` + `?v=` icon cache-busters in prod/beta manifests), then build/deploy/zip/tag per the deploy checklist — **skip the taken `v1.15.1` tag** (use v1.16.0). Deploy the website server together with the app. Run a security review before the accounts feature ships.
 
 ---

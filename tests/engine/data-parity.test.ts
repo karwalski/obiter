@@ -55,8 +55,16 @@ describe("report-series.ts vs rule 2.2.2/2.2.3 tables", () => {
     expect(qdr?.fullName).toBe("Queensland Reports");
   });
 
-  test("fabricated 'QR' abbreviation is absent (rule 2.2.3 gives 'Qd R')", () => {
-    expect(getByAbbreviation("QR")).toBeUndefined();
+  test("'QR' is the current Queensland series Apr 2020– per Appendix A; 'Qd R' covered 1958–Mar 2020", () => {
+    // AGLC4 Appendix A records the 2020 change of the Queensland Reports
+    // citation from "Qd R" (1958–Mar 2020) to "QR" (Apr 2020–). The earlier
+    // PARITY "QR→Qd R" correction was made without the appendix; the appendix
+    // is authoritative, so QR is a real authorised series, not fabricated.
+    // (Flagged for researcher sign-off — see docs/decisions.md DECISION-031.)
+    const qr = getByAbbreviation("QR");
+    expect(qr?.fullName).toBe("Queensland Reports");
+    expect(qr?.type).toBe("authorised");
+    expect(getByAbbreviation("Qd R")?.type).toBe("authorised");
   });
 
   test("SR (NSW) is authorised, 'State Reports (New South Wales)' (rule 2.2.3)", () => {
@@ -141,13 +149,27 @@ describe("report-series.ts vs rule 2.2.2/2.2.3 tables", () => {
     expect(getByAbbreviation("BCLC", "UK")?.fullName).toBe("Butterworths Company Law Cases (UK)");
   });
 
-  test("no duplicate abbreviation+jurisdiction pairs", () => {
+  test("no duplicate abbreviation+jurisdiction+years pairs", () => {
+    // ACTR is legitimately era-split (1973–2008 authorised, 2009– generalist;
+    // DECISION-015), so identity includes the coverage years.
     const seen = new Set<string>();
     for (const entry of REPORT_SERIES) {
-      const key = `${entry.abbreviation}|${entry.jurisdiction}`;
+      const key = `${entry.abbreviation}|${entry.jurisdiction}|${entry.years ?? ""}`;
       expect(seen.has(key)).toBe(false);
       seen.add(key);
     }
+  });
+
+  test("ACTR resolves DECISION-015: 2009– generalist default, 1973–2008 authorised present", () => {
+    // Rule 2.2.2 lists ACTR as a generalist example; rule 2.2.3 lists the
+    // authorised "ACTR (in ALR) 1973–2008". AGLC4 Appendix A prints both eras.
+    expect(getByAbbreviation("ACTR")?.type).toBe("unauthorised_generalist");
+    const eras = REPORT_SERIES.filter((e) => e.abbreviation === "ACTR");
+    expect(eras.length).toBe(2);
+    expect(eras.some((e) => e.type === "authorised" && e.years === "1973–2008")).toBe(true);
+    expect(eras.some((e) => e.type === "unauthorised_generalist" && e.years === "2009–")).toBe(
+      true
+    );
   });
 
   test("SR (SA) fullName no longer collides with SASR", () => {
@@ -255,9 +277,33 @@ describe("pinpoint-abbrevs.ts vs rule 3.1.4 table", () => {
     expect(getPinpointAbbreviation("subparagraph", false)).toBe("sub-para");
   });
 
-  test("no duplicate type keys", () => {
-    const types = PINPOINT_ABBREVIATIONS.map((p) => p.type);
-    expect(new Set(types).size).toBe(types.length);
+  test("no duplicate type+singular pairs", () => {
+    // Appendix C gives some designations jurisdiction-scoped variants that
+    // share a `type` (chapter → ch/c/cap, section → s/§); identity is the
+    // type + abbreviation pair, and the general form is listed first.
+    const keys = PINPOINT_ABBREVIATIONS.map((p) => `${p.type}|${p.singular}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  test("Appendix C scoped variants resolve by abbreviation, general form is the default", () => {
+    // Default lookup returns the general form...
+    expect(getPinpointAbbreviation("chapter", false)).toBe("ch");
+    expect(getPinpointAbbreviation("section", false)).toBe("s");
+    // ...and the scoped variants are present in the table.
+    const chapter = PINPOINT_ABBREVIATIONS.filter((p) => p.type === "chapter");
+    expect(chapter.map((p) => p.singular)).toEqual(["ch", "c", "cap"]);
+    const section = PINPOINT_ABBREVIATIONS.filter((p) => p.type === "section");
+    expect(section.find((p) => p.singular === "§")?.use).toBe("United States legislation");
+  });
+
+  test("Appendix C descriptors beyond the rule 3.1.4 core are present (amend, fig, item, tbl, tit)", () => {
+    expect(getPinpointAbbreviation("amendment", true)).toBe("amends");
+    expect(getPinpointAbbreviation("figure", true)).toBe("figs");
+    expect(getPinpointAbbreviation("item", true)).toBe("items");
+    expect(getPinpointAbbreviation("table", true)).toBe("tbls");
+    expect(getPinpointAbbreviation("title", false)).toBe("tit");
+    expect(getPinpointAbbreviation("sub-regulation", false)).toBe("sub-reg");
+    expect(getPinpointAbbreviation("sub-rule", true)).toBe("sub-rules");
   });
 });
 

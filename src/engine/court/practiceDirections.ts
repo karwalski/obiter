@@ -37,21 +37,21 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
   // ── Federal ────────────────────────────────────────────────────────────────
   {
     jurisdiction: "HCA",
-    name: "High Court Practice Directions",
+    name: "Practice Direction No 2 of 2024 — Joint Books of Authorities",
     url: "https://www.hcourt.gov.au/registry/practice-directions",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
   },
   {
     jurisdiction: "FCA",
-    name: "GPN-AUTH — Citation of Authorities and Provision of Lists of Authorities",
+    name: "GPN-AUTH — Citation of Authorities and Provision of Lists of Authorities (reissued 7 May 2025)",
     url: "https://www.fedcourt.gov.au/law-and-practice/practice-documents/practice-notes/gpn-auth",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
   },
   {
     jurisdiction: "FCFCOA",
-    name: "Federal Circuit and Family Court Practice Directions",
+    name: "FAM-APPEALS — Appeals (updated 10 June 2025)",
     url: "https://www.fcfcoa.gov.au/practice-directions",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
   },
 
   // ── New South Wales ────────────────────────────────────────────────────────
@@ -71,15 +71,21 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
   // ── Victoria ───────────────────────────────────────────────────────────────
   {
     jurisdiction: "VSCA",
-    name: "SC Gen 3 — Citation of Authorities in the Supreme Court",
-    url: "https://www.supremecourt.vic.gov.au/law-and-practice/practice-notes/sc-gen-3-citation-of-authorities-in-the-supreme-court",
-    lastVerified: "2026-04-21",
+    name: "SC Gen 3 — Citation of Authorities and Legislation (reissued 1 December 2025)",
+    url: "https://www.supremecourt.vic.gov.au/sites/default/files/2026-03/SC%20Gen%203%20-%20citation%20of%20authorities%20and%20legislation.pdf",
+    lastVerified: "2026-07-21",
+  },
+  {
+    jurisdiction: "VSCA",
+    name: "SC CA 3 — Court of Appeal lists of authorities (reissued 10 March 2026)",
+    url: "https://www.supremecourt.vic.gov.au/law-and-practice/practice-notes",
+    lastVerified: "2026-07-21",
   },
   {
     jurisdiction: "VSC",
-    name: "SC Gen 3 — Citation of Authorities in the Supreme Court",
-    url: "https://www.supremecourt.vic.gov.au/law-and-practice/practice-notes/sc-gen-3-citation-of-authorities-in-the-supreme-court",
-    lastVerified: "2026-04-21",
+    name: "SC Gen 3 — Citation of Authorities and Legislation (reissued 1 December 2025)",
+    url: "https://www.supremecourt.vic.gov.au/sites/default/files/2026-03/SC%20Gen%203%20-%20citation%20of%20authorities%20and%20legislation.pdf",
+    lastVerified: "2026-07-21",
   },
 
   // ── Queensland ─────────────────────────────────────────────────────────────
@@ -105,33 +111,39 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
   // ── Western Australia ──────────────────────────────────────────────────────
   {
     jurisdiction: "WASC",
-    name: "Supreme Court of Western Australia — Consolidated Practice Directions",
+    name: "Consolidated Practice Directions (updated 20 June 2025) — PD 2.1 Lists of Authorities; PD 8.2.2 Citation of Authorities",
     url: "https://www.supremecourt.wa.gov.au/P/practice_directions.aspx",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
   },
 
   // ── South Australia ────────────────────────────────────────────────────────
   {
     jurisdiction: "SASC",
-    name: "Supreme Court of South Australia — Practice Directions",
-    url: "https://www.courts.sa.gov.au/rules-and-practice-directions/practice-directions/supreme-court/",
-    lastVerified: "2026-04-21",
+    name: "Uniform Civil Rules 2020 r 217.8 — Lists of Authorities (Form 91; current to 15 March 2026)",
+    url: "https://www.courts.sa.gov.au/rules-and-practice-directions/",
+    lastVerified: "2026-07-21",
   },
 
   // ── Tasmania ───────────────────────────────────────────────────────────────
   {
     jurisdiction: "TASSC",
-    name: "Supreme Court of Tasmania — Practice Directions",
+    name: "PD 3 of 2014 — Citation of Authorities",
     url: "https://www.supremecourt.tas.gov.au/practice_directions/",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
+  },
+  {
+    jurisdiction: "TASSC",
+    name: "PD 3 of 2022 — Lists of Authorities",
+    url: "https://www.supremecourt.tas.gov.au/practice_directions/",
+    lastVerified: "2026-07-21",
   },
 
   // ── Australian Capital Territory ───────────────────────────────────────────
   {
     jurisdiction: "ACTSC",
-    name: "ACT Supreme Court — Practice Directions",
+    name: "PD 2 of 2022 — Citation of Authorities (26 May 2022)",
     url: "https://www.courts.act.gov.au/supreme/practice-and-procedure/practice-directions",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
   },
 
   // ── Northern Territory ─────────────────────────────────────────────────────
@@ -139,7 +151,13 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
     jurisdiction: "NTSC",
     name: "PD 2/2007 — Citation of Unreported Cases",
     url: "https://www.supremecourt.nt.gov.au/practice-directions",
-    lastVerified: "2026-04-21",
+    lastVerified: "2026-07-21",
+  },
+  {
+    jurisdiction: "NTSC",
+    name: "PD 1 of 2025 — Lists of Authorities (1 January 2025)",
+    url: "https://www.supremecourt.nt.gov.au/practice-directions",
+    lastVerified: "2026-07-21",
   },
 
   // ── Tribunals ──────────────────────────────────────────────────────────────

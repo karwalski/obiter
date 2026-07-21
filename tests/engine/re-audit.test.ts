@@ -14,7 +14,9 @@ import {
   formatShortReference,
   formatShortTitleIntroduction,
   resolveIbid,
+  resolveSubsequentReference,
 } from "../../src/engine/resolver";
+import type { SubsequentReferenceContext } from "../../src/engine/resolver";
 import type { Citation, Pinpoint, SourceData, SourceType } from "../../src/types/citation";
 import type { FormattedRun } from "../../src/types/formattedRun";
 
@@ -42,6 +44,27 @@ function makeCitation(sourceType: SourceType, data: SourceData, shortTitle?: str
     tags: [],
     createdAt: "",
     modifiedAt: "",
+  };
+}
+
+/**
+ * Helper: build an ibid-eligible resolution context (rule 1.4.3 — same
+ * single source in the immediately preceding footnote).
+ */
+function ibidContext(
+  firstFootnoteNumber: number,
+  currentPinpoint?: Pinpoint,
+  precedingPinpoint?: Pinpoint
+): SubsequentReferenceContext {
+  return {
+    isFirstCitation: false,
+    isSameAsPreceding: true,
+    precedingFootnoteCitationCount: 1,
+    precedingPinpoint,
+    currentPinpoint,
+    firstFootnoteNumber,
+    isWithinSameFootnote: false,
+    formatPreference: "auto",
   };
 }
 
@@ -77,6 +100,51 @@ describe("Rule 8.8 — treaty short titles and subsequent references", () => {
     expect(toText(runs)).toBe("Annex on Chemicals (n 23) pt B sch 2 para 2");
     expect(italicText(runs)).toBe("Annex on Chemicals");
   });
+
+  test("subsequent reference to a treaty without a pinpoint (rules 8.8/1.4.1)", () => {
+    const citation = makeCitation(
+      "treaty",
+      {
+        title:
+          "Treaty on the Zone of Cooperation in an Area between the Indonesian Province of East Timor and Northern Australia",
+      },
+      "Timor Gap Treaty"
+    );
+    const runs = formatShortReference(citation, 20);
+    expect(toText(runs)).toBe("Timor Gap Treaty (n 20)");
+    expect(italicText(runs)).toBe("Timor Gap Treaty");
+  });
+
+  test("immediately-following reference with the same pinpoint resolves to bare Ibid (rules 8.8/1.4.3)", () => {
+    const citation = makeCitation("treaty", { title: "Timor Gap Treaty" }, "Timor Gap Treaty");
+    const pinpoint: Pinpoint = { type: "article", value: "4(2)(a)" };
+    const runs = resolveSubsequentReference(citation, ibidContext(20, pinpoint, pinpoint));
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid");
+  });
+
+  test("immediately-following reference with a new pinpoint resolves to Ibid plus pinpoint (rules 8.8/1.4.3)", () => {
+    const citation = makeCitation("treaty", { title: "Timor Gap Treaty" }, "Timor Gap Treaty");
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(20, { type: "article", value: "4(2)(a)" }, { type: "article", value: "2" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid art 4(2)(a)");
+  });
+
+  test("dropped pinpoint blocks ibid and falls back to the short form (rules 8.8/1.4.3)", () => {
+    // Rule 1.4.3: if the preceding footnote has a pinpoint but the new
+    // footnote needs none, do not use ibid — use the rule 1.4.1 form.
+    const citation = makeCitation("treaty", { title: "Timor Gap Treaty" }, "Timor Gap Treaty");
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(20, undefined, { type: "article", value: "4(2)(a)" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Timor Gap Treaty (n 20)");
+    expect(italicText(runs as FormattedRun[])).toBe("Timor Gap Treaty");
+  });
 });
 
 // =============================================================================
@@ -84,6 +152,42 @@ describe("Rule 8.8 — treaty short titles and subsequent references", () => {
 // =============================================================================
 
 describe("Rule 9.5 — UN short titles and subsequent references", () => {
+  test("introduces an italic UN document short title per AGLC4 ex 45 (rules 9.5/1.4.4)", () => {
+    // 45. … ('Resolution 1325') — short title italic, quotes/parens roman
+    const runs = formatShortTitleIntroduction("Resolution 1325", "un.document");
+    expect(toText(runs)).toBe("(‘Resolution 1325’)");
+    expect(italicText(runs)).toBe("Resolution 1325");
+  });
+
+  test("UN document subsequent reference without a pinpoint keeps the UN Doc number (rule 9.5 template)", () => {
+    const citation = makeCitation(
+      "un.document",
+      { resolutionNumber: "SC Res 1325", documentNumber: "S/RES/1325" },
+      "Resolution 1325"
+    );
+    const runs = formatShortReference(citation, 45);
+    expect(toText(runs)).toBe("Resolution 1325, UN Doc S/RES/1325 (n 45)");
+    expect(italicText(runs)).toBe("Resolution 1325");
+  });
+
+  test("immediately-following UN reference with a new pinpoint resolves to Ibid plus pinpoint (rules 9.5/1.4.3)", () => {
+    const citation = makeCitation(
+      "un.document",
+      { resolutionNumber: "SC Res 1325", documentNumber: "S/RES/1325" },
+      "Resolution 1325"
+    );
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(
+        45,
+        { type: "paragraph", value: "para 7" },
+        { type: "paragraph", value: "para 5" }
+      )
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid para 7");
+  });
+
   test("UN document subsequent reference includes the UN Doc number per AGLC4 ex 48 (rule 9.5)", () => {
     // 48. Resolution 1325, UN Doc S/RES/1325 (n 45) para 7.
     const citation = makeCitation(
@@ -106,9 +210,72 @@ describe("Rule 9.5 — UN short titles and subsequent references", () => {
     });
     const pinpoint: Pinpoint = { type: "page", value: "797" };
     const runs = formatShortReference(citation, 49, pinpoint);
-    expect(toText(runs)).toBe(
-      "‘Legal Aspects of International Political Relations’ (n 49) 797"
+    expect(toText(runs)).toBe("‘Legal Aspects of International Political Relations’ (n 49) 797");
+    expect(italicText(runs)).toBe("");
+  });
+
+  test("introduces an italic committee-decision short title per AGLC4 ex 38 (rules 9.3.1/9.5)", () => {
+    // 38. … ('Madafferi v Australia') — rule 9.3.1: decisions of UN treaty
+    // committees must always carry a short title (Complainant v State)
+    const runs = formatShortTitleIntroduction("Madafferi v Australia", "un.communication");
+    expect(toText(runs)).toBe("(‘Madafferi v Australia’)");
+    expect(italicText(runs)).toBe("Madafferi v Australia");
+  });
+
+  test("committee-decision subsequent reference keeps the UN Doc number per AGLC4 ex 40 (rules 9.3.1/9.5)", () => {
+    // 40. Madafferi v Australia, UN Doc CCPR/C/81/D/1011/2001 (n 38) 22 [10].
+    const citation = makeCitation(
+      "un.communication",
+      {
+        committee: "Human Rights Committee",
+        communicationNumber: "1011/2001",
+        documentNumber: "CCPR/C/81/D/1011/2001",
+      },
+      "Madafferi v Australia"
     );
+    const pinpoint: Pinpoint = {
+      type: "page",
+      value: "22",
+      subPinpoint: { type: "paragraph", value: "[10]" },
+    };
+    const runs = formatShortReference(citation, 38, pinpoint);
+    expect(toText(runs)).toBe("Madafferi v Australia, UN Doc CCPR/C/81/D/1011/2001 (n 38) 22 [10]");
+    // Only the short title is italic; the UN Doc number stays roman
+    expect(italicText(runs)).toBe("Madafferi v Australia");
+  });
+
+  test("committee decision with complainant in the author field is still short-title-led (rules 9.3.1/9.5)", () => {
+    // The form stores the applicant/parties in `author`; a rule 9.3.1
+    // decision nevertheless leads with its mandatory short title (ex 40),
+    // not the rule 1.4.1 author-surname form.
+    const citation = makeCitation(
+      "un.communication",
+      {
+        author: "Ángela Poma Poma v Peru",
+        committee: "Human Rights Committee",
+        docNumber: "CCPR/C/95/D/1457/2006",
+      },
+      "Poma Poma v Peru"
+    );
+    const runs = formatShortReference(citation, 12);
+    expect(toText(runs)).toBe("Poma Poma v Peru, UN Doc CCPR/C/95/D/1457/2006 (n 12)");
+    expect(italicText(runs)).toBe("Poma Poma v Peru");
+  });
+
+  test("authored party submission takes the rule 1.4.1 author form (rules 9.3.2/9.5)", () => {
+    // Rule 9.5: individual communications (rule 9.3.2) follow rule 1.4.1 —
+    // the body author leads (guide ex 41 author, rule 9.3.2)
+    const citation = makeCitation("un.communication", {
+      author: "Human Rights Law Resource Centre",
+      documentTitle:
+        "Individual Communication under the Optional Protocol to the International Covenant on Civil and Political Rights — Original Communication",
+      documentType: "Communication",
+      committee: "Human Rights Committee",
+      caseName: "Nystrom v Australia",
+      date: "4 April 2007",
+    });
+    const runs = formatShortReference(citation, 41);
+    expect(toText(runs)).toBe("Human Rights Law Resource Centre (n 41)");
     expect(italicText(runs)).toBe("");
   });
 });
@@ -154,6 +321,30 @@ describe("Rule 10.5 — ICJ/PCIJ short titles and subsequent references", () => 
     expect(toText(runs)).toBe("‘Memorial of Nicaragua’ (n 38) 17");
     expect(italicText(runs)).toBe("");
   });
+
+  test("ICJ decision subsequent reference without a pinpoint (rules 10.5/1.4.1)", () => {
+    const citation = makeCitation(
+      "icj.decision",
+      {
+        caseName: "Reparation for Injuries Suffered in the Service of the United Nations",
+        phase: "Advisory Opinion",
+      },
+      "Reparations"
+    );
+    const runs = formatShortReference(citation, 36);
+    expect(toText(runs)).toBe("Reparations (n 36)");
+    expect(italicText(runs)).toBe("Reparations");
+  });
+
+  test("immediately-following ICJ reference with a new pinpoint resolves to Ibid plus pinpoint (rules 10.5/1.4.3)", () => {
+    const citation = makeCitation("icj.decision", { caseName: "Reparations" }, "Reparations");
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(36, { type: "page", value: "198" }, { type: "page", value: "178" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid 198");
+  });
 });
 
 // =============================================================================
@@ -161,6 +352,31 @@ describe("Rule 10.5 — ICJ/PCIJ short titles and subsequent references", () => 
 // =============================================================================
 
 describe("Rule 11.3 — arbitral short titles and subsequent references", () => {
+  test("introduces an italic phase-bearing arbitral short title per AGLC4 ex 16 (rules 11.3/2.1.14)", () => {
+    // 16. … ('Boundary Disputes (Decisions)') — the phase is built into the
+    // short title to distinguish decisions between the same parties
+    const runs = formatShortTitleIntroduction(
+      "Boundary Disputes (Decisions)",
+      "arbitral.state_state"
+    );
+    expect(toText(runs)).toBe("(‘Boundary Disputes (Decisions)’)");
+    expect(italicText(runs)).toBe("Boundary Disputes (Decisions)");
+  });
+
+  test("immediately-following arbitral reference with a new pinpoint resolves to Ibid plus pinpoint (rules 11.3/1.4.3)", () => {
+    const citation = makeCitation(
+      "arbitral.state_state",
+      { caseName: "Boundary Disputes", phase: "Decisions" },
+      "Boundary Disputes (Decisions)"
+    );
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(16, { type: "page", value: "15" }, { type: "page", value: "13" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid 15");
+  });
+
   test("state–state arbitration subsequent reference per AGLC4 ex 19 (rule 11.3)", () => {
     // 19. Boundary Disputes (Decisions) (n 16) 15.
     const citation = makeCitation(
@@ -194,6 +410,32 @@ describe("Rule 11.3 — arbitral short titles and subsequent references", () => 
 // =============================================================================
 
 describe("Rule 12.4 — criminal tribunal short titles and subsequent references", () => {
+  test("introduces an italic tribunal-rules short title per AGLC4 ex 26 (rules 12.4/1.4.4)", () => {
+    // 26. … ('ICTY Rules')
+    const runs = formatShortTitleIntroduction("ICTY Rules", "icc_tribunal.case");
+    expect(toText(runs)).toBe("(‘ICTY Rules’)");
+    expect(italicText(runs)).toBe("ICTY Rules");
+  });
+
+  test("introduces an italic phase-bearing decision short title per AGLC4 ex 29 (rules 12.4/2.1.14)", () => {
+    // 29. … ('Serushago Appeal') — trial/appellate status built into the
+    // short title to distinguish decisions between the same parties
+    const runs = formatShortTitleIntroduction("Serushago Appeal", "icc_tribunal.case");
+    expect(toText(runs)).toBe("(‘Serushago Appeal’)");
+    expect(italicText(runs)).toBe("Serushago Appeal");
+  });
+
+  test("tribunal decision subsequent reference without a pinpoint (rules 12.4/1.4.1)", () => {
+    const citation = makeCitation(
+      "icc_tribunal.case",
+      { caseName: "Serushago v Prosecutor", phase: "Reasons for Judgment" },
+      "Serushago Appeal"
+    );
+    const runs = formatShortReference(citation, 29);
+    expect(toText(runs)).toBe("Serushago Appeal (n 29)");
+    expect(italicText(runs)).toBe("Serushago Appeal");
+  });
+
   test("tribunal rules subsequent reference per AGLC4 ex 28 (rule 12.4)", () => {
     // 28. ICTY Rules (n 26) r 3(F).
     const citation = makeCitation(
@@ -235,6 +477,38 @@ describe("Rule 12.4 — criminal tribunal short titles and subsequent references
 // =============================================================================
 
 describe("Rule 13.4 — WTO/GATT short titles and subsequent references", () => {
+  test("introduces an italic annexed-agreement short title per AGLC4 ex 23 (rules 13.1.1/13.4)", () => {
+    // 23. … ('Agreement on Technical Barriers to Trade') ('TBT Agreement')
+    // — annexed WTO agreements are cited as treaty annexes (rule 13.1.1)
+    const runs = formatShortTitleIntroduction("TBT Agreement", "treaty");
+    expect(toText(runs)).toBe("(‘TBT Agreement’)");
+    expect(italicText(runs)).toBe("TBT Agreement");
+  });
+
+  test("introduces an italic WTO report short title per AGLC4 ex 30 (rules 13.4/1.4.4)", () => {
+    // 30. … ('US — Zeroing (Article 21.5 — Japan)')
+    const runs = formatShortTitleIntroduction(
+      "US — Zeroing (Article 21.5 — Japan)",
+      "wto.decision"
+    );
+    expect(toText(runs)).toBe("(‘US — Zeroing (Article 21.5 — Japan)’)");
+    expect(italicText(runs)).toBe("US — Zeroing (Article 21.5 — Japan)");
+  });
+
+  test("immediately-following WTO reference with a new pinpoint resolves to Ibid plus pinpoint (rules 13.4/1.4.3)", () => {
+    const citation = makeCitation(
+      "wto.document",
+      { title: "Doha Work Programme", documentNumber: "WT/MIN(05)/DEC" },
+      "Doha Work Programme"
+    );
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(12, { type: "paragraph", value: "[162]" }, { type: "paragraph", value: "[45]" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid [162]");
+  });
+
   test("annexed WTO agreement cited as a treaty per AGLC4 ex 25 (rules 13.1.1/13.4)", () => {
     // 25. TBT Agreement (n 23) art 2.1.
     const citation = makeCitation(
@@ -302,6 +576,48 @@ describe("Rule 13.4 — WTO/GATT short titles and subsequent references", () => 
 // =============================================================================
 
 describe("Rule 14.6 — supranational short titles and subsequent references", () => {
+  test("introduces an italic supranational document short title per AGLC4 ex 52 (rules 14.6/1.4.4)", () => {
+    // 52. … ('Guidelines to a Fair Trial')
+    const runs = formatShortTitleIntroduction(
+      "Guidelines to a Fair Trial",
+      "supranational.document"
+    );
+    expect(toText(runs)).toBe("(‘Guidelines to a Fair Trial’)");
+    expect(italicText(runs)).toBe("Guidelines to a Fair Trial");
+  });
+
+  test("introduces an italic ECtHR decision short title per AGLC4 ex 56 (rules 14.6/2.1.14)", () => {
+    // 56. … ('El Boujaïdi')
+    const runs = formatShortTitleIntroduction("El Boujaïdi", "echr.decision");
+    expect(toText(runs)).toBe("(‘El Boujaïdi’)");
+    expect(italicText(runs)).toBe("El Boujaïdi");
+  });
+
+  test("ECtHR decision subsequent reference without a pinpoint (rules 14.6/1.4.1)", () => {
+    const citation = makeCitation(
+      "echr.decision",
+      { caseName: "El Boujaïdi v France" },
+      "El Boujaïdi"
+    );
+    const runs = formatShortReference(citation, 56);
+    expect(toText(runs)).toBe("El Boujaïdi (n 56)");
+    expect(italicText(runs)).toBe("El Boujaïdi");
+  });
+
+  test("immediately-following supranational reference with a new pinpoint resolves to Ibid plus pinpoint (rules 14.6/1.4.3)", () => {
+    const citation = makeCitation(
+      "echr.decision",
+      { caseName: "El Boujaïdi v France" },
+      "El Boujaïdi"
+    );
+    const runs = resolveSubsequentReference(
+      citation,
+      ibidContext(56, { type: "page", value: "1992–3" }, { type: "page", value: "1994" })
+    );
+    expect(runs).not.toBeNull();
+    expect(toText(runs as FormattedRun[])).toBe("Ibid 1992–3");
+  });
+
   test("supranational document subsequent reference per AGLC4 ex 55 (rule 14.6)", () => {
     // 55. Guidelines to a Fair Trial (n 52) 4. — title-led despite the
     // body author (African Union, African Commission on Human and
@@ -310,7 +626,8 @@ describe("Rule 14.6 — supranational short titles and subsequent references", (
       "supranational.document",
       {
         body: "African Union, African Commission on Human and Peoples’ Rights",
-        title: "Principles and Guidelines on the Right to a Fair Trial and Legal Assistance in Africa",
+        title:
+          "Principles and Guidelines on the Right to a Fair Trial and Legal Assistance in Africa",
         documentNumber: "DOC/OS(XXX)247",
       },
       "Guidelines to a Fair Trial"
@@ -339,9 +656,7 @@ describe("Rule 14.6 — supranational short titles and subsequent references", (
       caseName: "Google Spain SL v Agencia Española de Protección de Datos",
     });
     const runs = formatShortReference(citation, 9);
-    expect(toText(runs)).toBe(
-      "Google Spain SL v Agencia Española de Protección de Datos (n 9)"
-    );
+    expect(toText(runs)).toBe("Google Spain SL v Agencia Española de Protección de Datos (n 9)");
     expect(italicText(runs)).toBe("Google Spain SL v Agencia Española de Protección de Datos");
   });
 });
@@ -377,8 +692,7 @@ describe("Rule 16.4.2 — full author name in subsequent references to Chinese s
     // surname; characters and pinyin ride along in full.
     const citation = makeCitation("journal.article", {
       authors: [{ surname: "蔡", givenNames: "永彤 [Cai Yongtong]" }],
-      title:
-        "WTO服务市场开放研究及相关法律问题探析",
+      title: "WTO服务市场开放研究及相关法律问题探析",
     });
     const pinpoint: Pinpoint = { type: "page", value: "63" };
     const runs = formatShortReference(citation, 12, pinpoint);

@@ -6,11 +6,25 @@
  * available sources including court websites, AustLII, the Cardiff Index to Legal
  * Abbreviations, and legal database catalogues.
  *
- * This dataset is NOT derived from AGLC4 Appendix A. It is an independent
- * compilation of widely published abbreviation-to-name mappings (DECISION-001).
+ * This curated array drives the rule 2.2.2 preference hierarchy: its
+ * authorised / unauthorised-generalist / unauthorised-subject / medium-neutral
+ * classification is maintained by hand from the in-chapter rule 2.2.2/2.2.3
+ * tables and open catalogues, and is more reliable for the tier of the major
+ * series than the asterisk markers photographed in Appendix A (DATA-004 found
+ * the scanned `*` markers to be under-captured, eg CLR read as unmarked).
+ *
+ * The COMPLETE Appendix A list (~1200 series) lives in `appendix-a-series.ts`
+ * and is unioned in below as `ALL_REPORT_SERIES` for search / autocomplete /
+ * browse. Per Matthew's DATA-004 direction (2026-07-20) the appendix contents
+ * are imported in full: report-series abbreviations, titles, jurisdictions and
+ * coverage years are standard factual citation data used across many guides and
+ * reference works, not AGLC-original expression. This supersedes the
+ * "verification only" framing of DECISION-001 for appendix data.
  *
  * Copyright (c) 2024-2026 Obiter contributors — GPLv3
  */
+
+import { APPENDIX_A_SERIES } from "./appendix-a-series";
 
 export interface ReportSeriesEntry {
   abbreviation: string;
@@ -25,6 +39,12 @@ export interface ReportSeriesEntry {
   type: "authorised" | "unauthorised_generalist" | "unauthorised_subject" | "medium_neutral";
   yearOrganised: boolean;
   source: string;
+  /**
+   * Years of coverage span for the series, as printed in AGLC4 Appendix A
+   * (eg "1885–1938", "2010–"). Present on entries verified against or imported
+   * from Appendix A (DATA-004); omitted on curated entries not yet annotated.
+   */
+  years?: string;
 }
 
 /**
@@ -101,9 +121,12 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: true,
     source: "Court website",
   },
-  // Rule 2.2.3 table (PDF p.76): the authorised Queensland series 1958– is
-  // "Qd R" (Queensland Reports). A fabricated "QR" entry previously sat here;
-  // "QR" is not an AGLC4 abbreviation.
+  // Rule 2.2.3 table (PDF p.76) gives the authorised Queensland series as
+  // "Qd R" (Queensland Reports). AGLC4 Appendix A refines this by era: "Qd R"
+  // covers 1958–Mar 2020 and "QR" covers Apr 2020– (the reports changed
+  // citation in 2020). Both are authorised; the "QR" era lives in
+  // appendix-a-series.ts. Reverses the earlier "QR is fabricated" call, which
+  // was made without the appendix — see docs/decisions.md DECISION-031.
   {
     abbreviation: "Qd R",
     fullName: "Queensland Reports",
@@ -637,17 +660,30 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
   // (The former duplicate "Qd R (historical)" entry was removed — the
   // authorised Queensland Reports entry now lives in the authorised section
   // per the rule 2.2.3 table.)
+  // ACTR is split by era, resolving the former rule 2.2.2/2.2.3 conflict
+  // (DECISION-015). AGLC4 Appendix A prints two ACTR rows: "1973–2008" carries
+  // an asterisk (authorised/preferred — these are the authorised reports, in
+  // ALR), while "2009–" has none. The current-era (2009–) generalist entry is
+  // listed first so a year-agnostic getByAbbreviation("ACTR") returns the
+  // conservative generalist tier that matches rule 2.2.2's worked example; the
+  // authorised historical series is present and reachable for pre-2009 cases.
   {
     abbreviation: "ACTR",
     fullName: "Australian Capital Territory Reports",
     jurisdiction: "ACT",
-    // Reference-internal ambiguity: the rule 2.2.3 authorised/preferred table
-    // lists "ACTR (in ALR) 1973–2008", but the rule 2.2.2 preference table
-    // gives ACTR as a *generalist unauthorised* example. Kept unauthorised
-    // pending researcher resolution — see docs/decisions.md (DATA-004).
     type: "unauthorised_generalist",
     yearOrganised: false,
-    source: "AustLII",
+    years: "2009–",
+    source: "AGLC4 Appendix A",
+  },
+  {
+    abbreviation: "ACTR",
+    fullName: "Australian Capital Territory Reports (authorised, in ALR)",
+    jurisdiction: "ACT",
+    type: "authorised",
+    yearOrganised: false,
+    years: "1973–2008",
+    source: "AGLC4 Appendix A",
   },
 
   // =========================================================================
@@ -1742,11 +1778,28 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
 ];
 
 /**
+ * Complete report-series list for search / autocomplete / browse (DATA-001,
+ * DATA-004): the curated core first — it drives the rule 2.2.2 hierarchy and
+ * wins on any shared abbreviation — followed by every AGLC4 Appendix A entry
+ * not already represented in the core (matched on abbreviation + normalised
+ * full name, so genuinely distinct series sharing an abbreviation are kept).
+ */
+const normaliseName = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const coreKeys = new Set(REPORT_SERIES.map((e) => `${e.abbreviation} ${normaliseName(e.fullName)}`));
+export const ALL_REPORT_SERIES: ReportSeriesEntry[] = [
+  ...REPORT_SERIES,
+  ...APPENDIX_A_SERIES.filter(
+    (e) => !coreKeys.has(`${e.abbreviation} ${normaliseName(e.fullName)}`)
+  ),
+];
+
+/**
  * Search report series by abbreviation or full name (case-insensitive substring match).
+ * Covers the full Appendix A list via ALL_REPORT_SERIES.
  */
 export function searchReportSeries(query: string): ReportSeriesEntry[] {
   const lowerQuery = query.toLowerCase();
-  return REPORT_SERIES.filter(
+  return ALL_REPORT_SERIES.filter(
     (entry) =>
       entry.abbreviation.toLowerCase().includes(lowerQuery) ||
       entry.fullName.toLowerCase().includes(lowerQuery)
@@ -1766,7 +1819,7 @@ export function getByAbbreviation(
   abbrev: string,
   jurisdiction?: string
 ): ReportSeriesEntry | undefined {
-  return REPORT_SERIES.find(
+  return ALL_REPORT_SERIES.find(
     (entry) =>
       entry.abbreviation === abbrev &&
       (jurisdiction === undefined || entry.jurisdiction === jurisdiction)

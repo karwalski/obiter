@@ -18,7 +18,7 @@
     "build:dev": "webpack --mode development",
     "dev-server": "webpack serve --mode development",
     "lint": "office-addin-lint check",
-    "lint:fix": "office-addin-lint fix",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx,js,jsx}\"",
     "prettier": "office-addin-lint prettier",
     "start": "office-addin-debugging start manifest.xml",
     "stop": "office-addin-debugging stop manifest.xml",

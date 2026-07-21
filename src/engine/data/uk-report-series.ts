@@ -78,15 +78,16 @@ export const UK_REPORT_SERIES: UKReportSeriesEntry[] = [
     source: "ICLR",
   },
   {
-    // provisional: bare "Ex" appears nowhere in the AGLC4 rule 24.1.2 table
-    // (the Exchequer entries are "Ex D" 1875–80 and "LR Ex" 1865–75) —
-    // likely wrong; verify against Appendix A (DATA-004).
+    // Confirmed by AGLC4 Appendix A (DATA-004, 2026-07-20): bare "Ex" is the
+    // nominate series "Exchequer Reports" (UK, 1847–56). It is absent from the
+    // rule 24.1.2 table (which lists only "Ex D" 1875–80 and "LR Ex" 1865–75)
+    // but is a legitimate AGLC4 abbreviation — kept. See DECISION-026.
     abbreviation: "Ex",
-    fullName: "Exchequer Division",
+    fullName: "Exchequer Reports",
     jurisdiction: "E&W",
     type: "authorised",
-    yearOrganised: true,
-    source: "ICLR",
+    yearOrganised: false,
+    source: "AGLC4 Appendix A",
   },
   {
     abbreviation: "CPD",

@@ -218,6 +218,10 @@ The Note to Rule 3.1.2 is explicit: *"Citations to an Act refer to the Act as am
 
 **Implementation:** PARITY epic reviews check each anomaly against the engine (did we accidentally encode a guide error learned from an example?); DATA-005 (Erratum) annotates resolved entries.
 
+**2021-printing spot-check (2026-07-21):** Targeted pages of Matthew's 2021 printing were scanned (`aglc4-additional.pdf` / `aglc4-addition2.pdf`) and diffed against the anomalies catalogue (built from the 2020 corrected printing). Result — the "rule text/table prevails" default is vindicated:
+- **24.1.6 "DP" vs "DPSC" — CORRECTED in 2021.** The example band that read 'Lord Hope DP' in the 2020 printing now reads 'Lord Hope **DPSC**' (printed p256), matching the table. The engine already emits DPSC (DECISION-012 default), so the guide has caught up to us; no change. This is the *only* substantive correction found across all sampled pages.
+- **Persisting unchanged in 2021 (engine already correct/unaffected):** 2.3.1 'TASCC' worked example (printed p54, still 'TASCC' vs table 'TASSC'); 25.3.5 example 66 '1862 NY Stat 343' (printed p283, still contradicts the table's 'NY Laws'); 5.5 example 10 'Yale Journal of Law and the Humanities' (printed p93, still forces '&'→'and'); chapter-5 opener element table 'Pin-Point' (printed p91); and the 1.11.1/1.11.2 example weekday typos (printed p31). MULR's minor-corrections printings are very light — these self-evident misprints survived into 2021 — which supports treating them as durable anomalies rather than pending corrections.
+
 ---
 
 ## DECISION-013: Em-Dash Spacing — Engine Ban vs Guide's Own Usage
@@ -236,10 +240,11 @@ Rule 5.5 says journal titles appear "as on the title page" with two stated excep
 
 ## DECISION-015: ACTR Authorised Status + Appendix-Dependent Data Rows
 
-**Status:** OPEN (blocked on DATA-004)
+**Status:** RESOLVED (2026-07-20, DATA-004)
 **Raised:** 2026-07-02 (PARITY review, review-data-styling.md)
 The 2.2.2/2.2.3 in-chapter tables conflict on ACT Reports' status, and ~230 report-series/court-identifier rows plus several yearOrganised flags can only be authoritatively verified against Appendices A–B, which are absent from the free PDF. Resolve when the scanned appendices arrive (DATA-004); until then rows are tagged provisional and the engine keeps current behaviour. (Note: the formatter currently ranks ACTR unauthorised-generalist per the rule 2.2.2 table; researchers to confirm whether the 2.2.3 authorised listing 'ACTR (in ALR) 1973–2008' governs instead.)
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Resolution (2026-07-20, DATA-004):** The scanned `aglc4-appendix.pdf` settles it. Appendix A prints **two** ACTR rows — "Australian Capital Territory Reports **1973–2008**" with an asterisk (authorised/preferred — the authorised reports, in ALR) and "…**2009–**" with no marker. So ACT Reports are era-split: 1973–2008 authorised, 2009– unauthorised generalist. `report-series.ts` now carries both entries; the 2009– generalist entry is listed first so a year-agnostic `getByAbbreviation("ACTR")` returns the conservative generalist tier that matches rule 2.2.2's worked example, with the authorised historical series reachable for pre-2009 cases. The broader "~230 provisional rows" are addressed by importing Appendix A in full (see DATA-004): the complete ~1200-entry list lives in `appendix-a-series.ts` and is unioned into `ALL_REPORT_SERIES` for search/autocomplete/browse, while the curated `REPORT_SERIES` continues to drive the rule 2.2.2 hierarchy (DATA-004 found the scanned `*` markers under-captured, so absence of a marker was NOT used to downgrade curated authorised series).
 
 ## DECISION-016: Rule 1.8.3 — Macquarie-Dependent Latin/Foreign Terms
 
@@ -311,6 +316,7 @@ Rule 4.2 preserves italics inside secondary-source titles (eg a case name like *
 **Interim:** AGLC4 years govern per project policy.
 **Researchers:** confirm AGLC4 years suffice, or approve a dual field (aglcFrom/nzliiFrom) for validator tolerance.
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Verified against the printed guide (2026-07-21):** rule 21.1.3 was scanned (2021 printing, printed p240). The court-identifier table reads exactly NZSC 2005–, NZCA 2007–, NZHC 2012–, NZEmpC 2010–, NZEnvC 2010–, NZFC 2012– — i.e. `nz-court-identifiers.ts` faithfully matches AGLC4. So the AGLC4-side is confirmed correct. The decision stays OPEN only on the *design* question (whether to add an `nzliiFrom` field so the validator tolerates real-world NZLII neutral-citation years, which diverge from AGLC4); a scan of AGLC4 cannot resolve that, as the guide only ever states its own years.
 
 ## DECISION-023: yearOrganised Flags — Series That Switched Systems (Appendix A)
 
@@ -320,6 +326,7 @@ NSWLR and VR switched between year- and volume-organisation (both bracket forms 
 **Interim:** current single-boolean values kept, rows tagged provisional.
 **Researchers:** verify against Appendix A when the scan arrives; decide whether a switch-year field is needed for NSWLR/VR.
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Update (2026-07-20, DATA-004):** The appendix scan has landed and coverage **years** are now imported (`ReportSeriesEntry.years`), which pins the switch points (eg NSWLR, VR). However Appendix A records only coverage spans, **not** whether a series is year- or volume-organised, so the core `yearOrganised` switch-year question is **not** resolved by the appendix — remains OPEN for a researcher/illustration pass. The single boolean still cannot represent series that switched systems.
 
 ## DECISION-024: Rule 3.1.4 — Plural of 'ord'
 
@@ -329,6 +336,7 @@ The rule 3.1.4 table gives only the singular 'ord' (order); no plural is stated 
 **Interim:** dataset uses 'ords' provisionally, by analogy with the table's other regular plurals.
 **Researchers:** confirm 'ords' (or specify the correct plural) against Appendix C / MULR practice.
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Resolution (2026-07-20, DATA-004):** Appendix C (PDF p.332) prints the full row "Order | ord | Orders | ords", confirming the provisional plural **'ords'** is correct. No change to `pinpoint-abbrevs.ts` needed.
 
 ## DECISION-025: NZ Report-Series Duplicates and Typing (Appendix A)
 
@@ -338,15 +346,17 @@ Duplicate NZAR and NZCPR rows were removed (surviving rows provisional); NZPC an
 **Interim:** survivors kept as-is, tagged provisional.
 **Researchers:** verify survivors, resolve NZPC vs NZPCC, and source GLR's status against Appendix A / NZLSG.
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Update (2026-07-20, DATA-004):** Appendix A (which includes 37 NZ series) is now imported into `appendix-a-series.ts` and can be diffed against `nz-report-series.ts`. This narrows the question but does not fully close the NZ-specific items (NZPC vs NZPCC naming, GLR typing) — those remain for a targeted NZLSG researcher pass. Kept OPEN.
 
 ## DECISION-026: Bare 'Ex' Entry in uk-report-series.ts
 
-**Status:** OPEN
+**Status:** RESOLVED (2026-07-20, DATA-004)
 **Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
 A bare 'Ex' abbreviation appears in no AGLC4 table — the rule 24.1.2 forms are 'Ex D' and 'LR Ex'.
 **Interim:** the row is kept but flagged likely wrong; nothing emits it on the AGLC4 path.
 **Researchers:** confirm deletion (or identify the nominate series it was meant to represent).
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
+**Resolution (2026-07-20, DATA-004):** Appendix A **does** list a bare "Ex" — "Exchequer Reports" (UK, 1847–56). So the abbreviation is a legitimate AGLC4 nominate series, not a fabrication; the `uk-report-series.ts` row is **kept** (fullName corrected to "Exchequer Reports"). The rule 24.1.2 in-chapter table simply doesn't enumerate the historical nominate reports that Appendix A does.
 
 ## DECISION-027: Rule 25.4 — US Constitution Article Numerals (Roman vs Arabic)
 
@@ -376,8 +386,68 @@ Rule 26.2 ex 12 italicises a written-out series title ('*Il Foro Italiano*…'),
 **Resolution (2026-07-03, Matthew):** Written-out non-common-law report series default to roman, consistent with rule 2.2.3; the FormattedRun[] caller override is retained for edge cases. Test pinned 2026-07-03.
 ## DECISION-030: Rule 26.4 — English Title-Casing of Non-English Titles
 
-**Status:** OPEN
+**Status:** RESOLVED (2026-07-21) — confirmed against the printed guide
 **Raised:** 2026-07-03 (PARITY final mop-up, rule 26.4 implementation)
 Rule 4.2 sends secondary-source title capitalisation to rule 1.7, whose minor-word list (articles/prepositions/conjunctions) is English. Applied to a non-English title it produces 'Der Reformvertrag Von Lissabon', but the guide's own rule 26.4 ex 21 (PDF p 321) prints '*Der Reformvertrag von Lissabon*' with the German preposition lowercase — foreign titles are evidently reproduced with their own language's capitalisation.
 **Interim:** where a `translatedTitle` is stored (the signal that the title is non-English), `formatBook` renders the original title as typed (embedded-italic markers still honoured) instead of applying rule 1.7 title case; titles without a stored translation are unaffected. The newspaper and internet-material formatters never title-cased, so they need no carve-out.
 **Researchers:** confirm the scope of rule 1.7 over non-English titles (reproduce-as-typed vs source-language convention vs English title case), and whether the carve-out should extend beyond the translated-title signal.
+**Resolution (2026-07-21):** The rule 26.4 page was scanned from the printed guide (2021 printing, `aglc4-additional.pdf` / `aglc4-addition2.pdf`, printed p296). Example 21 reads exactly '*Der Reformvertrag von Lissabon* [The Reform Treaty of Lisbon] (Nomos, 2009) 181' — the German preposition **'von' is lowercase**, i.e. the guide reproduces the source language's own capitalisation rather than applying English (rule 1.7) title case. This confirms the interim carve-out is correct: non-English titles are rendered as typed. Behaviour is settled; the broader "scope of rule 1.7 over non-English titles" (whether to widen the carve-out beyond the translated-title signal) is left as a possible enhancement, not a blocker.
+
+## DECISION-031: Queensland Reports — 'Qd R' vs 'QR' (2020 citation change)
+
+**Status:** RESOLVED provisionally (2026-07-20, DATA-004) — flagged for researcher sign-off
+**Raised:** 2026-07-20 (DATA-004 appendix import)
+A prior PARITY correction removed a "QR" report-series entry as fabricated, on the basis that rule 2.2.3 gives the authorised Queensland series as "Qd R" (see the comment near the Qd R entry in `report-series.ts`). The AGLC4 Appendix A scan contradicts this: it prints **two** Queensland Reports rows — **"Qd R" (1958–Mar 2020)** and **"QR" (Apr 2020–)**, the latter asterisked (authorised) — recording the 2020 change of the Queensland Reports citation abbreviation.
+**Resolution:** Trust the appendix (project policy: AGLC4 is the authority; Matthew's DATA-004 full-import direction). "QR" is a real authorised Queensland series from Apr 2020 and is present via `appendix-a-series.ts` (→ `ALL_REPORT_SERIES`); "Qd R" remains the authorised series for 1958–Mar 2020. The stale "QR is fabricated" comment in `report-series.ts` has been corrected and the `data-parity.test.ts` assertion updated.
+**Researchers:** confirm the Apr 2020 changeover date and that both forms should be treated as authorised (this reverses the earlier call, so a sign-off is wanted). Consider whether the validator should nudge post-2020 Queensland citations toward "QR" and pre-2020 toward "Qd R".
+
+## DECISION-032: Rule 2.3.1 — mncTo Identifier-Currency Check Not Implementable Without Guessed Data
+
+**Status:** RESOLVED (2026-07-21, PARITY-121 A2) — check not implemented; no AGLC4-sourced data can back it under the current citation model
+**Raised:** 2026-07-21 (PARITY-121 remainder, Part A2: the mncTo currency check previously BLOCKED on DATA-004)
+
+**Field semantics (determined).** `mncTo` lives on `CourtIdentifier` (`src/engine/data/court-identifiers.ts`), not on `ReportSeriesEntry` — the PARITY-121 plan mislocated it in `report-series.ts`, whose only year field is the distinct Appendix A `years` coverage string. Per the interface doc, `mncTo` is the last year a medium neutral unique court identifier was current, where the rule 2.3.1 table (PDF pp 79-81) gives a closed range. Nothing reads it today; its sibling `mncFrom` drives `checkMncYearValidity` (validator.ts). The governing rules are 2.3.1 (identifier currency) and 2.2.2 (report-version preference) — not 2.2.3, which only tables series abbreviations.
+
+**Why zero rows can be backfilled:**
+1. **Appendix B prints no year data.** DATA-004 (2026-07-20) imported all 89 Appendix B identifiers and confirmed the appendix gives identifier + court name only (`docs/appendix-verification.md`). The original blocker ("every mncTo row is empty pending Appendix B") is resolved in the negative: the hoped-for data does not exist in the appendix.
+2. **The only closed ranges in AGLC4 cannot fit the data model.** The rule 2.3.1 in-chapter table contains exactly two closed ranges, and both attach to the Full Court *usage* of an identifier whose first-instance usage is open-ended: FCA used by the Full Court 1999-2001 (FCAFC 2002-) and FamCA used by the Full Court 1998-2007 (FamCAFC 2008-). `court-identifiers.ts` models one row per code, so setting `mncTo: 2001` on FCA or `mncTo: 2007` on FamCA would falsely expire the identifier for post-boundary single-judge decisions, which continue to use FCA/FamCA. (The SASC/TASSC/WASCA "including Full Court until ..." notes are scope notes, not identifier expiries — those identifiers remain current.)
+3. **The citation model carries no bench signal.** `case.unreported.mnc` citations store court code, year and judgment number only. A hypothetical `[2010] FamCA n` is indistinguishable between a valid first-instance decision and an invalid Full Court usage, so even correctly modelled ranges could not fire without guessing.
+4. **Appendix A coverage years cannot substitute.** A series' `years` span is a publication window, not case-level reported status. Rule 2.2.2 prefers the authorised report only *where available*, which is a per-case fact; flagging every MNC citation inside an authorised series' coverage window would false-positive on every genuinely unreported decision. The scanned authorised markers are also under-captured (appendix-verification.md), so authorised status cannot be inferred from the appendix.
+
+**Disposition:** no `checkMncCurrency` validator check, no backfill. The PARITY-121 mncTo item closes as *not data-backable* rather than blocked — no future AGLC4 appendix release will supply the missing values, because the guide itself contains none beyond the two Full Court ranges above.
+
+**What would unblock a data-backed check:** (a) a per-citation bench/full-court field (UI form + store + engine data) plus usage-scoped identifier ranges transcribed from the rule 2.3.1 table (the two Full Court rows are the only mncTo values AGLC4 will ever source) — the court-identifiers restructure belongs to the series-data audit workstream; or (b) case-level reported-status lookup from an external service, which is outside AGLC4's scope and would be an enhancement-layer feature, not a rule check.
+
+**Researchers:** none of the above turns on rule interpretation — the rule 2.3.1 table text is unambiguous. Sign-off wanted only on the product question of whether the bench-field remodel in (a) is worth pursuing for a check that could ever flag two courts.
+
+## DECISION-033: Court PD Verification Queue (2026-07-21 refresh)
+
+**Status:** OPEN — awaiting Matthew's confirmation against the court sites
+**Raised:** 2026-07-21 (court-submission-mode data refresh against primary court sources)
+
+The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-guide text for Vic (SC Gen 3 reissued 1 Dec 2025; SC CA 3 reissued 10 Mar 2026), FCA (GPN-AUTH reissued 7 May 2025), WA (Consolidated PDs updated 20 Jun 2025, PD 2.1 and PD 8.2.2), SA (UCR 2020 r 217.8, current to 15 Mar 2026), Tas (PD 3 of 2022), FCFCOA (FAM-APPEALS updated 10 Jun 2025), NT (PD 1 of 2025) and ACT (PD 2 of 2022). Those were verified against primary sources and their `practiceDirections.ts` entries carry `lastVerified: "2026-07-21"`. Three items could NOT be verified to the same standard and are queued here rather than guessed:
+
+1. **NSW SC PN Gen 20 / PN CA 1 reissue currency.** Secondary sources suggest SC Gen 20 may have been touched around 1 May 2023, but only secondary sources were available — the NSW preset, guide text and `lastVerified: "2026-04-21"` are unchanged. Confirm at https://www.supremecourt.justice.nsw.gov.au/practice-and-procedure/practice-notes/practice-notes-sc-gen/sc-gen-20---citation-of-authority.html (and PN CA 1 for the NSWCA LOA deadlines).
+2. **Qld CoA PD 3 of 2013 Part A/B detail.** The Part A/B LOA structure attributed to the Queensland Court of Appeal rests on a court-site search only; the QCA preset keeps `loaType: "part-ab"`. Confirm the current Court of Appeal practice direction detail at https://www.courts.qld.gov.au/court-users/practitioners/practice-directions.
+3. **GPN-AUTH exact clause numbers.** The 7 May 2025 GPN-AUTH relaxations (authorised citation not required when not reasonably obtainable; MNC paragraph pinpoints sufficient) were read via a proxy fetch; the clause numbers believed to be 2.4-2.6 are not cited in code or guide text for that reason. Confirm against https://www.fedcourt.gov.au/law-and-practice/practice-documents/practice-notes/gpn-auth.
+
+**Interim:** behaviour-affecting changes were made only where the primary source was read directly (see the change log in the 2026-07-21 commit). The three items above retain their previous behaviour and dates.
+
+**Researchers/Matthew:** confirm the three URLs above and, if anything has moved, update `src/engine/court/practiceDirections.ts`, `src/engine/court/presets.ts` and `src/ui/data/courtReferenceGuide.ts` accordingly (each carries a PD-named comment at the relevant entry).
+
+## DECISION-034: Australian Privacy Act (APP) Posture Review for Accounts
+
+**Status:** OPEN — task for the user, not a resolved decision
+**Raised:** 2026-07-22 (ACCT-007 — optional accounts ship holding personal information)
+
+**Context:** The ACCT epic introduces optional user accounts that store personal information on the obiter.com.au host (`obiter.db`): email addresses, argon2id password hashes, AES-256-GCM-encrypted API keys and MFA secrets, synced settings, and an audit trail with one-way hashed IPs. This crosses a threshold that the prior BYOK-only, no-server-PII posture did not: Obiter now collects and holds personal information as an APP entity. privacy.html, terms.html, THREAT-MODEL.md and server-setup.md were updated in the same release (per the ACCT-007 guardrail), but a formal Australian Privacy Act / Australian Privacy Principles (APPs) posture review has not been done and is out of scope for an implementation story.
+
+**Task for the user (not an engineering decision):** commission or self-conduct an APP posture review covering at least:
+- **APP 1 (open and transparent management).** Is the privacy policy adequate as an APP privacy policy now that PII is collected? Is a clearly expressed, up-to-date policy published and easy to find?
+- **APP 5 (notification of collection).** Are users notified, at or before collection (registration), of what is collected and why?
+- **APP 6 (use or disclosure).** Confirm account data is used only for the stated purposes (auth, settings roaming, keyed relay) and not disclosed beyond the users own provider calls.
+- **APP 11 (security of personal information).** Confirm the technical controls (argon2id, AES-256-GCM with out-of-band master key, hashed tokens/IPs, MFA, rate limits, lockout, audit) are reasonable steps, and that de-identified/anonymised deletion is sound.
+- **APP 12 (access) and APP 13 (correction).** The self-service JSON export (access) and delete/anonymise (erasure) were shipped in ACCT-007; confirm they satisfy the access right, and decide how a correction request (e.g. email change) is handled.
+- **Notifiable Data Breaches (NDB) readiness.** Determine whether the eligible-data-breach assessment and notification process is defined, given the credential database now in scope.
+
+**Interim:** the policies and threat model are updated and accurate for the shipped feature; this entry records that a formal APP/NDB review is owed and assigns it to the user. It does not block the release under the ACCT-007 guardrails, which require accurate, re-dated policies (done) rather than a completed legal review.

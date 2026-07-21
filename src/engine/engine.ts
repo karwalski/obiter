@@ -439,10 +439,14 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
   // MULTI-014: Court mode — auto-include MNC as a parallel citation when
   // the case has an MNC but no explicit parallels. This ensures both the
   // authorised report and the MNC are emitted per court practice directions.
+  // WA SC Consolidated PD 8.2.2 (updated 20 Jun 2025) requires the MNC
+  // FIRST, then the report ("Lee v The Queen [1999] WASCA 14; (1999) 18
+  // WAR 23, 34 [15]") — config.parallelOrder "mnc-first" selects that
+  // order; all other jurisdictions emit report-first.
   if (config?.writingMode === "court" && !parallelCitations?.length) {
     const mnc = d.mnc as string | undefined;
     if (mnc && mnc.trim()) {
-      // Append the MNC as a plain text run after the main citation
+      const mncFirst = config?.parallelOrder === "mnc-first";
       const runs = formatReportedCase({
         caseName,
         yearType: (d.yearType as "round" | "square") ?? "round",
@@ -454,8 +458,12 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
         courtId: d.courtId as string | undefined,
         pinpointStyle: config?.pinpointStyle,
         judicialOfficers: joRuns,
+        mncFirst: mncFirst ? mnc.trim() : undefined,
       });
-      runs.push({ text: `; ${mnc.trim()}` });
+      if (!mncFirst) {
+        // Report-first order: append the MNC as a plain text run
+        runs.push({ text: `; ${mnc.trim()}` });
+      }
       return runs;
     }
   }

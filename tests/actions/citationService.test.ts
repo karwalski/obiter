@@ -53,7 +53,13 @@ beforeEach(() => {
   mockStore.getAll.mockReturnValue([]);
   getStore.mockResolvedValue(mockStore);
   insertFootnote.mockResolvedValue(undefined);
-  refreshNow.mockResolvedValue({ updated: 0, unchanged: 0 });
+  refreshNow.mockResolvedValue({
+    updated: 0,
+    unchanged: 0,
+    lockedSkipped: 0,
+    userEdits: [],
+    failures: [],
+  });
 });
 
 describe("buildCitationFromRequest (COPILOT-002)", () => {

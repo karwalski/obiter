@@ -10,7 +10,7 @@ import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
-import { getSharedStore } from "../../store/singleton";
+import { getSharedStore, getSharedStoreIfReady } from "../../store/singleton";
 import { insertCitationFootnote, getAllCitationFootnotes, buildOccurrenceTitle } from "../../word/footnoteManager";
 import { refreshAllCitationsNow } from "../../word/citationRefresher";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
@@ -745,11 +745,14 @@ export default function InsertCitation(): JSX.Element {
   );
 
   // ─── Derived court mode flags ──────────────────────────────────────────
-  // COURT-FIX-006: Build court config from device preferences so that the
-  // unreported gate reads the toggle value (which may be user-overridden)
-  // instead of the hardcoded jurisdiction set.
+  // COURT-FIX-006: Build court config from the document's stored toggles
+  // (device pref is the legacy fallback) so the unreported gate reads the
+  // toggle value (which may be user-overridden) instead of the hardcoded
+  // jurisdiction set.
   const courtConfig = useMemo(() => {
-    const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+    const courtToggles =
+      getSharedStoreIfReady()?.getCourtToggles() ??
+      (getDevicePref("courtToggles") as Record<string, string> | undefined);
     return buildCourtConfig(getStandardConfig(standardId), courtToggles);
   }, [standardId]);
 

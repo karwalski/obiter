@@ -44,7 +44,9 @@ export interface InsertResult {
 
 /** Resolve the active AGLC/court config from the document's stored settings. */
 async function resolveConfig(store: CitationStore): Promise<CitationConfig> {
-  const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+  const courtToggles =
+    store.getCourtToggles() ??
+    (getDevicePref("courtToggles") as Record<string, string> | undefined);
   return buildCourtConfig(getStandardConfig(store.getStandardId()), courtToggles);
 }
 

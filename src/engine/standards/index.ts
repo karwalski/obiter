@@ -18,6 +18,7 @@ export type {
   IbidSuppressionMode,
   UnreportedGateMode,
   LoaType,
+  ParallelOrder,
 } from "./types";
 export { STANDARD_PROFILES, type StandardProfile } from "./profiles";
 
@@ -86,6 +87,7 @@ export function buildCourtConfig(
     unreportedGate?: string;
     ibidSuppression?: string;
     loaType?: string;
+    parallelOrder?: string;
   }
 ): CitationConfig {
   if (!courtToggles || baseConfig.writingMode !== "court") {
@@ -105,5 +107,7 @@ export function buildCourtConfig(
       (courtToggles.unreportedGate as CitationConfig["unreportedGateMode"]) ??
       baseConfig.unreportedGateMode,
     loaType: (courtToggles.loaType as CitationConfig["loaType"]) ?? baseConfig.loaType,
+    parallelOrder:
+      (courtToggles.parallelOrder as CitationConfig["parallelOrder"]) ?? baseConfig.parallelOrder,
   };
 }

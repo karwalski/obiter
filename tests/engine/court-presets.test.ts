@@ -157,14 +157,16 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("FCFCOA: mandatory parallel, para-and-page, FamCAFC > FLC > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("FCFCOA: mandatory parallel, para-and-page, FamCAFC > FLC > ALR, no unreported gate, ibid on, two-part LOA", () => {
+    // FCFCOA FAM-APPEALS (updated 10 Jun 2025): appeals LOA is two parts —
+    // Part 1 cited in argument, Part 2 possibly referred but not cited.
     expectPreset("FCFCOA", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["FamCAFC", "FLC", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "simple",
+      loaType: "two-part-read",
     });
   });
 
@@ -205,14 +207,17 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── Victoria ────────────────────────────────────────────────────────────
 
-  test("VSCA: mandatory parallel, para-and-page, VR > CLR > ALR, no unreported gate, ibid on, Part A-B", () => {
+  test("VSCA: mandatory parallel, para-and-page, VR > CLR > ALR, no unreported gate, ibid on, Part A-B-C", () => {
+    // Vic SC PN CA 3 (reissued 10 Mar 2026): Court of Appeal civil LOA is
+    // three parts — A read from at hearing, B referred to but not read
+    // from, C textbooks/articles/extrinsic materials.
     expectPreset("VSCA", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["VR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "part-ab",
+      loaType: "part-abc",
     });
   });
 
@@ -275,36 +280,45 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── Other States/Territories ────────────────────────────────────────────
 
-  test("WASC: preferred parallel, para-and-page, WAR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("WASC: mandatory parallel (MNC first), para-and-page, WAR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+    // WA SC Consolidated Practice Directions (updated 20 Jun 2025)
+    // PD 8.2.2: parallel citation required when reported, MNC first.
     expectPreset("WASC", {
-      parallelCitations: "preferred",
+      parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["WAR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
       loaType: "simple",
     });
+    expect(COURT_PRESETS.WASC.parallelOrder).toBe("mnc-first");
   });
 
-  test("SASC: preferred parallel, para-and-page, SASR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("SASC: preferred parallel, para-and-page, SASR > CLR > ALR, no unreported gate, ibid on, two-part LOA", () => {
+    // SA Uniform Civil Rules 2020 r 217.8 (current to 15 Mar 2026):
+    // appeals LOA is two parts — expected to be read / not expected
+    // to be read (Form 91).
     expectPreset("SASC", {
       parallelCitations: "preferred",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["SASR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "simple",
+      loaType: "two-part-read",
     });
   });
 
-  test("TASSC: preferred parallel, para-and-page, Tas R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+  test("TASSC: preferred parallel, para-and-page, Tas R > CLR > ALR, warn unreported, ibid on, Tas three-part LOA", () => {
+    // Tas SC PD 3 of 2022: LOA is three parts — Part 1 authorities
+    // counsel intends to cite, Part 2 might be referred to but not
+    // cited, Part 3 legislation with sections.
     expectPreset("TASSC", {
       parallelCitations: "preferred",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["Tas R", "CLR", "ALR"],
       unreportedGate: "warn",
       ibidSuppression: "on",
-      loaType: "simple",
+      loaType: "three-part-tas",
     });
   });
 
@@ -396,13 +410,36 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
     }
   });
 
-  test("Part A-B LOA is used by HCA, FCA, NSWCA, VSCA, and QCA only", () => {
-    const partAbJurisdictions = new Set<CourtJurisdiction>(["HCA", "FCA", "NSWCA", "VSCA", "QCA"]);
+  test("Part A-B LOA is used by HCA, FCA, NSWCA, and QCA only", () => {
+    // VSCA moved to "part-abc" per Vic SC PN CA 3 (reissued 10 Mar 2026).
+    const partAbJurisdictions = new Set<CourtJurisdiction>(["HCA", "FCA", "NSWCA", "QCA"]);
     for (const [id, preset] of Object.entries(COURT_PRESETS)) {
       if (partAbJurisdictions.has(id as CourtJurisdiction)) {
         expect(preset.loaType).toBe("part-ab");
       } else {
         expect(preset.loaType).not.toBe("part-ab");
+      }
+    }
+  });
+
+  test("2026-07-21 PD refresh: LOA variants per jurisdiction", () => {
+    // Vic SC PN CA 3 (10 Mar 2026)
+    expect(COURT_PRESETS.VSCA.loaType).toBe("part-abc");
+    // SA UCR 2020 r 217.8 (Form 91) and FCFCOA FAM-APPEALS (10 Jun 2025)
+    expect(COURT_PRESETS.SASC.loaType).toBe("two-part-read");
+    expect(COURT_PRESETS.FCFCOA.loaType).toBe("two-part-read");
+    // Tas SC PD 3 of 2022
+    expect(COURT_PRESETS.TASSC.loaType).toBe("three-part-tas");
+  });
+
+  test("parallelOrder: only WASC uses mnc-first (WA Consolidated PD 8.2.2, 20 Jun 2025)", () => {
+    for (const [id, preset] of Object.entries(COURT_PRESETS)) {
+      if (id === "WASC") {
+        expect(preset.parallelOrder).toBe("mnc-first");
+      } else {
+        // Omitted parallelOrder means report-first (authorised report,
+        // then MNC).
+        expect(preset.parallelOrder).toBeUndefined();
       }
     }
   });

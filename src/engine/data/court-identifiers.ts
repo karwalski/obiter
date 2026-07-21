@@ -30,9 +30,13 @@ export interface CourtIdentifier {
 /**
  * Australian court and tribunal medium neutral citation identifiers.
  * Sources: the rule 2.3.1 in-chapter table (superior courts, with the years
- * each court allocated its own judgment numbers) and AGLC4 Appendix B /
- * the Federal Court medium neutral citation standard for the remainder
- * (provisional: Appendix B is absent from the source PDF — DATA-004).
+ * each court allocated its own judgment numbers — `mncFrom`/`mncTo`) and the
+ * complete AGLC4 Appendix B "Australian Medium Neutral Unique Court
+ * Identifiers" list (89 identifiers) for the remainder (DATA-004, verified
+ * against the scanned appendix 2026-07-20). Appendix B prints only the
+ * identifier and court/tribunal name; `jurisdiction` and `level` for
+ * appendix-only entries are inferred from the identifier and name, and
+ * `mncFrom` is set only where the rule 2.3.1 table gives a year.
  */
 export const COURT_IDENTIFIERS: CourtIdentifier[] = [
   // High Court
@@ -335,6 +339,295 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     code: "NTCAT",
     fullName: "Northern Territory Civil and Administrative Tribunal",
     jurisdiction: "NT",
+    level: "tribunal",
+  },
+
+  // =========================================================================
+  // AGLC4 APPENDIX B — additional court/tribunal identifiers (DATA-004)
+  // Identifier + court name are transcribed from Appendix B; jurisdiction and
+  // level are inferred (no year data is printed in the appendix).
+  // =========================================================================
+  {
+    code: "ACompT",
+    fullName: "Australian Competition Tribunal",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "ACopyT",
+    fullName: "Australian Copyright Tribunal",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "ACTAAT",
+    fullName: "Australian Capital Territory Administrative Appeals Tribunal",
+    jurisdiction: "ACT",
+    level: "tribunal",
+  },
+  {
+    code: "ADFDAT",
+    fullName: "Defence Force Discipline Appeal Tribunal",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  { code: "ADO", fullName: "Australian Designs Office", jurisdiction: "CTH", level: "tribunal" },
+  {
+    code: "AICmr",
+    fullName: "Australian Information Commissioner",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "AIRC",
+    fullName: "Australian Industrial Relations Commission",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "AIRCFB",
+    fullName: "Australian Industrial Relations Commission — Full Bench",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  { code: "APO", fullName: "Australian Patent Office", jurisdiction: "CTH", level: "tribunal" },
+  {
+    code: "ATMO",
+    fullName: "Australian Trade Marks Office",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  { code: "ATP", fullName: "Australian Takeovers Panel", jurisdiction: "CTH", level: "tribunal" },
+  {
+    code: "FMCA",
+    fullName: "Federal Magistrates' Court of Australia",
+    jurisdiction: "CTH",
+    level: "district",
+  },
+  {
+    code: "FMCAfam",
+    fullName: "Federal Magistrates' Court of Australia — Family Law",
+    jurisdiction: "CTH",
+    level: "district",
+  },
+  { code: "FWA", fullName: "Fair Work Australia", jurisdiction: "CTH", level: "tribunal" },
+  {
+    code: "FWAFB",
+    fullName: "Fair Work Australia — Full Bench",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "FWCFB",
+    fullName: "Fair Work Commission — Full Bench",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "HCATrans",
+    fullName: "High Court of Australia — Transcripts",
+    jurisdiction: "CTH",
+    level: "high_court",
+  },
+  {
+    code: "ICQ",
+    fullName: "Industrial Court of Queensland",
+    jurisdiction: "QLD",
+    level: "tribunal",
+  },
+  {
+    code: "IRCA",
+    fullName: "Industrial Relations Court of Australia",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "MRTA",
+    fullName: "Migration Review Tribunal of Australia",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "NFSC",
+    fullName: "Supreme Court of Norfolk Island",
+    jurisdiction: "EXT",
+    level: "state_supreme",
+  },
+  {
+    code: "NNTTA",
+    fullName: "National Native Title Tribunal",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "NSWADT",
+    fullName: "New South Wales Administrative Decisions Tribunal",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWADTAP",
+    fullName: "New South Wales Administrative Decisions Tribunal — Appeal Panel",
+    jurisdiction: "NSW",
+    level: "state_appeal",
+  },
+  {
+    code: "NSWCATAD",
+    fullName:
+      "New South Wales Civil and Administrative Tribunal — Administrative and Equal Opportunity Division",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWCATAP",
+    fullName: "New South Wales Civil and Administrative Tribunal — Appeal Panel",
+    jurisdiction: "NSW",
+    level: "state_appeal",
+  },
+  {
+    code: "NSWCATCD",
+    fullName:
+      "New South Wales Civil and Administrative Tribunal — Consumer and Commercial Division",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWCATGD",
+    fullName: "New South Wales Civil and Administrative Tribunal — Guardianship Division",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWCATOD",
+    fullName: "New South Wales Civil and Administrative Tribunal — Occupational Division",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWCC",
+    fullName: "Compensation Court of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWCSAT",
+    fullName: "Community Services Appeals Tribunal of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWDRGC",
+    fullName: "Drug Court of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWFTT",
+    fullName: "Fair Trading Tribunal of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "NSWIRComm",
+    fullName: "Industrial Court of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+  },
+  {
+    code: "QADT",
+    fullName: "Queensland Anti-Discrimination Tribunal",
+    jurisdiction: "QLD",
+    level: "tribunal",
+  },
+  {
+    code: "QLAC",
+    fullName: "Land Appeal Court of Queensland",
+    jurisdiction: "QLD",
+    level: "state_appeal",
+  },
+  {
+    code: "QLAT",
+    fullName: "Queensland Liquor Appeals Tribunal",
+    jurisdiction: "QLD",
+    level: "tribunal",
+  },
+  {
+    code: "QLRT",
+    fullName: "Queensland Land and Resources Tribunal",
+    jurisdiction: "QLD",
+    level: "tribunal",
+  },
+  { code: "QLC", fullName: "Land Court of Queensland", jurisdiction: "QLD", level: "tribunal" },
+  {
+    code: "QPEC",
+    fullName: "Planning and Environment Court of Queensland",
+    jurisdiction: "QLD",
+    level: "tribunal",
+  },
+  {
+    code: "RRTA",
+    fullName: "Refugee Review Tribunal of Australia",
+    jurisdiction: "CTH",
+    level: "tribunal",
+  },
+  {
+    code: "SAEOT",
+    fullName: "Equal Opportunity Tribunal of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "SAERDC",
+    fullName: "Environment, Resources and Development Court of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "SAIRC",
+    fullName: "Industrial Relations Court of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "SAIRComm",
+    fullName: "Industrial Relations Commission of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "SAWCAT",
+    fullName: "Workers Compensation Appeal Tribunal of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "SAWCT",
+    fullName: "Workers Compensation Tribunal of South Australia",
+    jurisdiction: "SA",
+    level: "tribunal",
+  },
+  {
+    code: "TASADT",
+    fullName: "Anti-Discrimination Tribunal of Tasmania",
+    jurisdiction: "TAS",
+    level: "tribunal",
+  },
+  {
+    code: "TASRMPAT",
+    fullName: "Resources Management and Planning Appeal Tribunal of Tasmania",
+    jurisdiction: "TAS",
+    level: "tribunal",
+  },
+  {
+    code: "VMHRB",
+    fullName: "Mental Health Review Board of Victoria",
+    jurisdiction: "VIC",
+    level: "tribunal",
+  },
+  {
+    code: "WASAT",
+    fullName: "Western Australia State Administrative Tribunal",
+    jurisdiction: "WA",
     level: "tribunal",
   },
 ];

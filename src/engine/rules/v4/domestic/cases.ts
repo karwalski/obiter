@@ -566,6 +566,13 @@ interface ReportedCaseData {
    * court parenthetical after pinpoints and other parenthetical clauses.
    */
   judicialOfficers?: FormattedRun[];
+  /**
+   * Court mode only: a medium neutral citation to emit BEFORE the
+   * report citation, per WA SC Consolidated Practice Directions
+   * PD 8.2.2 (updated 20 Jun 2025): "Lee v The Queen [1999] WASCA 14;
+   * (1999) 18 WAR 23, 34 [15]". Never set in AGLC academic mode.
+   */
+  mncFirst?: string;
 }
 
 /**
@@ -592,6 +599,12 @@ export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
 
   // Space before year
   runs.push({ text: " " });
+
+  // Court mode, WA order: MNC precedes the report citation
+  // (WA SC Consolidated PD 8.2.2, updated 20 Jun 2025).
+  if (data.mncFirst) {
+    runs.push({ text: `${data.mncFirst}; ` });
+  }
 
   // Year and volume
   runs.push(...formatYearAndVolume(data.yearType, data.year, data.volume));

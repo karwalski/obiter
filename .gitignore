@@ -6,6 +6,7 @@ lib-amd/
 .DS_Store
 .env
 .env.local
+.env.*
 scripts/deploy.env
 *.pem
 *.key

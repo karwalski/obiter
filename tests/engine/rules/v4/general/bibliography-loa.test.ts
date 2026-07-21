@@ -340,16 +340,30 @@ describe("LOA-003: generateJBA", () => {
     }
   });
 
-  it("includes Part A and Part B from LOA-002", () => {
+  // HCA PD 2 of 2024: the JBA comprises five parts — A principal
+  // legislation, B other legislation, C CLR cases, D other-series cases,
+  // E other materials.
+  it("places authorities into Parts A-E per HCA PD 2 of 2024", () => {
     const citations: Citation[] = [
-      { ...papeCase, loaPart: "A" },
-      { ...roachCase, loaPart: "B" },
+      { ...papeCase, loaPart: "A" }, // CLR case -> Part C
+      { ...mcdonaldCase, loaPart: "A" }, // MNC-only case -> Part D
+      { ...ccaAct, data: { ...ccaAct.data, jbaPrincipal: true } }, // -> Part A
+      constitutionAct, // -> Part B
+      frenchArticle, // -> Part E
     ];
 
     const result = generateJBA(citations, caseDetails);
 
-    expect(result.partA.length).toBeGreaterThan(0);
-    expect(result.partB.length).toBeGreaterThan(0);
+    expect(result.partA).toHaveLength(1);
+    expect(result.partA[0].heading).toContain("Principal legislation");
+    expect(result.partB).toHaveLength(1);
+    expect(result.partB[0].heading).toContain("Other legislation");
+    expect(result.partC).toHaveLength(1);
+    expect(result.partC[0].heading).toContain("Commonwealth Law Reports");
+    expect(result.partD).toHaveLength(1);
+    expect(result.partD[0].heading).toContain("other report series");
+    expect(result.partE).toHaveLength(1);
+    expect(result.partE[0].heading).toContain("Other materials");
   });
 
   it("warns if JBA filing deadline is overdue", () => {
@@ -383,16 +397,19 @@ describe("LOA-003: generateJBA", () => {
     expect(filingWarning).toBeUndefined();
   });
 
-  it("propagates LOA-002 warnings (Part A empty, count)", () => {
-    // All in Part B — should get Part A empty warning.
+  it("flags cases not marked for reading (HCA PD 2 of 2024: only cases counsel will take the Court to)", () => {
+    // Neither case is marked loaPart "A" — the JBA should carry an info
+    // warning per HCA PD 2 of 2024.
     const citations: Citation[] = [papeCase, roachCase];
 
     const result = generateJBA(citations, caseDetails);
 
-    const emptyWarning = result.warnings.find(
-      (w) => w.code === "LOA_PART_A_EMPTY",
+    const notForReading = result.warnings.find(
+      (w) => w.code === "JBA_CASES_NOT_FOR_READING",
     );
-    expect(emptyWarning).toBeDefined();
+    expect(notForReading).toBeDefined();
+    expect(notForReading!.level).toBe("info");
+    expect(notForReading!.message).toContain("2");
   });
 });
 

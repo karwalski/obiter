@@ -1999,8 +1999,11 @@ function getPracticeDirectionSource(jurisdiction: CourtJurisdiction): string {
     case "HCA":
       return "HCA PD 2 of 2024";
     case "FCA":
+      // GPN-AUTH reissued 7 May 2025 (replaces Dec 2024)
+      return "FCA GPN-AUTH (7 May 2025)";
     case "FCFCOA":
-      return "FCA GPN-AUTH (Dec 2024)";
+      // FAM-APPEALS practice direction, updated 10 Jun 2025
+      return "FCFCOA FAM-APPEALS (10 Jun 2025)";
     case "NSWCA":
     case "NSWSC":
     case "NSW_DISTRICT":
@@ -2008,19 +2011,23 @@ function getPracticeDirectionSource(jurisdiction: CourtJurisdiction): string {
     case "VSCA":
     case "VSC":
     case "VIC_COUNTY":
-      return "Vic SC PN Gen 3 (Jan 2017)";
+      // SC Gen 3 reissued 1 Dec 2025 (replaces 30 Jan 2017)
+      return "Vic SC PN Gen 3 (1 Dec 2025)";
     case "QCA":
     case "QSC":
     case "QLD_DISTRICT":
       return "Qld SC PD 1 of 2024";
     case "WASC":
-      return "WASC Practice Direction";
+      // Consolidated Practice Directions updated 20 Jun 2025
+      return "WA SC Consolidated PD 8.2.2 (20 Jun 2025)";
     case "SASC":
-      return "SASC Practice Direction";
+      // Uniform Civil Rules 2020 r 217.8, current to 15 Mar 2026
+      return "SA Uniform Civil Rules 2020 r 217.8";
     case "TASSC":
       return "Tas SC PD 3/2014";
     case "ACTSC":
-      return "ACTSC Practice Direction";
+      // PD 2 of 2022 (26 May 2022)
+      return "ACT SC PD 2 of 2022";
     case "NTSC":
       return "NT SC PD 2 of 2007";
     case "ART":

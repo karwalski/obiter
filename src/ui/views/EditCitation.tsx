@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useCitationContext } from "../context/CitationContext";
-import { getSharedStore } from "../../store/singleton";
+import { getSharedStore, getSharedStoreIfReady } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
@@ -412,7 +412,9 @@ export default function EditCitation(): JSX.Element {
       commentaryAfter: commentaryAfter || undefined,
       overrideText: overrideText || undefined,
     };
-    const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+    const courtToggles =
+      getSharedStoreIfReady()?.getCourtToggles() ??
+      (getDevicePref("courtToggles") as Record<string, string> | undefined);
     const courtConfig = buildCourtConfig(standardConfig, courtToggles);
     return getFormattedPreview(previewCitation, courtConfig);
   }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
@@ -814,8 +816,11 @@ export default function EditCitation(): JSX.Element {
       setCitation(updatedCitation);
 
       // Refresh the citation content in the document using the engine formatter.
-      // Build court config from device preferences for court-mode support.
-      const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+      // Build court config from the document's stored toggles (device pref is
+      // the legacy fallback) for court-mode support.
+      const courtToggles =
+        store.getCourtToggles() ??
+        (getDevicePref("courtToggles") as Record<string, string> | undefined);
       const courtConfig = buildCourtConfig(standardConfig, courtToggles);
       const runs = getFormattedPreview(updatedCitation, courtConfig);
       await updateCitationContent(citation.id, runs);

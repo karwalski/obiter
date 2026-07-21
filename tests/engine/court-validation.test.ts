@@ -420,25 +420,37 @@ describe("COURT-VALID-002: Filing deadline reminders", () => {
   });
 
   describe("FCA deadlines", () => {
-    test("calculates applicant and respondent LOA deadlines", () => {
+    // GPN-AUTH (reissued 7 May 2025): lists due by 4:30 pm; consolidated
+    // list and eBook of authorities due 2 business days before hearing.
+    test("calculates applicant, respondent, and consolidated list deadlines", () => {
       // Hearing on Wednesday 2026-04-22
       const hearing = new Date(2026, 3, 22);
       const deadlines = calculateDeadlines(hearing, "FCA");
 
-      expect(deadlines).toHaveLength(2);
+      expect(deadlines).toHaveLength(3);
 
       // Applicant: 5 business days before = Wed 15
       const applicant = deadlines.find((d) => d.label.includes("Applicant"));
       expect(applicant).toBeDefined();
       expect(applicant!.deadline.getDate()).toBe(15);
-      expect(applicant!.deadline.getHours()).toBe(16); // 4pm
+      expect(applicant!.deadline.getHours()).toBe(16);
+      expect(applicant!.deadline.getMinutes()).toBe(30); // 4:30 pm per GPN-AUTH (7 May 2025)
       expect(applicant!.jurisdiction).toBe("FCA");
 
       // Respondent: 4 business days before = Thu 16
       const respondent = deadlines.find((d) => d.label.includes("Respondent"));
       expect(respondent).toBeDefined();
       expect(respondent!.deadline.getDate()).toBe(16);
-      expect(respondent!.deadline.getHours()).toBe(16); // 4pm
+      expect(respondent!.deadline.getHours()).toBe(16);
+      expect(respondent!.deadline.getMinutes()).toBe(30);
+
+      // Consolidated list + eBook: 2 business days before = Mon 20
+      const consolidated = deadlines.find((d) => d.label.includes("Consolidated"));
+      expect(consolidated).toBeDefined();
+      expect(consolidated!.deadline.getDate()).toBe(20);
+      expect(consolidated!.deadline.getHours()).toBe(16);
+      expect(consolidated!.deadline.getMinutes()).toBe(30);
+      expect(consolidated!.label).toContain("eBook");
     });
 
     test("deadlines are sorted chronologically", () => {
@@ -446,6 +458,9 @@ describe("COURT-VALID-002: Filing deadline reminders", () => {
       const deadlines = calculateDeadlines(hearing, "FCA");
       expect(deadlines[0].deadline.getTime()).toBeLessThanOrEqual(
         deadlines[1].deadline.getTime(),
+      );
+      expect(deadlines[1].deadline.getTime()).toBeLessThanOrEqual(
+        deadlines[2].deadline.getTime(),
       );
     });
   });
@@ -489,6 +504,68 @@ describe("COURT-VALID-002: Filing deadline reminders", () => {
       // Email (2 days before) should come before hardcopy (1 day before)
       expect(deadlines[0].label).toContain("Email");
       expect(deadlines[1].label).toContain("Hardcopy");
+    });
+  });
+
+  describe("FCFCOA deadlines (FAM-APPEALS, updated 10 Jun 2025)", () => {
+    test("calculates appeals LOA deadline 28 days before first day of sittings", () => {
+      // Sittings begin Monday 2026-06-01
+      const sittings = new Date(2026, 5, 1);
+      const deadlines = calculateDeadlines(sittings, "FCFCOA");
+
+      expect(deadlines).toHaveLength(1);
+      expect(deadlines[0].label).toContain("28 days before first day of sittings");
+      expect(deadlines[0].label).toContain("summary of argument");
+      // 28 calendar days before 1 June 2026 = 4 May 2026
+      expect(deadlines[0].deadline.getFullYear()).toBe(2026);
+      expect(deadlines[0].deadline.getMonth()).toBe(4); // May
+      expect(deadlines[0].deadline.getDate()).toBe(4);
+      expect(deadlines[0].jurisdiction).toBe("FCFCOA");
+    });
+  });
+
+  describe("TASSC deadlines (PD 3 of 2022)", () => {
+    test("calculates LOA lodgement 48 hours before hearing", () => {
+      // Hearing at 10:00 am Wednesday 2026-04-22
+      const hearing = new Date(2026, 3, 22, 10, 0, 0, 0);
+      const deadlines = calculateDeadlines(hearing, "TASSC");
+
+      expect(deadlines).toHaveLength(1);
+      expect(deadlines[0].label).toContain("48 hours before hearing");
+      // 48 hours before = 10:00 am Monday 2026-04-20
+      expect(deadlines[0].deadline.getDate()).toBe(20);
+      expect(deadlines[0].deadline.getHours()).toBe(10);
+      expect(deadlines[0].jurisdiction).toBe("TASSC");
+    });
+  });
+
+  describe("NTSC deadlines (PD 1 of 2025)", () => {
+    test("calculates single judge (24 hours) and Full Court (28 days) deadlines", () => {
+      // Hearing at 10:00 am Wednesday 2026-04-22
+      const hearing = new Date(2026, 3, 22, 10, 0, 0, 0);
+      const deadlines = calculateDeadlines(hearing, "NTSC");
+
+      expect(deadlines).toHaveLength(2);
+
+      const singleJudge = deadlines.find((d) => d.label.includes("single judge"));
+      expect(singleJudge).toBeDefined();
+      // 24 hours before = 10:00 am Tuesday 2026-04-21
+      expect(singleJudge!.deadline.getDate()).toBe(21);
+      expect(singleJudge!.deadline.getHours()).toBe(10);
+      expect(singleJudge!.jurisdiction).toBe("NTSC");
+
+      const fullCourt = deadlines.find((d) => d.label.includes("Full Court"));
+      expect(fullCourt).toBeDefined();
+      // 28 calendar days before 22 April 2026 = 25 March 2026
+      expect(fullCourt!.deadline.getMonth()).toBe(2); // March
+      expect(fullCourt!.deadline.getDate()).toBe(25);
+    });
+
+    test("Full Court deadline sorts before the single judge deadline", () => {
+      const hearing = new Date(2026, 3, 22, 10, 0, 0, 0);
+      const deadlines = calculateDeadlines(hearing, "NTSC");
+      expect(deadlines[0].label).toContain("Full Court");
+      expect(deadlines[1].label).toContain("single judge");
     });
   });
 

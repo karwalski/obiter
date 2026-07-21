@@ -8,6 +8,52 @@
 
 ---
 
+## ⚠ 2026-07-21 UPDATE — the premise of this audit is largely moot
+
+Two findings supersede the inference-based analysis below:
+
+**1. The 2019 (and 2020) corrections are ALREADY in our reference PDF.** The imprint page of
+`AGLC4-with-Bookmarks-1.pdf` — the copy the whole engine was built and audited against — reads:
+
+> Fourth edition **2018, 2019 (with minor corrections), 2020 (with minor corrections)**
+
+So this is the **2020 corrected printing**. The 2019 erratum's 17 pages and the 2020 corrections
+are already incorporated in the text we implemented from. The core worry that framed this document
+— that the engine "may have been working from incorrect AGLC4 text" — does not hold: we were working
+from a corrected printing. The five "high priority" FIX overlaps below are therefore better explained
+by ordinary implementation bugs than by uncorrected erratum text.
+
+**2. Diff against the 2021 printing (two scans: `aglc4-additional.pdf` 27 pp + the targeted
+`aglc4-addition2.pdf` 7 pp, 2026-07-21).** Matthew's printed copy adds "2021 (with minor
+corrections)". Pages were scanned and diffed against our anomalies catalogue (`aglc4-rule-reference.md`,
+built from the 2020 PDF). Note: the catalogue's page anchors are **PDF page numbers** and the scans
+use **printed page numbers** (offset = 25, confirmed physically and by the catalogue's own dual
+anchors). Every catalogued anomaly that could be located is resolved below:
+
+| Rule | Printed p | Anomaly (from 2020 catalogue) | State in 2021 printing |
+|------|-----------|-------------------------------|------------------------|
+| **24.1.6** | **256** | Example band "Lord Hope **DP**" vs table "DPSC" | **CORRECTED → "Lord Hope DPSC".** The only substantive fix found. Engine already emits DPSC. |
+| 26.4 | 296 | Non-English title casing (guide reproduces source-language case) | Confirmed: ex 21 "*Der Reformvertrag **von** Lissabon*", 'von' lowercase → validates DECISION-030 carve-out |
+| 21.1.3 | 240 | NZ neutral-citation years | Confirmed: table = NZSC 2005 / NZCA 2007 / NZHC 2012 / NZEmpC 2010 / NZEnvC 2010 / NZFC 2012, matches our data |
+| 1.11.1 | 31 | Example weekday "Thursday 6 March 1987" (was a **Friday**) | **Unchanged — still wrong** |
+| 1.11.2 | 31 | Example weekday "Wednesday 22 December 2012" (was a **Saturday**) | **Unchanged — still wrong** |
+| 2.3.1 | 54 | Worked example "*Quarmby v Keating* [2009] **TASCC** 80" vs table "TASSC" | **Unchanged — still "TASCC"** |
+| 25.3.5 | 283 | Example 66 "1862 **NY Stat** 343" vs table "New York — NY Laws" | **Unchanged — contradiction persists** (table row confirmed "NY Laws") |
+| 5.5 | 93 | Example 10 "Yale Journal of Law **and** the Humanities" forces `&`→`and` | **Unchanged** |
+| 5 (opener) | 91 | Element table labelled "**Pin-Point**" vs "Pinpoint" elsewhere | **Unchanged** |
+| 3.9.3 | 80 | Band mislabelled "Rules" (plural) | **Unchanged** |
+| Appendix A | 321 | — | **Matches the DATA-004 import byte-for-byte** (QSR\*, RIAA full name, French diacritics) — validates the appendix import and confirms it was already the 2021 text |
+
+**Conclusion.** Exactly **one** substantive correction appeared between the 2020 and 2021 printings on
+the sampled pages — rule 24.1.6 "DP" → "DPSC" — and it *vindicates* the engine, which already emits
+DPSC (DECISION-012 default). Everything else is unchanged: MULR's minor-corrections printings are very
+light (obvious weekday typos survived into 2021). **No engine change is warranted from any scanned
+page.** Decisions closed/advanced by this pass: DECISION-030 RESOLVED (26.4 casing confirmed),
+DECISION-012 vindicated (24.1.6 corrected our way), DECISION-022 AGLC4-side confirmed (design question
+remains), DECISION-014 confirmed unchanged (we keep preserving `&`).
+
+---
+
 ## Erratum Overview
 
 The AGLC4 Erratum, dated 29 July 2019, acknowledges errors on 17 pages of the 337-page guide:

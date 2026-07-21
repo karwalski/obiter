@@ -206,7 +206,9 @@ export default function Validation(): JSX.Element {
       const currentWritingMode = store.getWritingMode();
       const currentStandardId: CitationStandardId = store.getStandardId();
       const baseConfig = getStandardConfig(currentStandardId);
-      const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+      const courtToggles =
+        store.getCourtToggles() ??
+        (getDevicePref("courtToggles") as Record<string, string> | undefined);
       const currentConfig = buildCourtConfig({ ...baseConfig, writingMode: currentWritingMode }, courtToggles);
       const validationResult = validateDocument(
         footnoteTexts, citations, bodyText, currentWritingMode,

@@ -21,7 +21,9 @@ import type { CitationContext } from "../../src/engine/engine";
 import {
   generateBibliographyForStandard,
   generateListOfAuthorities,
+  generateJBA,
 } from "../../src/engine/rules/v4/general/bibliography";
+import type { JbaCaseDetails } from "../../src/engine/rules/v4/general/bibliography";
 import {
   validateDocument,
   checkSubsequentTreatment,
@@ -785,5 +787,293 @@ describe("Edge Cases — validateDocument with empty inputs", () => {
     const result = validateDocument(["", ""], [], undefined, "court");
     // Empty footnotes should not trigger any structural issues
     expect(result.errors).toHaveLength(0);
+  });
+});
+
+// ─── 7. 2026-07-21 PD refresh — WA MNC-first citation order ─────────────────
+
+describe("WA MNC-first parallel order (Consolidated PD 8.2.2, 20 Jun 2025)", () => {
+  const leeCase: Citation = {
+    id: "wa-lee",
+    aglcVersion: "4",
+    sourceType: "case.reported",
+    data: {
+      party1: "Lee",
+      party2: "The Queen",
+      yearType: "round",
+      year: 1999,
+      volume: 18,
+      reportSeries: "WAR",
+      startingPage: 23,
+      mnc: "[1999] WASCA 14",
+    },
+    shortTitle: "",
+    tags: [],
+    createdAt: "2026-01-01T00:00:00Z",
+    modifiedAt: "2026-01-01T00:00:00Z",
+  };
+
+  const wascConfig: CitationConfig = {
+    ...STANDARD_PROFILES.aglc4.config,
+    writingMode: "court",
+    ibidSuppressionMode: "on",
+    pinpointStyle: "para-and-page",
+    parallelOrder: "mnc-first",
+  };
+
+  test("mnc-first emits the exact PD 8.2.2 example string (no pinpoint)", () => {
+    const runs = formatCitation(leeCase, undefined, wascConfig);
+    const text = runs.map((r) => r.text).join("");
+    expect(text).toBe("Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23");
+  });
+
+  test("mnc-first emits the exact PD 8.2.2 example string with page and paragraph pinpoint", () => {
+    const leeWithPinpoint: Citation = {
+      ...leeCase,
+      id: "wa-lee-pp",
+      data: {
+        ...leeCase.data,
+        pinpoint: {
+          type: "page",
+          value: "34",
+          subPinpoint: { type: "paragraph", value: "[15]" },
+        },
+      },
+    };
+    const runs = formatCitation(leeWithPinpoint, undefined, wascConfig);
+    const text = runs.map((r) => r.text).join("");
+    expect(text).toBe("Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]");
+  });
+
+  test("report-first order is unchanged when parallelOrder is omitted", () => {
+    const runs = formatCitation(leeCase, undefined, makeCourtConfig("para-and-page"));
+    const text = runs.map((r) => r.text).join("");
+    expect(text).toBe("Lee v The Queen (1999) 18 WAR 23; [1999] WASCA 14");
+  });
+
+  test("mnc-first has no effect in academic mode", () => {
+    const academicConfig: CitationConfig = {
+      ...STANDARD_PROFILES.aglc4.config,
+      writingMode: "academic",
+      parallelOrder: "mnc-first",
+    };
+    const runs = formatCitation(leeCase, undefined, academicConfig);
+    const text = runs.map((r) => r.text).join("");
+    expect(text).not.toContain("[1999] WASCA 14");
+  });
+});
+
+// ─── 8. 2026-07-21 PD refresh — Vic SC Gen 3 pinpoint rendering ─────────────
+
+describe("Vic SC Gen 3 (1 Dec 2025) pinpoint rendering", () => {
+  test("para-and-page renders the SC Gen 3 example: (2023) 72 VR 394, 410 [60]", () => {
+    // SC Gen 3 (reissued 1 Dec 2025): pinpoint is the paragraph AND, if
+    // reported, the commencing page.
+    const vicCase: Citation = {
+      id: "vic-gen3",
+      aglcVersion: "4",
+      sourceType: "case.reported",
+      data: {
+        party1: "Alpha",
+        party2: "Beta",
+        yearType: "round",
+        year: 2023,
+        volume: 72,
+        reportSeries: "VR",
+        startingPage: 394,
+        pinpoint: {
+          type: "page",
+          value: "410",
+          subPinpoint: { type: "paragraph", value: "[60]" },
+        },
+      },
+      shortTitle: "",
+      tags: [],
+      createdAt: "2026-01-01T00:00:00Z",
+      modifiedAt: "2026-01-01T00:00:00Z",
+    };
+    const runs = formatCitation(vicCase, undefined, makeCourtConfig("para-and-page"));
+    const text = runs.map((r) => r.text).join("");
+    expect(text).toBe("Alpha v Beta (2023) 72 VR 394, 410 [60]");
+  });
+});
+
+// ─── 9. 2026-07-21 PD refresh — LOA variant rendering ───────────────────────
+
+describe("LOA variants — part headings and None rendering", () => {
+  const caseA: Citation = { ...reportedCase, id: "loa-case-a", loaPart: "A" };
+  const caseB: Citation = { ...reportedCaseNoMnc, id: "loa-case-b", loaPart: "B" };
+  const legislationB: Citation = { ...mockLegislation, id: "loa-leg-b", loaPart: "B" };
+
+  test("part-abc renders Vic SC PN CA 3 part headings with secondary sources in Part C", () => {
+    const sections = generateBibliographyForStandard(
+      [caseA, caseB, legislationB, mockBook, mockJournal],
+      "aglc",
+      "court",
+      "part-abc"
+    );
+    const headings = sections.map((s) => s.heading);
+    expect(headings).toContain("Part A — Authorities to be read from at the hearing");
+    expect(headings).toContain("Part B — Authorities to be referred to but not read from");
+    expect(headings).toContain("Part C — Textbooks, articles and extrinsic materials");
+    // Secondary sources appear under Part C, not excluded
+    const allText = sections
+      .flatMap((s) => s.entries)
+      .map((e) => e.map((r) => r.text).join(""))
+      .join(" ");
+    expect(allText).toContain("Contract Law");
+    expect(allText).toContain("Tort Reform");
+  });
+
+  test("part-abc states None under unused parts (Vic SC PN CA 3)", () => {
+    // Only a Part A case — Parts B and C are unused and must state "None".
+    const sections = generateBibliographyForStandard([caseA], "aglc", "court", "part-abc");
+    const partB = sections.find(
+      (s) => s.heading === "Part B — Authorities to be referred to but not read from"
+    );
+    const partC = sections.find(
+      (s) => s.heading === "Part C — Textbooks, articles and extrinsic materials"
+    );
+    expect(partB).toBeDefined();
+    expect(partC).toBeDefined();
+    expect(partB!.entries).toHaveLength(1);
+    expect(partB!.entries[0].map((r) => r.text).join("")).toBe("None");
+    expect(partC!.entries[0].map((r) => r.text).join("")).toBe("None");
+  });
+
+  test("two-part-read renders SA UCR r 217.8 / FCFCOA FAM-APPEALS headings", () => {
+    const sections = generateBibliographyForStandard(
+      [caseA, caseB],
+      "aglc",
+      "court",
+      "two-part-read"
+    );
+    const headings = sections.map((s) => s.heading);
+    expect(headings).toContain("Part A — Authorities expected to be read");
+    expect(headings).toContain("Part B — Authorities not expected to be read");
+  });
+
+  test("three-part-tas renders Tas SC PD 3 of 2022 headings with legislation in Part 3", () => {
+    const sections = generateBibliographyForStandard(
+      [caseA, caseB, legislationB],
+      "aglc",
+      "court",
+      "three-part-tas"
+    );
+    const headings = sections.map((s) => s.heading);
+    expect(headings).toContain("Part 1 — Authorities counsel intends to cite");
+    expect(headings).toContain("Part 2 — Authorities that might be referred to but not cited");
+    expect(headings).toContain("Part 3 — Legislation");
+    // Legislation goes to Part 3 even when loaPart is "B"
+    const part3Index = headings.indexOf("Part 3 — Legislation");
+    const legislationSection = sections[part3Index + 1];
+    expect(legislationSection.heading).toBe("Legislation");
+    const legText = legislationSection.entries[0].map((r) => r.text).join("");
+    expect(legText).toContain("Competition and Consumer Act");
+  });
+
+  test("three-part-tas omits unused parts rather than stating None", () => {
+    const sections = generateBibliographyForStandard([caseA], "aglc", "court", "three-part-tas");
+    const headings = sections.map((s) => s.heading);
+    expect(headings).toContain("Part 1 — Authorities counsel intends to cite");
+    expect(headings).not.toContain("Part 3 — Legislation");
+  });
+});
+
+// ─── 10. 2026-07-21 PD refresh — HCA JBA Parts A-E ──────────────────────────
+
+describe("HCA JBA five-part structure (PD 2 of 2024)", () => {
+  const caseDetails: JbaCaseDetails = {
+    caseName: "Smith v Jones",
+    fileNumber: "S123/2026",
+  };
+
+  const principalAct: Citation = {
+    ...mockLegislation,
+    id: "jba-leg-principal",
+    data: { ...mockLegislation.data, jbaPrincipal: true },
+  };
+  const otherAct: Citation = {
+    ...mockLegislation,
+    id: "jba-leg-other",
+    data: { title: "Evidence Act", year: 1995, jurisdiction: "NSW" },
+  };
+  const clrCase: Citation = { ...reportedCase, id: "jba-clr", loaPart: "A" };
+  const otherSeriesCase: Citation = {
+    ...reportedCase,
+    id: "jba-nswlr",
+    loaPart: "A",
+    data: {
+      party1: "Zeta",
+      party2: "Omega",
+      yearType: "round",
+      year: 2020,
+      volume: 101,
+      reportSeries: "NSWLR",
+      startingPage: 1,
+    },
+  };
+
+  test("generateJBA splits authorities into Parts A-E", () => {
+    const result = generateJBA(
+      [principalAct, otherAct, clrCase, otherSeriesCase, mockBook],
+      caseDetails
+    );
+
+    expect(result.partA).toHaveLength(1);
+    expect(result.partA[0].heading).toBe("Part A — Principal legislation");
+    expect(result.partA[0].entries).toHaveLength(1);
+
+    expect(result.partB).toHaveLength(1);
+    expect(result.partB[0].heading).toBe("Part B — Other legislation");
+    expect(result.partB[0].entries).toHaveLength(1);
+
+    expect(result.partC).toHaveLength(1);
+    expect(result.partC[0].heading).toBe("Part C — Cases reported in the Commonwealth Law Reports");
+    expect(result.partC[0].entries).toHaveLength(1);
+    expect(result.partC[0].entries[0].map((r) => r.text).join("")).toContain("Pape");
+
+    expect(result.partD).toHaveLength(1);
+    expect(result.partD[0].heading).toBe("Part D — Cases from other report series");
+    expect(result.partD[0].entries[0].map((r) => r.text).join("")).toContain("Zeta");
+
+    expect(result.partE).toHaveLength(1);
+    expect(result.partE[0].heading).toBe("Part E — Other materials");
+    expect(result.partE[0].entries[0].map((r) => r.text).join("")).toContain("Contract Law");
+  });
+
+  test("legislation without the jbaPrincipal flag goes to Part B", () => {
+    const result = generateJBA([otherAct], caseDetails);
+    expect(result.partA).toHaveLength(0);
+    expect(result.partB).toHaveLength(1);
+  });
+
+  test("jbaPrincipal survives an XML round-trip as the string 'true'", () => {
+    const roundTripped: Citation = {
+      ...principalAct,
+      id: "jba-leg-string",
+      data: { ...principalAct.data, jbaPrincipal: "true" },
+    };
+    const result = generateJBA([roundTripped], caseDetails);
+    expect(result.partA).toHaveLength(1);
+  });
+
+  test("index cross-references submission paragraphs when recorded", () => {
+    const withParas: Citation = {
+      ...clrCase,
+      id: "jba-paras",
+      data: { ...clrCase.data, jbaSubmissionParas: "AS [12]; RS [8]" },
+    };
+    const result = generateJBA([withParas], caseDetails);
+    expect(result.index).toHaveLength(1);
+    expect(result.index[0].submissionParagraphs).toBe("AS [12]; RS [8]");
+  });
+
+  test("warns when cases are not marked as authorities counsel will take the Court to", () => {
+    const unmarked: Citation = { ...reportedCase, id: "jba-unmarked" };
+    const result = generateJBA([unmarked], caseDetails);
+    const warning = result.warnings.find((w) => w.code === "JBA_CASES_NOT_FOR_READING");
+    expect(warning).toBeDefined();
+    expect(warning!.level).toBe("info");
   });
 });

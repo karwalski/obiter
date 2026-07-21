@@ -108,6 +108,19 @@ function authorOf(citation: Citation): string {
 }
 
 /**
+ * Returns true when a `un.communication` citation is a party's submission
+ * or communication (rule 9.3.2) rather than a treaty-committee decision
+ * (rule 9.3.1). Mirrors the dispatch layer's predicate: a document type of
+ * 'Submission'/'Communication' together with a case name selects the rule
+ * 9.3.2 form.
+ */
+function isUnSubmission(citation: Citation): boolean {
+  const documentType = dataStr(citation, "submissionType") || dataStr(citation, "documentType");
+  const caseName = dataStr(citation, "caseName") || dataStr(citation, "caseTitle");
+  return /^(submission|communication)$/i.test(documentType) && caseName !== "";
+}
+
+/**
  * Returns true when a Part IV citation's subsequent reference leads with
  * its (styled) short title rather than an author surname.
  *
@@ -116,13 +129,16 @@ function authorOf(citation: Citation): string {
  * Trial (n 52) 4' despite the African Union author; rule 9.5's template has
  * no author element). The one exception is parties' submissions in UN
  * individual communications (rule 9.3.2), whose subsequent references
- * follow rule 1.4.1's author-surname form.
+ * follow rule 1.4.1's author-surname form. Treaty-committee decisions
+ * (rule 9.3.1) lead with their mandatory short title (ex 40: 'Madafferi v
+ * Australia, UN Doc CCPR/C/81/D/1011/2001 (n 38) 22 [10]') even where the
+ * complainant/parties are stored in the author field.
  */
 export function internationalLeadsWithShortTitle(citation: Citation): boolean {
   if (!isInternationalMaterial(citation.sourceType)) {
     return false;
   }
-  if (citation.sourceType === "un.communication" && authorOf(citation)) {
+  if (isUnSubmission(citation) && authorOf(citation)) {
     return false;
   }
   return true;
@@ -133,7 +149,8 @@ function unDocumentNumber(citation: Citation): string {
   return (
     dataStr(citation, "documentNumber") ||
     dataStr(citation, "documentSymbol") ||
-    dataStr(citation, "docNumber")
+    dataStr(citation, "docNumber") ||
+    dataStr(citation, "unDoc")
   );
 }
 
@@ -146,7 +163,9 @@ function unDocumentNumber(citation: Citation): string {
  *
  * Chapter-specific forms:
  * - Rule 9.5: `«Short Title», UN Doc «Number» (n X)` for official UN
- *   documents (guide ex 48).
+ *   documents (guide ex 48) and for treaty-committee decisions on
+ *   individual communications, which rule 9.3.1 cites under rule 9.2
+ *   (ex 40: 'Madafferi v Australia, UN Doc CCPR/C/81/D/1011/2001 (n 38)').
  * - Rule 13.4: `«Short Title», WTO/GATT Doc «Number» (n X)` for WTO and
  *   GATT documents; reports and decisions prepend the reporting body:
  *   `«Description», «Short Title», WTO Doc «Number» (n X)` (ex 33).
@@ -177,14 +196,12 @@ export function formatInternationalShortReference(
   // Rule 13.4: panel/Appellate Body/arbitrator/GATT panel reports include
   // the document description (reporting body) before the short title.
   if (sourceType === "wto.decision") {
-    const description =
-      dataStr(citation, "documentDescription") || dataStr(citation, "reportType");
+    const description = dataStr(citation, "documentDescription") || dataStr(citation, "reportType");
     if (description) {
       runs.push({ text: `${description}, ` });
     }
   } else if (sourceType === "gatt.document") {
-    const description =
-      dataStr(citation, "documentDescription") || dataStr(citation, "reportType");
+    const description = dataStr(citation, "documentDescription") || dataStr(citation, "reportType");
     if (/panel report/i.test(description)) {
       runs.push({ text: "GATT Panel Report, " });
     }
@@ -193,7 +210,9 @@ export function formatInternationalShortReference(
   runs.push(...styled);
 
   // Chapter-specific document-number element before the cross-reference.
-  if (sourceType === "un.document") {
+  // Rule 9.5 template (and rule 9.3.1 ex 40 for committee decisions, which
+  // are cited under rule 9.2): the UN Doc number follows the short title.
+  if (sourceType === "un.document" || sourceType === "un.communication") {
     const docNumber = unDocumentNumber(citation);
     if (docNumber) {
       // Rule 9.2.10 via 9.5: 'UN Docs' where multiple numbers are joined.

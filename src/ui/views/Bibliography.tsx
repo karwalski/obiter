@@ -196,7 +196,9 @@ export default function Bibliography(): JSX.Element {
 
           // COURT-FIX-005: Load court toggles and build config to get loaType
           if (mode === "court") {
-            const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+            const courtToggles =
+              store.getCourtToggles() ??
+              (getDevicePref("courtToggles") as Record<string, string> | undefined);
             const courtConfig = buildCourtConfig(
               { ...baseConfig, writingMode: mode },
               courtToggles,

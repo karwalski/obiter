@@ -41,6 +41,18 @@ export default [
     },
   },
   {
+    // Debug integration-test harness (INFRA-010). The `retrieved` objects it reads are
+    // plain in-memory Citation objects returned by CitationStore.getById() — a custom
+    // XML Part store, not Word.* Office proxy objects — so load()/context.sync() do not
+    // apply. The office-addins proxy heuristics fire 19 false positives here; disabled
+    // file-wide rather than repeating 19 identical inline justifications.
+    files: ["src/debug/testRunner.ts"],
+    rules: {
+      "office-addins/load-object-before-read": "off",
+      "office-addins/call-sync-before-read": "off",
+    },
+  },
+  {
     files: ["src/ui/**/*.tsx", "src/ui/**/*.jsx"],
     plugins: { "jsx-a11y": jsxA11y },
     languageOptions: {

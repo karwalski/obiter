@@ -40,8 +40,35 @@ export type IbidSuppressionMode = "off" | "on";
 /** COURT-FIX: Unreported judgment gate mode. */
 export type UnreportedGateMode = "off" | "warn";
 
-/** COURT-FIX: List of Authorities format. */
-export type LoaType = "off" | "simple" | "part-ab";
+/**
+ * COURT-FIX: List of Authorities format.
+ *
+ * - "off" — no LOA
+ * - "simple" — flat Cases/Legislation list
+ * - "part-ab" — Part A (read from) / Part B (referred to)
+ * - "part-abc" — Vic Court of Appeal three-part LOA with Part C for
+ *   textbooks, articles and extrinsic materials (Vic SC PN CA 3,
+ *   reissued 10 Mar 2026)
+ * - "two-part-read" — authorities expected to be read / not expected
+ *   to be read (SA Uniform Civil Rules 2020 r 217.8; FCFCOA
+ *   FAM-APPEALS, updated 10 Jun 2025)
+ * - "three-part-tas" — cite / might refer / legislation split
+ *   (Tas SC PD 3 of 2022)
+ */
+export type LoaType =
+  | "off"
+  | "simple"
+  | "part-ab"
+  | "part-abc"
+  | "two-part-read"
+  | "three-part-tas";
+
+/**
+ * Parallel citation emission order for reported cases in court mode.
+ * "mnc-first" places the medium neutral citation before the report
+ * citation per WA SC Consolidated PD 8.2.2 (updated 20 Jun 2025).
+ */
+export type ParallelOrder = "report-first" | "mnc-first";
 
 export interface CitationConfig {
   standardId: CitationStandardId;
@@ -82,4 +109,10 @@ export interface CitationConfig {
    * COURT-FIX: List of Authorities format in court mode bibliography.
    */
   loaType: LoaType;
+  /**
+   * Parallel citation emission order in court mode. Optional — when
+   * omitted, "report-first" (authorised report, then MNC) applies.
+   * WA requires "mnc-first" per Consolidated PD 8.2.2 (20 Jun 2025).
+   */
+  parallelOrder?: ParallelOrder;
 }

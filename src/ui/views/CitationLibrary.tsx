@@ -19,6 +19,7 @@ import CitationFinder from "../components/CitationFinder";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
+import { RECOVERY_VIEW_ENABLED } from "../featureFlags";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -506,7 +507,9 @@ export default function CitationLibrary(): JSX.Element {
           precedingCitations.length === 1 &&
           precedingCitations[0].citationId === citation.id;
 
-        const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+        const courtToggles =
+          (await getSharedStore()).getCourtToggles() ??
+          (getDevicePref("courtToggles") as Record<string, string> | undefined);
         const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
         let runs;
         // Only force full if mode is "full" or ("auto" and first occurrence).
@@ -798,6 +801,17 @@ export default function CitationLibrary(): JSX.Element {
             >
               {detailsCopied ? "Copied" : "Copy details"}
             </button>
+            {/* SAFE-006: entry point to the Recovery view (SAFE-005). Hidden
+                behind the feature flag until that story adds the route. */}
+            {RECOVERY_VIEW_ENABLED && (
+              <button
+                className="library-btn"
+                style={{ marginLeft: 8 }}
+                onClick={() => navigate("/recovery")}
+              >
+                Open Recovery
+              </button>
+            )}
           </div>
         </div>
       )}

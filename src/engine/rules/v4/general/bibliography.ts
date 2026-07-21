@@ -959,6 +959,12 @@ function formatLoaCaseEntry(citation: Citation): FormattedRun[] {
  *
  * No secondary sources section is included.
  *
+ * Citations marked `isKeyAuthority` are prefixed with an asterisk. WA SC
+ * Consolidated Practice Directions PD 2.1 (updated 20 Jun 2025) requires
+ * cases from which passages will be read to be marked with an asterisk
+ * (with the pages/paras to be read), so the simple LOA honours the
+ * marker as well as the NSWCA Part A/B convention (LOA-004).
+ *
  * @param citations - All citations referenced in the document.
  * @returns An array of BibliographySection objects for the List of Authorities.
  */
@@ -980,14 +986,14 @@ export function generateListOfAuthorities(citations: Citation[]): BibliographySe
   if (cases.length > 0) {
     const deduplicated = deduplicateById(cases);
     deduplicated.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
-    const entries = deduplicated.map((c) => formatLoaCaseEntry(c));
+    const entries = deduplicated.map((c) => formatLoaEntryWithKeyMarker(c));
     sections.push({ heading: "Cases", entries });
   }
 
   if (legislation.length > 0) {
     const deduplicated = deduplicateById(legislation);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatLoaEntryWithKeyMarker(c));
     sections.push({ heading: "Legislation", entries });
   }
 
@@ -1172,6 +1178,261 @@ export function generatePartABListOfAuthorities(
   return { partA, partB, warnings };
 }
 
+// ─── Court LOA variants (2026-07-21 PD refresh) ─────────────────────────────
+
+/** Result of Part A/B/C LOA generation (Vic SC PN CA 3, 10 Mar 2026). */
+export interface PartABCLoaResult {
+  partA: BibliographySection[];
+  partB: BibliographySection[];
+  partC: BibliographySection[];
+  warnings: LoaValidationWarning[];
+}
+
+/**
+ * Generates the Victorian Court of Appeal three-part List of Authorities.
+ *
+ * Vic SC PN CA 3 (reissued 10 Mar 2026): the civil appeal LOA comprises
+ * - **Part A** — authorities to be read from at the hearing
+ * - **Part B** — authorities to be referred to but not read from
+ * - **Part C** — textbooks, articles and extrinsic materials
+ * with "None" stated under any unused part. Pinpoints are mandatory for
+ * everything; the authorised citation is mandatory where one exists; and
+ * citations "must be referenced in accordance with the current edition
+ * of the AGLC".
+ *
+ * Cases and legislation are placed by the citation's `loaPart` field
+ * ("A" = Part A, otherwise Part B). All secondary and extrinsic sources
+ * go to Part C regardless of `loaPart`.
+ *
+ * @param citations - All citations referenced in the document.
+ * @returns A PartABCLoaResult with the three parts and validation warnings.
+ */
+export function generatePartABCListOfAuthorities(citations: Citation[]): PartABCLoaResult {
+  const warnings: LoaValidationWarning[] = [];
+
+  const isPrimary = (c: Citation): boolean =>
+    c.sourceType.startsWith("case.") || c.sourceType.startsWith("legislation.");
+
+  const primary = citations.filter(isPrimary);
+  const secondary = citations.filter((c) => !isPrimary(c));
+
+  const partACitations = primary.filter((c) => c.loaPart === "A");
+  const partBCitations = primary.filter((c) => c.loaPart !== "A");
+
+  const partAGroups = groupAndSortForLoa(partACitations, false);
+  const partA = buildLoaSections(partAGroups.cases, partAGroups.legislation, []);
+
+  const partBGroups = groupAndSortForLoa(partBCitations, false);
+  const partB = buildLoaSections(partBGroups.cases, partBGroups.legislation, []);
+
+  const dedupedSecondary = deduplicateById(secondary);
+  dedupedSecondary.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+  const partC: BibliographySection[] =
+    dedupedSecondary.length > 0
+      ? [
+          {
+            heading: "Textbooks, articles and extrinsic materials",
+            entries: dedupedSecondary.map((c) => formatBibliographyEntry(c)),
+          },
+        ]
+      : [];
+
+  if (partA.length === 0) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_PART_A_EMPTY",
+      message:
+        "Part A of the List of Authorities is empty. Authorities to be read " +
+        'from at the hearing should be marked (loaPart: "A") per Vic SC PN CA 3.',
+    });
+  }
+
+  return { partA, partB, partC, warnings };
+}
+
+/** Result of Tasmanian three-part LOA generation (Tas SC PD 3 of 2022). */
+export interface TasThreePartLoaResult {
+  part1: BibliographySection[];
+  part2: BibliographySection[];
+  part3: BibliographySection[];
+  warnings: LoaValidationWarning[];
+}
+
+/**
+ * Generates the Tasmanian Supreme Court three-part List of Authorities.
+ *
+ * Tas SC PD 3 of 2022: the list comprises
+ * - **Part 1** — authorities counsel intends to cite (with pinpoints)
+ * - **Part 2** — authorities that might be referred to but not cited
+ * - **Part 3** — legislation, with the sections relied on
+ * and must be lodged at least 48 hours before the hearing.
+ *
+ * Cases are placed by the citation's `loaPart` field ("A" = Part 1,
+ * otherwise Part 2). All legislation goes to Part 3 regardless of
+ * `loaPart`. Secondary sources are excluded.
+ *
+ * @param citations - All citations referenced in the document.
+ * @returns A TasThreePartLoaResult with the three parts and warnings.
+ */
+export function generateTasThreePartListOfAuthorities(
+  citations: Citation[]
+): TasThreePartLoaResult {
+  const warnings: LoaValidationWarning[] = [];
+
+  const cases = citations.filter((c) => c.sourceType.startsWith("case."));
+  const legislation = citations.filter((c) => c.sourceType.startsWith("legislation."));
+
+  const part1Cases = deduplicateById(cases.filter((c) => c.loaPart === "A"));
+  part1Cases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+  const part2Cases = deduplicateById(cases.filter((c) => c.loaPart !== "A"));
+  part2Cases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+  const part3Legislation = deduplicateById(legislation);
+  part3Legislation.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+
+  const part1: BibliographySection[] =
+    part1Cases.length > 0
+      ? [{ heading: "Cases", entries: part1Cases.map((c) => formatLoaEntryWithKeyMarker(c)) }]
+      : [];
+  const part2: BibliographySection[] =
+    part2Cases.length > 0
+      ? [{ heading: "Cases", entries: part2Cases.map((c) => formatLoaEntryWithKeyMarker(c)) }]
+      : [];
+  const part3: BibliographySection[] =
+    part3Legislation.length > 0
+      ? [
+          {
+            heading: "Legislation",
+            entries: part3Legislation.map((c) => formatBibliographyEntry(c)),
+          },
+        ]
+      : [];
+
+  if (part1.length === 0) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_PART_A_EMPTY",
+      message:
+        "Part 1 of the List of Authorities is empty. Authorities counsel " +
+        'intends to cite should be marked (loaPart: "A") per Tas SC PD 3 of 2022.',
+    });
+  }
+
+  return { part1, part2, part3, warnings };
+}
+
+/** Heading section with no entries, used to introduce an LOA part. */
+function partHeadingSection(heading: string): BibliographySection {
+  return { heading, entries: [] };
+}
+
+/** Heading section whose sole entry states "None" (Vic SC PN CA 3). */
+function partNoneSection(heading: string): BibliographySection {
+  return { heading, entries: [[{ text: "None" }]] };
+}
+
+/**
+ * Combines a court LOA variant into a flat BibliographySection[] for
+ * rendering, prepending the variant's part headings.
+ *
+ * Variant headings:
+ * - "part-ab" — FCA GPN-AUTH cl 2.1 wording (unchanged from LOA-002)
+ * - "part-abc" — Vic SC PN CA 3 (10 Mar 2026); unused parts state "None"
+ * - "two-part-read" — SA Uniform Civil Rules 2020 r 217.8 (Form 91) and
+ *   FCFCOA FAM-APPEALS (10 Jun 2025) wording
+ * - "three-part-tas" — Tas SC PD 3 of 2022 wording
+ *
+ * @param citations - All citations referenced in the document.
+ * @param loaType - The multi-part LOA variant to generate.
+ * @returns Flat sections plus the generator's validation warnings.
+ */
+function combineCourtLoaSections(
+  citations: Citation[],
+  loaType: "part-ab" | "part-abc" | "two-part-read" | "three-part-tas",
+  includeSecondary = false
+): {
+  sections: BibliographySection[];
+  warnings: LoaValidationWarning[];
+  partA?: BibliographySection[];
+  partB?: BibliographySection[];
+} {
+  const combined: BibliographySection[] = [];
+
+  if (loaType === "part-abc") {
+    const result = generatePartABCListOfAuthorities(citations);
+    const parts: Array<{ heading: string; sections: BibliographySection[] }> = [
+      {
+        heading: "Part A — Authorities to be read from at the hearing",
+        sections: result.partA,
+      },
+      {
+        heading: "Part B — Authorities to be referred to but not read from",
+        sections: result.partB,
+      },
+      {
+        heading: "Part C — Textbooks, articles and extrinsic materials",
+        sections: result.partC,
+      },
+    ];
+    for (const part of parts) {
+      // Vic SC PN CA 3: "None" must be stated under any unused part.
+      if (part.sections.length === 0) {
+        combined.push(partNoneSection(part.heading));
+      } else {
+        combined.push(partHeadingSection(part.heading));
+        combined.push(...part.sections);
+      }
+    }
+    return { sections: combined, warnings: result.warnings };
+  }
+
+  if (loaType === "three-part-tas") {
+    const result = generateTasThreePartListOfAuthorities(citations);
+    const parts: Array<{ heading: string; sections: BibliographySection[] }> = [
+      { heading: "Part 1 — Authorities counsel intends to cite", sections: result.part1 },
+      {
+        heading: "Part 2 — Authorities that might be referred to but not cited",
+        sections: result.part2,
+      },
+      { heading: "Part 3 — Legislation", sections: result.part3 },
+    ];
+    for (const part of parts) {
+      if (part.sections.length > 0) {
+        combined.push(partHeadingSection(part.heading));
+        combined.push(...part.sections);
+      }
+    }
+    return { sections: combined, warnings: result.warnings };
+  }
+
+  // Two-part variants share the LOA-002 A/B split; only the headings differ.
+  const abResult = generatePartABListOfAuthorities(citations, includeSecondary);
+  const headings =
+    loaType === "two-part-read"
+      ? {
+          partA: "Part A — Authorities expected to be read",
+          partB: "Part B — Authorities not expected to be read",
+        }
+      : {
+          partA: "Part A — Authorities from which passages are to be read",
+          partB: "Part B — Authorities to which reference may be made",
+        };
+
+  if (abResult.partA.length > 0) {
+    combined.push(partHeadingSection(headings.partA));
+    combined.push(...abResult.partA);
+  }
+  if (abResult.partB.length > 0) {
+    combined.push(partHeadingSection(headings.partB));
+    combined.push(...abResult.partB);
+  }
+  return {
+    sections: combined,
+    warnings: abResult.warnings,
+    partA: abResult.partA,
+    partB: abResult.partB,
+  };
+}
+
 // ─── LOA-003: HCA Joint Book of Authorities ─────────────────────────────────
 
 /** Case details required for JBA title page and metadata. */
@@ -1187,25 +1448,72 @@ export interface JbaIndexEntry {
   authorityLabel: string;
   volume: number;
   pageRange: string; // e.g. "1–45"
+  /**
+   * HCA PD 2 of 2024: the index must be cross-referenced to the
+   * paragraphs of the parties' submissions where the authority is
+   * relied on. Populated from the citation's `jbaSubmissionParas`
+   * data field when supplied (e.g. "AS [12], [45]; RS [8]").
+   */
+  submissionParagraphs?: string;
 }
 
-/** Result of JBA generation. */
+/** Result of JBA generation (HCA PD 2 of 2024, Parts A-E). */
 export interface JbaResult {
   titlePage: BibliographySection;
+  /**
+   * HCA PD 2 of 2024: the counsel's certificate is the FIRST document
+   * in the joint book — the Word adapter must render it before the
+   * index and parts.
+   */
   certificatePlaceholder: BibliographySection;
   index: JbaIndexEntry[];
+  /** Part A — principal legislation (whole Act unless voluminous). */
   partA: BibliographySection[];
+  /** Part B — other legislation (extracts; Cth, then States/Territories, then overseas). */
   partB: BibliographySection[];
+  /** Part C — cases reported in the CLR, alphabetical. */
+  partC: BibliographySection[];
+  /** Part D — cases from other report series, alphabetical. */
+  partD: BibliographySection[];
+  /** Part E — other materials. */
+  partE: BibliographySection[];
   warnings: LoaValidationWarning[];
+}
+
+/**
+ * Australian jurisdiction sort rank for JBA Part B grouping:
+ * Commonwealth first, then States/Territories, then overseas
+ * (HCA PD 2 of 2024).
+ */
+function jbaLegislationGroupRank(citation: Citation): number {
+  const jurisdiction = ((citation.data.jurisdiction as string | undefined) ?? "").trim();
+  if (jurisdiction === "Cth") return 0;
+  const statesTerritories = new Set(["ACT", "NSW", "NT", "Qld", "SA", "Tas", "Vic", "WA"]);
+  if (statesTerritories.has(jurisdiction)) return 1;
+  return 2;
 }
 
 /**
  * Generates a High Court Joint Book of Authorities per HCA PD 2 of 2024.
  *
- * LOA-003: Extends LOA-002 (Part A / Part B) with HCA-specific metadata:
- * - Title page: "Joint Book of Authorities" + case name + HCA file number
- * - Certificate of senior practitioners (placeholder template)
- * - Full index listing all authorities with volume and page ranges
+ * LOA-003 (updated 2026-07-21 against HCA PD 2 of 2024): the joint book
+ * comprises FIVE parts —
+ * - **Part A** — principal legislation (the whole Act unless voluminous)
+ * - **Part B** — other legislation (extracts), alphabetical, grouped
+ *   Commonwealth, then States/Territories, then overseas
+ * - **Part C** — cases reported in the Commonwealth Law Reports,
+ *   alphabetical
+ * - **Part D** — cases from other report series, alphabetical
+ * - **Part E** — other materials
+ * plus a title page, the counsel's certificate (the first document in
+ * the book), and an index cross-referenced to submission paragraphs.
+ * Volumes must not exceed 500 pages. The book should contain only
+ * cases counsel will take the Court to.
+ *
+ * Principal legislation (Part A) cannot be inferred automatically: a
+ * statute is placed in Part A when its `jbaPrincipal` data field is
+ * true (or the string "true" after an XML round-trip); all other
+ * legislation goes to Part B.
  *
  * The volume/page allocation is a simplified placeholder — actual page
  * ranges depend on the physical documents bundled into the JBA volumes.
@@ -1217,9 +1525,101 @@ export interface JbaResult {
  * @returns A JbaResult containing all JBA components and validation warnings.
  */
 export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails): JbaResult {
-  // Generate the Part A/B split via LOA-002.
-  const loaResult = generatePartABListOfAuthorities(citations, false);
-  const warnings = [...loaResult.warnings];
+  const warnings: LoaValidationWarning[] = [];
+  const deduplicated = deduplicateById(citations);
+
+  // ── Part A / Part B: legislation, split by the jbaPrincipal flag ──
+  const legislation = deduplicated.filter((c) => c.sourceType.startsWith("legislation."));
+  const isPrincipal = (c: Citation): boolean =>
+    c.data.jbaPrincipal === true || c.data.jbaPrincipal === "true";
+
+  const principalLegislation = legislation.filter(isPrincipal);
+  principalLegislation.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+  const otherLegislation = legislation.filter((c) => !isPrincipal(c));
+  otherLegislation.sort((a, b) => {
+    const rankDiff = jbaLegislationGroupRank(a) - jbaLegislationGroupRank(b);
+    if (rankDiff !== 0) return rankDiff;
+    return getSortKey(a).localeCompare(getSortKey(b));
+  });
+
+  const partA: BibliographySection[] =
+    principalLegislation.length > 0
+      ? [
+          {
+            heading: "Part A — Principal legislation",
+            entries: principalLegislation.map((c) => formatBibliographyEntry(c)),
+          },
+        ]
+      : [];
+  const partB: BibliographySection[] =
+    otherLegislation.length > 0
+      ? [
+          {
+            heading: "Part B — Other legislation",
+            entries: otherLegislation.map((c) => formatBibliographyEntry(c)),
+          },
+        ]
+      : [];
+
+  // ── Part C / Part D: cases, split by CLR report series ──
+  const cases = deduplicated.filter((c) => c.sourceType.startsWith("case."));
+  const clrCases = cases.filter(
+    (c) => ((c.data.reportSeries as string | undefined) ?? "").trim() === "CLR"
+  );
+  clrCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+  const otherCases = cases.filter(
+    (c) => ((c.data.reportSeries as string | undefined) ?? "").trim() !== "CLR"
+  );
+  otherCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+
+  const partC: BibliographySection[] =
+    clrCases.length > 0
+      ? [
+          {
+            heading: "Part C — Cases reported in the Commonwealth Law Reports",
+            entries: clrCases.map((c) => formatLoaCaseEntry(c)),
+          },
+        ]
+      : [];
+  const partD: BibliographySection[] =
+    otherCases.length > 0
+      ? [
+          {
+            heading: "Part D — Cases from other report series",
+            entries: otherCases.map((c) => formatLoaCaseEntry(c)),
+          },
+        ]
+      : [];
+
+  // ── Part E: other materials ──
+  const otherMaterials = deduplicated.filter(
+    (c) => !c.sourceType.startsWith("case.") && !c.sourceType.startsWith("legislation.")
+  );
+  otherMaterials.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+  const partE: BibliographySection[] =
+    otherMaterials.length > 0
+      ? [
+          {
+            heading: "Part E — Other materials",
+            entries: otherMaterials.map((c) => formatBibliographyEntry(c)),
+          },
+        ]
+      : [];
+
+  // HCA PD 2 of 2024: the book contains only cases counsel will take
+  // the Court to. Cases not marked for reading (loaPart "A") may not
+  // belong in the joint book.
+  const casesNotForReading = cases.filter((c) => c.loaPart !== "A").length;
+  if (casesNotForReading > 0) {
+    warnings.push({
+      level: "info",
+      code: "JBA_CASES_NOT_FOR_READING",
+      message:
+        `${casesNotForReading} case(s) are not marked as authorities counsel ` +
+        'will take the Court to (loaPart: "A"). HCA PD 2 of 2024 requires the ' +
+        "joint book to contain only cases counsel will take the Court to.",
+    });
+  }
 
   // Title page section.
   const titlePage: BibliographySection = {
@@ -1249,28 +1649,43 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
     ],
   };
 
-  // Build a flat index of all authorities across Part A and Part B.
-  const allSections = [...loaResult.partA, ...loaResult.partB];
+  // Build a flat index of all authorities across Parts A-E, in part
+  // order, cross-referenced to submission paragraphs where recorded
+  // (HCA PD 2 of 2024).
+  const partOrder: Array<{ sections: BibliographySection[]; citations: Citation[] }> = [
+    { sections: partA, citations: principalLegislation },
+    { sections: partB, citations: otherLegislation },
+    { sections: partC, citations: clrCases },
+    { sections: partD, citations: otherCases },
+    { sections: partE, citations: otherMaterials },
+  ];
   const index: JbaIndexEntry[] = [];
   let currentVolume = 1;
   let pageCounter = 1;
 
-  for (const section of allSections) {
-    for (const entry of section.entries) {
-      const label = entry.map((r) => r.text).join("");
-      const estimatedPages = 10; // Placeholder — real page counts filled by Word adapter.
-      const pageStart = pageCounter;
-      const pageEnd = pageCounter + estimatedPages - 1;
-      index.push({
-        authorityLabel: label,
-        volume: currentVolume,
-        pageRange: `${pageStart}\u2013${pageEnd}`,
-      });
-      pageCounter = pageEnd + 1;
+  for (const part of partOrder) {
+    for (const section of part.sections) {
+      for (let i = 0; i < section.entries.length; i++) {
+        const submissionParas = part.citations[i]?.data.jbaSubmissionParas as string | undefined;
+        const label = section.entries[i].map((r) => r.text).join("");
+        const estimatedPages = 10; // Placeholder — real page counts filled by Word adapter.
+        const pageStart = pageCounter;
+        const pageEnd = pageCounter + estimatedPages - 1;
+        index.push({
+          authorityLabel: label,
+          volume: currentVolume,
+          pageRange: `${pageStart}\u2013${pageEnd}`,
+          ...(submissionParas && submissionParas.trim()
+            ? { submissionParagraphs: submissionParas.trim() }
+            : {}),
+        });
+        pageCounter = pageEnd + 1;
 
-      // Volume break at ~500 pages (per HCA convention for multi-volume JBAs).
-      if (pageCounter > currentVolume * 500) {
-        currentVolume++;
+        // Volume break at 500 pages (HCA PD 2 of 2024: volumes must not
+        // exceed 500 pages).
+        if (pageCounter > currentVolume * 500) {
+          currentVolume++;
+        }
       }
     }
   }
@@ -1297,8 +1712,11 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
     titlePage,
     certificatePlaceholder,
     index,
-    partA: loaResult.partA,
-    partB: loaResult.partB,
+    partA,
+    partB,
+    partC,
+    partD,
+    partE,
     warnings,
   };
 }
@@ -1321,8 +1739,13 @@ export type LoaExportTarget = "insert-section" | "new-document" | "pdf";
  * Options for LOA generation, combining format and export target.
  */
 export interface LoaGenerationOptions {
-  /** LOA type: "simple" uses LOA-001, "part-ab" uses LOA-002. */
-  loaType: "simple" | "part-ab";
+  /**
+   * LOA type: "simple" uses LOA-001; "part-ab" uses LOA-002;
+   * "part-abc" (Vic SC PN CA 3), "two-part-read" (SA UCR r 217.8 /
+   * FCFCOA FAM-APPEALS) and "three-part-tas" (Tas SC PD 3 of 2022)
+   * use the 2026-07-21 court LOA variants.
+   */
+  loaType: Exclude<LoaType, "off">;
   /** Whether to include secondary sources (Part B only). */
   includeSecondary: boolean;
   /** Export target for the generated LOA. */
@@ -1386,35 +1809,22 @@ export function generateLoaWithOptions(
     return result;
   }
 
-  // Part A/B mode.
-  const abResult = generatePartABListOfAuthorities(citations, options.includeSecondary);
+  // Multi-part modes (part-ab, part-abc, two-part-read, three-part-tas):
+  // the combined sections carry the variant's part headings.
+  const variantResult = combineCourtLoaSections(
+    citations,
+    options.loaType,
+    options.includeSecondary
+  );
 
-  // Combine Part A and Part B into a single sections array for rendering,
-  // with Part A/B headings prepended.
-  const combined: BibliographySection[] = [];
-
-  if (abResult.partA.length > 0) {
-    combined.push({
-      heading: "Part A \u2014 Authorities from which passages are to be read",
-      entries: [],
-    });
-    combined.push(...abResult.partA);
-  }
-
-  if (abResult.partB.length > 0) {
-    combined.push({
-      heading: "Part B \u2014 Authorities to which reference may be made",
-      entries: [],
-    });
-    combined.push(...abResult.partB);
-  }
-
+  // The partA/partB fields are only populated for the two-part variants,
+  // where they retain their LOA-002 meaning.
   const result: LoaResult = {
-    sections: combined,
-    partA: abResult.partA,
-    partB: abResult.partB,
+    sections: variantResult.sections,
+    ...(variantResult.partA ? { partA: variantResult.partA } : {}),
+    ...(variantResult.partB ? { partB: variantResult.partB } : {}),
     exportTarget: options.exportTarget,
-    warnings: [...abResult.warnings],
+    warnings: [...variantResult.warnings],
   };
 
   if (options.exportTarget === "pdf") {
@@ -1437,7 +1847,9 @@ export function generateLoaWithOptions(
  * @param structure - The bibliography structure to use: "aglc", "oscola", or "nzlsg".
  * @param writingMode - Optional writing mode; "court" generates a List of Authorities.
  * @param loaType - Optional LoA format for court mode: "off" (no LoA), "simple"
- *   (flat list), or "part-ab" (Part A / Part B split). Defaults to "simple".
+ *   (flat list), "part-ab" (Part A / Part B split), "part-abc" (Vic SC PN CA 3),
+ *   "two-part-read" (SA UCR 2020 r 217.8 / FCFCOA FAM-APPEALS) or
+ *   "three-part-tas" (Tas SC PD 3 of 2022). Defaults to "simple".
  * @returns An array of BibliographySection objects appropriate to the standard/mode.
  */
 export function generateBibliographyForStandard(
@@ -1455,27 +1867,13 @@ export function generateBibliographyForStandard(
       return [];
     }
 
-    if (effectiveLoaType === "part-ab") {
-      const abResult = generatePartABListOfAuthorities(citations);
-      const combined: BibliographySection[] = [];
-
-      if (abResult.partA.length > 0) {
-        combined.push({
-          heading: "Part A \u2014 Authorities from which passages are to be read",
-          entries: [],
-        });
-        combined.push(...abResult.partA);
-      }
-
-      if (abResult.partB.length > 0) {
-        combined.push({
-          heading: "Part B \u2014 Authorities to which reference may be made",
-          entries: [],
-        });
-        combined.push(...abResult.partB);
-      }
-
-      return combined;
+    if (
+      effectiveLoaType === "part-ab" ||
+      effectiveLoaType === "part-abc" ||
+      effectiveLoaType === "two-part-read" ||
+      effectiveLoaType === "three-part-tas"
+    ) {
+      return combineCourtLoaSections(citations, effectiveLoaType).sections;
     }
 
     // Default: "simple" — flat list of authorities

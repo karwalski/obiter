@@ -8,7 +8,7 @@ The CI workflow runs on every push to `main` or `develop`, and on pull requests 
 
 ### Jobs
 
-1. **lint-and-typecheck** -- Runs `npm run lint` and `npm run typecheck`.
+1. **lint-and-typecheck** -- Runs the supply-chain gates (`npm audit` and `lockfile-lint`, see [Supply-Chain Gates](#supply-chain-gates)), then `npm run lint` and `npm run typecheck`.
 2. **test** -- Runs `npm test`. On failure, uploads coverage and JUnit results as artifacts (retained 14 days).
 3. **build** -- Runs `npm run build` and `npm run validate` (manifest validation). Uploads the `dist/` directory as an artifact (retained 30 days).
 4. **deploy-website** -- Runs only on push to `main`. Detects which files changed and deploys accordingly (see below).
@@ -162,3 +162,30 @@ The Lightsail instance loads environment variables from `/etc/obiter/env.sh`. Th
 
 1. SSH into the instance and edit `/etc/obiter/env.sh`.
 2. Restart the server using the manual deploy workflow with `restart_server=true`, or by running the restart command directly over SSH.
+
+## Supply-Chain Gates
+
+The `lint-and-typecheck` job runs two supply-chain checks before anything else (TRUST-004):
+
+1. **Dependency audit** -- `npm audit --omit=dev --audit-level=high` fails the build on any high or critical advisory in **production** dependencies. Dev-only advisories and moderate/low advisories are reported by npm but do not block.
+2. **Lockfile lint** -- `npx --yes lockfile-lint@5.0.0 --path package-lock.json --type npm --validate-https --allowed-hosts registry.npmjs.org` fails the build if any entry in `package-lock.json` resolves over plain HTTP or to a host other than the official npm registry.
+
+Dependabot (`.github/dependabot.yml`) raises weekly update PRs for npm packages (minor and patch releases grouped into one PR; majors individually) and for the GitHub Actions used by the workflows.
+
+### Advisory triage procedure
+
+When the audit gate fails:
+
+1. **Identify** the advisory: run `npm audit --omit=dev --audit-level=high` locally and read the GHSA link. Confirm it is a production dependency (`npm ls <package>` shows the dependency path).
+2. **Fix forward (preferred)**: take the Dependabot PR if one exists, or run `npm audit fix` / bump the offending package range and verify with `npm test` and `npm run typecheck`. Transitive-only advisories can usually be resolved with an `overrides` entry in `package.json` pinning the patched version.
+3. **Assess exploitability** if no fix is published yet: does the vulnerable code path run in the add-in webview or server, with attacker-controllable input? Record the assessment in `docs/decisions.md`.
+
+### Overriding the gate
+
+Only when no fix is available **and** the advisory is assessed as not exploitable in Obiter's context:
+
+1. Exclude the specific advisory rather than lowering the gate: replace the audit step's command with a filtered check (e.g. `npm audit --omit=dev --audit-level=high --json | node -e '<filter script excluding the GHSA id>'`) or use `better-npm-audit` with an `.nsprc` exclusion listing the GHSA id, the reason, and an expiry date.
+2. Never raise `--audit-level` past `high`, and never drop `--omit=dev` filtering as a workaround.
+3. Record the override in `docs/decisions.md` with the GHSA id, justification, and a review date; remove the exclusion as soon as a patched release exists.
+
+Lockfile-lint failures are never overridden: a non-HTTPS or non-registry resolved URL in `package-lock.json` means the lockfile must be regenerated (`rm -rf node_modules package-lock.json && npm install`) from the official registry.

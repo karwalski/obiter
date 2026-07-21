@@ -2,6 +2,7 @@
 
 **Obiter v1.14.x (fix/parity-epic)** | Last audited: 2026-07-02
 **Rebased 2026-07-02 against aglc4-rule-reference.md + PARITY wave fixes; see docs/parity-reviews/**
+**RE-AUDIT rows closed 2026-07-21 (rules 8.8, 9.5, 10.5, 11.3, 12.4, 13.4, 14.6, 2.1.15, 8.4 residual); see `tests/engine/re-audit.test.ts`**
 
 Coverage audit of the Australian Guide to Legal Citation, 4th Edition. Each rule is marked as **Full**, **Partial**, or **Manual** (user responsibility, not automatable).
 
@@ -72,7 +73,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 
 | Rule | Title | Coverage | Notes |
 |------|-------|----------|-------|
-| 2.1.1-2.1.15 | Case Names | Full | Party boundaries (no splitting compound names), italic *v*, rule-table abbreviations; 2.1.15 RE-AUDIT |
+| 2.1.1-2.1.15 | Case Names | Full | Party boundaries (no splitting compound names), italic *v*, rule-table abbreviations; 2.1.15 PASS (re-audit 2026-07-21: name-omitted form exs 47/49; short title always retained in subsequent refs, ex 51) |
 | 2.2 | Reported Decisions | Full | Year, volume, report series, starting page, court names spelt out; series tiers per 2.2.2/2.2.3 (provisional rows: DECISION-015) |
 | 2.2.7 | Parallel Citations | Full | AGLC mode flags parallel citations for REMOVAL (rule prohibits them for Australian cases); court mode ranks hierarchy unchanged |
 | 2.3.1 | Unreported (MNC) | Full | [Year] Court Number; complete identifier table (HCASL, FamCA(FC), NTCCA, TASCCA/TASSC); MNC allocation-year validation |
@@ -191,11 +192,11 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 8.3.1 | Opened for Signature | Full | Date, entry into force |
 | 8.3.2 | Signed (Closed Treaties) | Full | Same-date `signed` form supported |
 | 8.3.3 | Not Yet in Force | Full | '(not yet in force)' |
-| 8.4 | Treaty Series | Partial | UNTS, LNTS, ATS, etc.; residual low gap noted in parity review (RE-AUDIT) |
+| 8.4 | Treaty Series | Full | PASS (re-audit 2026-07-21): volume/year/sequential series forms native (exs 10/12/13), rule-table abbreviations encoded; residual low gap closed |
 | 8.5 | Reservations/Declarations | Manual | Discursive reference to specific instruments |
 | 8.6 | Memoranda of Understanding | Full | Party joining/en-dash/pinpoints corrected |
 | 8.7 | Pinpoint Reference | Full | Article, paragraph, annex |
-| 8.8 | Short Titles / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined by the parity review |
+| 8.8 | Short Titles / Subsequent Refs | Full | PASS (re-audit 2026-07-21): italic short-title intro (ex 20), portion short titles with designator pinpoints (ex 25), ibid per 1.4.3 |
 
 ---
 
@@ -207,7 +208,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 9.2 | Official Documents | Full | Resolution numbers and 'UN GAOR' roman (were wrongly italic); pinpoint comma-after-date; 9.2.14 residual low gap |
 | 9.3 | Individual Communications | Partial | Session element + submission variant; UI fields pending |
 | 9.4 | UN Yearbooks | Full | |
-| 9.5 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 9.5 | Short Title / Subsequent Refs | Full | FIXED (re-audit 2026-07-21): `«Short Title», UN Doc «n» (n X)` template (exs 45/48); committee decisions now carry the UN Doc number per 9.3.1 ex 40; quoted yearbook titles (ex 51); authored 9.3.2 submissions author-led per 1.4.1 |
 | 9.6 | Commonly Cited Documents | Manual | User enters the conventional short form |
 
 ---
@@ -220,7 +221,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 10.2 | Reported Decisions | Full | Case title, parties, decision type, year; default series 'ICJ Rep' |
 | 10.3 | Pleadings and Documents | Partial | Document type, party, date, ICJ Pleadings volume; residual low gap (RE-AUDIT) |
 | 10.4 | Unreported Materials | Partial | General List No form supported; UI field pending |
-| 10.5 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 10.5 | Short Title / Subsequent Refs | Full | PASS (re-audit 2026-07-21): italic decision short titles per 2.1.14 (exs 36/41); pleadings keep the quoted document title (ex 42) |
 
 ---
 
@@ -230,7 +231,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 |------|-------|----------|-------|
 | 11.1 | State-State Decisions | Full | PCA, ad hoc tribunals |
 | 11.2 | Individual-State Decisions | Partial | Correct `formatStateArbitration` wired (ICSID mislabel gone); reported-branch UI fields pending |
-| 11.3 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 11.3 | Short Title / Subsequent Refs | Full | PASS (re-audit 2026-07-21): phase-bearing italic short titles per 2.1.14 (exs 16/19); case-name fallback |
 
 ---
 
@@ -241,7 +242,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 12.1 | Basic Documents | Manual | Cite as treaty or constitutive document; 12.1.2 (rules) residual gap (RE-AUDIT) |
 | 12.2 | Cases | Full | Accused, case number, tribunal, chamber, decision type, date, judges |
 | 12.3 | Reports of Cases | Partial | Report-series form added; UI fields pending |
-| 12.4 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 12.4 | Short Title / Subsequent Refs | Full | PASS (re-audit 2026-07-21): italic rules/decision short titles (exs 26/28/29/32); ibid with paragraph pinpoints (ex 30) |
 
 ---
 
@@ -254,7 +255,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 13.1.3 | WTO Appellate Body / Panel | Partial | DSR reference supported; UI field pending |
 | 13.2 | GATT Documents | Partial | BISD reference on documents and panel reports; UI fields pending |
 | 13.3 | Investment Treaties / ISDS | Partial | Uses `arbitral.individual_state`; adequate for most cases |
-| 13.4 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 13.4 | Short Title / Subsequent Refs | Full | PASS (re-audit 2026-07-21): reporting body + `WTO/GATT Doc «n»` subsequent template (exs 30/33); annexed agreements shorten as treaties (exs 23/25) |
 
 ---
 
@@ -271,7 +272,7 @@ Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md
 | 14.3.3 | ECHR Commission Decisions | Full | Year brackets corrected |
 | 14.4 | Other Supranational Courts | Partial | Generic supranational decision type; 14.4.3/14.4.4 residual gaps (RE-AUDIT) |
 | 14.5 | Supranational Documents | Partial | Date/session/pinpoint; session UI field pending |
-| 14.6 | Short Title / Subsequent Refs | RE-AUDIT | Resolver-routed; not yet examined |
+| 14.6 | Short Title / Subsequent Refs | Full | PASS (re-audit 2026-07-21): title-led italic short titles even for body-authored documents (exs 52/55/56/58) |
 
 ---
 
@@ -317,10 +318,10 @@ Per-country dispatch is live (PARITY-114 wave 2, mop-up wave 3): `dispatchForeig
 | Ch 5: Journals | 1 | 3 | 1 | 0 | 5 |
 | Ch 6: Books | 2 | 3 | 0 | 0 | 5 |
 | Ch 7: Other Secondary | 12 | 20 | 0 | 0 | 32 |
-| Ch 8: Treaties | 7 | 1 | 1 | 1 | 10 |
-| Ch 9-14: International | 9 | 13 | 6 | 6 | 34 |
+| Ch 8: Treaties | 9 | 0 | 1 | 0 | 10 |
+| Ch 9-14: International | 15 | 13 | 6 | 0 | 34 |
 | Ch 15-26: Foreign | 3 | 9 | 0 | 0 | 12 |
 | Appendices | 2 | 1 | 0 | 0 | 3 |
-| **Total** | **93** | **60** | **17** | **7** | **177** |
+| **Total** | **101** | **59** | **17** | **0** | **177** |
 
-Of the 160 automatable rows (177 − 17 manual), **93 are Full end-to-end**; of the 60 Partial rows, the large majority are **engine-complete** — the format is implemented and tested against the guide's own examples, and only a UI form field is pending (foreign-formatter dispatch registration completed in the wave-3 mop-up). Seven RE-AUDIT rows have never been verified against the reference. The previous "96% Full" claim (June 2026) predated the parity reviews and was overstated — dozens of "Full" rows covered dead code paths or inverted rules; see `docs/parity-reviews/`.
+Of the 160 automatable rows (177 − 17 manual), **101 are Full end-to-end**; of the 59 Partial rows, the large majority are **engine-complete** — the format is implemented and tested against the guide's own examples, and only a UI form field is pending (foreign-formatter dispatch registration completed in the wave-3 mop-up). The seven RE-AUDIT rows (the resolver-routed short-title/subsequent-reference rules 8.8, 9.5, 10.5, 11.3, 12.4, 13.4 and 14.6) were parity re-audited against the reference on 2026-07-21 and closed (six PASS, one FIXED — rule 9.5's committee-decision doc-number element per 9.3.1 ex 40); exact-example tests live in `tests/engine/re-audit.test.ts`. The previous "96% Full" claim (June 2026) predated the parity reviews and was overstated — dozens of "Full" rows covered dead code paths or inverted rules; see `docs/parity-reviews/`.
