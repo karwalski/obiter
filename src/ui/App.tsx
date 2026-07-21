@@ -17,6 +17,7 @@ import Bibliography from "./views/Bibliography";
 import Settings from "./views/Settings";
 import Styling from "./views/Styling";
 import ScanRepair from "./views/ScanRepair";
+import Recovery from "./views/Recovery";
 import { CitationProvider } from "./context/CitationContext";
 import { InsertCitationProvider } from "./context/InsertCitationContext";
 import { StatusProvider } from "./context/StatusContext";
@@ -143,6 +144,7 @@ function App(): JSX.Element {
                 <Route path="styling" element={<ErrorBoundary label="Styling"><Styling /></ErrorBoundary>} />
                 <Route path="settings" element={<ErrorBoundary label="Settings"><Settings /></ErrorBoundary>} />
                 <Route path="scan-repair" element={<ErrorBoundary label="Scan and Repair"><ScanRepair /></ErrorBoundary>} />
+                <Route path="recovery" element={<ErrorBoundary label="Recovery"><Recovery /></ErrorBoundary>} />
               </Route>
             </Routes>
           </ErrorBoundary>

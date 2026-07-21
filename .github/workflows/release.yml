@@ -44,11 +44,22 @@ jobs:
           echo "filename=obiter-v${VERSION}.zip" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      # TRUST-005: checksum every zip attached to the release so sideload
+      # users can verify downloads (see INSTALL.md "Verifying downloads").
+      - name: Generate checksums
+        run: sha256sum "${{ steps.zip.outputs.filename }}" > SHA256SUMS.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.zip.outputs.filename }}
+          files: |
+            ${{ steps.zip.outputs.filename }}
+            SHA256SUMS.txt
           generate_release_notes: true
           name: Obiter v${{ steps.zip.outputs.version }}
+          body: |
+            Built by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Verify downloaded zips against `SHA256SUMS.txt` — see the "Verifying downloads" section of INSTALL.md.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getSharedStore } from "../../store/singleton";
 import type { CitationStore } from "../../store";
 import { scanDocument, applyScanPlan } from "../../word/documentScanner";
@@ -67,6 +68,7 @@ const SECTIONS: {
 
 export default function ScanRepair(): JSX.Element {
   const { triggerRefresh } = useCitationContext();
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("scanning");
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<ScanPlan | null>(null);
@@ -156,8 +158,21 @@ export default function ScanRepair(): JSX.Element {
       // Manual Citations Mode (the refresher gates on it).
       try {
         const refresh = await refreshAllCitationsNow(storeRef);
+        // Locked footnotes are intentionally left as they read — report them
+        // in the "unchanged" bucket. Skipped user edits and chunk failures
+        // are appended so a partial refresh never reads as fully clean.
+        const extras: string[] = [];
+        if (refresh.userEdits.length > 0) {
+          extras.push(`${refresh.userEdits.length} manually edited (skipped)`);
+        }
+        if (refresh.failures.length > 0) {
+          const failedCount = refresh.failures.reduce((n, f) => n + f.footnoteNumbers.length, 0);
+          extras.push(`${failedCount} failed`);
+        }
+        const extraText = extras.length > 0 ? `, ${extras.join(", ")}` : "";
         setRefreshSummary(
-          `Citation formats re-validated: ${refresh.updated} updated, ${refresh.unchanged} unchanged.`
+          `Citation formats re-validated: ${refresh.updated} updated, ` +
+            `${refresh.unchanged + refresh.lockedSkipped} unchanged${extraText}.`
         );
       } catch (err: unknown) {
         setRefreshSummary(
@@ -364,6 +379,20 @@ export default function ScanRepair(): JSX.Element {
         <button className="library-btn" onClick={handleRescan} disabled={applying}>
           Scan again
         </button>
+        {/* SAFE-005: cross-link — snapshots, footnote history and quarantined
+            data live in the Recovery view rather than the repair scan. */}
+        <button
+          className="library-btn"
+          onClick={() => navigate("/recovery")}
+          disabled={applying}
+          aria-describedby="scanrepair-recovery-desc"
+        >
+          Open Recovery
+        </button>
+        <span id="scanrepair-recovery-desc" className="obiter-visually-hidden">
+          Library snapshots, previous footnote texts and quarantined data can be restored
+          from the Recovery view.
+        </span>
       </div>
     </div>
   );

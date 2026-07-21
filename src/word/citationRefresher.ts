@@ -45,7 +45,15 @@ import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
-import { parseOccurrenceTitle, buildOccurrenceTitle, isFootnoteLocked } from "./footnoteManager";
+import {
+  parseOccurrenceTitle,
+  buildOccurrenceTitle,
+  isFootnoteLocked,
+  parseParentTitle,
+  buildParentTitle,
+} from "./footnoteManager";
+import { hashRenderedText } from "../utils/textHash";
+import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -53,11 +61,81 @@ const PARENT_CC_TAG = "obiter-fn";
 /** Punctuation marks that validly close a footnote (Rule 1.1.4). */
 const CLOSING_PUNCTUATION = [".", "!", "?"];
 
+/**
+ * Number of footnotes rebuilt per pipelined batch (SAFE-003). Each chunk
+ * costs exactly 3 syncs (insertHtml → search → wrap) regardless of size,
+ * so larger chunks mean fewer round trips on Word for Web; 8 keeps each
+ * batch small enough that a mid-chunk failure has a bounded blast radius.
+ */
+export const REBUILD_CHUNK_SIZE = 8;
+
+/** A footnote the refresher skipped because the user manually edited it (SAFE-002). */
+export interface UserEditReport {
+  /** 1-based footnote number. */
+  footnoteNumber: number;
+  /** The footnote's current (user-edited) text, as read from the document. */
+  currentText: string;
+  /** The text Obiter would have rendered. */
+  expectedText: string;
+}
+
+/** A rebuild chunk that failed part-way through a refresh (SAFE-003). */
+export interface RefreshFailure {
+  /** 1-based footnote numbers in the failed chunk. */
+  footnoteNumbers: number[];
+  /** The error message. */
+  error: string;
+}
+
 /** Result of a full citation refresh pass. */
 export interface RefreshResult {
+  /** Citations rebuilt with fresh content. */
   updated: number;
+  /** Citations whose rendered text already matched the document. */
   unchanged: number;
+  /** Citations inside locked (frozen) footnotes, left untouched. */
+  lockedSkipped: number;
+  /** Footnotes skipped because the user manually edited them. */
+  userEdits: UserEditReport[];
+  /** Rebuild chunks that failed; the rest of the refresh still completed. */
+  failures: RefreshFailure[];
 }
+
+/** Detail payload of the `obiter:refresh-issues` CustomEvent. */
+export interface RefreshIssuesDetail {
+  failures: RefreshFailure[];
+  userEdits: UserEditReport[];
+}
+
+/** An empty {@link RefreshResult} (also the manual-mode early return). */
+export function emptyRefreshResult(): RefreshResult {
+  return { updated: 0, unchanged: 0, lockedSkipped: 0, userEdits: [], failures: [] };
+}
+
+/**
+ * A footnote queued for rebuild, as passed to the {@link OnBeforeRebuild}
+ * hook (SAFE-004 seam): the pre-rebuild document text about to be replaced.
+ */
+export interface RebuildCandidate {
+  /** 1-based footnote number. */
+  footnoteNumber: number;
+  /** The footnote's current document text (about to be overwritten). */
+  existingText: string;
+}
+
+/**
+ * Pre-rebuild hook (SAFE-004 seam). Called once per refresh, after
+ * classification and before any document mutation, with every footnote in
+ * the rebuild set. If the hook throws, the rebuilds are ABORTED (recorded in
+ * `RefreshResult.failures`, not thrown) — never clobber without a snapshot.
+ *
+ * When no hook is passed, `refreshAllCitations` defaults to the SAFE-004
+ * snapshot hook (`snapshotFootnotesBeforeRebuild`), closed over the same
+ * request context the refresh runs in, so the texts about to be replaced
+ * are written to the backup part in the same batch. Passing an explicit
+ * hook replaces the default (tests / callers that manage their own backup).
+ */
+export type OnBeforeRebuild = (entries: RebuildCandidate[]) => Promise<void>;
 
 /**
  * Information about a single child citation content control within a
@@ -97,8 +175,10 @@ export type RenderedFormat = "full" | "short" | "ibid";
 /**
  * Rendered output for a single citation within a footnote, including
  * its formatted runs and metadata needed for separator decisions.
+ *
+ * Exported for tests (executeRebuilds takes these in its work items).
  */
-interface RenderedCitation {
+export interface RenderedCitation {
   /** Formatted runs for this citation (no closing punctuation). */
   runs: FormattedRun[];
   /** The citation ID (child CC tag). */
@@ -205,22 +285,31 @@ function getClosingPunctuation(lastCitationText: string): string {
  *
  * @param context - An active Word request context.
  * @param store - The citation store instance.
+ * @param onBeforeRebuild - Optional pre-rebuild hook (SAFE-004 seam); see
+ *   {@link OnBeforeRebuild}.
  * @returns A RefreshResult with counts of updated and unchanged citations.
  */
 export async function refreshAllCitations(
   context: Word.RequestContext,
-  store: CitationStore
+  store: CitationStore,
+  onBeforeRebuild?: OnBeforeRebuild
 ): Promise<RefreshResult> {
   // Gate: Manual Citations Mode disables all auto-refresh
   if (getDevicePref("manualCitationMode") === true) {
-    return { updated: 0, unchanged: 0 };
+    return emptyRefreshResult();
   }
 
   // Build config from the store's standard and writing mode, with court toggles
   const standardId = store.getStandardId();
   const baseConfig = getStandardConfig(standardId);
   const writingMode = store.getWritingMode();
-  const courtToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
+  // Court toggle overrides are DOCUMENT metadata (cross-device correctness).
+  // Legacy documents customised before the migration have them only in the
+  // device prefs, so fall back to that for one release of reads; Settings
+  // adopts the device value into the store on its next court-mode save.
+  const courtToggles =
+    store.getCourtToggles() ??
+    (getDevicePref("courtToggles") as Record<string, string> | undefined);
   const config: CitationConfig = buildCourtConfig({ ...baseConfig, writingMode }, courtToggles);
 
   // Step 1: Rebuild footnote map and update store
@@ -230,8 +319,22 @@ export async function refreshAllCitations(
   // Step 2: Scan all footnotes for parent-child CC structure
   const footnoteEntries = await scanFootnotes(context);
 
+  // SAFE-004: unless the caller supplies its own hook, snapshot the texts
+  // about to be replaced into the backup part — in THIS request context, so
+  // the write shares the refresh batch. The seam semantics protect the
+  // document: if the snapshot fails, the rebuilds are aborted.
+  const beforeRebuild: OnBeforeRebuild =
+    onBeforeRebuild ?? ((entries) => snapshotFootnotesBeforeRebuild(context, entries));
+
   // Step 3: Render citations and rebuild parent CC content
-  const result = await renderAndRebuild(context, store, config, footnoteMap, footnoteEntries);
+  const result = await renderAndRebuild(
+    context,
+    store,
+    config,
+    footnoteMap,
+    footnoteEntries,
+    beforeRebuild
+  );
 
   await context.sync();
 
@@ -250,8 +353,11 @@ export async function refreshAllCitations(
  * the insert makes the normalisation deterministic. No-op in Manual Citations
  * Mode, which `refreshAllCitations` gates on.
  */
-export async function refreshAllCitationsNow(store: CitationStore): Promise<RefreshResult> {
-  return Word.run((context) => refreshAllCitations(context, store));
+export async function refreshAllCitationsNow(
+  store: CitationStore,
+  onBeforeRebuild?: OnBeforeRebuild
+): Promise<RefreshResult> {
+  return Word.run((context) => refreshAllCitations(context, store, onBeforeRebuild));
 }
 
 /**
@@ -330,42 +436,130 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
 }
 
 /**
+ * How the refresher should treat a footnote whose text has been compared
+ * against the expected render (SAFE-002 decision matrix).
+ */
+export type FootnoteClassification = "unchanged" | "rebuild" | "user-edited";
+
+/**
+ * SAFE-002 decision matrix: classifies a footnote by comparing its current
+ * document text against the expected render and the stored rendered-text
+ * hash from the parent-CC title.
+ *
+ *   current == expected                     → "unchanged"
+ *   current != expected, no stored hash     → "rebuild" (legacy, status quo;
+ *                                             the rebuild starts recording)
+ *   current != expected, hash(current) ==
+ *     stored hash                           → "rebuild" (stale Obiter render)
+ *   current != expected, hash(current) !=
+ *     stored hash                           → "user-edited" (never clobber)
+ *
+ * Pure — exported for unit tests. Lock state is checked by the caller
+ * before classification (lock always wins).
+ */
+export function classifyFootnote(
+  currentText: string,
+  expectedText: string,
+  storedHash: string | undefined
+): FootnoteClassification {
+  if (currentText === expectedText) {
+    return "unchanged";
+  }
+  if (storedHash === undefined) {
+    return "rebuild";
+  }
+  return hashRenderedText(currentText) === storedHash ? "rebuild" : "user-edited";
+}
+
+/** Splits `items` into consecutive chunks of at most `size`. Pure — exported for tests. */
+export function chunkItems<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/**
+ * A footnote queued for rebuild after classification.
+ * Exported for tests (see {@link executeRebuilds}).
+ */
+export interface RebuildWorkItem {
+  /** 1-based footnote number. */
+  footnoteNumber: number;
+  /** The parent content control to rebuild. */
+  parentCC: Word.ContentControl;
+  /** The rendered citation entries to write. */
+  rendered: RenderedCitation[];
+  /** The expected plain text (hashed into the new parent-CC title). */
+  expectedText: string;
+  /** The footnote's current document text (pre-rebuild, for the SAFE-004 hook). */
+  existingText: string;
+}
+
+/**
  * Renders all citations across footnotes and rebuilds parent CC content
  * where the expected text differs from the existing text.
  *
- * Tracks citation context across footnotes for ibid/subsequent reference
- * resolution:
- * - `seenCitationIds`: tracks first-vs-subsequent references
- * - `prevFootnote*`: tracks preceding footnote state for ibid detection
+ * SAFE-003 phases:
+ *  1. Batch-read: queue `parentCC.load("text")` for every non-locked entry,
+ *     then ONE sync (no per-footnote read syncs).
+ *  2. Pure render of all footnotes in document order, threading the
+ *     ibid/short-form context (`seenCitationIds`, `prevFootnote*`) through
+ *     every footnote regardless of how it is later classified.
+ *  3. Classify each footnote per the SAFE-002 matrix (lock wins first).
+ *  4. SAFE-004 seam: `onBeforeRebuild` runs with the rebuild set before any
+ *     document mutation.
+ *  5. Rebuild in chunks of {@link REBUILD_CHUNK_SIZE}, 3 syncs per chunk;
+ *     a failing chunk is recorded in `failures` and processing continues.
  *
  * @param context - An active Word request context.
  * @param store - The citation store instance.
  * @param config - The active citation standard configuration.
  * @param footnoteMap - Map of citation ID to first footnote number.
  * @param footnoteEntries - Ordered list of footnote entries to process.
- * @returns A RefreshResult with counts of updated and unchanged citations.
+ * @param onBeforeRebuild - Optional pre-rebuild hook (SAFE-004 seam).
+ * @returns A RefreshResult with counts and per-footnote issue reports.
  */
 async function renderAndRebuild(
   context: Word.RequestContext,
   store: CitationStore,
   config: CitationConfig,
   footnoteMap: Map<string, number>,
-  footnoteEntries: FootnoteEntry[]
+  footnoteEntries: FootnoteEntry[],
+  onBeforeRebuild?: OnBeforeRebuild
 ): Promise<RefreshResult> {
-  // Track which citation IDs have been seen for first vs subsequent
+  const result = emptyRefreshResult();
+
+  // Phase 1: batch-read the current text of every non-locked parent CC in
+  // ONE round trip. (Locked footnotes are never rebuilt, so their text is
+  // not needed.) Rebuilding one footnote never changes another footnote's
+  // text, so reading everything up-front is equivalent to reading lazily.
+  const unlockedEntries = footnoteEntries.filter((fnEntry) => !fnEntry.isLocked);
+  if (unlockedEntries.length > 0) {
+    for (const fnEntry of unlockedEntries) {
+      fnEntry.parentCC.load("text");
+    }
+    await context.sync();
+  }
+
+  // Phase 2 + 3: pure render in document order, then classify.
+  //
+  // The ibid/short-form context (seenCitationIds, prevFootnote*) must be
+  // threaded through EVERY footnote in order — locked, unchanged,
+  // user-edited, and rebuilt footnotes all advance it identically, because
+  // classification never changes what the footnote is *supposed* to cite.
   const seenCitationIds = new Set<string>();
-  // Track preceding footnote state for ibid resolution
   let prevFootnoteNumber = 0;
   let prevFootnoteCitationIds: string[] = [];
   let prevFootnotePinpoint: Pinpoint | undefined;
 
-  let updated = 0;
-  let unchanged = 0;
+  const rebuildItems: RebuildWorkItem[] = [];
 
   for (const fnEntry of footnoteEntries) {
     const currentFootnoteCitationIds: string[] = [];
 
-    // Render all citations in this footnote
+    // Render all citations in this footnote (pure — no Word writes)
     const rendered = renderFootnoteCitations(
       fnEntry,
       store,
@@ -378,55 +572,168 @@ async function renderAndRebuild(
       prevFootnotePinpoint
     );
 
-    // If no valid citations were rendered for this footnote, skip rebuild
-    if (rendered.length === 0) {
-      prevFootnoteNumber = fnEntry.footnoteNumber;
-      prevFootnoteCitationIds = [...currentFootnoteCitationIds];
-      continue;
-    }
-
-    // Locked (frozen) footnote: keep ibid/numbering tracking current (rendered
-    // above, pure — no Word writes) but do NOT touch the parent CC, so its text
-    // — including any manual edits — is preserved exactly.
-    if (fnEntry.isLocked) {
-      prevFootnoteNumber = fnEntry.footnoteNumber;
-      prevFootnoteCitationIds = [...currentFootnoteCitationIds];
-      const lastCitationId = rendered[rendered.length - 1].citationId;
-      prevFootnotePinpoint = store.getById(lastCitationId)?.data.pinpoint as Pinpoint | undefined;
-      unchanged += rendered.length;
-      continue;
-    }
-
-    // Build the expected text for comparison
-    const expectedText = buildExpectedText(rendered);
-
-    // Load current parent CC text for comparison
-    fnEntry.parentCC.load("text");
-    await context.sync();
-
-    const existingText = fnEntry.parentCC.text ?? "";
-
-    if (expectedText === existingText) {
-      unchanged += rendered.length;
-    } else {
-      // Rebuild the parent CC content from scratch
-      await rebuildParentCC(context, fnEntry.parentCC, rendered);
-      updated += rendered.length;
-    }
-
     // Update preceding footnote tracking for ibid resolution
     prevFootnoteNumber = fnEntry.footnoteNumber;
     prevFootnoteCitationIds = [...currentFootnoteCitationIds];
 
+    // If no valid citations were rendered for this footnote, skip rebuild
+    if (rendered.length === 0) {
+      continue;
+    }
+
     // Track the pinpoint of the last citation in this footnote for ibid
-    if (rendered.length > 0) {
-      const lastCitationId = rendered[rendered.length - 1].citationId;
-      const lastCitation = store.getById(lastCitationId);
-      prevFootnotePinpoint = lastCitation?.data.pinpoint as Pinpoint | undefined;
+    const lastCitationId = rendered[rendered.length - 1].citationId;
+    prevFootnotePinpoint = store.getById(lastCitationId)?.data.pinpoint as Pinpoint | undefined;
+
+    // Locked (frozen) footnote: keep ibid/numbering tracking current (rendered
+    // above, pure — no Word writes) but do NOT touch the parent CC, so its text
+    // — including any manual edits — is preserved exactly. Lock wins over the
+    // hash logic — a locked footnote is never classified.
+    if (fnEntry.isLocked) {
+      result.lockedSkipped += rendered.length;
+      continue;
+    }
+
+    // Classify per the SAFE-002 decision matrix
+    const expectedText = buildExpectedText(rendered);
+    const existingText = fnEntry.parentCC.text ?? "";
+    const storedHash = parseParentTitle(fnEntry.parentCC.title).renderedHash;
+
+    switch (classifyFootnote(existingText, expectedText, storedHash)) {
+      case "unchanged":
+        result.unchanged += rendered.length;
+        break;
+      case "user-edited":
+        // The user manually edited this footnote — never clobber it.
+        result.userEdits.push({
+          footnoteNumber: fnEntry.footnoteNumber,
+          currentText: existingText,
+          expectedText,
+        });
+        break;
+      case "rebuild":
+        rebuildItems.push({
+          footnoteNumber: fnEntry.footnoteNumber,
+          parentCC: fnEntry.parentCC,
+          rendered,
+          expectedText,
+          existingText,
+        });
+        break;
     }
   }
 
-  return { updated, unchanged };
+  if (rebuildItems.length === 0) {
+    return result;
+  }
+
+  // Phase 4: SAFE-004 seam — snapshot hook before any document mutation.
+  // If the hook fails, abort the rebuilds (never clobber without a
+  // snapshot) but return normally with the failure recorded.
+  if (onBeforeRebuild) {
+    try {
+      await onBeforeRebuild(
+        rebuildItems.map((item) => ({
+          footnoteNumber: item.footnoteNumber,
+          existingText: item.existingText,
+        }))
+      );
+    } catch (err) {
+      result.failures.push({
+        footnoteNumbers: rebuildItems.map((item) => item.footnoteNumber),
+        error: `Pre-rebuild hook failed; rebuilds aborted. ${err instanceof Error ? err.message : String(err)}`,
+      });
+      return result;
+    }
+  }
+
+  // Phase 5: rebuild in pipelined chunks (3 syncs per chunk).
+  const rebuildOutcome = await executeRebuilds(context, rebuildItems, REBUILD_CHUNK_SIZE);
+  result.updated += rebuildOutcome.updated;
+  result.failures.push(...rebuildOutcome.failures);
+
+  return result;
+}
+
+/**
+ * Executes the queued rebuilds in chunks, pipelining the three Word stages
+ * across each chunk: all insertHtml (+ new hashed titles) → sync; all
+ * searches → sync; all child-CC wraps → sync. Exactly 3 syncs per chunk
+ * instead of 3 per footnote (SAFE-003 — batching matters on Word for Web).
+ *
+ * Each chunk is independently wrapped in try/catch: a failing chunk is
+ * recorded as a {@link RefreshFailure} and processing continues with the
+ * next chunk, so one bad footnote cannot silently abort the whole refresh.
+ *
+ * Exported for tests (sync counting and failure isolation with mock CCs).
+ *
+ * @param context - An active Word request context.
+ * @param items - The rebuild work items, in document order.
+ * @param chunkSize - Footnotes per chunk (default {@link REBUILD_CHUNK_SIZE}).
+ * @returns The number of citations rebuilt and any per-chunk failures.
+ */
+export async function executeRebuilds(
+  context: Word.RequestContext,
+  items: readonly RebuildWorkItem[],
+  chunkSize: number = REBUILD_CHUNK_SIZE
+): Promise<{ updated: number; failures: RefreshFailure[] }> {
+  let updated = 0;
+  const failures: RefreshFailure[] = [];
+
+  for (const chunk of chunkItems(items, chunkSize)) {
+    try {
+      await executeRebuildChunk(context, chunk);
+      for (const item of chunk) {
+        updated += item.rendered.length;
+      }
+    } catch (err) {
+      failures.push({
+        footnoteNumbers: chunk.map((item) => item.footnoteNumber),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { updated, failures };
+}
+
+/**
+ * Rebuilds one chunk of footnotes with the three pipelined stages.
+ *
+ * Stage 1 also writes the new parent-CC title carrying the hash of the
+ * expected text (SAFE-002), in the same batch as the insertHtml — so even
+ * if a later stage fails, the recorded hash matches the text that was
+ * actually written and the next refresh classifies it as a stale render
+ * and retries the rebuild.
+ */
+async function executeRebuildChunk(
+  context: Word.RequestContext,
+  chunk: readonly RebuildWorkItem[]
+): Promise<void> {
+  // Stage 1: compose and insert every footnote's HTML, and stamp the new
+  // rendered-text hash into the parent title. One sync for the whole chunk.
+  const childTextsPerItem = chunk.map((item) => {
+    const { html, childTexts } = buildRebuildHtml(item.rendered);
+    item.parentCC.insertHtml(html, "Replace" as Word.InsertLocation.replace);
+    item.parentCC.title = buildParentTitle({
+      locked: false,
+      renderedHash: hashRenderedText(item.expectedText),
+    });
+    return childTexts;
+  });
+  await context.sync();
+
+  // Stage 2: queue every footnote's child-text searches. One sync.
+  const searchesPerItem = chunk.map((item, i) =>
+    queueChildSearches(item.parentCC, childTextsPerItem[i])
+  );
+  await context.sync();
+
+  // Stage 3: wrap every citation's text in its child CC. One sync.
+  for (let i = 0; i < chunk.length; i++) {
+    wrapChildControls(chunk[i].rendered, childTextsPerItem[i], searchesPerItem[i]);
+  }
+  await context.sync();
 }
 
 /**
@@ -484,6 +791,7 @@ function renderFootnoteCitations(
     }
 
     // Skip citations with empty/missing data
+    // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
     if (!citation.data || Object.keys(citation.data).length === 0) {
       continue;
     }
@@ -504,6 +812,7 @@ function renderFootnoteCitations(
     // Per-occurrence pinpoint from the CC title takes priority over
     // the citation's stored pinpoint (different footnotes can cite
     // different pages of the same source).
+    // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
     const rawPinpoint = child.pinpoint ?? citation.data.pinpoint;
     const currentPinpoint: Pinpoint | undefined = rawPinpoint
       ? typeof rawPinpoint === "string"
@@ -552,11 +861,14 @@ function renderFootnoteCitations(
     // Signal and commentary are already applied by formatCitation() — do not re-apply
 
     // LINK-001: Apply linking phrase and linked citation (Rule 1.3)
+    // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
     if (citation.linkingPhrase && citation.linkedCitationId) {
+      // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
       const linkedCitation = store.getById(citation.linkedCitationId);
       if (linkedCitation) {
         const linkedRuns = getFormattedPreview(linkedCitation, config);
         const strippedLinkedRuns = stripClosingPunctuation(linkedRuns);
+        // eslint-disable-next-line office-addins/call-sync-before-read -- plain store Citation object, not an Office proxy
         runs = applyLinkingPhrase(runs, citation.linkingPhrase, strippedLinkedRuns);
       }
     }
@@ -564,10 +876,12 @@ function renderFootnoteCitations(
     rendered.push({
       runs,
       citationId: child.citationId,
+      // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
       signal: citation.signal,
       renderedFormat,
       pinpoint: child.pinpoint,
       formatPreference: child.formatPreference,
+      // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
       isNote: citation.sourceType === "explanatory_note",
     });
 
@@ -623,10 +937,10 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
 }
 
 /**
- * Clears the parent CC and rebuilds its content from scratch with fresh
- * child CCs, separators, and closing punctuation.
+ * Composes a parent CC's entire content as ONE HTML fragment (stage 1 of a
+ * rebuild), plus the plain child texts needed to wrap child CCs later.
  *
- * Structure after rebuild:
+ * Structure after the full rebuild:
  *   [parent CC]
  *     [child CC tag=uuid-1] citation 1 runs [/child CC]
  *     "; "   (or ". " per Rule 1.1.3)
@@ -634,26 +948,21 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
  *     "."    (or empty per Rule 1.1.4)
  *   [/parent CC]
  *
- * @param context - An active Word request context.
- * @param parentCC - The parent content control to rebuild.
+ * The content — citations, separators, and closing punctuation — is written
+ * in a single insertHtml call, then the child CCs are wrapped around each
+ * citation's text afterwards. The piecewise APIs are broken on Word on the
+ * web: `getRange("End").insertContentControl()` lands children outside the
+ * parent (WEB-001), font assignments on ranges returned by insertText
+ * silently no-op (WEB-002), per-piece insertHtml/insertText calls inject
+ * smart-paste join spaces at fragment boundaries, and insertOoxml throws
+ * `unsupportedSelection` inside footnotes on the web. A single HTML
+ * fragment imports with exact text and per-run formatting on both hosts
+ * (verified empirically); "Replace" also clears the placeholder state.
+ *
  * @param rendered - The rendered citation entries to write.
+ * @returns The composed HTML fragment and each citation's plain text.
  */
-async function rebuildParentCC(
-  context: Word.RequestContext,
-  parentCC: Word.ContentControl,
-  rendered: RenderedCitation[]
-): Promise<void> {
-  // The parent's entire content — citations, separators, and closing
-  // punctuation — is composed as ONE HTML fragment and written in a single
-  // insertHtml call, then the child CCs are wrapped around each citation's
-  // text afterwards. The piecewise APIs are broken on Word on the web:
-  // `getRange("End").insertContentControl()` lands children outside the
-  // parent (WEB-001), font assignments on ranges returned by insertText
-  // silently no-op (WEB-002), per-piece insertHtml/insertText calls inject
-  // smart-paste join spaces at fragment boundaries, and insertOoxml throws
-  // `unsupportedSelection` inside footnotes on the web. A single HTML
-  // fragment imports with exact text and per-run formatting on both hosts
-  // (verified empirically); "Replace" also clears the placeholder state.
+function buildRebuildHtml(rendered: RenderedCitation[]): { html: string; childTexts: string[] } {
   const htmlPieces: string[] = [];
   const childTexts: string[] = [];
   for (let j = 0; j < rendered.length; j++) {
@@ -680,22 +989,41 @@ async function rebuildParentCC(
     htmlPieces.push(escapeHtml(closingPunct));
   }
 
-  parentCC.insertHtml(htmlPieces.join(""), "Replace" as Word.InsertLocation.replace);
-  await context.sync();
+  return { html: htmlPieces.join(""), childTexts };
+}
 
-  // Wrap each citation's text in its child CC. Word's Range.search caps the
-  // query at 255 characters, so very long citations search by prefix; when
-  // the same text occurs more than once in the footnote (e.g. two "Ibid"
-  // children), occurrences are assigned to children in document order.
+/**
+ * Queues a search for each citation's text within the parent CC (stage 2 of
+ * a rebuild). The caller syncs once for the whole chunk.
+ *
+ * Word's Range.search caps the query at 255 characters, so very long
+ * citations search by prefix.
+ */
+function queueChildSearches(
+  parentCC: Word.ContentControl,
+  childTexts: string[]
+): Word.RangeCollection[] {
   const parentRange = parentCC.getRange("Whole" as Word.RangeLocation.whole);
-  const searches = childTexts.map((text) => {
+  return childTexts.map((text) => {
     const query = text.length > 250 ? text.slice(0, 250) : text;
     const found = parentRange.search(query, { matchCase: true });
     found.load("items");
     return found;
   });
-  await context.sync();
+}
 
+/**
+ * Wraps each citation's text in its child CC (stage 3 of a rebuild). The
+ * caller syncs once for the whole chunk.
+ *
+ * When the same text occurs more than once in the footnote (e.g. two "Ibid"
+ * children), occurrences are assigned to children in document order.
+ */
+function wrapChildControls(
+  rendered: RenderedCitation[],
+  childTexts: string[],
+  searches: Word.RangeCollection[]
+): void {
   const occurrenceCursor = new Map<string, number>();
   for (let j = 0; j < rendered.length; j++) {
     const text = childTexts[j];
@@ -715,5 +1043,4 @@ async function rebuildParentCC(
     childCC.title = buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint);
     childCC.appearance = "Hidden" as Word.ContentControlAppearance;
   }
-  await context.sync();
 }

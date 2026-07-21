@@ -9,8 +9,8 @@ import { useTheme } from "./hooks/useTheme";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { APP_VERSION } from "../constants";
 import { renumberAllHeadings } from "../word/styles";
-import { refreshAllCitations } from "../word/citationRefresher";
-import { getSharedStore } from "../store/singleton";
+import { refreshAllCitations, emptyRefreshResult } from "../word/citationRefresher";
+import { getSharedStore, getStoreInitError } from "../store/singleton";
 import type { CitationStandardId } from "../engine/standards/types";
 import { getStandardConfig } from "../engine/standards";
 import { useCitationContext } from "./context/CitationContext";
@@ -26,6 +26,7 @@ import {
   shouldShowCorpusBanner,
 } from "../api/initializeAdapters";
 import CorpusDownloadBanner from "./components/CorpusDownloadBanner";
+import ErrorReporter from "./components/ErrorReporter";
 import StatusLog from "./components/StatusLog";
 import { useStatus } from "./context/StatusContext";
 import { useComfortMode } from "./hooks/useComfortMode";
@@ -81,6 +82,8 @@ export default function Layout(): JSX.Element {
   const [manualMode, setManualMode] = useState(() => getDevicePref("manualCitationMode") === true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
+  const [storeInitFailure, setStoreInitFailure] = useState<Error | null>(null);
+  const [storeErrorReporterOpen, setStoreErrorReporterOpen] = useState(false);
 
   // Re-read manual mode when refreshCounter changes (toggled from Settings)
   useEffect(() => {
@@ -122,8 +125,14 @@ export default function Layout(): JSX.Element {
         const store = await getSharedStore();
         setStandardId(store.getStandardId());
         setWritingMode(store.getWritingMode());
-      } catch {
-        // Default to aglc4, academic
+        setStoreInitFailure(null);
+      } catch (err) {
+        // Default to aglc4, academic — but surface the init failure in a
+        // persistent banner instead of a silently defaulted, empty-looking
+        // library (SAFE-006).
+        setStoreInitFailure(
+          getStoreInitError() ?? (err instanceof Error ? err : new Error(String(err)))
+        );
       }
     })();
   }, [refreshCounter]);
@@ -134,21 +143,33 @@ export default function Layout(): JSX.Element {
     announce("Refreshing all footnotes…");
     try {
       const store = await getSharedStore();
-      let result = { updated: 0, unchanged: 0 };
+      let result = emptyRefreshResult();
       await Word.run(async (context) => {
         result = await refreshAllCitations(context, store);
         await renumberAllHeadings(context);
       });
       triggerRefresh();
       // Report real counts — a document whose footnotes the refresher cannot
-      // manage must not read as a successful full refresh.
-      const total = result.updated + result.unchanged;
-      announce(
-        total === 0
-          ? "Refresh complete — no managed citation footnotes found."
-          : `Footnotes refreshed: ${result.updated} updated, ${result.unchanged} already current.`,
-        total === 0 ? "info" : "success"
-      );
+      // manage must not read as a successful full refresh. Locked footnotes
+      // count as "already current" (they are intentionally left as they read).
+      const current = result.unchanged + result.lockedSkipped;
+      const total = result.updated + current;
+      if (result.failures.length > 0 || result.userEdits.length > 0) {
+        const failedCount = result.failures.reduce((n, f) => n + f.footnoteNumbers.length, 0);
+        const parts: string[] = [`Footnotes refreshed: ${result.updated} updated`];
+        if (failedCount > 0) parts.push(`${failedCount} failed`);
+        if (result.userEdits.length > 0) {
+          parts.push(`${result.userEdits.length} manually edited (skipped)`);
+        }
+        announce(`${parts.join(", ")}.`, "error");
+      } else {
+        announce(
+          total === 0
+            ? "Refresh complete — no managed citation footnotes found."
+            : `Footnotes refreshed: ${result.updated} updated, ${current} already current.`,
+          total === 0 ? "info" : "success"
+        );
+      }
     } catch {
       // Surface the failure instead of swallowing it (WCAG 3.3.1).
       announce("Could not refresh footnotes. Please check the document and try again.", "error");
@@ -228,6 +249,13 @@ export default function Layout(): JSX.Element {
         run: () => navigate("/scan-repair"),
       },
       {
+        id: "recovery",
+        label: "Recovery: snapshots and backups",
+        hint: "View",
+        keywords: "restore snapshot backup undo footnote history user edit quarantined salvage",
+        run: () => navigate("/recovery"),
+      },
+      {
         id: "comfort-mode",
         label: comfortMode ? "Turn off Comfort mode" : "Turn on Comfort mode",
         keywords: "accessibility larger text targets motion",
@@ -260,6 +288,21 @@ export default function Layout(): JSX.Element {
         <CorpusDownloadBanner
           onDismiss={() => setCorpusBannerVisible(false)}
         />
+      )}
+      {storeInitFailure && (
+        <div className="obiter-store-error-banner" role="alert">
+          <span>
+            The citation store could not be loaded, so citations may appear missing. The data
+            saved in this document has not been changed. ({storeInitFailure.message})
+          </span>
+          <button
+            type="button"
+            className="obiter-store-error-banner-action"
+            onClick={() => setStoreErrorReporterOpen(true)}
+          >
+            Report This Error
+          </button>
+        </div>
       )}
       {manualMode && (
         <div className="obiter-manual-banner" role="status">
@@ -341,6 +384,13 @@ export default function Layout(): JSX.Element {
       </footer>
       {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {shortcutsHelpOpen && <ShortcutsHelp onClose={() => setShortcutsHelpOpen(false)} />}
+      {storeErrorReporterOpen && storeInitFailure && (
+        <ErrorReporter
+          error={storeInitFailure}
+          action="Loading the citation store"
+          onClose={() => setStoreErrorReporterOpen(false)}
+        />
+      )}
     </div>
   );
 }

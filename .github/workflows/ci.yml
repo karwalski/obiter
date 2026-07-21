@@ -26,6 +26,21 @@ jobs:
 
       - run: npm ci
 
+      # Supply-chain gates (TRUST-004). Fails on high/critical advisories in
+      # production dependencies only; dev-only advisories do not block.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      # Rejects lockfile entries resolving to non-HTTPS URLs or any host
+      # other than the npm registry. Triage/override procedure: docs/ci-cd.md.
+      - name: Lint lockfile
+        run: >-
+          npx --yes lockfile-lint@5.0.0
+          --path package-lock.json
+          --type npm
+          --validate-https
+          --allowed-hosts registry.npmjs.org
+
       - run: npm run lint
 
       - run: npm run typecheck
@@ -168,6 +183,28 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key" \
             dist/ \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
+
+          # TRUST-002: regenerate the nginx security-header snippet from
+          # config/csp.js (single source of truth) and push it. The include
+          # line inside the /app/ location block is a one-time manual step
+          # (docs/server-setup.md); pushing this file before that exists is
+          # harmless. /opt/bitnami/nginx/conf is root-owned: write via sudo tee.
+          node scripts/generate-nginx-headers.js
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo mkdir -p /opt/bitnami/nginx/conf/obiter'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo tee /opt/bitnami/nginx/conf/obiter/app-security-headers.conf > /dev/null' \
+            < scripts/nginx/app-security-headers.conf
+
+          # Reload nginx only if the config test passes; abort the deploy
+          # otherwise (nginx keeps serving with the old config).
+          if ! ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo /opt/bitnami/nginx/sbin/nginx -t'; then
+            echo "ERROR: remote 'nginx -t' failed — nginx was NOT reloaded (old config still active)." >&2
+            exit 1
+          fi
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo /opt/bitnami/nginx/sbin/nginx -s reload'
 
       - name: Clean up SSH key
         if: always() && (steps.changes.outputs.website == 'true' || steps.changes.outputs.addin == 'true')

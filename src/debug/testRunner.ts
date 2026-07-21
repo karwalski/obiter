@@ -246,7 +246,6 @@ const TREATY_CITATION = (): Citation =>
 
 // ─── Test Essay Content ─────────────────────────────────────────────────────
 
-
 const ESSAY_PARAGRAPHS: string[] = [
   // After Introduction > Background > Historical Context > Pre-Federation > Colonial arrangements
   "The development of Australian constitutional law has been shaped profoundly by the interplay between the text of the Commonwealth of Australia Constitution Act 1900 (Imp) and the evolving jurisprudence of the High Court. Prior to federation in 1901, the Australian colonies operated under separate constitutional arrangements, each governed by its own enabling legislation from the Imperial Parliament. The question of how to balance the sovereignty of the newly federated nation with the residual authority of the Imperial Parliament would animate constitutional debate for decades to come.",
@@ -1456,40 +1455,36 @@ async function testCleanupCitations(): Promise<string> {
   // Disable auto-refresh before cleanup to prevent the refresher
   // from re-rendering footnotes with empty data after citations
   // are removed from the store.
-  try {
-    const savedAutoRefresh = localStorage.getItem("obiter-autoRefresh");
-    localStorage.setItem("obiter-autoRefresh", "false");
+  const savedAutoRefresh = localStorage.getItem("obiter-autoRefresh");
+  localStorage.setItem("obiter-autoRefresh", "false");
 
-    const ids = [
-      storedMabo?.id,
-      storedCCA?.id,
-      storedJournal?.id,
-      storedBook?.id,
-      storedTreaty?.id,
-      storedTasmanianDam?.id,
-    ].filter(Boolean) as string[];
+  const ids = [
+    storedMabo?.id,
+    storedCCA?.id,
+    storedJournal?.id,
+    storedBook?.id,
+    storedTreaty?.id,
+    storedTasmanianDam?.id,
+  ].filter(Boolean) as string[];
 
-    let removed = 0;
-    for (const id of ids) {
-      try {
-        await testStore.remove(id);
-        removed++;
-      } catch {
-        // Citation may not exist if add failed
-      }
+  let removed = 0;
+  for (const id of ids) {
+    try {
+      await testStore.remove(id);
+      removed++;
+    } catch {
+      // Citation may not exist if add failed
     }
-
-    // Restore auto-refresh setting
-    if (savedAutoRefresh !== null) {
-      localStorage.setItem("obiter-autoRefresh", savedAutoRefresh);
-    } else {
-      localStorage.removeItem("obiter-autoRefresh");
-    }
-
-    return `Cleaned up ${removed} test citations from store`;
-  } catch (err) {
-    throw err;
   }
+
+  // Restore auto-refresh setting
+  if (savedAutoRefresh !== null) {
+    localStorage.setItem("obiter-autoRefresh", savedAutoRefresh);
+  } else {
+    localStorage.removeItem("obiter-autoRefresh");
+  }
+
+  return `Cleaned up ${removed} test citations from store`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

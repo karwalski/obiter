@@ -11,7 +11,14 @@
  */
 
 import { Citation, CitationStoreData, StoreMetadata } from "../types/citation";
-import { OBITER_NAMESPACE, serializeStore, deserializeStore } from "./xmlSerializer";
+import {
+  OBITER_NAMESPACE,
+  StoreXmlError,
+  StoreXmlErrorReason,
+  serializeStore,
+  deserializeStore,
+} from "./xmlSerializer";
+import { addSnapshot } from "./backupStore";
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
 import { createLogger } from "../debug/logger";
@@ -44,6 +51,12 @@ export interface StorePartInfo {
   /** null when the part could not be deserialized. */
   citationCount: number | null;
   error?: string;
+  /**
+   * Structured failure reason when the part could not be deserialized
+   * (SAFE-008). "newer-schema" lets the UI say "created by a newer version
+   * of Obiter" instead of a generic corruption message.
+   */
+  errorReason?: StoreXmlErrorReason;
   selected: boolean;
 }
 
@@ -135,6 +148,7 @@ export class CitationStore {
         xml: string;
         data: CitationStoreData | null;
         error?: string;
+        errorReason?: StoreXmlErrorReason;
       }
 
       const candidates: Candidate[] = partItems.map((part, i) => {
@@ -148,6 +162,9 @@ export class CitationStore {
             xml,
             data: null,
             error: err instanceof Error ? err.message : String(err),
+            // SAFE-008: keep the structured reason so the UI can distinguish
+            // "created by a newer version of Obiter" from corruption.
+            ...(err instanceof StoreXmlError ? { errorReason: err.reason } : {}),
           };
         }
       });
@@ -160,6 +177,7 @@ export class CitationStore {
         xmlLength: c.xml.length,
         citationCount: c.data ? c.data.citations.length : null,
         ...(c.error ? { error: c.error } : {}),
+        ...(c.errorReason ? { errorReason: c.errorReason } : {}),
         selected,
       });
 
@@ -335,6 +353,32 @@ export class CitationStore {
   }
 
   /**
+   * Add multiple citations in a single persist (SAFE-007 salvage merge).
+   *
+   * Citations whose id is empty or already present in the library are
+   * skipped rather than throwing — the salvage path merges "whatever is
+   * new" and must not fail because part of the set already exists. One
+   * persist for the whole batch (one delete+add cycle instead of N).
+   *
+   * @returns The number of citations actually added.
+   */
+  async addMany(citations: Citation[]): Promise<number> {
+    this.ensureInitialised();
+    const knownIds = new Set(this.storeData!.citations.map((c) => c.id));
+    let added = 0;
+    for (const citation of citations) {
+      if (!citation.id || knownIds.has(citation.id)) continue;
+      this.storeData!.citations.push(citation);
+      knownIds.add(citation.id);
+      added++;
+    }
+    if (added > 0) {
+      await this.persist();
+    }
+    return added;
+  }
+
+  /**
    * Update an existing citation in the store and persist.
    * Throws if the citation ID is not found.
    */
@@ -443,6 +487,31 @@ export class CitationStore {
   }
 
   /**
+   * Return the court toggle overrides stored in the DOCUMENT, or undefined
+   * when none are set (jurisdiction preset defaults apply).
+   *
+   * The toggles are an opaque key/value bag defined by the engine
+   * (`buildCourtConfig`) — this store never interprets individual keys, so
+   * new engine toggle keys pass through unchanged.
+   */
+  getCourtToggles(): Record<string, string> | undefined {
+    this.ensureInitialised();
+    const toggles = this.storeData!.metadata.courtToggles;
+    return toggles ? { ...toggles } : undefined;
+  }
+
+  /**
+   * Update the court toggle overrides and persist them into the document,
+   * so a customised court document formats identically on every device.
+   * Pass undefined to clear the overrides (preset defaults apply again).
+   */
+  async setCourtToggles(toggles: Record<string, string> | undefined): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.courtToggles = toggles ? { ...toggles } : undefined;
+    await this.persist();
+  }
+
+  /**
    * Return the persisted heading list ID, or undefined if not set.
    */
   getHeadingListId(): number | undefined {
@@ -485,6 +554,104 @@ export class CitationStore {
     return { ...this.storeData!.metadata };
   }
 
+  /**
+   * Replace the whole library with a previously snapshotted store (SAFE-001).
+   *
+   * The CURRENT state is snapshotted first (reason "pre-restore", exempt
+   * from the 30 s throttle), so a restore is itself revertible — restoring
+   * the wrong snapshot can be undone by restoring the pre-restore one.
+   *
+   * Restoring an EMPTY snapshot over a library that has citations is the
+   * data-destruction signature, so it is refused unless the caller passes
+   * `allowEmpty: true` (the UI must gather explicit confirmation first).
+   * That flag also bypasses the doPersist data-loss guard for this one
+   * persist.
+   *
+   * @param data - deserialized snapshot store XML (callers obtain it via
+   *   `deserializeStore(getSnapshot(timestamp).storeXml)`).
+   * @throws {StoreDataLossError} for an empty restore without `allowEmpty`.
+   */
+  async restoreFromSnapshot(
+    data: CitationStoreData,
+    opts: { allowEmpty?: boolean } = {}
+  ): Promise<void> {
+    this.ensureInitialised();
+    const currentCount = this.storeData!.citations.length;
+    const allowEmpty = opts.allowEmpty === true;
+
+    if (data.citations.length === 0 && currentCount > 0 && !allowEmpty) {
+      throw new StoreDataLossError(
+        `Refused to restore an empty snapshot over a library with ${currentCount} ` +
+          `citation(s). Pass allowEmpty: true after explicit user confirmation.`
+      );
+    }
+
+    // Snapshot the current in-memory state before replacing it. Best-effort:
+    // a backup failure must not block a user-initiated recovery, but it is
+    // logged loudly because it costs the restore its revert path.
+    const currentXml = this.serializeCurrentStore();
+    await Word.run(async (context) => {
+      try {
+        await addSnapshot(context, {
+          storeXml: currentXml,
+          citationCount: currentCount,
+          reason: "pre-restore",
+          incomingCitationCount: data.citations.length,
+        });
+      } catch (err: unknown) {
+        log.warn("restoreFromSnapshot: pre-restore snapshot failed (restore continues)", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+
+    this.storeData = data;
+    await this.persist({ allowDataLoss: allowEmpty });
+    log.info("restoreFromSnapshot: library restored", {
+      citations: data.citations.length,
+      previousCitations: currentCount,
+    });
+  }
+
+  /**
+   * Read the raw XML of a single part in the Obiter namespace by part id
+   * (SAFE-007). STRICTLY read-only: nothing is loaded into the store,
+   * nothing is deleted, nothing is persisted — the quarantined part stays
+   * exactly as it is in the document.
+   *
+   * Part ids come from `getDiagnostics().parts` (the quarantined entries
+   * have `citationCount === null`). The Recovery view uses this for the
+   * raw-XML preview, the byte-exact export download, and as the input to
+   * `salvageCitations`.
+   *
+   * @returns The part's XML, or null when no part with that id exists in
+   *   the Obiter namespace (e.g. the document changed since initStore()).
+   */
+  async getQuarantinedPartXml(partId: string): Promise<string | null> {
+    return Word.run(async (context) => {
+      const scopedParts = context.document.customXmlParts.getByNamespace(OBITER_NAMESPACE);
+      scopedParts.load("items");
+      await context.sync();
+
+      const partItems = scopedParts.items ?? [];
+      if (partItems.length === 0) {
+        return null;
+      }
+      for (const part of partItems) {
+        part.load("id");
+      }
+      const xmlResults = partItems.map((part) => part.getXml());
+      await context.sync();
+
+      for (let i = 0; i < partItems.length; i++) {
+        if (partItems[i].id === partId) {
+          return xmlResults[i].value ?? "";
+        }
+      }
+      return null;
+    });
+  }
+
   // ─── Internal ──────────────────────────────────────────────────────────────
 
   /**
@@ -505,15 +672,16 @@ export class CitationStore {
    *   empty library (the signature of persisting after a failed load).
    *   Deliberate clears are unaffected — they drain one citation at a time.
    */
-  private persist(): Promise<void> {
-    const run = this.persistChain.then(() => this.doPersist());
+  private persist(opts: { allowDataLoss?: boolean } = {}): Promise<void> {
+    const run = this.persistChain.then(() => this.doPersist(opts.allowDataLoss === true));
     // Keep the chain alive after failures so later persists still run.
     this.persistChain = run.catch(() => undefined);
     return run;
   }
 
-  private async doPersist(): Promise<void> {
-    const xml = serializeStore(
+  /** Serialize the current in-memory store data (shared by persist/restore). */
+  private serializeCurrentStore(): string {
+    return serializeStore(
       this.storeData!.citations,
       this.storeData!.metadata.schemaVersion,
       this.storeData!.metadata.aglcVersion,
@@ -522,8 +690,13 @@ export class CitationStore {
       this.storeData!.metadata.courtJurisdiction,
       this.storeData!.metadata.headingListId,
       APP_VERSION,
-      this.storeData!.metadata.ccModel
+      this.storeData!.metadata.ccModel,
+      this.storeData!.metadata.courtToggles
     );
+  }
+
+  private async doPersist(allowDataLoss = false): Promise<void> {
+    const xml = this.serializeCurrentStore();
     const memoryCount = this.storeData!.citations.length;
 
     await Word.run(async (context) => {
@@ -548,10 +721,24 @@ export class CitationStore {
 
       const deletable: Word.CustomXmlPart[] = [];
       let maxExistingCitations = 0;
+      // SAFE-001: track the winning existing XML (most citations, ties broken
+      // by larger payload — same rule as initStore selection) so it can be
+      // snapshotted into the backup part before it is destroyed below.
+      let winningXml: string | null = null;
+      let winningCount = -1;
       partItems.forEach((part, i) => {
         try {
-          const existing = deserializeStore(xmlResults[i].value ?? "");
+          const partXml = xmlResults[i].value ?? "";
+          const existing = deserializeStore(partXml);
           maxExistingCitations = Math.max(maxExistingCitations, existing.citations.length);
+          if (
+            existing.citations.length > winningCount ||
+            (existing.citations.length === winningCount &&
+              partXml.length > (winningXml?.length ?? 0))
+          ) {
+            winningXml = partXml;
+            winningCount = existing.citations.length;
+          }
           deletable.push(part);
         } catch (err: unknown) {
           // Corrupt part — quarantine (leave in the document, never delete).
@@ -564,8 +751,10 @@ export class CitationStore {
 
       // Data-loss guard: an empty in-memory library must never overwrite a
       // part holding 2+ citations. (A legitimate "remove last citation"
-      // persist sees exactly 1 citation in the document part.)
-      if (memoryCount === 0 && maxExistingCitations > 1) {
+      // persist sees exactly 1 citation in the document part.) An explicit
+      // allowEmpty restore (SAFE-001) bypasses this — the user confirmed,
+      // and restoreFromSnapshot has already snapshotted the current state.
+      if (!allowDataLoss && memoryCount === 0 && maxExistingCitations > 1) {
         const message =
           `Refused to overwrite the citation store: the document holds ` +
           `${maxExistingCitations} citations but this session's library is empty. ` +
@@ -575,6 +764,26 @@ export class CitationStore {
           maxExistingCitations,
         });
         throw new StoreDataLossError(message);
+      }
+
+      // SAFE-001: snapshot the winning on-document XML into the backup part
+      // (separate namespace — invisible to the scans above) before the
+      // delete+add destroys it. Same Word.run batch, so the snapshot
+      // inherits persistChain serialization. Best-effort by design: a
+      // backup-write failure must never fail the persist itself.
+      if (winningXml !== null) {
+        try {
+          await addSnapshot(context, {
+            storeXml: winningXml,
+            citationCount: winningCount,
+            reason: "persist",
+            incomingCitationCount: memoryCount,
+          });
+        } catch (err: unknown) {
+          log.warn("persist: backup snapshot failed (persist continues)", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
 
       // Delete readable parts and add the replacement in a single batch, so

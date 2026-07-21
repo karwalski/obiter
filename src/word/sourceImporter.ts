@@ -96,6 +96,7 @@ export async function getWordSources(context: Word.RequestContext): Promise<Word
   const xmlResult = partItems[0].getXml();
   await context.sync();
 
+  // eslint-disable-next-line office-addins/load-object-before-read -- ClientResult value populated by the preceding context.sync()
   const xmlString = xmlResult.value;
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, "application/xml");

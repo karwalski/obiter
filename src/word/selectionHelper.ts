@@ -43,6 +43,7 @@ export async function getSelectedTextWithContext(): Promise<SelectionWithContext
 
     // Try to determine if the selection is inside a footnote by walking up
     // to a parent body and checking its type.
+    // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- navigation access returns a proxy; 'type' is loaded and synced immediately below before any read
     const parentBody = selection.parentBody;
     parentBody.load("type");
 

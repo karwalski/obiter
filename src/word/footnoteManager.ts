@@ -56,9 +56,67 @@ export const PARENT_CC_TITLE = "Obiter Footnote";
  */
 export const LOCKED_PARENT_CC_TITLE = "Obiter Footnote (locked)";
 
+// ─── Parent CC Title Codec (SAFE-002) ───────────────────────────────────────
+
+/**
+ * Decoded components of a parent-CC title.
+ *
+ * Title grammar (backward compatible):
+ *   "Obiter Footnote"                — legacy, unlocked, no rendered hash
+ *   "Obiter Footnote (locked)"       — locked (frozen); lock always wins,
+ *                                      a locked title never carries a hash
+ *   "Obiter Footnote [r:<hex8>]"     — unlocked, with the FNV-1a 32-bit hash
+ *                                      (8 lowercase hex chars) of the text
+ *                                      Obiter last rendered into the footnote
+ *
+ * Unrecognised titles decode as legacy unlocked (no hash) so the refresher
+ * falls back to its pre-SAFE-002 behaviour.
+ */
+export interface ParentTitleParts {
+  /** Whether the footnote is locked (frozen — the refresher never rebuilds it). */
+  locked: boolean;
+  /** FNV-1a hash (8 hex chars) of the last Obiter-rendered text, if recorded. */
+  renderedHash?: string;
+}
+
+/** Matches the hashed title form: `Obiter Footnote [r:<hex8>]`. */
+const HASHED_PARENT_TITLE_RE = /^Obiter Footnote \[r:([0-9a-f]{8})\]$/;
+
+/**
+ * Builds a parent-CC title from its components.
+ *
+ * Lock wins: a locked footnote uses exactly the legacy locked title and
+ * never carries a rendered hash (its text is frozen, so no hash is needed
+ * and legacy lock checks keep working).
+ */
+export function buildParentTitle(parts: ParentTitleParts): string {
+  if (parts.locked) {
+    return LOCKED_PARENT_CC_TITLE;
+  }
+  if (parts.renderedHash !== undefined) {
+    return `${PARENT_CC_TITLE} [r:${parts.renderedHash}]`;
+  }
+  return PARENT_CC_TITLE;
+}
+
+/**
+ * Parses a parent-CC title into its components. Accepts all three title
+ * forms; anything else decodes as legacy unlocked with no hash.
+ */
+export function parseParentTitle(parentTitle: string | undefined | null): ParentTitleParts {
+  if (parentTitle === LOCKED_PARENT_CC_TITLE) {
+    return { locked: true };
+  }
+  const match = parentTitle ? HASHED_PARENT_TITLE_RE.exec(parentTitle) : null;
+  if (match) {
+    return { locked: false, renderedHash: match[1] };
+  }
+  return { locked: false };
+}
+
 /** Whether a footnote's parent-CC title marks it as locked (frozen). */
 export function isFootnoteLocked(parentTitle: string | undefined | null): boolean {
-  return parentTitle === LOCKED_PARENT_CC_TITLE;
+  return parseParentTitle(parentTitle).locked;
 }
 
 // ─── Public Interfaces ──────────────────────────────────────────────────────
@@ -769,6 +827,53 @@ export async function getFootnoteText(footnoteIndex: number): Promise<string> {
 }
 
 /**
+ * Verbatim-replace-and-lock primitive: replaces a parent CC's entire content
+ * with plain verbatim text and sets the locked title, in the caller's batch.
+ *
+ * When a citation id is supplied, the text is wrapped in a single child CC
+ * tagged with it, so the occurrence is still discoverable (and can be
+ * unlocked back to structured formatting later). When no citation id is
+ * available (e.g. restoring a footnote whose children were destroyed), the
+ * text is written unwrapped — the lock still protects it from refresh.
+ *
+ * Shared by `setOccurrenceText` (per-occurrence override) and the SAFE-004
+ * restore path (`restoreFootnoteText` in footnoteBackup.ts). Ending locked is
+ * the point: the refresher never rebuilds a locked footnote, so the verbatim
+ * text can never be re-clobbered by a subsequent refresh.
+ *
+ * @param context - An active Word request context.
+ * @param parentCC - The footnote's parent content control (tag "obiter-fn").
+ * @param citationId - Child-CC tag to keep the occurrence discoverable, if known.
+ * @param text - The verbatim plain text to write.
+ */
+export async function replaceFootnoteContentAndLock(
+  context: Word.RequestContext,
+  parentCC: Word.ContentControl,
+  citationId: string | undefined,
+  text: string
+): Promise<void> {
+  parentCC.clear();
+  await context.sync();
+
+  // Write into the parent, then wrap — getRange("End").insertContentControl
+  // creates the child OUTSIDE the parent on Word on the web (WEB-001).
+  const contentRange = parentCC.insertHtml(
+    escapeHtml(text),
+    "Replace" as Word.InsertLocation.replace
+  );
+  if (citationId !== undefined) {
+    const childCC = contentRange.insertContentControl("RichText");
+    childCC.tag = citationId;
+    childCC.title = buildOccurrenceTitle("auto");
+    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+  }
+
+  // Keep the footnote frozen so the refresher leaves the verbatim text in place.
+  parentCC.title = LOCKED_PARENT_CC_TITLE;
+  await context.sync();
+}
+
+/**
  * Replace a footnote's content with verbatim text and keep it locked.
  *
  * The text is stored in a single child CC tagged with the citation id, so the
@@ -800,23 +905,7 @@ export async function setOccurrenceText(
       throw new Error(`Footnote ${footnoteIndex} has no Obiter content control.`);
     }
 
-    parentCC.clear();
-    await context.sync();
-
-    // Write into the parent, then wrap — getRange("End").insertContentControl
-    // creates the child OUTSIDE the parent on Word on the web (WEB-001).
-    const contentRange = parentCC.insertHtml(
-      escapeHtml(text),
-      "Replace" as Word.InsertLocation.replace
-    );
-    const childCC = contentRange.insertContentControl("RichText");
-    childCC.tag = citationId;
-    childCC.title = buildOccurrenceTitle("auto");
-    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
-
-    // Keep the footnote frozen so the refresher leaves the override in place.
-    parentCC.title = LOCKED_PARENT_CC_TITLE;
-    await context.sync();
+    await replaceFootnoteContentAndLock(context, parentCC, citationId, text);
   });
 }
 

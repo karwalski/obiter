@@ -86,6 +86,7 @@ export async function insertAddinNotice(context: Word.RequestContext): Promise<v
   existing.load("items");
   await context.sync();
 
+  // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
   if ((existing.items ?? []).length > 0) return; // Already present
 
   const body = context.document.body;

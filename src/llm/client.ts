@@ -47,6 +47,8 @@ interface AnthropicResponse {
 // ─── Endpoint resolution ────────────────────────────────────────────────────
 
 import { WEBSITE_URL } from "../constants";
+import { getAccessToken } from "../api/authClient";
+import { hasVaultKey, hasLocalKeyOverride } from "./vaultMode";
 
 /** Direct provider endpoints (used when CORS is supported). */
 const DIRECT_ENDPOINTS: Record<string, string> = {
@@ -68,9 +70,77 @@ const DIRECT_ENDPOINTS: Record<string, string> = {
  */
 const CORS_BLOCKED_PROVIDERS = new Set<string>();
 
-function resolveEndpoint(config: LLMConfig): { url: string; useProxy: boolean } {
+interface ResolvedEndpoint {
+  url: string;
+  useProxy: boolean;
+  /**
+   * TRUST-001: for custom (user-configured) endpoints, the true target URL.
+   * Sent to the proxy as `endpoint` so it can relay the request server-side.
+   */
+  targetEndpoint?: string;
+}
+
+/**
+ * ACCT-005 — vault-proxy decision for one request.
+ *
+ * When the user is signed in AND has a vaulted key for the active provider AND
+ * has NOT forced local BYOK, the request routes through the Obiter proxy with a
+ * Bearer access token and NO inline apiKey, so the server injects the stored
+ * key (ACCT-004). Otherwise (signed out, no vaulted key, or override on) the
+ * request behaves exactly as the BYOK paths always have.
+ */
+interface VaultAuth {
+  /** Bearer access token to attach; present only on the vault-proxy path. */
+  accessToken: string;
+  /**
+   * The server proxy's provider map lacks "openai"; on the vault-proxy path we
+   * therefore pass the OpenAI endpoint so the proxy relays it via its
+   * OpenAI-compatible custom-endpoint path. Undefined for other providers.
+   */
+  endpointOverride?: string;
+}
+
+/**
+ * Resolve whether this request should use the signed-in vault-proxy path, and
+ * fetch a fresh access token if so. Returns null for the ordinary BYOK path.
+ */
+async function resolveVaultAuth(config: LLMConfig): Promise<VaultAuth | null> {
+  // Custom endpoints keep their own explicit key + TRUST-001 relay; the vault
+  // stores keys only for the fixed providers.
+  if (config.endpoint) return null;
+  if (!hasVaultKey(config.provider)) return null;
+  if (hasLocalKeyOverride(config.provider)) return null;
+  const accessToken = await getAccessToken();
+  if (!accessToken) return null;
+  return {
+    accessToken,
+    endpointOverride: config.provider === "openai" ? DIRECT_ENDPOINTS.openai : undefined,
+  };
+}
+
+/**
+ * Request body for the Obiter LLM proxy (`POST /api/proxy/llm`,
+ * website/server/index.js). The proxy relays the request server-side and
+ * returns `{ text }` or `{ error }`; nothing is logged or retained.
+ */
+interface LlmProxyRequestBody {
+  provider: string;
+  model: string;
+  apiKey: string;
+  maxTokens: number;
+  systemPrompt: string;
+  userPrompt: string;
+  /** Custom target endpoint (https, OpenAI-compatible). TRUST-001. */
+  endpoint?: string;
+}
+
+function resolveEndpoint(config: LLMConfig): ResolvedEndpoint {
   if (config.endpoint) {
-    return { url: config.endpoint, useProxy: false };
+    // TRUST-001: custom endpoints are relayed through the Obiter proxy. The
+    // add-in pages ship a strict CSP whose connect-src enumerates known hosts
+    // (config/csp.js), so the webview cannot fetch arbitrary user-configured
+    // origins directly.
+    return { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true, targetEndpoint: config.endpoint };
   }
   const endpoint = DIRECT_ENDPOINTS[config.provider];
   if (!endpoint) {
@@ -172,25 +242,40 @@ export async function callLlm(
   userPrompt: string
 ): Promise<string> {
   const isAnthropic = config.provider === "anthropic";
-  const endpoint = resolveEndpoint(config);
+  // ACCT-005: signed-in + vaulted key -> proxy injects the key, we send none.
+  const vaultAuth = await resolveVaultAuth(config);
+  const endpoint = vaultAuth
+    ? { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true as const }
+    : resolveEndpoint(config);
 
   let url: string;
   let init: RequestInit;
 
   if (endpoint.useProxy) {
-    // Route through Obiter proxy to bypass CORS
+    // Route through Obiter proxy (CORS bypass, custom endpoints per TRUST-001,
+    // or ACCT-005 vault-key injection when a Bearer token is attached).
     url = endpoint.url;
-    const proxyBody = {
+    const proxyBody: LlmProxyRequestBody = {
       provider: config.provider,
       model: config.model,
-      apiKey: config.apiKey,
+      // ACCT-005: omit the inline key on the vault path so the server injects
+      // the stored key. On BYOK proxy paths keep sending the local key.
+      apiKey: vaultAuth ? "" : config.apiKey,
       maxTokens: config.maxTokens,
       systemPrompt,
       userPrompt,
+      ...(vaultAuth?.endpointOverride
+        ? { endpoint: vaultAuth.endpointOverride }
+        : endpoint.targetEndpoint
+          ? { endpoint: endpoint.targetEndpoint }
+          : {}),
     };
     init = {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(vaultAuth ? { Authorization: `Bearer ${vaultAuth.accessToken}` } : {}),
+      },
       body: JSON.stringify(proxyBody),
     };
   } else if (isAnthropic) {
@@ -251,7 +336,11 @@ export async function callLlmMultiTurn(
   messages: ChatMessage[]
 ): Promise<string> {
   const isAnthropic = config.provider === "anthropic";
-  const endpoint = resolveEndpoint(config);
+  // ACCT-005: signed-in + vaulted key -> proxy injects the key, we send none.
+  const vaultAuth = await resolveVaultAuth(config);
+  const endpoint = vaultAuth
+    ? { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true as const }
+    : resolveEndpoint(config);
 
   // Separate system prompt from conversation messages
   let systemPrompt = "";
@@ -268,17 +357,25 @@ export async function callLlmMultiTurn(
     // Proxy doesn't support multi-turn natively — concatenate into single turn
     const userParts = conversationMessages.map((m) => `[${m.role}]: ${m.content}`);
     url = endpoint.url;
-    const proxyBody = {
+    const proxyBody: LlmProxyRequestBody = {
       provider: config.provider,
       model: config.model,
-      apiKey: config.apiKey,
+      apiKey: vaultAuth ? "" : config.apiKey,
       maxTokens: config.maxTokens,
       systemPrompt,
       userPrompt: userParts.join("\n\n"),
+      ...(vaultAuth?.endpointOverride
+        ? { endpoint: vaultAuth.endpointOverride }
+        : endpoint.targetEndpoint
+          ? { endpoint: endpoint.targetEndpoint }
+          : {}),
     };
     init = {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(vaultAuth ? { Authorization: `Bearer ${vaultAuth.accessToken}` } : {}),
+      },
       body: JSON.stringify(proxyBody),
     };
   } else if (isAnthropic) {

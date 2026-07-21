@@ -536,46 +536,189 @@ describeIfDOMParser("xmlSerializer nested-encoded v1 data", () => {
 import { formatCitation } from "../../src/engine/engine";
 import { getStandardConfig } from "../../src/engine/standards";
 
-describeIfDOMParser("WEB-012 — digit-only string fields survive the store round-trip as strings", () => {
-  test("proceedingNumber '12' stays a STRING (not coerced to number)", () => {
-    const original = makeCitation({
-      sourceType: "case.proceeding",
-      data: { party1: "Smith", party2: "Jones", court: "Federal Court of Australia", proceedingNumber: "12", commencedDate: "1 January 2020" },
+describeIfDOMParser(
+  "WEB-012 — digit-only string fields survive the store round-trip as strings",
+  () => {
+    test("proceedingNumber '12' stays a STRING (not coerced to number)", () => {
+      const original = makeCitation({
+        sourceType: "case.proceeding",
+        data: {
+          party1: "Smith",
+          party2: "Jones",
+          court: "Federal Court of Australia",
+          proceedingNumber: "12",
+          commencedDate: "1 January 2020",
+        },
+      });
+      const restored = deserializeCitation(serializeCitation(original));
+      expect(typeof restored.data.proceedingNumber).toBe("string");
+      expect(restored.data.proceedingNumber).toBe("12");
     });
-    const restored = deserializeCitation(serializeCitation(original));
-    expect(typeof restored.data.proceedingNumber).toBe("string");
-    expect(restored.data.proceedingNumber).toBe("12");
+
+    test("mnc '12' stays a STRING", () => {
+      const original = makeCitation({
+        sourceType: "case.unreported.mnc",
+        data: { party1: "Kozarov", party2: "Victoria", year: 2022, court: "HCA", mnc: "12" },
+      });
+      const restored = deserializeCitation(serializeCitation(original));
+      expect(typeof restored.data.mnc).toBe("string");
+      expect(restored.data.mnc).toBe("12");
+    });
+
+    test("genuinely-numeric fields (year/volume/startingPage) still deserialize to numbers", () => {
+      const original = makeCitation({
+        sourceType: "case.reported",
+        data: {
+          party1: "Mabo",
+          party2: "Queensland (No 2)",
+          year: 1992,
+          volume: 175,
+          reportSeries: "CLR",
+          startingPage: 1,
+        },
+      });
+      const restored = deserializeCitation(serializeCitation(original));
+      expect(restored.data.year).toBe(1992);
+      expect(restored.data.volume).toBe(175);
+      expect(restored.data.startingPage).toBe(1);
+    });
+
+    test("formatting a store-round-tripped proceeding with digit proceedingNumber does NOT throw", () => {
+      const original = makeCitation({
+        sourceType: "case.proceeding",
+        data: {
+          party1: "Smith",
+          party2: "Jones",
+          court: "Federal Court of Australia",
+          proceedingNumber: "12",
+          commencedDate: "1 January 2020",
+        },
+      });
+      const restored = deserializeCitation(serializeCitation(original));
+      const config = getStandardConfig("aglc4");
+      // Before the fix this threw "proceedingNumber.trim is not a function".
+      expect(() => formatCitation(restored, undefined, config)).not.toThrow();
+    });
+  }
+);
+
+// ─── Court mode metadata (mode-switch hardening) ────────────────────────────
+//
+// courtToggles live in DOCUMENT metadata so a customised court document
+// formats identically on every device. The bag is opaque: keys/values are
+// engine-defined and must round-trip without a hardcoded key list.
+
+describeIfDOMParser("court mode metadata round-trip", () => {
+  test("writingMode, courtJurisdiction and courtToggles survive the store round-trip", () => {
+    const toggles = {
+      parallelCitations: "mandatory",
+      pinpointStyle: "para-and-page",
+      ibidSuppression: "on",
+      unreportedGate: "warn",
+      loaType: "part-ab",
+    };
+    const xml = serializeStore(
+      [makeCitation()],
+      "2",
+      "4",
+      "aglc4",
+      "court",
+      "HCA",
+      undefined,
+      "1.0.0",
+      "parent-child",
+      toggles
+    );
+    const store = deserializeStore(xml);
+
+    expect(store.metadata.writingMode).toBe("court");
+    expect(store.metadata.courtJurisdiction).toBe("HCA");
+    expect(store.metadata.courtToggles).toEqual(toggles);
   });
 
-  test("mnc '12' stays a STRING", () => {
-    const original = makeCitation({
-      sourceType: "case.unreported.mnc",
-      data: { party1: "Kozarov", party2: "Victoria", year: 2022, court: "HCA", mnc: "12" },
-    });
-    const restored = deserializeCitation(serializeCitation(original));
-    expect(typeof restored.data.mnc).toBe("string");
-    expect(restored.data.mnc).toBe("12");
+  test("unknown future toggle keys pass through opaquely (no hardcoded key list)", () => {
+    const toggles = { ibidSuppression: "on", parallelOrder: "reported-first" };
+    const xml = serializeStore(
+      [],
+      "2",
+      "4",
+      "aglc4",
+      "court",
+      "NSWCA",
+      undefined,
+      undefined,
+      undefined,
+      toggles
+    );
+    expect(deserializeStore(xml).metadata.courtToggles).toEqual(toggles);
   });
 
-  test("genuinely-numeric fields (year/volume/startingPage) still deserialize to numbers", () => {
-    const original = makeCitation({
-      sourceType: "case.reported",
-      data: { party1: "Mabo", party2: "Queensland (No 2)", year: 1992, volume: 175, reportSeries: "CLR", startingPage: 1 },
-    });
-    const restored = deserializeCitation(serializeCitation(original));
-    expect(restored.data.year).toBe(1992);
-    expect(restored.data.volume).toBe(175);
-    expect(restored.data.startingPage).toBe(1);
+  test("re-serializing a deserialized store preserves courtToggles (open elsewhere, save, reopen)", () => {
+    const toggles = { pinpointStyle: "para-only" };
+    const first = serializeStore(
+      [makeCitation()],
+      "2",
+      "4",
+      "aglc4",
+      "court",
+      "VSC",
+      undefined,
+      undefined,
+      undefined,
+      toggles
+    );
+    const loaded = deserializeStore(first);
+    const second = serializeStore(
+      loaded.citations,
+      loaded.metadata.schemaVersion,
+      loaded.metadata.aglcVersion,
+      loaded.metadata.standardId,
+      loaded.metadata.writingMode,
+      loaded.metadata.courtJurisdiction,
+      loaded.metadata.headingListId,
+      undefined,
+      loaded.metadata.ccModel,
+      loaded.metadata.courtToggles
+    );
+    expect(deserializeStore(second).metadata.courtToggles).toEqual(toggles);
   });
 
-  test("formatting a store-round-tripped proceeding with digit proceedingNumber does NOT throw", () => {
-    const original = makeCitation({
-      sourceType: "case.proceeding",
-      data: { party1: "Smith", party2: "Jones", court: "Federal Court of Australia", proceedingNumber: "12", commencedDate: "1 January 2020" },
-    });
-    const restored = deserializeCitation(serializeCitation(original));
-    const config = getStandardConfig("aglc4");
-    // Before the fix this threw "proceedingNumber.trim is not a function".
-    expect(() => formatCitation(restored, undefined, config)).not.toThrow();
+  test("v2 XML without a courtToggles attribute deserializes to undefined (backward compat)", () => {
+    const xml = serializeStore([makeCitation()], "2", "4", "aglc4", "court", "HCA");
+    expect(xml).not.toContain("courtToggles");
+    expect(deserializeStore(xml).metadata.courtToggles).toBeUndefined();
+  });
+
+  test("hand-written v2 XML without courtToggles deserializes to undefined", () => {
+    const xml =
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+      `<obiter:citationStore xmlns:obiter="urn:obiter:aglc" version="2" aglcVersion="4" ` +
+      `standardId="aglc4" writingMode="court" courtJurisdiction="HCA"></obiter:citationStore>`;
+    const store = deserializeStore(xml);
+    expect(store.metadata.writingMode).toBe("court");
+    expect(store.metadata.courtJurisdiction).toBe("HCA");
+    expect(store.metadata.courtToggles).toBeUndefined();
+  });
+
+  test("malformed courtToggles JSON deserializes to undefined instead of failing the store read", () => {
+    const xml =
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+      `<obiter:citationStore xmlns:obiter="urn:obiter:aglc" version="2" aglcVersion="4" ` +
+      `standardId="aglc4" writingMode="court" courtToggles="not-json"></obiter:citationStore>`;
+    const store = deserializeStore(xml);
+    expect(store.metadata.courtToggles).toBeUndefined();
+    expect(store.metadata.writingMode).toBe("court");
+  });
+
+  test("non-string toggle values are dropped; string values are kept", () => {
+    const attr = JSON.stringify({ ibidSuppression: "on", depth: 3, nested: { a: 1 } })
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+    const xml =
+      `<?xml version="1.0" encoding="UTF-8"?>` +
+      `<obiter:citationStore xmlns:obiter="urn:obiter:aglc" version="2" aglcVersion="4" ` +
+      `standardId="aglc4" writingMode="court" courtToggles="${attr}"></obiter:citationStore>`;
+    expect(deserializeStore(xml).metadata.courtToggles).toEqual({ ibidSuppression: "on" });
   });
 });

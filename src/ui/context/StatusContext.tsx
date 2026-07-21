@@ -8,7 +8,23 @@
  * can review recent outcomes instead of racing a disappearing banner.
  */
 
-import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  ReactNode,
+} from "react";
+import {
+  GLOBAL_ERROR_EVENT,
+  COMMAND_ERROR_STORAGE_KEY,
+  drainCommandErrors,
+  type GlobalErrorDetail,
+} from "../../debug/globalErrors";
+import { REFRESH_ISSUES_EVENT, recordRefreshIssues } from "../recoveryQueue";
+import type { RefreshIssuesDetail } from "../../word/citationRefresher";
 
 export type StatusLevel = "info" | "success" | "error";
 
@@ -40,6 +56,81 @@ export function StatusProvider({ children }: { children: ReactNode }): JSX.Eleme
   }, []);
 
   const clear = useCallback(() => setEntries([]), []);
+
+  // SAFE-006: surface failures from outside the React tree.
+  //
+  // 1. Global errors — installGlobalErrorHandlers() runs pre-React (from
+  //    Office.onReady) and cannot reach this context directly, so it
+  //    dispatches an `obiter:global-error` CustomEvent that is relayed here.
+  // 2. Ribbon command errors — commands run in a separate runtime
+  //    (commands.html) and record failures into a localStorage ring. The
+  //    `storage` event does not fire in the window that wrote the key, and a
+  //    shared-runtime host fires no `storage` event at all, so the ring is
+  //    drained on mount, on `storage`, and on window focus.
+  // 3. Refresh issues (SAFE-005) — the auto-refresh path dispatches
+  //    `obiter:refresh-issues` when a refresh skips user-edited footnotes
+  //    or a rebuild chunk fails. The detail is recorded into the recovery
+  //    queue (so the Recovery view can list it later) and summarised as a
+  //    status line pointing at the Recovery view.
+  useEffect(() => {
+    const announceCommandErrors = (): void => {
+      for (const entry of drainCommandErrors()) {
+        announce(
+          entry.message
+            ? `Ribbon command '${entry.name}' failed — ${entry.message}`
+            : `Ribbon command '${entry.name}' failed.`,
+          "error"
+        );
+      }
+    };
+    const onGlobalError = (event: Event): void => {
+      const detail = (event as CustomEvent<GlobalErrorDetail>).detail;
+      if (detail && detail.message) {
+        announce(`Unexpected error: ${detail.message}`, "error");
+      }
+    };
+    const onStorage = (event: StorageEvent): void => {
+      // key === null means the other window cleared storage entirely.
+      if (event.key === null || event.key === COMMAND_ERROR_STORAGE_KEY) {
+        announceCommandErrors();
+      }
+    };
+    const onRefreshIssues = (event: Event): void => {
+      const detail = (event as CustomEvent<RefreshIssuesDetail>).detail;
+      if (!detail) return;
+      recordRefreshIssues(detail);
+      const parts: string[] = [];
+      if (detail.userEdits.length > 0) {
+        parts.push(
+          `${detail.userEdits.length} manually edited footnote` +
+            `${detail.userEdits.length !== 1 ? "s were" : " was"} left unchanged`
+        );
+      }
+      if (detail.failures.length > 0) {
+        const failedCount = detail.failures.reduce((n, f) => n + f.footnoteNumbers.length, 0);
+        parts.push(`${failedCount} footnote${failedCount !== 1 ? "s" : ""} failed to rebuild`);
+      }
+      if (parts.length > 0) {
+        announce(
+          `Refresh finished with issues: ${parts.join(" and ")}. ` +
+            `Open the Recovery view to review them.`,
+          "error"
+        );
+      }
+    };
+
+    announceCommandErrors();
+    window.addEventListener(GLOBAL_ERROR_EVENT, onGlobalError);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", announceCommandErrors);
+    window.addEventListener(REFRESH_ISSUES_EVENT, onRefreshIssues);
+    return () => {
+      window.removeEventListener(GLOBAL_ERROR_EVENT, onGlobalError);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", announceCommandErrors);
+      window.removeEventListener(REFRESH_ISSUES_EVENT, onRefreshIssues);
+    };
+  }, [announce]);
 
   return (
     <StatusContext.Provider value={{ entries, announce, clear }}>{children}</StatusContext.Provider>

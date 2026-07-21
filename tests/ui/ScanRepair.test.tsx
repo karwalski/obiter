@@ -10,6 +10,7 @@
  */
 import * as React from "react";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import ScanRepair from "../../src/ui/views/ScanRepair";
 import type { DocumentScanSnapshot } from "../../src/word/scanRepair";
 
@@ -84,14 +85,29 @@ beforeEach(() => {
     wrappedNotes: 2,
     failures: [],
   });
-  mockRefreshNow.mockResolvedValue({ updated: 2, unchanged: 1 });
+  mockRefreshNow.mockResolvedValue({
+    updated: 2,
+    unchanged: 1,
+    lockedSkipped: 0,
+    userEdits: [],
+    failures: [],
+  });
 });
+
+/** The view uses useNavigate (SAFE-005 "Open Recovery" link), so it needs a router. */
+function renderView(): ReturnType<typeof render> {
+  return render(
+    <MemoryRouter>
+      <ScanRepair />
+    </MemoryRouter>
+  );
+}
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("ScanRepair view (BUG-004)", () => {
   test("scans on mount and shows the preview counts without modifying anything", async () => {
-    render(<ScanRepair />);
+    renderView();
 
     await screen.findByText(/Found 3: 0 linked, 1 to rebuild, 1 to adopt, 1 unparseable/);
     expect(mockScanDocument).toHaveBeenCalledTimes(1);
@@ -105,7 +121,7 @@ describe("ScanRepair view (BUG-004)", () => {
   });
 
   test("rebuild and adopt default selected; unparseable defaults unselected", async () => {
-    render(<ScanRepair />);
+    renderView();
     await screen.findByText(/Found 3/);
 
     // Default selection: rebuild + adopt = 2.
@@ -116,7 +132,7 @@ describe("ScanRepair view (BUG-004)", () => {
   });
 
   test("confirm applies ONLY the selected items", async () => {
-    render(<ScanRepair />);
+    renderView();
     await screen.findByText(/Found 3/);
 
     // Deselect the adoption (footnote 1); select the verbatim (footnote 2).
@@ -135,7 +151,7 @@ describe("ScanRepair view (BUG-004)", () => {
   });
 
   test("after apply: summary, subsequent-reference refresh and library refresh", async () => {
-    render(<ScanRepair />);
+    renderView();
     await screen.findByText(/Found 3/);
 
     fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
@@ -159,7 +175,7 @@ describe("ScanRepair view (BUG-004)", () => {
       failures: [{ key: "adopt-footnote-1", reason: "Added to the library, but the citation text was not found in the note to link." }],
     });
 
-    render(<ScanRepair />);
+    renderView();
     await screen.findByText(/Found 3/);
     fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
 
@@ -169,7 +185,7 @@ describe("ScanRepair view (BUG-004)", () => {
 
   test("a document with nothing to repair shows the empty state", async () => {
     mockScanDocument.mockResolvedValue({ bodyControls: [], notes: [] });
-    render(<ScanRepair />);
+    renderView();
 
     await screen.findByText(/No citation markers or citation-like text found/);
     expect(screen.getByRole("button", { name: /Repair 0 items/ })).toBeTruthy();
@@ -180,7 +196,7 @@ describe("ScanRepair view (BUG-004)", () => {
 
   test("scan failure shows the error state with a retry", async () => {
     mockScanDocument.mockRejectedValue(new Error("Word is not available"));
-    render(<ScanRepair />);
+    renderView();
 
     await screen.findByText("Word is not available");
     expect(screen.getByRole("button", { name: /Scan again/ })).toBeTruthy();

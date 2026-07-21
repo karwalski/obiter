@@ -27,11 +27,30 @@ export const OBITER_NAMESPACE = "urn:obiter:aglc";
 const DEFAULT_SCHEMA_VERSION = "2";
 const DEFAULT_AGLC_VERSION = "4";
 
+/**
+ * Highest store schema version this build can read (SAFE-008).
+ * Bump together with a registered migration in ./migrations.ts.
+ */
+export const MAX_SUPPORTED_SCHEMA_VERSION = 2;
+
 // ─── Errors (BUG-003) ────────────────────────────────────────────────────────
 
 /**
+ * Why deserialization of a store part failed:
+ * - "empty"        — the part payload was blank
+ * - "parse"        — the XML is not well-formed (DOMParser <parsererror>)
+ * - "wrong-root"   — well-formed XML but not an <obiter:citationStore>
+ * - "newer-schema" — the part was written by a NEWER version of Obiter
+ *                    (schema version > 2). SAFE-008: refusing to read it
+ *                    quarantines the part instead of half-parsing it and
+ *                    overwriting it as v2 on the next persist.
+ */
+export type StoreXmlErrorReason = "empty" | "parse" | "wrong-root" | "newer-schema";
+
+/**
  * Thrown when store XML cannot be deserialized (empty payload, XML parse
- * failure, or a root element that is not an Obiter citation store).
+ * failure, a root element that is not an Obiter citation store, or a
+ * schema version newer than this build supports).
  *
  * BUG-003: previously DOMParser failures were invisible — `parseFromString`
  * never throws, it returns a `<parsererror>` document whose attribute reads
@@ -42,7 +61,7 @@ const DEFAULT_AGLC_VERSION = "4";
 export class StoreXmlError extends Error {
   constructor(
     message: string,
-    public readonly reason: "empty" | "parse" | "wrong-root"
+    public readonly reason: StoreXmlErrorReason
   ) {
     super(message);
     this.name = "StoreXmlError";
@@ -133,15 +152,24 @@ export function serializeStore(
   courtJurisdiction?: string,
   headingListId?: number,
   generatorVersion?: string,
-  ccModel?: "flat" | "parent-child"
+  ccModel?: "flat" | "parent-child",
+  courtToggles?: Record<string, string>
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   const courtAttr = courtJurisdiction ? ` courtJurisdiction="${escapeXml(courtJurisdiction)}"` : "";
+  // Court toggle overrides travel WITH the document (cross-device
+  // correctness). Serialized as a JSON-encoded attribute and treated as an
+  // opaque key/value bag — no hardcoded key list, so new engine toggle keys
+  // round-trip unchanged. Absent attribute deserializes to undefined
+  // (v1/v2 backward compatibility).
+  const courtTogglesAttr = courtToggles
+    ? ` courtToggles="${escapeXml(JSON.stringify(courtToggles))}"`
+    : "";
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${headingAttr}${ccModelAttr}>`
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${headingAttr}${ccModelAttr}>`
   );
 
   // INFRA-008 Layer 2: generator element
@@ -357,6 +385,21 @@ export function deserializeStore(xml: string): CitationStoreData {
   }
 
   const schemaVersion = root.getAttribute("version") ?? "1.0";
+
+  // SAFE-008 forward-compatibility guard: refuse schemas newer than this
+  // build understands. Half-parsing a future v3 document would drop the
+  // fields we do not know about, and the next persist would overwrite the
+  // document as v2 — silent data loss. Failing loudly makes initStore
+  // quarantine the part instead. (Non-numeric versions fall through and are
+  // treated as legacy, matching the historic "1.0" default.)
+  const versionNumber = parseInt(schemaVersion, 10);
+  if (Number.isFinite(versionNumber) && versionNumber > MAX_SUPPORTED_SCHEMA_VERSION) {
+    throw new StoreXmlError(
+      `Store schema version ${schemaVersion} was created by a newer version of Obiter ` +
+        `(this build supports up to version ${MAX_SUPPORTED_SCHEMA_VERSION})`,
+      "newer-schema"
+    );
+  }
   const aglcVersion = (root.getAttribute("aglcVersion") ?? DEFAULT_AGLC_VERSION) as "4" | "5";
   const standardId = root.getAttribute("standardId") ?? "aglc4";
   const writingMode = (root.getAttribute("writingMode") ?? "academic") as "academic" | "court";
@@ -365,6 +408,7 @@ export function deserializeStore(xml: string): CitationStoreData {
   // "TASSC" (PARITY-117); documents saved before the rename keep resolving
   // the Tasmanian Supreme Court preset.
   const courtJurisdiction = rawCourtJurisdiction === "TASCSC" ? "TASSC" : rawCourtJurisdiction;
+  const courtToggles = parseCourtTogglesAttr(root.getAttribute("courtToggles"));
   const headingListIdStr = root.getAttribute("headingListId");
   const headingListId = headingListIdStr ? parseInt(headingListIdStr, 10) : undefined;
   const ccModel = (root.getAttribute("ccModel") as "flat" | "parent-child" | null) ?? undefined;
@@ -397,6 +441,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       standardId,
       writingMode,
       courtJurisdiction,
+      courtToggles,
       headingListId,
       ccModel,
     },
@@ -407,7 +452,13 @@ export function deserializeStore(xml: string): CitationStoreData {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function escapeXml(str: string): string {
+/**
+ * Escape a string for embedding as XML text or attribute content.
+ * Exported for reuse by the backup serializer (SAFE-001), which embeds
+ * whole store XML documents as escaped text — never CDATA, which breaks
+ * on payloads containing "]]>".
+ */
+export function escapeXml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -428,6 +479,32 @@ function isParserError(doc: Document): boolean {
     root.localName === "parsererror" ||
     doc.getElementsByTagName("parsererror").length > 0
   );
+}
+
+/**
+ * Parse the JSON-encoded `courtToggles` root attribute into an opaque
+ * string-to-string map. Absent or malformed payloads (older documents, hand
+ * edits) deserialize to undefined — the refresher then falls back to the
+ * jurisdiction preset defaults. Non-string values are dropped rather than
+ * failing the whole store read.
+ */
+function parseCourtTogglesAttr(attr: string | null): Record<string, string> | undefined {
+  if (!attr) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(attr);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const toggles: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value === "string") {
+        toggles[key] = value;
+      }
+    }
+    return toggles;
+  } catch {
+    return undefined;
+  }
 }
 
 function unescapeXml(str: string): string {
@@ -485,12 +562,39 @@ function serializeValue(value: unknown): string {
  * would re-introduce the crash — keep this list to true numeric fields only.
  */
 const NUMERIC_DATA_FIELDS = new Set<string>([
-  "year", "billYear", "consolidationYear", "neutralCitationYear",
-  "volume", "seriesVolume", "fedRegVolume",
-  "startingPage", "startPage", "shortPage", "endingPage", "slipOpStartingPage", "icjReportsPage", "page",
-  "issue", "edition", "reissue", "number", "caseNumber", "partNumber", "reportNumber",
-  "decisionNumber", "blockNumber", "shortBlockNumber", "siNumber", "neutralCitationNumber", "waiNumber",
-  "regnalNumber", "column", "article", "session", "cfrTitle", "uscTitle",
+  "year",
+  "billYear",
+  "consolidationYear",
+  "neutralCitationYear",
+  "volume",
+  "seriesVolume",
+  "fedRegVolume",
+  "startingPage",
+  "startPage",
+  "shortPage",
+  "endingPage",
+  "slipOpStartingPage",
+  "icjReportsPage",
+  "page",
+  "issue",
+  "edition",
+  "reissue",
+  "number",
+  "caseNumber",
+  "partNumber",
+  "reportNumber",
+  "decisionNumber",
+  "blockNumber",
+  "shortBlockNumber",
+  "siNumber",
+  "neutralCitationNumber",
+  "waiNumber",
+  "regnalNumber",
+  "column",
+  "article",
+  "session",
+  "cfrTitle",
+  "uscTitle",
 ]);
 
 /**

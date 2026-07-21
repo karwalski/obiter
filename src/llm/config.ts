@@ -7,6 +7,7 @@
  */
 
 import { getDevicePref, setDevicePref } from "../store/devicePreferences";
+import { removeAllKeys } from "../api/keyVault";
 
 export interface LLMConfig {
   provider: "openai" | "anthropic" | "gemini" | "grok" | "deepseek" | "custom";
@@ -18,6 +19,9 @@ export interface LLMConfig {
 }
 
 const SETTINGS_KEY = "llmConfig";
+
+/** Pre-INFRA-009 localStorage key that stored the whole config (key included). */
+const LEGACY_STORAGE_KEY = "obiter.llmConfig";
 
 /**
  * Persist the LLM configuration to device-level localStorage.
@@ -40,7 +44,7 @@ export function loadLlmConfig(): LLMConfig | null {
   // One-time migration: read from legacy localStorage key
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem("obiter.llmConfig");
+    raw = localStorage.getItem(LEGACY_STORAGE_KEY);
   } catch {
     /* ignore */
   }
@@ -53,6 +57,51 @@ export function loadLlmConfig(): LLMConfig | null {
   } catch {
     return null;
   }
+}
+
+/** Outcome of clearStoredKeys, used by the Settings announcement. */
+export interface ClearStoredKeysResult {
+  /** True when the saved LLM config held key material that was blanked. */
+  llmKeyCleared: boolean;
+  /** Number of source-adapter key-vault entries removed. */
+  vaultKeysRemoved: number;
+  /** True when the legacy `obiter.llmConfig` localStorage entry was removed. */
+  legacyRemoved: boolean;
+}
+
+/**
+ * TRUST-006: Remove every API key Obiter has persisted on this device.
+ *
+ * Clears the key material from the saved LLM config (all other LLM settings
+ * are kept), deletes every source-adapter entry in the key vault
+ * (`obiter-device.sourceKey.*`), and deletes the legacy `obiter.llmConfig`
+ * localStorage entry, which embedded the key in the whole-config JSON.
+ */
+export function clearStoredKeys(): ClearStoredKeysResult {
+  // Blank the key inside the saved LLM config, preserving other settings.
+  let llmKeyCleared = false;
+  const saved = getDevicePref(SETTINGS_KEY);
+  if (saved && typeof saved === "object") {
+    const config = saved as LLMConfig;
+    llmKeyCleared = typeof config.apiKey === "string" && config.apiKey.length > 0;
+    setDevicePref(SETTINGS_KEY, { ...config, apiKey: "" });
+  }
+
+  // Remove the legacy whole-config entry (contained the key verbatim).
+  let legacyRemoved = false;
+  try {
+    if (localStorage.getItem(LEGACY_STORAGE_KEY) !== null) {
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      legacyRemoved = true;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // Remove every source-adapter key in the vault.
+  const vaultKeysRemoved = removeAllKeys();
+
+  return { llmKeyCleared, vaultKeysRemoved, legacyRemoved };
 }
 
 /**

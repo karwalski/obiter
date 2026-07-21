@@ -34,6 +34,7 @@ export async function prepareAsTemplate(context: Word.RequestContext): Promise<v
   existing.load("items");
   await context.sync();
 
+  // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
   if ((existing.items ?? []).length === 0) {
     const body = context.document.body;
     const para = body.insertParagraph(TEMPLATE_NOTICE_TEXT, "Start" as Word.InsertLocation.start);
@@ -82,5 +83,6 @@ export async function isFromObiterTemplate(context: Word.RequestContext): Promis
   const controls = context.document.contentControls.getByTag(TEMPLATE_NOTICE_TAG);
   controls.load("items");
   await context.sync();
+  // eslint-disable-next-line office-addins/load-object-before-read -- collection loaded and synced immediately before this read
   return (controls.items ?? []).length > 0;
 }

@@ -51,6 +51,7 @@ export async function registerSelectionHandler(
     try {
       await Word.run(async (context) => {
         const selection = context.document.getSelection();
+        // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- navigation access returns a proxy; items are loaded and synced immediately below before any read
         const contentControls = selection.contentControls;
         contentControls.load("items/tag,items/title");
         await context.sync();
@@ -66,6 +67,7 @@ export async function registerSelectionHandler(
 
         // If no content controls at the selection, also check if the
         // selection is *inside* a content control by walking up.
+        // eslint-disable-next-line office-addins/load-object-before-read -- navigation access returns a proxy; tag/title/isNullObject are loaded and synced immediately below before any read
         const parentCC = selection.parentContentControlOrNullObject;
         parentCC.load("tag,title,isNullObject");
         await context.sync();

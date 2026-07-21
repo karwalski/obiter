@@ -36,107 +36,15 @@ try {
 const describeIfDOMParser = hasDOMParser ? describe : describe.skip;
 
 import { CitationStore, StoreDataLossError } from "../../src/store/citationStore";
+import { StoreXmlError, serializeStore, deserializeStore } from "../../src/store/xmlSerializer";
+import { BACKUP_NAMESPACE, serializeBackup } from "../../src/store/backupSerializer";
 import {
-  OBITER_NAMESPACE,
-  StoreXmlError,
-  serializeStore,
-  deserializeStore,
-} from "../../src/store/xmlSerializer";
-import type { Citation } from "../../src/types/citation";
-
-// ─── Fake Word.customXmlParts harness ───────────────────────────────────────
-
-class FakePart {
-  constructor(
-    private readonly doc: FakeDocState,
-    public readonly id: string,
-    public readonly namespaceUri: string,
-    public xml: string
-  ) {}
-
-  load(_props: string): void {
-    /* no-op — properties are always available on the fake */
-  }
-
-  getXml(): { value: string } {
-    return { value: this.xml };
-  }
-
-  delete(): void {
-    this.doc.parts = this.doc.parts.filter((p) => p !== this);
-  }
-}
-
-class FakeDocState {
-  parts: FakePart[] = [];
-  private nextId = 1;
-
-  addPart(xml: string, namespaceUri?: string): FakePart {
-    const ns =
-      namespaceUri ?? (xml.includes(OBITER_NAMESPACE) ? OBITER_NAMESPACE : "urn:other:ns");
-    const part = new FakePart(this, `part-${this.nextId++}`, ns, xml);
-    this.parts.push(part);
-    return part;
-  }
-
-  obiterParts(): FakePart[] {
-    return this.parts.filter((p) => p.namespaceUri === OBITER_NAMESPACE);
-  }
-}
-
-/** Install a fake `Word.run` backed by the given document state. */
-function installFakeWord(doc: FakeDocState): void {
-  const customXmlParts = {
-    getByNamespace(ns: string): { items: FakePart[]; load(props: string): void } {
-      return {
-        get items(): FakePart[] {
-          return doc.parts.filter((p) => p.namespaceUri === ns);
-        },
-        load(_props: string): void {
-          /* no-op */
-        },
-      };
-    },
-    add(xml: string): FakePart {
-      return doc.addPart(xml);
-    },
-  };
-
-  const context = {
-    document: { customXmlParts },
-    sync: async (): Promise<void> => {
-      /* no-op */
-    },
-  };
-
-  (global as Record<string, unknown>).Word = {
-    run: async <T>(callback: (ctx: typeof context) => Promise<T>): Promise<T> => callback(context),
-  };
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function makeCitation(id: string, overrides: Partial<Citation> = {}): Citation {
-  return {
-    id,
-    sourceType: "case.reported",
-    aglcVersion: "4",
-    data: {
-      caseName: `Case ${id}`,
-      year: "1998",
-    },
-    tags: [],
-    createdAt: "2026-01-15T10:30:00.000Z",
-    modifiedAt: "2026-03-20T14:45:00.000Z",
-    ...overrides,
-  };
-}
-
-function storeXmlWith(...ids: string[]): string {
-  return serializeStore(ids.map((id) => makeCitation(id)));
-}
-
-const CORRUPT_XML = `<?xml version="1.0"?><obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="2"><obiter:citation id="a`;
+  CORRUPT_XML,
+  FakeDocState,
+  installFakeWord,
+  makeCitation,
+  storeXmlWith,
+} from "./fakeWordHarness";
 
 // ─── Part selection and dedupe ──────────────────────────────────────────────
 
@@ -151,7 +59,12 @@ describeIfDOMParser("CitationStore part selection (BUG-003)", () => {
     const store = new CitationStore();
     await store.initStore();
 
-    expect(store.getAll().map((c) => c.id).sort()).toEqual(["a", "b", "c"]);
+    expect(
+      store
+        .getAll()
+        .map((c) => c.id)
+        .sort()
+    ).toEqual(["a", "b", "c"]);
 
     const diag = store.getDiagnostics();
     expect(diag.status).toBe("recovered");
@@ -174,7 +87,12 @@ describeIfDOMParser("CitationStore part selection (BUG-003)", () => {
     await store.initStore();
 
     // Winner is {b,c,d} (most citations); "a" is merged in from the loser.
-    expect(store.getAll().map((c) => c.id).sort()).toEqual(["a", "b", "c", "d"]);
+    expect(
+      store
+        .getAll()
+        .map((c) => c.id)
+        .sort()
+    ).toEqual(["a", "b", "c", "d"]);
     expect(store.getDiagnostics().mergedFromDuplicates).toBe(1);
     expect(store.getDiagnostics().status).toBe("recovered");
 
@@ -219,7 +137,7 @@ describeIfDOMParser("CitationStore part selection (BUG-003)", () => {
   test("parts in other namespaces are ignored", async () => {
     const doc = new FakeDocState();
     installFakeWord(doc);
-    doc.addPart("<b:Sources xmlns:b=\"urn:other:ns\"></b:Sources>", "urn:other:ns");
+    doc.addPart('<b:Sources xmlns:b="urn:other:ns"></b:Sources>', "urn:other:ns");
     doc.addPart(storeXmlWith("a"));
 
     const store = new CitationStore();
@@ -316,7 +234,11 @@ describeIfDOMParser("CitationStore persist (BUG-003)", () => {
 
     const parts = doc.obiterParts();
     expect(parts).toHaveLength(1);
-    expect(deserializeStore(parts[0].xml).citations.map((c) => c.id).sort()).toEqual(["a", "b"]);
+    expect(
+      deserializeStore(parts[0].xml)
+        .citations.map((c) => c.id)
+        .sort()
+    ).toEqual(["a", "b"]);
   });
 
   test("concurrent persists serialize and still leave exactly one part", async () => {
@@ -392,5 +314,140 @@ describeIfDOMParser("deserializeStore hardening (BUG-003)", () => {
     expect(xml).toContain('courtJurisdiction="TASCSC"');
     const data = deserializeStore(xml);
     expect(data.metadata.courtJurisdiction).toBe("TASSC");
+  });
+});
+
+// ─── Backup-part isolation (SAFE-001) ───────────────────────────────────────
+
+describeIfDOMParser("CitationStore backup-namespace isolation (SAFE-001)", () => {
+  test("backup parts are invisible to initStore and doPersist namespace scans", async () => {
+    const doc = new FakeDocState();
+    installFakeWord(doc);
+    doc.addPart(storeXmlWith("a", "b"));
+    // A pre-existing backup part in the backup namespace.
+    const backup = doc.addPart(
+      serializeBackup({
+        snapshots: [
+          {
+            timestamp: "2026-01-01T00:00:00.000Z",
+            reason: "manual",
+            citationCount: 1,
+            storeXml: storeXmlWith("old"),
+          },
+        ],
+        footnoteSnapshots: [],
+      })
+    );
+    expect(backup.namespaceUri).toBe(BACKUP_NAMESPACE);
+
+    const store = new CitationStore();
+    await store.initStore();
+
+    // initStore scan sees exactly ONE part — the backup part never appears
+    // as a duplicate/unreadable candidate.
+    const diag = store.getDiagnostics();
+    expect(diag.status).toBe("ok");
+    expect(diag.partsFound).toBe(1);
+    expect(diag.parts.map((p) => p.partId)).not.toContain(backup.id);
+
+    // A persist replaces the main part but never treats the backup part as a
+    // main-store duplicate: it stays in its own namespace, and its existing
+    // snapshot survives (merged, not clobbered, when doPersist snapshots).
+    await store.add(makeCitation("c"));
+    expect(doc.obiterParts()).toHaveLength(1);
+    expect(deserializeStore(doc.obiterParts()[0].xml).citations).toHaveLength(3);
+    expect(doc.backupParts()).toHaveLength(1);
+    expect(doc.backupParts()[0].xml).toContain("2026-01-01T00:00:00.000Z");
+  });
+});
+
+// ─── Court mode metadata persistence (mode-switch hardening) ────────────────
+//
+// writingMode / courtJurisdiction / courtToggles are DOCUMENT metadata: they
+// must survive persist + a fresh CitationStore instance (a new device opening
+// the same document), so customised court toggles no longer silently fall
+// back to jurisdiction presets on other machines.
+
+describeIfDOMParser("CitationStore court mode metadata", () => {
+  test("writingMode, courtJurisdiction and courtToggles round-trip through persist + reload", async () => {
+    const doc = new FakeDocState();
+    doc.addPart(storeXmlWith("a"));
+    installFakeWord(doc);
+
+    const store = new CitationStore();
+    await store.initStore();
+    await store.setWritingMode("court");
+    await store.setCourtJurisdiction("HCA");
+    await store.setCourtToggles({ ibidSuppression: "on", parallelCitations: "mandatory" });
+
+    // A second store instance over the same document (another device).
+    const reopened = new CitationStore();
+    await reopened.initStore();
+    expect(reopened.getWritingMode()).toBe("court");
+    expect(reopened.getCourtJurisdiction()).toBe("HCA");
+    expect(reopened.getCourtToggles()).toEqual({
+      ibidSuppression: "on",
+      parallelCitations: "mandatory",
+    });
+  });
+
+  test("setCourtToggles(undefined) clears the stored overrides", async () => {
+    const doc = new FakeDocState();
+    doc.addPart(storeXmlWith("a"));
+    installFakeWord(doc);
+
+    const store = new CitationStore();
+    await store.initStore();
+    await store.setCourtToggles({ pinpointStyle: "para-only" });
+    await store.setCourtToggles(undefined);
+
+    const reopened = new CitationStore();
+    await reopened.initStore();
+    expect(reopened.getCourtToggles()).toBeUndefined();
+  });
+
+  test("a v2 document persisted without courtToggles reloads with undefined (backward compat)", async () => {
+    const doc = new FakeDocState();
+    doc.addPart(serializeStore([makeCitation("a")], "2", "4", "aglc4", "court", "HCA"));
+    installFakeWord(doc);
+
+    const store = new CitationStore();
+    await store.initStore();
+    expect(store.getWritingMode()).toBe("court");
+    expect(store.getCourtJurisdiction()).toBe("HCA");
+    expect(store.getCourtToggles()).toBeUndefined();
+  });
+
+  test("getCourtToggles returns a copy — mutating it does not change the store", async () => {
+    const doc = new FakeDocState();
+    doc.addPart(storeXmlWith("a"));
+    installFakeWord(doc);
+
+    const store = new CitationStore();
+    await store.initStore();
+    await store.setCourtToggles({ ibidSuppression: "on" });
+
+    const snapshot = store.getCourtToggles();
+    expect(snapshot).toBeDefined();
+    snapshot!.ibidSuppression = "off";
+    expect(store.getCourtToggles()).toEqual({ ibidSuppression: "on" });
+  });
+
+  test("unknown future toggle keys survive persist + reload opaquely", async () => {
+    const doc = new FakeDocState();
+    doc.addPart(storeXmlWith("a"));
+    installFakeWord(doc);
+
+    const store = new CitationStore();
+    await store.initStore();
+    await store.setWritingMode("court");
+    await store.setCourtToggles({ parallelOrder: "reported-first", loaType: "simple" });
+
+    const reopened = new CitationStore();
+    await reopened.initStore();
+    expect(reopened.getCourtToggles()).toEqual({
+      parallelOrder: "reported-first",
+      loaType: "simple",
+    });
   });
 });

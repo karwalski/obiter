@@ -3,6 +3,7 @@
 const devCerts = require("office-addin-dev-certs");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { buildCsp } = require("./config/csp");
 
 const urlDev = "https://localhost:3000/";
 const urlProd = "https://obiter.com.au/app/";
@@ -14,6 +15,17 @@ async function getHttpsOptions() {
 
 module.exports = async (env, options) => {
   const dev = options.mode === "development";
+  // TRUST-001: single-source CSP (config/csp.js) injected as a <meta> tag into
+  // every served page via HtmlWebpackPlugin's `meta` option. The templates go
+  // through html-loader, which bypasses HtmlWebpackPlugin's lodash templating,
+  // so `meta` injection (not templateParameters) is the reliable mechanism.
+  // frame-ancestors is deliberately absent here — it is header-only (TRUST-002).
+  const cspMeta = {
+    "Content-Security-Policy": {
+      "http-equiv": "Content-Security-Policy",
+      content: buildCsp({ dev }),
+    },
+  };
   const config = {
     devtool: "source-map",
     entry: {
@@ -63,6 +75,7 @@ module.exports = async (env, options) => {
         filename: "taskpane.html",
         template: "./src/taskpane/taskpane.html",
         chunks: ["polyfill", "taskpane"],
+        meta: cspMeta,
       }),
       new CopyWebpackPlugin({
         patterns: [
@@ -99,11 +112,13 @@ module.exports = async (env, options) => {
         filename: "commands.html",
         template: "./src/commands/commands.html",
         chunks: ["polyfill", "commands"],
+        meta: cspMeta,
       }),
       new HtmlWebpackPlugin({
         filename: "sharedRuntime.html",
         template: "./src/runtime/sharedRuntime.html",
         chunks: ["polyfill", "sharedRuntime"],
+        meta: cspMeta,
       }),
     ],
     devServer: {

@@ -136,6 +136,32 @@ jobs:
             dist/ \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
 
+      - name: Deploy nginx security headers (TRUST-002)
+        run: |
+          # Regenerate the snippet from config/csp.js (single source of truth)
+          # so the deployed headers can never drift from the repo.
+          node scripts/generate-nginx-headers.js
+
+          # /opt/bitnami/nginx/conf is root-owned: write via sudo tee. The
+          # include line inside the /app/ location block is a one-time manual
+          # step (docs/server-setup.md); pushing this file before that exists
+          # is harmless.
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo mkdir -p /opt/bitnami/nginx/conf/obiter'
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo tee /opt/bitnami/nginx/conf/obiter/app-security-headers.conf > /dev/null' \
+            < scripts/nginx/app-security-headers.conf
+
+          # Reload nginx only if the config test passes; abort the deploy
+          # otherwise (nginx keeps serving with the old config).
+          if ! ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo /opt/bitnami/nginx/sbin/nginx -t'; then
+            echo "ERROR: remote 'nginx -t' failed — nginx was NOT reloaded (old config still active)." >&2
+            exit 1
+          fi
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            'sudo /opt/bitnami/nginx/sbin/nginx -s reload'
+
       - name: Clean up SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
