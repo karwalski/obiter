@@ -113,22 +113,24 @@ to rule 7.12 written correspondence, per MULR/library guidance — see
 
 ## 5. New institutions since 2018
 
-These change court-identifier lists, report series, and citation forms. Dates below are
-cross-checked in `docs/aglc5-and-peer-standards-research.md` (CRIT-003).
+These change court-identifier lists, report series, and citation forms. The commencement
+dates below are matters of public record; each should carry an official citation (to the
+enabling Act or the court/tribunal's own site) before this document is published.
 
 | Institution | Change | Citation impact | Status |
 |---|---|---|---|
-| **Federal Circuit and Family Court of Australia (FCFCOA)** | Created 1 September 2021 (merged the Federal Circuit Court and Family Court) | New court identifiers; legacy FamCA/FCCA citations remain for pre-2021 matters | *(verify date: CRIT-003)* |
-| **Administrative Review Tribunal (ART)** | Commenced 14 October 2024, replacing the AAT | New identifier; guidance needed on citing legacy AAT decisions going forward | *(verify date: CRIT-003)* |
-| **National Anti-Corruption Commission (NACC)** | Commenced 1 July 2023 | New institutional author for reports/findings | *(verify date: CRIT-003)* |
-| **Queensland Reports abbreviation change** | "Qd R" → "QR" from April 2020 | Report-series abbreviation split by date (already handled — DECISION-031) | Confirmed (appendix) |
-| **State/territory tribunal renamings/reconstitutions** | Various since 2018 | Identifier-list refresh | *(verify: CRIT-003)* |
+| **Federal Circuit and Family Court of Australia (FCFCOA)** | Commenced 1 September 2021 (merged the Federal Circuit Court and Family Court of Australia) | New court identifiers; legacy FamCA/FCCA citations remain for pre-2021 matters | Public record; cite enabling Act |
+| **Administrative Review Tribunal (ART)** | Commenced 14 October 2024, replacing the Administrative Appeals Tribunal (AAT) | New identifier; guidance needed on citing legacy AAT decisions going forward | Public record; cite enabling Act |
+| **National Anti-Corruption Commission (NACC)** | Commenced 1 July 2023 | New institutional author for reports/findings | Public record; cite enabling Act |
+| **Queensland Reports abbreviation change** | "Qd R" → "QR" from April 2020 | Report-series abbreviation split by date (already handled — DECISION-031) | Confirmed (Appendix A) |
+| **State/territory tribunal renamings/reconstitutions** | Various since 2018 | Identifier-list refresh | Needs a dated sweep before publication |
 
 - **Recommendation:** **Interim-support** — refresh Obiter's court-identifier and
   institutional-author lists now (data-only changes, low risk), and propose AGLC5 add a
-  dated institutional-succession appendix so legacy citations remain unambiguous. The
-  dated sweep is completed under CRIT-003 and reflected in `src/engine/data/court-identifiers.ts`
-  where confirmed.
+  dated institutional-succession appendix so legacy citations remain unambiguous. A dated,
+  officially-cited sweep of these identifiers (and the state-tribunal renamings) is a
+  candidate follow-up story; where confirmed, changes land in
+  `src/engine/data/court-identifiers.ts`.
 
 ---
 
