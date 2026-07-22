@@ -39,6 +39,10 @@ const email = require("./email");
 // caps proxy usage per-account and per-IP.
 const tokens = require("./lib/tokens");
 const vaultCrypto = require("./lib/crypto");
+// TRUST-001 hardening: validate + pin the resolved IP of a custom LLM endpoint
+// so the relay cannot be used for SSRF against internal/metadata addresses.
+const { ssrfSafeHttpsAgent } = require("./lib/ssrfGuard");
+const nodeFetch = require("node-fetch");
 const proxyRateLimit = require("./lib/rateLimit");
 // ACCT-007: self-service data-rights endpoints (delete / export / me) live
 // inline here next to the other /api/user usage. They reuse the session-auth
@@ -1549,7 +1553,17 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
       return res.status(400).json({ error: "Unsupported provider: " + provider });
     }
 
-    var fetchFn = typeof fetch !== "undefined" ? fetch : require("node-fetch");
+    // Custom (user-configured) endpoints go through node-fetch with the
+    // SSRF-guard agent, which resolves the host and refuses/pins to a non-
+    // internal address at connect time. Fixed provider hosts are hardcoded and
+    // trusted, so they keep the default fetch.
+    var usedCustomEndpoint = !!endpoint;
+    var fetchFn = usedCustomEndpoint
+      ? nodeFetch
+      : typeof fetch !== "undefined"
+        ? fetch
+        : require("node-fetch");
+    var agentOpt = usedCustomEndpoint ? { agent: ssrfSafeHttpsAgent } : {};
     var response;
 
     if (provider === "anthropic") {
@@ -1566,6 +1580,7 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }],
         }),
+        ...agentOpt,
       });
     } else {
       // OpenAI-compatible (Gemini, Grok, DeepSeek)
@@ -1583,6 +1598,7 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
             { role: "user", content: userPrompt },
           ],
         }),
+        ...agentOpt,
       });
     }
 

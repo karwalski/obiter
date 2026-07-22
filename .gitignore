@@ -1,7 +1,10 @@
 node_modules/
 dist/
+# Build output. The trailing-slash pattern matches any dir named lib/, so the
+# server's SOURCE lib (auth/crypto/session modules) must be re-included below.
 lib/
 lib-amd/
+!website/server/lib/
 *.log
 .DS_Store
 .env

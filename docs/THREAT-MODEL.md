@@ -57,7 +57,11 @@ content to an attacker host is blocked by `connect-src`, which enumerates 43 fix
 (obiter.com.au and subdomains, api.github.com, the five fixed LLM providers, and the source
 adapter hosts). Custom LLM endpoints do not widen the policy: they route through the
 obiter.com.au `/api/proxy/llm` relay, where the server validates the target is https and rejects
-IP literals, localhost, and its own infrastructure. A CI guard test
+IP literals, localhost, and its own infrastructure, then — at connect time — resolves the host
+and refuses (and pins) any target whose IP is loopback, RFC1918 private, link-local (including the
+cloud metadata address 169.254.169.254), CGNAT, or IPv6 ULA/loopback (`lib/ssrfGuard.js`, applied
+via a pinned https.Agent so a public hostname cannot resolve to an internal address, DNS-rebinding
+included). A CI guard test
 (`tests/security/cspAllowlist.test.ts`) fails when a fetch target appears in `src/` that is not
 in the allowlist module, so the policy cannot silently drift.
 
@@ -128,9 +132,11 @@ there already implies a compromised host application.
   back (last-four hint only), and provides a "Remove stored keys" action that clears the
   `LLMConfig` key material, all keyVault entries, and the legacy `obiter.llmConfig` key.
 - **office.js delivered without SRI.** See the decision record above.
-- **Residual SSRF in the LLM relay.** The proxy's target validation resolves hostnames at check
-  time; a DNS-rebinding-class attack could still redirect a request after validation. Accepted
-  for a keyed relay that forwards only user-composed LLM payloads.
+- **SSRF in the LLM relay.** Closed: the relay resolves the custom-endpoint host and validates the
+  resolved address against internal/metadata ranges at connect time, pinning the socket to the
+  vetted IP (`lib/ssrfGuard.js`), so a public hostname pointed at an internal address — DNS
+  rebinding included — cannot be reached. Only external LLM error bodies (never internal ones) can
+  now be reflected to the caller.
 
 ## Data handling
 
