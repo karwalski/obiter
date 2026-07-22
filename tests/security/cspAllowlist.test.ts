@@ -81,7 +81,7 @@ const IGNORED_HOSTS: ReadonlySet<string> = new Set([
   "https://www.courts.act.gov.au",
   "https://www.courts.qld.gov.au",
   "https://www.courts.sa.gov.au",
-  "https://www.supremecourt.justice.nsw.gov.au",
+  "https://supremecourt.nsw.gov.au", // CRIT-004: justice.nsw.gov.au host retired (expired cert)
   "https://www.supremecourt.vic.gov.au",
   "https://www.supremecourt.wa.gov.au",
   "https://www.supremecourt.tas.gov.au",

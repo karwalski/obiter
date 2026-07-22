@@ -1502,6 +1502,24 @@ Backlog: `../obiter-accounts-backlog.md` (per-story status table there). Optiona
 ### EPIC: ADMIN-USERS — Admin uplift (done; 4 stories)
 Admin is now an MFA-gated account (static `ADMIN_TOKEN` behind `ADMIN_TOKEN_SUNSET`, `?token=` removed, `promote-admin.js` bootstrap); user-management console (lock/force-reset/mfa-reset/soft-delete-anonymise), audit viewer with spike alerts + 12-month retention, account-stats cards.
 
+### EPIC: CRIT — AGLC4 Critique & Modern Sources (done 2026-07-22)
+Backlog: `../footnote-backlog.md` (EPIC: CRIT). Consolidated the scattered AGLC4 defect evidence
+into publishable documents and situated it against external developments.
+
+| ID | Title | Type | Status |
+|----|-------|------|--------|
+| CRIT-001 | Consolidated AGLC4 critique (`docs/aglc4-critique.md`) | FEATURE | DONE |
+| CRIT-002 | Extensions register + modern-sources (`docs/obiter-extensions.md`, `docs/modern-sources-proposal.md`) | FEATURE | DONE |
+| CRIT-003 | AGLC5 + peer-standards deep research (`docs/aglc5-and-peer-standards-research.md`) | RESEARCH | DONE |
+| CRIT-004 | Court-practices review + validation matrix (`docs/court-practices-review.md`, `tests/engine/court-practice-matrix.test.ts`) | FEATURE | DONE |
+| CRIT-DEEP | PDF re-verification of 8 anomaly/inverted-rule findings (`docs/aglc4-critique.md` §11) | RESEARCH | DONE |
+
+Outcomes: every DECISION-001..034 classified; ~78 anomalies + 45 appendix inconsistencies +
+parity findings consolidated with pinpoints; 77 source types audited for guide-vs-Obiter provenance;
+AGLC5 confirmed in-progress-but-unpublished (MULR+MJIL); DECISION-033 RESOLVED (court PDs verified,
+link/date/clause corrections applied); DECISION-035 opened (rule 14.3.2 ECtHR); CRIT-DEEP confirmed
+the engine is already correct on all eight re-checked rules. Feeds the LETTER epic (`website/aglc5.html`).
+
 ### v1.16.0 DEPLOYED TO PRODUCTION (2026-07-22)
 Committed, tagged `v1.16.0`, pushed, and **deployed live** to obiter.com.au: server (accounts
 backend, secrets `AUTH_TOKEN_SECRET`/`AUDIT_IP_SALT`/`VAULT_MASTER_KEY`/`NODE_ENV=production`

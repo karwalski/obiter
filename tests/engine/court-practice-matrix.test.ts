@@ -15,11 +15,7 @@
  * drift away from the documented practice recorded in docs/court-practices-review.md.
  */
 
-import {
-  COURT_PRESETS,
-  CourtJurisdiction,
-  CourtPreset,
-} from "../../src/engine/court/presets";
+import { COURT_PRESETS, CourtJurisdiction, CourtPreset } from "../../src/engine/court/presets";
 import { buildCourtConfig } from "../../src/engine/standards";
 import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
 import { generateListOfAuthorities } from "../../src/engine/rules/v4/general/bibliography";
@@ -31,7 +27,14 @@ const { formatCitation } = require("../../src/engine/engine");
 const PINPOINT_STYLES = new Set(["page-only", "para-only", "para-and-page"]);
 const PARALLEL_MODES = new Set(["off", "preferred", "mandatory"]);
 const PARALLEL_ORDERS = new Set(["report-first", "mnc-first"]);
-const LOA_TYPES = new Set(["off", "simple", "part-ab", "part-abc", "two-part-read", "three-part-tas"]);
+const LOA_TYPES = new Set([
+  "off",
+  "simple",
+  "part-ab",
+  "part-abc",
+  "two-part-read",
+  "three-part-tas",
+]);
 
 const JURISDICTIONS = Object.keys(COURT_PRESETS) as CourtJurisdiction[];
 

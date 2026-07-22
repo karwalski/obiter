@@ -445,3 +445,18 @@
 ---
 
 **Total audit items: 302** (the previous "271" undercounted the table rows; corrected in the 2026-07-02 rebase)
+
+---
+
+## Related: consolidated AGLC4 critique (CRIT epic, 2026-07-22)
+
+This audit tracks Obiter's *engine conformance* to AGLC4. The complementary **critique** of
+AGLC4 itself — every contradiction, confirmed error, impossibility, and ambiguity the guide
+contains, classified with pinpoint page refs and proposed AGLC5 fixes — lives in
+[`aglc4-critique.md`](aglc4-critique.md) (CRIT-001), with the extensions register
+([`obiter-extensions.md`](obiter-extensions.md)), modern-sources proposal
+([`modern-sources-proposal.md`](modern-sources-proposal.md)), AGLC5/peer-standards research
+([`aglc5-and-peer-standards-research.md`](aglc5-and-peer-standards-research.md)), and
+court-practices review ([`court-practices-review.md`](court-practices-review.md)). The
+one-page executive summary in `aglc4-critique.md` §2 is the AGLC5 open-letter / MULR input
+and feeds `website/aglc5.html`.
