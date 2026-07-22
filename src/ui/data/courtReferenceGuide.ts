@@ -85,9 +85,13 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "Reissued 7 May 2025",
     },
     citationRequirements: [
-      "Cite both the authorised report and the MNC where both are reasonably obtainable.",
-      "The authorised citation need not be given when it is not reasonably obtainable (GPN-AUTH, 7 May 2025).",
-      "MNC paragraph pinpoints are sufficient in lieu of report page references.",
+      // CRIT-004 (2026-07-22): corrected against the signed GPN-AUTH (7 May 2025).
+      // GPN-AUTH has no "not reasonably obtainable" clause; the relevant rule is
+      // cl 2.4 (MNC where available; authorised report 'if possible'; MNC
+      // paragraph pinpoints expressly sufficient). Parallel-citation rule is
+      // cl 2.4(b); cl 2.6 is the paragraph-over-page pinpoint preference.
+      "Cite the medium neutral citation where available; add the authorised report citation if possible (cl 2.4(b)).",
+      "MNC paragraph pinpoints are expressly sufficient in lieu of report page references (cl 2.4).",
       "Preferred report hierarchy: FCR, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",

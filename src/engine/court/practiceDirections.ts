@@ -57,15 +57,18 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
   // ── New South Wales ────────────────────────────────────────────────────────
   {
     jurisdiction: "NSWCA",
-    name: "SC Gen 20 — Citation of Authority",
-    url: "https://www.supremecourt.justice.nsw.gov.au/practice-and-procedure/practice-notes/practice-notes-sc-gen/sc-gen-20---citation-of-authority.html",
-    lastVerified: "2026-04-21",
+    name: "SC Gen 20 — Citation of Authority (issued 12 Sep 2023, commenced 1 Oct 2023)",
+    // CRIT-004 (2026-07-22): the supremecourt.justice.nsw.gov.au host was retired
+    // (expired TLS cert); the live PN is on supremecourt.nsw.gov.au. Note the
+    // Part A/B list of authorities derives from SC CA 1, not SC Gen 20.
+    url: "https://supremecourt.nsw.gov.au/practice-procedure/practice-notes0/general-practice-notes/sc-gen-20.html",
+    lastVerified: "2026-07-22",
   },
   {
     jurisdiction: "NSWSC",
-    name: "SC Gen 20 — Citation of Authority",
-    url: "https://www.supremecourt.justice.nsw.gov.au/practice-and-procedure/practice-notes/practice-notes-sc-gen/sc-gen-20---citation-of-authority.html",
-    lastVerified: "2026-04-21",
+    name: "SC Gen 20 — Citation of Authority (issued 12 Sep 2023, commenced 1 Oct 2023)",
+    url: "https://supremecourt.nsw.gov.au/practice-procedure/practice-notes0/general-practice-notes/sc-gen-20.html",
+    lastVerified: "2026-07-22",
   },
 
   // ── Victoria ───────────────────────────────────────────────────────────────

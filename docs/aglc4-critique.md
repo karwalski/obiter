@@ -355,16 +355,28 @@ modern-sources proposal.
 
 ---
 
-## 11. Open items requiring fresh verification
+## 11. CRIT-DEEP re-verification results (against the PDF)
 
-The following are carried into **CRIT-DEEP** for a fresh read of the specific AGLC4
-pages before any engine change or firm AGLC5 recommendation: **1.8.3** (Macquarie list
-authority), **1.10.1** (comma rule and CCH/Pub-L pseudo-spans), **1.6.3** (span vs
-identifier hyphenation), **2.1.14/3.5** (short-title substring intent), **2.3.1** (MNC
-year thresholds as a validation rule), **14.3.2** (ECtHR reported-vs-unreported
-preference), **9.2.6 vs 9.2.7** (SC-resolution session numbers), **5.5** ("&" vs "and").
-Court practice-direction verification (DECISION-033) is handled in
-`docs/court-practices-review.md` (CRIT-004).
+Eight findings flagged by the parity extraction were re-read against the source PDF on
+2026-07-22. The key outcome: the parity reviews were **pre-fix audits** — every one of
+the eight is **ENGINE-CORRECT in the current code**; no engine change is warranted. The
+*guide* defects nonetheless stand for this critique.
+
+| Finding | PDF p. | Verdict | Note |
+|---|---|---|---|
+| 1.8.3 Latin italics | 52 | **Engine-correct** | The engine's `LATIN_TERMS_EXCEPTIONS` already excludes *prima facie*, *ab initio*, *per se* etc. The guide defect that remains is the **proprietary, un-editioned Macquarie dependency** (DECISION-016, still open) — the rule's own do-not-italicise list is internally consistent. |
+| 1.10.1 number commas | 54–55 | **Engine-correct** | `numbers.ts` inserts the thousands comma per the rule (16 tests pass) and omits it for page/paragraph/identification numbers. The guide's own "65,131" **page** pinpoint (with a comma) contradicts its page-number carve-out — a guide inconsistency, noted in §4. |
+| 1.6.3 en-dash spans | 48 | **Engine-correct** | Conversion is span-scoped (skips digits/commas/hyphens/identifiers), so CCH `¶82-091` / `Pub L No 108-201` are preserved. The earlier "impossibility" framing was overstated — downgraded. |
+| 2.1.14/3.5 short-title intro | 71–72 | **Engine-correct** | The *McGinty* example shows the `('McGinty')` introduction even though it is a substring; the engine now emits it (`formatShortTitleIntroduction`). |
+| 2.3.1 MNC year thresholds | 79–80 | **Engine-correct** | The table's year ranges are genuine validity thresholds; the validator treats them as such. |
+| 14.3.2 ECtHR preference | 227 | **New decision** | The rule is silent on reported-vs-application preference; Obiter's reported-preferred default is an inference → **DECISION-035** (open). |
+| 9.2.6 vs 9.2.7 SC session | 171 | **Guide defect confirmed** | Real contradiction; the engine follows the rule text (omit the session). §4. |
+| 5.5 "&" vs "and" | 118 | **Guide defect confirmed** | Real contradiction; the engine preserves "&" (DECISION-014). §4. |
+
+Court practice-direction verification (DECISION-033) is resolved in
+`docs/court-practices-review.md` (CRIT-004): the three queued items were confirmed against
+primary sources, with link/date/clause corrections applied and interpretive preset
+refinements recorded for sign-off.
 
 ---
 

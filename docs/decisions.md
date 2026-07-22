@@ -422,8 +422,13 @@ A prior PARITY correction removed a "QR" report-series entry as fabricated, on t
 
 ## DECISION-033: Court PD Verification Queue (2026-07-21 refresh)
 
-**Status:** OPEN — awaiting Matthew's confirmation against the court sites
+**Status:** RESOLVED (2026-07-22, CRIT-004) — three queued items verified against primary sources; factual/link corrections applied; interpretive preset refinements recorded for owner sign-off
 **Raised:** 2026-07-21 (court-submission-mode data refresh against primary court sources)
+
+**RESOLUTION (2026-07-22, CRIT-004 — see `docs/court-practices-review.md`):**
+1. **NSW SC Gen 20** — current (page updated 26 Feb 2026); **issued 12 Sep 2023, commenced 1 Oct 2023** (not ~May 2023). The host `supremecourt.justice.nsw.gov.au` was retired (expired cert) → link updated to `supremecourt.nsw.gov.au` in `practiceDirections.ts` [applied]. SC Gen 20 does **not** itself mandate parallel citations or the Part A/B LOA (that is SC CA 1); it permits MNC paragraph pinpoints. Recommended (owner sign-off): soften NSWCA/NSWSC `parallelCitations` to "preferred" and re-source Part A/B to SC CA 1.
+2. **Qld** — PD 1/2024 (commenced 29 Jan 2024) governs citation; PD 3/2013 governs the CoA Part A/B list and remains current. PD 1/2024 repeals **PD 16/2013**, not PD 3/2013 — the engine's two-PD split is correct. Parallel citation is "should, as far as possible" (not strictly mandatory since the 2024 relaxation); subsequent-treatment trigger is "doubted, or not followed" (para 4(c)). New: Qld PD 5/2025 AI-verification regime (Oct 2025).
+3. **FCA GPN-AUTH** — reissue 7 May 2025 confirmed. Clause mapping corrected: **no "not reasonably obtainable" clause exists**; cl 2.4 = MNC + authorised report "if possible" + MNC paragraph pinpoints sufficient; cl 2.5 = examples; cl 2.6 = pinpoint preference; deadlines span cl 3.1/3.2/3.3 and 4.1. `courtReferenceGuide.ts` FCA entry corrected [applied].
 
 The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-guide text for Vic (SC Gen 3 reissued 1 Dec 2025; SC CA 3 reissued 10 Mar 2026), FCA (GPN-AUTH reissued 7 May 2025), WA (Consolidated PDs updated 20 Jun 2025, PD 2.1 and PD 8.2.2), SA (UCR 2020 r 217.8, current to 15 Mar 2026), Tas (PD 3 of 2022), FCFCOA (FAM-APPEALS updated 10 Jun 2025), NT (PD 1 of 2025) and ACT (PD 2 of 2022). Those were verified against primary sources and their `practiceDirections.ts` entries carry `lastVerified: "2026-07-21"`. Three items could NOT be verified to the same standard and are queued here rather than guessed:
 
@@ -451,3 +456,14 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 - **Notifiable Data Breaches (NDB) readiness.** Determine whether the eligible-data-breach assessment and notification process is defined, given the credential database now in scope.
 
 **Interim:** the policies and threat model are updated and accurate for the shipped feature; this entry records that a formal APP/NDB review is owed and assigns it to the user. It does not block the release under the ACCT-007 guardrails, which require accurate, re-dated policies (done) rather than a completed legal review.
+
+## DECISION-035: Rule 14.3.2 — ECtHR reported-vs-application-number preference
+
+**Status:** OPEN (default adopted; needs researcher sign-off)
+**Raised:** 2026-07-22 (CRIT-DEEP re-verification against PDF p.227)
+
+**Context:** Rule 14.3.2 (European Court of Human Rights) sets out the reported form (report series) and the unreported form (application number), but where a decision is available in **both**, the rule states no explicit preference. Obiter defaults to the **reported form where a report series is present**, falling back to the application number otherwise.
+
+**Decision (default):** prefer the reported form when a report series is available. This is a reasonable inference from AGLC4's general preference for authorised/reported citations (cf rule 2.2), but it is **not stated by rule 14.3.2** — the rule is silent/under-specified here.
+
+**Researchers:** confirm whether AGLC4 intends the reported form to be preferred when both are available, or whether the choice is left to the author. If the latter, no engine change is needed; if a firm preference is intended, confirm it matches Obiter's default. Recorded in `docs/aglc4-critique.md` §6 (Ambiguities).
