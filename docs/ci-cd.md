@@ -88,9 +88,9 @@ Two repository secrets must be configured under **Settings > Secrets and variabl
 2. Add the **public** key as a deploy key in the repository under **Settings > Deploy keys** (enable write access if needed).
 3. Add the **private** key as the `DEPLOY_KEY` secret.
 
-## Creating a Release
+## Creating a Release (release.yml)
 
-Releases are created by tagging a commit on `main` with a `v*` prefix:
+Pushing a `v*` tag triggers the release workflow (`.github/workflows/release.yml`), which publishes the GitHub Release automatically — do not create releases by hand.
 
 ```bash
 git checkout main
@@ -99,18 +99,36 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-This does not currently trigger a separate release workflow, but the tag marks the exact commit that was deployed. You can create a GitHub Release from the tag via the web UI or CLI:
+The workflow then:
 
-```bash
-gh release create v1.2.0 --generate-notes
-```
+1. **Verifies the tag matches `package.json`** — `package.json` is the single source of truth for the version (`scripts/package.sh` reads it). If the tag is not exactly `v<package.json version>`, the workflow fails before building. Fix the version bump or re-tag the correct commit.
+2. Runs `npm test` and `npm run typecheck`.
+3. Builds and packages the classic add-in via `scripts/package.sh` (produces `obiter-vX.Y.Z.zip`).
+4. Generates `SHA256SUMS.txt` for the zip (TRUST-005 — see the "Verifying downloads" section of INSTALL.md).
+5. Creates the GitHub Release for the tag with the zip and `SHA256SUMS.txt` attached, generated release notes, and a link to the Actions run that built it.
+6. **Prunes old classic releases** via `scripts/prune-releases.sh` — see below.
 
-To attach the built add-in artifact, download it from the CI run's artifacts and upload it to the release:
+The workflow authenticates with the built-in `GITHUB_TOKEN` (the workflow has `contents: write`); no extra secrets are needed.
 
-```bash
-gh run download <run-id> -n dist -D dist-release
-gh release upload v1.2.0 dist-release/*
-```
+### Release retention (OPS-RELEASES-01)
+
+Per the 2026-07-08 decision, only the **last two classic releases** stay published, for rollback and manual sideload. `scripts/prune-releases.sh` runs at the end of every release workflow and deletes older classic releases (strict `vX.Y.Z` tags). Notes:
+
+- Only the **release entry and its assets** are deleted — git tags are always kept.
+- **Copilot skill releases and tags are never touched**: anything matching `copilot` or the reserved `v1.15.1` tag is excluded, both from the candidate list and re-checked before each delete.
+- The script can be run locally: `DRY_RUN=1 bash scripts/prune-releases.sh` prints what would be deleted without deleting anything. `KEEP=<n>` overrides the retention count (default 2).
+
+### Deploy checklist — every version change
+
+Every version change must end with the release publish step; releases must not drift from tags again:
+
+1. Bump the version: `package.json`, `src/constants.ts` `APP_VERSION`, the manifests' `<Version>` (and `?v=` icon cache-busters where applicable). The tag **must** equal `v<package.json version>` or the release workflow fails.
+2. Build and deploy (`scripts/build-prod.sh`, `scripts/deploy-app.sh` / website scripts as applicable).
+3. Package the zip (`scripts/package.sh`) — CI repeats this for the release asset, so a local zip is for verification only.
+4. Commit, tag `vX.Y.Z`, and push the commit **and the tag**.
+5. Confirm the **Release** workflow run succeeded and the GitHub Release exists with `obiter-vX.Y.Z.zip` + `SHA256SUMS.txt` attached. Retention pruning is automatic.
+
+The Copilot skill packages (`scripts/package-skill.sh`) are on hold and outside this flow; they are released manually if and when that variant resumes.
 
 ## Rollback Procedure
 

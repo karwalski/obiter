@@ -25,6 +25,20 @@ jobs:
           node-version: 22
           cache: npm
 
+      # OPS-RELEASES-01: package.json is the single source of truth for the
+      # version (scripts/package.sh reads it). A tag that doesn't match it
+      # would publish a mislabelled release, so fail loudly before building.
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "v${VERSION}" ]; then
+            echo "::error::Tag ${TAG} does not match package.json version v${VERSION}."
+            echo "::error::Bump package.json (and manifests) before tagging, or re-tag the correct commit."
+            exit 1
+          fi
+          echo "Tag ${TAG} matches package.json version ${VERSION}."
+
       - name: Install dependencies
         run: npm ci
 
@@ -63,3 +77,12 @@ jobs:
             Verify downloaded zips against `SHA256SUMS.txt` — see the "Verifying downloads" section of INSTALL.md.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # OPS-RELEASES-01: keep only the last two classic releases published
+      # (2026-07-08 decision) so releases can't drift or pile up. Deletes
+      # release entries only — git tags are kept. Copilot releases/tags
+      # (anything matching "copilot" or v1.15.1) are never touched.
+      - name: Prune old classic releases
+        run: bash scripts/prune-releases.sh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
