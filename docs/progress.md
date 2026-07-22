@@ -1502,6 +1502,18 @@ Backlog: `../obiter-accounts-backlog.md` (per-story status table there). Optiona
 ### EPIC: ADMIN-USERS — Admin uplift (done; 4 stories)
 Admin is now an MFA-gated account (static `ADMIN_TOKEN` behind `ADMIN_TOKEN_SUNSET`, `?token=` removed, `promote-admin.js` bootstrap); user-management console (lock/force-reset/mfa-reset/soft-delete-anonymise), audit viewer with spike alerts + 12-month retention, account-stats cards.
 
+### v1.16.0 DEPLOYED TO PRODUCTION (2026-07-22)
+Committed, tagged `v1.16.0`, pushed, and **deployed live** to obiter.com.au: server (accounts
+backend, secrets `AUTH_TOKEN_SECRET`/`AUDIT_IP_SALT`/`VAULT_MASTER_KEY`/`NODE_ENV=production`
+provisioned in `/etc/obiter/env.sh`; `TURNSTILE_SECRET` intentionally unset → human-verification
+passthrough per owner decision), app bundle (taskpane 200, meta-CSP enforced), website + account
+pages (all 200). Server process stable, vault route 401 (master key decrypts). Deploy-script bugs
+fixed en route (server `lib/routes/scripts` subtrees, website `account/` subtree, restart-server
+reliability). STILL PENDING (owner): back up `VAULT_MASTER_KEY` (rotation = key loss); apply the
+TRUST-002 nginx header include (staged at `/root/obiter-api.conf.new`, validated, not swapped —
+blocked by infra guardrail); register + `promote-admin.js` for the admin account; provide Cloudflare
+Turnstile keys to end passthrough; **ACCT-REL-003** live E2E in Word; **ACCT-REL-004** APP review.
+
 ### v1.16.0 RELEASE BATCH (2026-07-22) — committed, tagged; deploy + live-verify remain
 The SAFE/TRUST + ACCT/ADM working tree was committed as logical commits and bundled into the
 **v1.16.0** minor (package.json, `src/constants.ts` APP_VERSION, the 3 classic manifests'
