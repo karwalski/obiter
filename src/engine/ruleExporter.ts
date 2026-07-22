@@ -19,6 +19,7 @@
 import { REPORT_SERIES } from "./data/report-series";
 import { COURT_IDENTIFIERS } from "./data/court-identifiers";
 import { PINPOINT_ABBREVIATIONS } from "./data/pinpoint-abbrevs";
+import { APP_VERSION } from "../constants";
 
 // ─── RuleReference Interface ────────────────────────────────────────────────
 
@@ -1327,7 +1328,7 @@ export function exportRuleReference(): RuleReference {
   return {
     version: "AGLC4",
     generatedAt: new Date().toISOString(),
-    generatedBy: "Obiter v1.14.0",
+    generatedBy: `Obiter v${APP_VERSION}`,
 
     sourceTypes: SOURCE_TYPE_METADATA,
 

@@ -1502,10 +1502,36 @@ Backlog: `../obiter-accounts-backlog.md` (per-story status table there). Optiona
 ### EPIC: ADMIN-USERS — Admin uplift (done; 4 stories)
 Admin is now an MFA-gated account (static `ADMIN_TOKEN` behind `ADMIN_TOKEN_SUNSET`, `?token=` removed, `promote-admin.js` bootstrap); user-management console (lock/force-reset/mfa-reset/soft-delete-anonymise), audit viewer with spike alerts + 12-month retention, account-stats cards.
 
-### NEXT STEPS (none started) — see EPIC: ACCT-REL in the accounts backlog
-The accounts/admin epics are code-complete but **cannot go to production without**: (1) **ACCT-REL-001** a dedicated security review of the net-new auth code (`/security-review` or cloud `/code-review ultra`) — nothing here was live-tested; (2) **ACCT-REL-002** provisioning secrets (`AUTH_TOKEN_SECRET`, `AUDIT_IP_SALT`, `VAULT_MASTER_KEY`, `TURNSTILE_SECRET` + public site key), `npm ci --production` to rebuild native argon2, and `deploy:server` before `deploy:app`; (3) **ACCT-REL-003** end-to-end live verification in Word (Win/Mac/web) of every account + admin journey; (4) **ACCT-REL-004** Australian Privacy Act (APP) posture review — **DECISION-034**; (5) **ACCT-REL-005** small integration follow-ups (server LLM-proxy `openai` provider-map entry, etc.). Also pending from earlier epics: the SAFE/TRUST deploy follow-ups above, and **CRIT-001/002** (AGLC4 critique + modern-sources proposal — plan-mode stories in `../footnote-backlog.md`, not started).
+### v1.16.0 RELEASE BATCH (2026-07-22) — committed, tagged; deploy + live-verify remain
+The SAFE/TRUST + ACCT/ADM working tree was committed as logical commits and bundled into the
+**v1.16.0** minor (package.json, `src/constants.ts` APP_VERSION, the 3 classic manifests'
+`<Version>` → 1.16.0.0 and `?v=` icon cache-busters → 1160; skill manifest left on the on-hold
+Copilot line). Full verification green: tsc clean, lint 0 errors, add-in jest 97 suites / 3343,
+server 68/68, production build compiles, `obiter-v1.16.0.zip` packaged.
 
-### Whole working tree — release checklist for the user
-Nothing is committed. When ready: minor version bump (package.json + `src/constants.ts` APP_VERSION [manual, no sync script] + 4 manifests' `<Version>` + `?v=` icon cache-busters in prod/beta manifests), then build/deploy/zip/tag per the deploy checklist — **skip the taken `v1.15.1` tag** (use v1.16.0). Deploy the website server together with the app. Run a security review before the accounts feature ships.
+Closed in this batch:
+- **ACCT-REL-001** security review — DONE. Found and fixed one High **SSRF** in the custom LLM
+  endpoint relay (host-string denylist accepted public names resolving to internal/metadata IPs);
+  now resolves + pins the IP at connect time via `website/server/lib/ssrfGuard.js`. Also caught a
+  packaging defect: the top-level `lib/` build-output ignore was excluding the **entire server
+  auth lib** (tokens/crypto/passwords/etc.) — a fresh clone had a broken server; fixed with a
+  `.gitignore` negation and all 11 modules tracked.
+- **ACCT-REL-005** integration follow-ups — DONE (server LLM-proxy `openai` provider-map entry;
+  the two optional tidy-ups explicitly deferred, see the accounts backlog).
+- **BUG-005(c)(d)** — DONE (insert refuses engine-incomplete citations; 11 EditCitation field
+  mismatches fixed with a contract test).
+- **OPS-RELEASES-01** — DONE (tag/version guard + classic-release pruning in `release.yml`).
+
+STILL REQUIRED before the accounts feature is live (owner: Matthew):
+- **ACCT-REL-002** provision secrets (`AUTH_TOKEN_SECRET`, `AUDIT_IP_SALT`, `VAULT_MASTER_KEY`,
+  `TURNSTILE_SECRET` + public site key), `npm ci --production` to rebuild native argon2,
+  `deploy:server` **before** `deploy:app`. Covers the pending SAFE/TRUST server redeploy + beta CSP
+  validation.
+- **ACCT-REL-003** end-to-end live verification in Word (Win/Mac/web) of every account + admin
+  journey.
+- **ACCT-REL-004** Australian Privacy Act (APP) posture review — **DECISION-034**.
+- Sideload refresh on the manifest bump (kill Word, clean wef, sideload tool).
+- Not in this batch: **CRIT-001/002** (AGLC4 critique + modern-sources — plan-mode), **ACCT-008**
+  (managed AI tier — pricing decision), **DECISION-033** court-PD confirmations.
 
 ---
