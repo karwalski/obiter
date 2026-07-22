@@ -97,16 +97,18 @@ describe("signed in with a vaulted key", () => {
     expect(body.provider).toBe("anthropic");
   });
 
-  it("passes the OpenAI endpoint override so the proxy can relay OpenAI", async () => {
+  it("relays OpenAI via the proxy provider map — no endpoint override sent (ACCT-REL-005)", async () => {
     setVaultKeyProviders(["openai"]);
     mockFetch.mockResolvedValueOnce(proxyOk("hi"));
 
     await callLlm({ ...BASE, provider: "openai", model: "gpt-5.5" }, "system", "user");
 
-    const [, init] = mockFetch.mock.calls[0];
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/proxy/llm");
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.apiKey).toBe("");
-    expect(body.endpoint).toContain("api.openai.com");
+    expect(body.provider).toBe("openai");
+    expect(body.endpoint).toBeUndefined();
   });
 
   it("honours the local-key override — reverts to direct BYOK", async () => {

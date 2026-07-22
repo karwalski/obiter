@@ -16,6 +16,7 @@ import {
   checkCitationCompleteness,
   checkTitlePresence,
   getCitationLabel,
+  listMissingRequiredFields,
   validateDocument,
 } from "../../src/engine/validator";
 import type { HeadingEntry } from "../../src/engine/validator";
@@ -520,6 +521,73 @@ describe("VALID-005 / WEB-006: checkCitationCompleteness understands structured 
     const result = validateDocument([], [journal, book]);
     const all = [...result.errors, ...result.warnings, ...result.info];
     expect(all.filter((i) => i.message.includes("missing required field 'author'"))).toEqual([]);
+  });
+});
+
+// ─── BUG-005 (c): Insert-path required-field check ────────────────────────────
+
+describe("BUG-005 (c): listMissingRequiredFields against the dispatch contract", () => {
+  it("lists year/reportSeries/startingPage for the BUG-005 repro (Rule 2.2)", () => {
+    // 'Smith v Land & House Property Corporation' pasted with no year,
+    // series or page silently inserted a partial citation pre-fix.
+    const missing = listMissingRequiredFields("case.reported", {
+      party1: "Smith",
+      party2: "Land & House Property Corporation",
+    });
+    expect(missing).toEqual(["year", "reportSeries", "startingPage"]);
+  });
+
+  it("returns nothing for a complete reported case (Rule 2.2)", () => {
+    const missing = listMissingRequiredFields("case.reported", {
+      party1: "Mabo",
+      party2: "Queensland (No 2)",
+      year: "1992",
+      volume: "175",
+      reportSeries: "CLR",
+      startingPage: "1",
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("accepts dispatcher-alias keys — the no-MNC form stores `date`, the contract names `fullDate` (Rule 2.3.2)", () => {
+    const missing = listMissingRequiredFields("case.unreported.no_mnc", {
+      party1: "Barton",
+      party2: "Chibber",
+      court: "Supreme Court of Victoria",
+      judges: "Hampel J",
+      date: "29 June 1988",
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("accepts the flat author string for the structured authors element (Rule 4.1)", () => {
+    const missing = listMissingRequiredFields("journal.article", {
+      author: "Harold Luntz",
+      title: "Torts",
+      year: "2005",
+      journal: "Sydney Law Review",
+      startingPage: "1",
+    });
+    expect(missing).toEqual([]);
+  });
+
+  it("treats blank strings as missing, matching the completeness check", () => {
+    const missing = listMissingRequiredFields("case.reported", {
+      party1: "Smith",
+      party2: "Jones",
+      year: "",
+      reportSeries: "  ",
+      startingPage: "1",
+    });
+    expect(missing).toEqual(["year", "reportSeries"]);
+  });
+
+  it("requires nothing of source types whose contract has no mandatory elements (Rule 3.6)", () => {
+    expect(listMissingRequiredFields("legislation.constitution", {})).toEqual([]);
+  });
+
+  it("returns nothing for an unknown source type rather than guessing", () => {
+    expect(listMissingRequiredFields("not.a.real.type", {})).toEqual([]);
   });
 });
 

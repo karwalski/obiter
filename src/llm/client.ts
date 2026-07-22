@@ -92,12 +92,6 @@ interface ResolvedEndpoint {
 interface VaultAuth {
   /** Bearer access token to attach; present only on the vault-proxy path. */
   accessToken: string;
-  /**
-   * The server proxy's provider map lacks "openai"; on the vault-proxy path we
-   * therefore pass the OpenAI endpoint so the proxy relays it via its
-   * OpenAI-compatible custom-endpoint path. Undefined for other providers.
-   */
-  endpointOverride?: string;
 }
 
 /**
@@ -112,10 +106,7 @@ async function resolveVaultAuth(config: LLMConfig): Promise<VaultAuth | null> {
   if (hasLocalKeyOverride(config.provider)) return null;
   const accessToken = await getAccessToken();
   if (!accessToken) return null;
-  return {
-    accessToken,
-    endpointOverride: config.provider === "openai" ? DIRECT_ENDPOINTS.openai : undefined,
-  };
+  return { accessToken };
 }
 
 /**
@@ -264,11 +255,7 @@ export async function callLlm(
       maxTokens: config.maxTokens,
       systemPrompt,
       userPrompt,
-      ...(vaultAuth?.endpointOverride
-        ? { endpoint: vaultAuth.endpointOverride }
-        : endpoint.targetEndpoint
-          ? { endpoint: endpoint.targetEndpoint }
-          : {}),
+      ...(endpoint.targetEndpoint ? { endpoint: endpoint.targetEndpoint } : {}),
     };
     init = {
       method: "POST",
@@ -364,11 +351,7 @@ export async function callLlmMultiTurn(
       maxTokens: config.maxTokens,
       systemPrompt,
       userPrompt: userParts.join("\n\n"),
-      ...(vaultAuth?.endpointOverride
-        ? { endpoint: vaultAuth.endpointOverride }
-        : endpoint.targetEndpoint
-          ? { endpoint: endpoint.targetEndpoint }
-          : {}),
+      ...(endpoint.targetEndpoint ? { endpoint: endpoint.targetEndpoint } : {}),
     };
     init = {
       method: "POST",

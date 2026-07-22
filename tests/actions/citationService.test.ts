@@ -42,7 +42,7 @@ const caseRequest = {
     party2: "Queensland (No 2)",
     year: "1992",
     volume: "175",
-    reporter: "CLR",
+    reportSeries: "CLR",
     startingPage: "1",
   },
   shortTitle: "Mabo",
@@ -137,6 +137,43 @@ describe("insertCitation (COPILOT-001, three modes)", () => {
   it("append: passes the target footnote index through", async () => {
     await insertCitation({ ...caseRequest, appendToFootnoteIndex: 7 }, CONFIG);
     expect(insertFootnote.mock.calls[0][3]).toBe(7);
+  });
+});
+
+describe("insertCitation refuses incomplete citations (BUG-005 (c))", () => {
+  const incompleteCase = {
+    sourceType: "case.reported" as const,
+    // The BUG-005 repro: a bare case name with no year/series/page produced
+    // 'Smith v Land & House Property Corporation (0)  0' pre-fix. Rule 2.2
+    // requires year, reportSeries and startingPage.
+    data: { party1: "Smith", party2: "Land & House Property Corporation" },
+  };
+
+  it("rejects a reported case missing year/reportSeries/startingPage (Rule 2.2)", async () => {
+    await expect(insertCitation(incompleteCase, CONFIG)).rejects.toThrow(
+      /missing required fields: year, reportSeries, startingPage/
+    );
+    expect(mockStore.add).not.toHaveBeenCalled();
+    expect(insertFootnote).not.toHaveBeenCalled();
+  });
+
+  it("inserts regardless when the caller sets allowIncomplete", async () => {
+    const result = await insertCitation({ ...incompleteCase, allowIncomplete: true }, CONFIG);
+    expect(result.mode).toBe("new");
+    expect(insertFootnote).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not gate a verbatim override (the user's text is authoritative)", async () => {
+    const result = await insertCitation(
+      { ...incompleteCase, overrideText: "Smith v Land & House Property Corporation." },
+      CONFIG
+    );
+    expect(result.mode).toBe("override");
+  });
+
+  it("accepts a complete reported case without the flag", async () => {
+    const result = await insertCitation(caseRequest, CONFIG);
+    expect(result.mode).toBe("new");
   });
 });
 

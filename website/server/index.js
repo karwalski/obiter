@@ -1528,6 +1528,7 @@ app.post("/api/proxy/llm", proxyCors, async function (req, res) {
 
     var endpoints = {
       anthropic: "https://api.anthropic.com/v1/messages",
+      openai: "https://api.openai.com/v1/chat/completions",
       gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
       grok: "https://api.x.ai/v1/chat/completions",
       deepseek: "https://api.deepseek.com/chat/completions",

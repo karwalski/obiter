@@ -25,6 +25,8 @@ import { getCitationLabel } from "./CitationLibrary";
 import { getFormattedPreview } from "../../engine/engine";
 import type { FormattedRun } from "../../types/formattedRun";
 import CitationPreview from "../components/CitationPreview";
+import { getFieldsForSourceType } from "./editCitationFields";
+import { nameListToStr, parseNameList } from "../nameList";
 
 // ─── Format Preference ───────────────────────────────────────────────────────
 
@@ -120,215 +122,25 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   explanatory_note: "Explanatory Note",
 };
 
-// ─── Field Definitions Per Source Type ────────────────────────────────────────
-
-interface FieldDefinition {
-  key: string;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-  type?: "text" | "checkbox";
-}
+// ─── Name-List Fields ────────────────────────────────────────────────────────
 
 /**
- * Returns field definitions for a given source type. These mirror the Insert
- * view layout — each source type shows only the fields relevant to it.
+ * Returns a copy of the form data with any name-list field the user edited
+ * (held as a raw text line while typing) parsed back into the structured
+ * Author[] shape the engine dispatch reads (BUG-005 (d)). Untouched fields
+ * keep their stored structured value.
  */
-function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
-  switch (sourceType) {
-    case "case.reported":
-      return [
-        // Reported cases are stored/formatted with party1 + party2 (matching the
-        // engine's required fields and the insert form). Using a single caseName
-        // field here left the parties blank on edit (BUG-005).
-        { key: "party1", label: "Party 1", required: true, placeholder: "e.g. Smith" },
-        {
-          key: "party2",
-          label: "Party 2",
-          required: true,
-          placeholder: "e.g. Land & House Property Corporation",
-        },
-        { key: "year", label: "Year", required: true, placeholder: "2024" },
-        { key: "yearType", label: "Year Brackets", placeholder: "round or square" },
-        { key: "volume", label: "Volume", placeholder: "123" },
-        { key: "reportSeries", label: "Report Series", required: true, placeholder: "CLR" },
-        { key: "startingPage", label: "Starting Page", required: true, placeholder: "1" },
-        { key: "pinpoint", label: "Pinpoint", placeholder: "42" },
-        { key: "court", label: "Court", placeholder: "HCA" },
-      ];
-    case "case.unreported.mnc":
-      return [
-        { key: "party1", label: "Party 1", required: true, placeholder: "e.g. Mabo" },
-        { key: "party2", label: "Party 2", required: true, placeholder: "e.g. Queensland" },
-        { key: "year", label: "Year", required: true, placeholder: "2022" },
-        { key: "court", label: "Court", required: true, placeholder: "e.g. FCA, HCA" },
-        { key: "caseNumber", label: "Case Number", required: true, placeholder: "e.g. 1136" },
-        { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [42]" },
-        { key: "judicialOfficer", label: "Judicial Officer", placeholder: "e.g. Crennan J" },
-      ];
-    case "case.unreported.no_mnc":
-      return [
-        { key: "caseName", label: "Case Name", required: true },
-        { key: "court", label: "Court", required: true },
-        { key: "judgeName", label: "Judge", required: true },
-        { key: "date", label: "Date", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "legislation.statute":
-      return [
-        { key: "title", label: "Title", required: true, placeholder: "Competition and Consumer Act" },
-        { key: "year", label: "Year", required: true, placeholder: "2010" },
-        { key: "jurisdiction", label: "Jurisdiction", required: true, placeholder: "Cth" },
-        { key: "pinpoint", label: "Pinpoint", placeholder: "s 52" },
-      ];
-    case "legislation.bill":
-      return [
-        { key: "title", label: "Title", required: true },
-        { key: "year", label: "Year", required: true },
-        { key: "jurisdiction", label: "Jurisdiction", required: true },
-        { key: "chamber", label: "Chamber" },
-      ];
-    case "legislation.delegated":
-      return [
-        { key: "title", label: "Title", required: true },
-        { key: "year", label: "Year", required: true },
-        { key: "jurisdiction", label: "Jurisdiction", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "legislation.constitution":
-      return [
-        { key: "jurisdiction", label: "Jurisdiction", required: true, placeholder: "Cth" },
-        { key: "pinpoint", label: "Pinpoint", required: true, placeholder: "s 51(i)" },
-      ];
-    case "journal.article":
-      // Keys must match what the insert form / parser / engine use:
-      // `journal` (not journalName) and `issue`. Mismatched keys made the
-      // Journal Name field load empty and silently dropped edits to it.
-      return [
-        { key: "author", label: "Author", required: true, placeholder: "Jane Smith" },
-        { key: "title", label: "Article Title", required: true },
-        { key: "year", label: "Year", required: true },
-        { key: "volume", label: "Volume", required: true },
-        { key: "issue", label: "Issue" },
-        { key: "journal", label: "Journal Name", required: true },
-        { key: "startingPage", label: "Starting Page", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "book":
-      return [
-        { key: "author", label: "Author", required: true },
-        { key: "title", label: "Title", required: true },
-        // Rule 26.4: bracketed translation of a non-English title
-        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
-        { key: "publisher", label: "Publisher", required: true },
-        { key: "edition", label: "Edition" },
-        { key: "year", label: "Year", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "book.chapter":
-      return [
-        { key: "author", label: "Chapter Author", required: true },
-        { key: "chapterTitle", label: "Chapter Title", required: true },
-        { key: "editor", label: "Editor", required: true },
-        { key: "bookTitle", label: "Book Title", required: true },
-        { key: "publisher", label: "Publisher", required: true },
-        { key: "edition", label: "Edition" },
-        { key: "year", label: "Year", required: true },
-        { key: "startingPage", label: "Starting Page", required: true },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "film_tv_media":
-      return [
-        { key: "title", label: "Title", required: true },
-        { key: "director", label: "Director" },
-        { key: "productionCompany", label: "Production Company" },
-        { key: "year", label: "Year" },
-        { key: "medium", label: "Medium" },
-        { key: "episodeTitle", label: "Episode Title" },
-        { key: "seriesTitle", label: "Series Title" },
-        { key: "seasonNumber", label: "Season" },
-        { key: "episodeNumber", label: "Episode" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "internet_material":
-      return [
-        { key: "author", label: "Author" },
-        { key: "title", label: "Title", required: true },
-        // Rule 26.4: bracketed translations of non-English elements
-        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
-        { key: "webPage", label: "Web Page / Site" },
-        { key: "translatedWebsiteName", label: "Web Page Translation", placeholder: "For non-English sites" },
-        { key: "date", label: "Date" },
-        // Rule 7.15: pinpoint (usually a bracketed paragraph) before the URL
-        { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [4]" },
-        { key: "url", label: "URL", required: true },
-      ];
-    case "newspaper":
-      return [
-        { key: "author", label: "Author" },
-        { key: "title", label: "Article Title", required: true },
-        // Rule 26.4: bracketed translation of a non-English title
-        { key: "translatedTitle", label: "Title Translation", placeholder: "For non-English titles" },
-        { key: "newspaper", label: "Newspaper", required: true },
-        { key: "date", label: "Date", required: true },
-        { key: "startingPage", label: "Starting Page" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "book.ebook":
-      // DECISION-019: the '[Platform]' bracket was retired — ebooks render as
-      // ordinary books (rules 6.1–6.5) — so no Platform field is offered.
-      return [
-        { key: "author", label: "Author", required: true },
-        { key: "title", label: "Title", required: true },
-        { key: "publisher", label: "Publisher", required: true },
-        { key: "edition", label: "Edition" },
-        { key: "year", label: "Year", required: true },
-        { key: "url", label: "URL" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "periodical":
-      return [
-        { key: "author", label: "Author" },
-        { key: "title", label: "Article Title", required: true },
-        { key: "periodicalName", label: "Periodical Name", required: true },
-        { key: "datePeriod", label: "Date/Period", placeholder: "e.g. Spring 2024, March 2024" },
-        { key: "volume", label: "Volume" },
-        { key: "issue", label: "Issue" },
-        { key: "page", label: "Page" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    case "treaty.mou":
-      return [
-        { key: "title", label: "Title", required: true },
-        { key: "parties", label: "Parties" },
-        { key: "signedDate", label: "Date Signed" },
-        { key: "pinpoint", label: "Pinpoint" },
-        { key: "url", label: "URL" },
-      ];
-    case "treaty":
-      return [
-        { key: "title", label: "Title", required: true },
-        { key: "openedDate", label: "Date Opened for Signature", required: true },
-        { key: "treatySeries", label: "Treaty Series", required: true },
-        { key: "seriesVolume", label: "Series Volume" },
-        { key: "startingPage", label: "Starting Page" },
-        { key: "entryIntoForceDate", label: "Entry into Force Date" },
-        { key: "notYetInForce", label: "Not yet in force", type: "checkbox" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
-    default:
-      // Generic fallback: expose the existing data keys as editable fields,
-      // plus common fields that most source types share.
-      return [
-        { key: "title", label: "Title" },
-        { key: "author", label: "Author" },
-        { key: "year", label: "Year" },
-        { key: "pinpoint", label: "Pinpoint" },
-      ];
+function withParsedNameLists(sourceType: SourceType, data: SourceData): SourceData {
+  const result: SourceData = { ...data };
+  for (const field of getFieldsForSourceType(sourceType)) {
+    if (field.type !== "namelist") continue;
+    const value = result[field.key];
+    if (typeof value === "string") {
+      result[field.key] = value.trim() ? parseNameList(value) : undefined;
+    }
   }
+  return result;
 }
-
-// ─── Shared Store Instance ───────────────────────────────────────────────────
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -405,7 +217,7 @@ export default function EditCitation(): JSX.Element {
     if (!citation) return [];
     const previewCitation: Citation = {
       ...citation,
-      data: { ...formData },
+      data: withParsedNameLists(citation.sourceType, formData),
       shortTitle: shortTitle || undefined,
       signal: signal || undefined,
       commentaryBefore: commentaryBefore || undefined,
@@ -803,7 +615,10 @@ export default function EditCitation(): JSX.Element {
       const store = await getSharedStore();
       const updatedCitation: Citation = {
         ...citation,
-        data: { ...formData, _formatPreference: formatPreference },
+        data: {
+          ...withParsedNameLists(citation.sourceType, formData),
+          _formatPreference: formatPreference,
+        },
         shortTitle: shortTitle || undefined,
         signal: signal || undefined,
         commentaryBefore: commentaryBefore || undefined,
@@ -1027,7 +842,15 @@ export default function EditCitation(): JSX.Element {
                 ref={field.key === "pinpoint" ? pinpointRef : undefined}
                 type="text"
                 className="edit-field-input"
-                value={(formData[field.key] as string) ?? ""}
+                value={
+                  // Name-list fields hold the engine's structured Author[]
+                  // shape; render it as a comma-separated line. While the
+                  // user types, the raw string passes through unchanged and
+                  // is parsed back on save/preview (withParsedNameLists).
+                  field.type === "namelist"
+                    ? nameListToStr(formData[field.key])
+                    : ((formData[field.key] as string) ?? "")
+                }
                 placeholder={field.placeholder ?? ""}
                 onChange={(e) => handleFieldChange(field.key, e.target.value)}
                 disabled={loading}

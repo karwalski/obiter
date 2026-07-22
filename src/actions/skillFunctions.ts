@@ -85,6 +85,9 @@ export function parseInsertRequest(raw: unknown): CitationInsertRequest {
     overrideText: optionalString(r.overrideText),
     aglcVersion: version,
     appendToFootnoteIndex: appendIndex,
+    // BUG-005 (c): the service refuses citations missing engine-required
+    // fields; a caller that has confirmed with the user may pass this flag.
+    allowIncomplete: r.allowIncomplete === true ? true : undefined,
   };
 }
 

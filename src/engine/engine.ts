@@ -1448,6 +1448,15 @@ function dispatchPressRelease(citation: Citation): FormattedRun[] {
  */
 function dispatchNewspaper(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // Author: may be a plain string (form) or authors array (AI parser) —
+  // mirrors dispatchInternetMaterial so the form's flat `author` key is not
+  // silently dropped at the dispatch boundary (BUG-005 (d) audit).
+  let authors: Author[] | undefined;
+  if (Array.isArray(d.authors) && d.authors.length > 0) {
+    authors = d.authors as Author[];
+  } else if (d.author && typeof d.author === "string") {
+    authors = [{ givenNames: "", surname: d.author as string }];
+  }
   const newspaper =
     (d.newspaper as string) ?? (d.newspaperName as string) ?? (d.publication as string) ?? "";
   const place = (d.place as string) ?? (d.location as string) ?? (d.city as string) ?? "";
@@ -1470,7 +1479,7 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
   }
 
   return formatNewspaper({
-    authors: d.authors as Author[] | undefined,
+    authors,
     title: (d.title as string) ?? "",
     // Rule 26.4: bracketed translation of a non-English title
     translatedTitle: toStr(d.translatedTitle) || undefined,

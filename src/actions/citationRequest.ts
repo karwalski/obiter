@@ -38,6 +38,13 @@ export interface CitationInsertRequest {
   aglcVersion?: "4" | "5";
   /** Append to this existing footnote (Rule 1.1.3) instead of creating a new one. */
   appendToFootnoteIndex?: number;
+  /**
+   * Insert even when engine-required fields for the source type are missing
+   * (BUG-005 (c)). Without this flag the insert service refuses an incomplete
+   * citation (eg a reported case with no year/reportSeries/startingPage)
+   * rather than silently rendering a partial citation. Overrides are exempt.
+   */
+  allowIncomplete?: boolean;
 }
 
 /** RFC-4122 v4 id, using crypto.randomUUID where available. */

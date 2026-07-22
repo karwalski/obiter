@@ -1032,6 +1032,39 @@ describe("Chapter 7 dispatch wiring", () => {
     );
   });
 
+  test("newspaper accepts the form's flat author string, like internet material (BUG-005 (d), rule 7.11.1)", () => {
+    // The insert form stores a plain `author` string; the dispatcher must
+    // map it into the structured authors array rather than dropping it.
+    const runs = formatCitation(
+      makeCitation("newspaper", {
+        author: "Michaela Whitbourn",
+        title: "Geoffrey Rush Defamation Trial",
+        newspaper: "The Sydney Morning Herald",
+        place: "Sydney",
+        date: "8 November 2018",
+      })
+    );
+    const text = toPlainText(runs);
+    expect(text.startsWith("Michaela Whitbourn, ")).toBe(true);
+    expect(text).toContain("The Sydney Morning Herald");
+  });
+
+  test("newspaper still prefers a structured authors array over the flat string (rule 7.11.1)", () => {
+    const runs = formatCitation(
+      makeCitation("newspaper", {
+        authors: [{ givenNames: "Jane", surname: "Doe" }],
+        author: "Ignored String",
+        title: "Some Article",
+        newspaper: "The Age",
+        place: "Melbourne",
+        date: "1 May 2019",
+      })
+    );
+    const text = toPlainText(runs);
+    expect(text.startsWith("Jane Doe, ")).toBe(true);
+    expect(text).not.toContain("Ignored String");
+  });
+
   test("editorials route to formatEditorial (rule 7.11.4)", () => {
     const runs = formatCitation(
       makeCitation("newspaper", {

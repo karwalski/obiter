@@ -24,6 +24,7 @@ import {
 import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
 import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
 import { parseTitleMarkup } from "./rules/v4/general/titleMarkup";
+import { exportRuleReference } from "./ruleExporter";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -1095,6 +1096,96 @@ export function checkCitationCompleteness(citation: Citation): ValidationIssue[]
   }
 
   return issues;
+}
+
+// ─── BUG-005 (c): Insert-path required-field check ───────────────────────────
+
+/**
+ * Alias data keys the engine dispatcher accepts in place of a contract
+ * field. The dispatch contract (ruleExporter SOURCE_TYPE_METADATA) names the
+ * PRIMARY key each dispatch function reads, but the dispatchers also accept
+ * legacy/form aliases (eg `date` for `fullDate`, a flat `author` string for
+ * the structured `authors` array) — a citation supplying an alias is
+ * complete, so the insert check must not flag it.
+ */
+const DISPATCH_FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  // Case dates (rules 2.3.2–2.3.4) all fall back to the form's `date` key
+  fullDate: ["date"],
+  orderDate: ["date"],
+  commencedDate: ["date"],
+  // Report/secondary types render the bare year when no full date is stored
+  date: ["year"],
+  court: ["courtIdentifier", "courtId"],
+  caseNumber: ["mnc", "judgmentNumber", "number"],
+  // Author element shapes (rules 4.1, 6.6.3) — mirrors the completeness keys
+  authors: ["author", "chapterAuthors", "institutionalAuthor", "body", "editors"],
+  author: ["authors"],
+  chapterAuthors: ["authors", "author"],
+  editors: ["editorsText"],
+  bookTitle: ["title"],
+  chapterTitle: ["title"],
+  billTitle: ["title"],
+  billYear: ["year"],
+  journal: ["journalName"],
+  newspaper: ["newspaperName", "publication"],
+  websiteName: ["website", "siteName"],
+  speaker: ["author", "authors", "name"],
+  commissionName: ["body", "institutionalAuthor", "author"],
+  sender: ["author"],
+  interviewee: ["author", "name"],
+  interviewer: ["host"],
+  conferenceName: ["event"],
+  thesisType: ["degree"],
+  university: ["institution"],
+  treatySeries: ["conventionSeries"],
+  catalogueNumber: ["number"],
+  legislature: ["jurisdiction"],
+  party: ["party1"],
+  party1: ["caseName", "caseTitle"],
+  caseName: ["party1", "caseTitle", "title"],
+  judges: ["judicialOfficer", "judicialOfficers"],
+  judicialOfficers: ["judges", "judicialOfficer"],
+  documentNumber: ["number"],
+  noteText: ["customText"],
+  awardDescription: ["arbitrationType", "awardDetails"],
+  page: ["startingPage"],
+  startingPage: ["page"],
+  issuingBody: ["body"],
+  documentTitle: ["title"],
+};
+
+/** Lazily-built lookup of the dispatch contract's required fields per type. */
+let requiredFieldsByType: Map<string, readonly string[]> | null = null;
+
+/**
+ * Lists the engine-required fields missing from a citation's data, keyed by
+ * the dispatch contract's field names (BUG-005 (c)).
+ *
+ * The source of truth is the per-source-type dispatch contract exported by
+ * ruleExporter (SOURCE_TYPE_METADATA.requiredFields — eg a reported case
+ * requires party1, party2, year, reportSeries and startingPage per Rule 2.2).
+ * A field counts as present when its primary key or any dispatcher-accepted
+ * alias holds a populated value. The insert paths (task pane and the headless
+ * citation service) call this before inserting so an incomplete citation is
+ * refused (or expressly confirmed) rather than silently rendered partial.
+ */
+export function listMissingRequiredFields(
+  sourceType: string,
+  data: Record<string, unknown>
+): string[] {
+  if (!requiredFieldsByType) {
+    requiredFieldsByType = new Map(
+      exportRuleReference().sourceTypes.map((st) => [st.type, st.requiredFields])
+    );
+  }
+  const required = requiredFieldsByType.get(sourceType);
+  if (!required || required.length === 0) {
+    return [];
+  }
+  return required.filter((field) => {
+    const keys = [field, ...(DISPATCH_FIELD_ALIASES[field] ?? [])];
+    return !keys.some((key) => isFieldValuePresent(data[key]));
+  });
 }
 
 /**

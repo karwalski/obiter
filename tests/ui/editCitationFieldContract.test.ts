@@ -1,0 +1,136 @@
+/*
+ * Obiter — AGLC4 Word Add-in
+ * Copyright (C) 2026. Licensed under GPLv3.
+ */
+
+/**
+ * Edit-view field contract tests (BUG-005 (d)).
+ *
+ * The Edit Citation view's per-type field definitions must only use data keys
+ * the engine dispatch for that source type actually reads — a mismatched key
+ * renders an empty field and silently drops the user's edits (the original
+ * BUG-005: `case.reported` used `caseName`, which dispatchReportedCase never
+ * reads, so the parties vanished on edit; `case.unreported.no_mnc` had the
+ * same class of mismatch with caseName/judgeName/date vs party1/party2 +
+ * judges + fullDate).
+ *
+ * The dispatcher is parsed statically, mirroring
+ * tests/engine/rule-exporter.test.ts (the SOURCE_TYPE_METADATA contract
+ * tests), so any future edit-field key the dispatch does not consume fails
+ * here rather than in a user's document.
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+import { EDIT_FIELDS_BY_SOURCE_TYPE } from "../../src/ui/views/editCitationFields";
+import type { SourceType } from "../../src/types/citation";
+
+const ENGINE_PATH = path.resolve(__dirname, "../../src/engine/engine.ts");
+const engineSource = fs.readFileSync(ENGINE_PATH, "utf-8");
+
+/**
+ * Extracts the SOURCE_DISPATCH registry from engine.ts as a map of
+ * sourceType -> dispatch function name.
+ */
+function parseDispatchMap(source: string): Map<string, string> {
+  const start = source.indexOf("const SOURCE_DISPATCH");
+  expect(start).toBeGreaterThan(-1);
+  const end = source.indexOf("\n};", start);
+  expect(end).toBeGreaterThan(start);
+  const block = source.slice(start, end);
+
+  const map = new Map<string, string>();
+  // Matches `"case.reported": dispatchReportedCase,` and `book: dispatchBook,`
+  const entryRe = /^\s*(?:"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*)):\s*([A-Za-z_][A-Za-z0-9_]*),\s*$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = entryRe.exec(block)) !== null) {
+    map.set(m[1] ?? m[2], m[3]);
+  }
+  return map;
+}
+
+/**
+ * Extracts the source of a top-level function from engine.ts. Functions in
+ * engine.ts are declared at column 0 and terminated by a `}` at column 0.
+ */
+function functionBody(source: string, name: string): string {
+  const declRe = new RegExp(`^function ${name}\\(`, "m");
+  const match = declRe.exec(source);
+  expect(match).not.toBeNull();
+  const start = match!.index;
+  const end = source.indexOf("\n}", start);
+  expect(end).toBeGreaterThan(start);
+  return source.slice(start, end + 2);
+}
+
+/**
+ * Collects the citation-data field names a stretch of dispatcher code reads
+ * (`d.foo`, `data.foo`, `citation.data.foo`).
+ */
+function fieldsRead(body: string): Set<string> {
+  const fields = new Set<string>();
+  const readRe = /\b(?:d|data|citation\.data)\.([A-Za-z_][A-Za-z0-9_]*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = readRe.exec(body)) !== null) {
+    fields.add(m[1]);
+  }
+  return fields;
+}
+
+const dispatchMap = parseDispatchMap(engineSource);
+
+const editEntries = Object.entries(EDIT_FIELDS_BY_SOURCE_TYPE) as Array<
+  [SourceType, NonNullable<(typeof EDIT_FIELDS_BY_SOURCE_TYPE)[SourceType]>]
+>;
+
+describe("EditCitation field keys <-> SOURCE_DISPATCH consistency (BUG-005 (d))", () => {
+  test("the edit view defines explicit fields for a non-trivial set of types", () => {
+    expect(editEntries.length).toBeGreaterThan(10);
+  });
+
+  test("every explicitly-defined edit type has a dispatch function", () => {
+    const orphaned = editEntries.map(([type]) => type).filter((t) => !dispatchMap.has(t));
+    expect(orphaned).toEqual([]);
+  });
+
+  test.each(editEntries.map(([type, fields]) => [type, fields] as const))(
+    "%s: every edit-view field key is read by its engine dispatch",
+    (type, fields) => {
+      const handler = dispatchMap.get(type);
+      expect(handler).toBeDefined();
+      const consumed = fieldsRead(functionBody(engineSource, handler!));
+
+      const unread = fields.map((f) => f.key).filter((key) => !consumed.has(key));
+      expect(unread).toEqual([]);
+    }
+  );
+
+  test.each(editEntries.map(([type, fields]) => [type, fields] as const))(
+    "%s: field keys are unique and labelled",
+    (type, fields) => {
+      const keys = fields.map((f) => f.key);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const field of fields) {
+        expect(field.label.trim()).not.toBe("");
+      }
+    }
+  );
+
+  test("case.unreported.no_mnc uses the dispatch keys, not the pre-BUG-005 ones", () => {
+    const keys = EDIT_FIELDS_BY_SOURCE_TYPE["case.unreported.no_mnc"]!.map((f) => f.key);
+    // Regression pin for the known mismatch: caseName/judgeName were never
+    // read by dispatchUnreportedNoMnc (it reads party1/party2 + judges +
+    // fullDate|date, Rule 2.3.2).
+    expect(keys).not.toContain("caseName");
+    expect(keys).not.toContain("judgeName");
+    expect(keys).toEqual(expect.arrayContaining(["party1", "party2", "judges", "date", "court"]));
+  });
+
+  test("case.reported exposes both parties (the original BUG-005 repro)", () => {
+    const keys = EDIT_FIELDS_BY_SOURCE_TYPE["case.reported"]!.map((f) => f.key);
+    expect(keys).toEqual(
+      expect.arrayContaining(["party1", "party2", "year", "reportSeries", "startingPage"])
+    );
+    expect(keys).not.toContain("caseName");
+  });
+});

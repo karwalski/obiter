@@ -33,6 +33,8 @@ import { classifySourceType } from "../../llm/classifySource";
 import { parseCitationText } from "../../llm/parseCitation";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
+import { personToStr, parseNameList, nameListToStr } from "../nameList";
+import { listMissingRequiredFields } from "../../engine/validator";
 import {
   type CourtJurisdiction,
   type SubsequentTreatment,
@@ -448,6 +450,19 @@ interface FeedbackState {
   message: string;
 }
 
+/**
+ * Renders an engine data key as readable warning copy for the BUG-005 (c)
+ * missing-fields notice: 'reportSeries' -> 'report series', 'party1' ->
+ * 'party 1'.
+ */
+function humaniseFieldName(field: string): string {
+  return field
+    .replace(/([A-Z])/g, " $1")
+    .replace(/(\d+)/g, " $1")
+    .trim()
+    .toLowerCase();
+}
+
 // ─── Preview via Engine ──────────────────────────────────────────────────────
 
 /**
@@ -536,40 +551,8 @@ const PLAIN_STRING_FIELDS = [
   "party", "partyName", "entityName", "editors", "parties",
 ];
 
-function personToStr(p: unknown): string {
-  if (!p || typeof p !== "object") return String(p ?? "");
-  const obj = p as Record<string, string>;
-  if (obj.givenNames) return `${obj.givenNames} ${obj.surname ?? ""}`.trim();
-  return obj.surname ?? obj.name ?? "";
-}
-
-/**
- * Parses a comma/'and'-separated list of personal names into structured
- * author entries ({ givenNames, surname }). The engine expects Author[] for
- * fields such as `editors` (Rule 6.6.2); the last space-separated token is
- * treated as the surname.
- */
-function parseNameList(value: string): AuthorEntry[] {
-  return value
-    .split(/,|\band\b/)
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .map((name) => {
-      const splitAt = name.lastIndexOf(" ");
-      return splitAt === -1
-        ? { givenNames: "", surname: name }
-        : { givenNames: name.slice(0, splitAt), surname: name.slice(splitAt + 1) };
-    });
-}
-
-/** Renders a name-list field value (string or Author[]) as display text. */
-function nameListToStr(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) {
-    return value.map(personToStr).filter(Boolean).join(", ");
-  }
-  return "";
-}
+// personToStr / parseNameList / nameListToStr live in src/ui/nameList.ts so
+// the Edit view's name-list fields (BUG-005 (d)) share the same conversions.
 
 /**
  * Coerces object/array values to strings for form fields that expect plain text.
@@ -684,6 +667,12 @@ export default function InsertCitation(): JSX.Element {
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
   const [unreportedGateVisible, setUnreportedGateVisible] = useState(false);
   const [courtGuideReminderDismissed, setCourtGuideReminderDismissed] = useState(false);
+
+  // BUG-005 (c): engine-required fields missing from the current form data.
+  // Non-null once the user attempts an insert with an incomplete citation;
+  // rendering an in-pane confirmation notice (window.confirm is blocked on
+  // Word web, WEB-013).
+  const [incompleteFields, setIncompleteFields] = useState<string[] | null>(null);
 
   // RIBBON-002: Recent citations state (loaded from store on mount)
   const [recentCitations, setRecentCitations] = useState<Citation[]>([]);
@@ -1188,6 +1177,12 @@ export default function InsertCitation(): JSX.Element {
     setUnreportedGateVisible(shouldShowUnreportedGate);
   }, [shouldShowUnreportedGate]);
 
+  // BUG-005 (c): editing the form or changing type invalidates a pending
+  // missing-fields notice — the user may have supplied the fields.
+  useEffect(() => {
+    setIncompleteFields(null);
+  }, [formData, selectedSourceType]);
+
   // ─── Preview ────────────────────────────────────────────────────────────
 
   const previewRuns = useMemo((): FormattedRun[] => {
@@ -1214,12 +1209,27 @@ export default function InsertCitation(): JSX.Element {
 
   // ─── Insert Handler ─────────────────────────────────────────────────────
 
-  const handleInsert = useCallback(async () => {
+  const handleInsert = useCallback(async (insertIncomplete = false) => {
     const overrideText = formData._overrideText as string | undefined;
     if (!selectedSourceType || (previewRuns.length === 0 && !overrideText)) {
       setFeedback({ type: "error", message: "Please fill in the required fields." });
       return;
     }
+
+    // BUG-005 (c): refuse to insert a citation missing engine-required fields
+    // (eg a reported case without year/reportSeries/startingPage) unless the
+    // user has expressly confirmed. A manual override is the user's verbatim
+    // text, so it is exempt. In-pane notice only — window.confirm is blocked
+    // on Word web (WEB-013).
+    if (!overrideText && !insertIncomplete) {
+      const missing = listMissingRequiredFields(selectedSourceType as SourceType, formData);
+      if (missing.length > 0) {
+        setIncompleteFields(missing);
+        announce("The citation is missing required fields.", "error");
+        return;
+      }
+    }
+    setIncompleteFields(null);
 
     setInserting(true);
     setFeedback(null);
@@ -1243,6 +1253,9 @@ export default function InsertCitation(): JSX.Element {
           overrideText: overrideText || undefined,
           aglcVersion: getVersionForStandard(standardId),
           appendToFootnoteIndex: appendIndex,
+          // BUG-005 (c): the user confirmed inserting despite missing
+          // required fields, so bypass the service-level refusal.
+          allowIncomplete: insertIncomplete || undefined,
         },
         courtConfig,
       );
@@ -1286,7 +1299,7 @@ export default function InsertCitation(): JSX.Element {
     } finally {
       setInserting(false);
     }
-  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex, courtConfig]);
+  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex, courtConfig, announce]);
 
   // ─── Available sub-types for selected category ──────────────────────────
 
@@ -2078,6 +2091,36 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
+      {/* BUG-005 (c): missing required-field notice — the insert was refused
+          and the user must either supply the fields or expressly confirm. */}
+      {incompleteFields && (
+        <div className="ic-court-gate" role="alert">
+          <div className="ic-court-gate-text">
+            This citation is missing required{" "}
+            {incompleteFields.length === 1 ? "field" : "fields"}:{" "}
+            {incompleteFields.map(humaniseFieldName).join(", ")}. An incomplete
+            citation may not comply with AGLC4. Complete the fields above, or
+            insert it anyway and finish it later from the Edit view.
+          </div>
+          <div className="ic-court-gate-actions">
+            <button
+              type="button"
+              className="ic-court-gate-btn ic-court-gate-btn--proceed"
+              onClick={() => void handleInsert(true)}
+            >
+              Insert anyway
+            </button>
+            <button
+              type="button"
+              className="ic-court-gate-btn ic-court-gate-btn--check"
+              onClick={() => setIncompleteFields(null)}
+            >
+              Go back
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Action buttons */}
       {selectedSourceType && (
         <div className="ic-action-bar">
@@ -2085,7 +2128,7 @@ export default function InsertCitation(): JSX.Element {
             className="ic-insert-btn"
             type="button"
             disabled={inserting || previewRuns.length === 0}
-            onClick={handleInsert}
+            onClick={() => void handleInsert()}
           >
             {inserting
               ? "Inserting..."

@@ -17,6 +17,7 @@ import { Citation, SourceData } from "../types/citation";
 import { FormattedRun } from "../types/formattedRun";
 import { CitationConfig } from "../engine/standards/types";
 import { getFormattedPreview } from "../engine/engine";
+import { listMissingRequiredFields } from "../engine/validator";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import {
   insertCitationFootnote,
@@ -117,6 +118,19 @@ export async function insertCitation(
       mode: "override",
       appendedToFootnote: appendIndex,
     };
+  }
+
+  // BUG-005 (c): refuse an incomplete citation (eg a reported case missing
+  // year/reportSeries/startingPage) rather than silently inserting a partial
+  // one. A caller that has expressly confirmed passes allowIncomplete.
+  if (!request.allowIncomplete) {
+    const missing = listMissingRequiredFields(citation.sourceType, citation.data);
+    if (missing.length > 0) {
+      throw new Error(
+        `The citation is missing required fields: ${missing.join(", ")}. ` +
+          "Provide the missing fields, or set allowIncomplete to insert it regardless."
+      );
+    }
   }
 
   // Reuse an existing matching citation (subsequent reference).
