@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <script src="account.js?v=20260801b"></script>
+  <script src="account.js?v=20260801c"></script>
   <script>
     (function () {
       var A = window.ObiterAccount;
@@ -105,12 +105,12 @@
       }
 
       function finishWithTokens(tokens, email) {
-        // Deliver to the task pane (Office Dialog); if not in a dialog, guide
-        // the user to the profile page instead.
-        var sent = A.messageTokensToParent(tokens, email);
-        if (!sent) {
-          status("Signed in. You can close this window and return to Word.", "success");
-        }
+        // In the Office Dialog: hand the tokens to the task pane and close.
+        if (A.messageTokensToParent(tokens, email)) return;
+        // In an ordinary browser: start a web session and go to the account
+        // portal (index.html) where the user manages MFA, keys, and deletion.
+        A.saveSession(tokens);
+        window.location.href = "index.html";
       }
 
       // Login

@@ -10,6 +10,18 @@
   <link rel="icon" type="image/png" sizes="32x32" href="../favicon.png">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="account.css">
+  <style>
+    .acct-section { border-top: 1px solid var(--colour-border); padding-top: 20px; margin-top: 24px; }
+    .acct-section h2 { font-size: 1.0625rem; margin-bottom: 8px; }
+    .acct-muted { color: var(--colour-text-secondary); font-size: 0.9375rem; }
+    .acct-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--colour-border); }
+    .acct-key { font-family: ui-monospace, Menlo, monospace; }
+    .acct-danger { color: #c62828; }
+    .acct-btn-sm { padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--colour-border); background: transparent; font-size: 0.875rem; }
+    .acct-btn-danger { border-color: #c62828; color: #c62828; }
+    .acct-code-list { font-family: ui-monospace, Menlo, monospace; columns: 2; list-style: none; padding: 12px; background: var(--colour-surface, #f4f5f7); border-radius: var(--radius-sm); }
+    #mfa-qr { display:block; border:1px solid var(--colour-border); border-radius: var(--radius-sm); background:#fff; }
+  </style>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -27,18 +39,14 @@
 
   <main id="main-content" role="main">
     <div class="account-shell">
-      <div class="account-card">
+
+      <!-- Signed-out landing -->
+      <div class="account-card" id="view-signedout">
         <h1>Your account</h1>
-        <p class="account-lead" id="profile-email">You manage your Obiter account from inside Word.</p>
-
-        <p style="color: var(--colour-text-secondary); font-size: 0.9375rem;">
-          Obiter accounts sync your settings and let the relay use your stored
-          API key across devices. Signing in, storing a key, and deleting your
-          account all happen in the Obiter task pane in Word, under
-          Settings &rsaquo; Account. The account itself never stores your
-          citations or documents.
+        <p class="acct-muted">
+          Obiter accounts sync your settings and let the relay use a stored API
+          key across devices. The account never stores your citations or documents.
         </p>
-
         <div class="account-links" style="margin-top: 24px;">
           <a href="auth.html" class="account-btn" style="display:inline-block; width:auto; text-decoration:none;">Sign in</a>
         </div>
@@ -47,6 +55,92 @@
           &nbsp;&middot;&nbsp;
           <a href="/privacy.html">What an account stores</a>
         </div>
+      </div>
+
+      <!-- Signed-in dashboard -->
+      <div class="account-card account-hidden" id="view-dashboard">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px;">
+          <h1 style="margin:0;">Your account</h1>
+          <button class="acct-btn-sm" id="btn-signout">Sign out</button>
+        </div>
+        <p class="account-lead" id="profile-email">&nbsp;</p>
+        <div class="account-status account-hidden" id="global-status" role="status" aria-live="polite"></div>
+
+        <!-- Two-factor -->
+        <section class="acct-section">
+          <h2>Two-factor authentication</h2>
+          <p class="acct-muted" id="mfa-status">Checking&hellip;</p>
+          <button class="account-btn" id="mfa-setup-btn" style="width:auto; display:none;">Set up two-factor authentication</button>
+          <div id="mfa-setup" style="display:none; max-width:420px;">
+            <p class="acct-muted">1. Scan this in an authenticator app (Google Authenticator, Authy, 1Password&hellip;):</p>
+            <img id="mfa-qr" alt="Two-factor setup QR code" width="200" height="200">
+            <p class="acct-muted" style="margin-top:10px;">Can&rsquo;t scan? Enter this setup key (time-based):</p>
+            <code id="mfa-secret" class="acct-key" style="display:block; padding:8px 12px; background:var(--colour-surface,#f4f5f7); border-radius:var(--radius-sm); word-break:break-all;"></code>
+            <label class="account-field" style="margin-top:14px;">2. Enter the 6-digit code
+              <input type="text" id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+            </label>
+            <div class="account-status account-hidden" id="mfa-setup-status" role="alert"></div>
+            <button class="account-btn" id="mfa-verify-btn" style="width:auto;">Verify and enable</button>
+          </div>
+          <div id="mfa-recovery" style="display:none; max-width:460px; margin-top:16px;">
+            <h3 style="font-size:1rem;">Save your recovery codes</h3>
+            <p class="acct-muted">Each can be used once if you lose your authenticator. <strong>Shown only now.</strong></p>
+            <ul id="mfa-recovery-list" class="acct-code-list"></ul>
+          </div>
+        </section>
+
+        <!-- API keys (vault) -->
+        <section class="acct-section">
+          <h2>API keys</h2>
+          <p class="acct-muted">
+            Storing a key here (encrypted, write-only) lets Obiter&rsquo;s relay use it on any
+            device where you&rsquo;re signed in. This is optional and separate from settings sync
+            &mdash; your key is never uploaded just because sync is on. The key is never shown again.
+          </p>
+          <div id="keys-list"></div>
+          <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:12px;">
+            <label class="account-field" style="margin:0;">Provider
+              <select id="key-provider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Gemini</option>
+                <option value="grok">Grok (xAI)</option>
+                <option value="deepseek">DeepSeek</option>
+              </select>
+            </label>
+            <label class="account-field" style="margin:0; flex:1; min-width:200px;">API key
+              <input type="password" id="key-value" autocomplete="off" spellcheck="false">
+            </label>
+            <button class="account-btn" id="key-save-btn" style="width:auto;">Store key</button>
+          </div>
+          <div class="account-status account-hidden" id="keys-status" role="alert"></div>
+        </section>
+
+        <!-- Password -->
+        <section class="acct-section">
+          <h2>Password</h2>
+          <p class="acct-muted">To change your password, request a reset link by email.</p>
+          <a href="reset.html" class="acct-btn-sm" style="text-decoration:none; display:inline-block;">Reset password</a>
+        </section>
+
+        <!-- Data -->
+        <section class="acct-section">
+          <h2>Your data</h2>
+          <p class="acct-muted">Download everything the account holds, or delete the account and all its data.</p>
+          <button class="acct-btn-sm" id="btn-export">Export my data (JSON)</button>
+          <button class="acct-btn-sm acct-btn-danger" id="btn-delete" style="margin-left:8px;">Delete account</button>
+          <div id="delete-box" style="display:none; margin-top:14px; max-width:420px; border:1px solid #c62828; border-radius:var(--radius-sm); padding:14px;">
+            <p class="acct-danger" style="margin-top:0;"><strong>This permanently deletes your account, keys, and settings.</strong></p>
+            <label class="account-field">Type DELETE to confirm
+              <input type="text" id="delete-confirm" autocomplete="off">
+            </label>
+            <label class="account-field"><span id="stepup-label">Authenticator code</span>
+              <input type="text" id="stepup-input" autocomplete="off">
+            </label>
+            <div class="account-status account-hidden" id="delete-status" role="alert"></div>
+            <button class="account-btn acct-btn-danger" id="btn-delete-confirm" style="width:auto; background:transparent;">Permanently delete</button>
+          </div>
+        </section>
       </div>
     </div>
   </main>
@@ -57,15 +151,136 @@
     </div>
   </footer>
 
-  <script src="account.js?v=20260801b"></script>
+  <script src="account.js?v=20260801c"></script>
   <script>
-    (function () {
-      var A = window.ObiterAccount;
-      var email = A.queryParam("email");
-      if (email) {
-        document.getElementById("profile-email").textContent = "Signed in as " + email + ".";
-      }
-    })();
+  (function () {
+    "use strict";
+    var A = window.ObiterAccount;
+    var me = null;
+
+    var $ = function (id) { return document.getElementById(id); };
+    function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+    function setStatus(el, msg, kind) {
+      el.textContent = msg || "";
+      el.className = "account-status" + (msg ? " account-status--" + (kind || "info") : " account-hidden");
+    }
+
+    // Not signed in → show the landing page.
+    if (!A.getAccessToken()) { $("view-signedout").classList.remove("account-hidden"); return; }
+    $("view-dashboard").classList.remove("account-hidden");
+
+    function loadMe() {
+      return A.authFetch("/user/me", { method: "GET" }).then(function (data) {
+        me = data;
+        $("profile-email").textContent = "Signed in as " + data.email + ".";
+        // MFA
+        if (data.mfaEnabled) {
+          $("mfa-status").textContent = "Two-factor authentication is ON.";
+          $("mfa-setup-btn").style.display = "none";
+          $("mfa-setup").style.display = "none";
+          $("stepup-label").textContent = "Authenticator code";
+          $("stepup-input").setAttribute("inputmode", "numeric");
+        } else {
+          $("mfa-status").textContent = "Two-factor authentication is OFF. Turn it on to require a code at sign-in.";
+          $("mfa-setup-btn").style.display = "";
+          $("stepup-label").textContent = "Your password (to confirm)";
+          $("stepup-input").setAttribute("type", "password");
+        }
+      }).catch(function (err) { if (err.status === 401) { A.clearSession(); location.reload(); } });
+    }
+
+    function loadKeys() {
+      return A.authFetch("/user/keys", { method: "GET" }).then(function (data) {
+        var list = (data && data.keys) || [];
+        var wrap = $("keys-list");
+        wrap.innerHTML = "";
+        if (!Array.isArray(list) || list.length === 0) {
+          wrap.innerHTML = '<p class="acct-muted">No stored keys.</p>';
+          return;
+        }
+        list.forEach(function (k) {
+          var row = document.createElement("div");
+          row.className = "acct-row";
+          row.innerHTML = '<span><strong>' + esc(k.provider) + '</strong> <span class="acct-key acct-muted">&middot;&middot;&middot;&middot; ' + esc(k.last4 || "") + '</span></span>';
+          var btn = document.createElement("button");
+          btn.className = "acct-btn-sm acct-btn-danger";
+          btn.textContent = "Remove";
+          btn.addEventListener("click", function () { removeKey(k.provider); });
+          row.appendChild(btn);
+          wrap.appendChild(row);
+        });
+      }).catch(function () {});
+    }
+
+    // ── MFA enrolment ─────────────────────────────────────────────────────────
+    $("mfa-setup-btn").addEventListener("click", function () {
+      var btn = $("mfa-setup-btn"); btn.disabled = true;
+      A.authFetch("/auth/mfa/enroll", { method: "POST", body: "{}" }).then(function (d) {
+        btn.disabled = false;
+        if (d.qrDataUri) { $("mfa-qr").src = d.qrDataUri; $("mfa-qr").style.display = ""; } else { $("mfa-qr").style.display = "none"; }
+        $("mfa-secret").textContent = d.secret || "";
+        $("mfa-setup").style.display = ""; btn.style.display = "none"; $("mfa-code").focus();
+      }).catch(function (err) { btn.disabled = false; setStatus($("mfa-setup-status"), err.message, "error"); });
+    });
+    $("mfa-verify-btn").addEventListener("click", function () {
+      var code = $("mfa-code").value.trim();
+      if (!code) { setStatus($("mfa-setup-status"), "Enter the 6-digit code.", "error"); return; }
+      var btn = $("mfa-verify-btn"); btn.disabled = true; setStatus($("mfa-setup-status"), "Verifying…", "info");
+      A.authFetch("/auth/mfa/enroll/verify", { method: "POST", body: JSON.stringify({ code: code }) }).then(function (d) {
+        btn.disabled = false; setStatus($("mfa-setup-status"), "", "info"); $("mfa-setup").style.display = "none";
+        var ul = $("mfa-recovery-list"); ul.innerHTML = "";
+        (d.recoveryCodes || []).forEach(function (c) { var li = document.createElement("li"); li.textContent = c; ul.appendChild(li); });
+        $("mfa-recovery").style.display = "";
+        loadMe();
+      }).catch(function (err) { btn.disabled = false; setStatus($("mfa-setup-status"), err.message, "error"); });
+    });
+
+    // ── Key vault (opt-in) ────────────────────────────────────────────────────
+    $("key-save-btn").addEventListener("click", function () {
+      var provider = $("key-provider").value;
+      var apiKey = $("key-value").value.trim();
+      if (!apiKey) { setStatus($("keys-status"), "Enter an API key.", "error"); return; }
+      var btn = $("key-save-btn"); btn.disabled = true; setStatus($("keys-status"), "Storing…", "info");
+      A.authFetch("/user/keys/" + encodeURIComponent(provider), { method: "PUT", body: JSON.stringify({ apiKey: apiKey }) })
+        .then(function () { btn.disabled = false; $("key-value").value = ""; setStatus($("keys-status"), "Key stored (encrypted).", "success"); loadKeys(); })
+        .catch(function (err) { btn.disabled = false; setStatus($("keys-status"), err.message, "error"); });
+    });
+    function removeKey(provider) {
+      var cred = window.prompt(me && me.mfaEnabled ? "Enter your authenticator code to remove this key:" : "Enter your password to remove this key:");
+      if (!cred) return;
+      var body = me && me.mfaEnabled ? { code: cred.trim() } : { password: cred };
+      A.authFetch("/user/keys/" + encodeURIComponent(provider), { method: "DELETE", body: JSON.stringify(body) })
+        .then(function () { setStatus($("keys-status"), "Key removed.", "success"); loadKeys(); })
+        .catch(function (err) { setStatus($("keys-status"), err.message, "error"); });
+    }
+
+    // ── Export / delete ───────────────────────────────────────────────────────
+    $("btn-export").addEventListener("click", function () {
+      A.authFetch("/user/export", { method: "GET" }).then(function (data) {
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a"); a.href = url; a.download = "obiter-account-export.json"; a.click();
+        URL.revokeObjectURL(url);
+      }).catch(function (err) { setStatus($("global-status"), err.message, "error"); });
+    });
+    $("btn-delete").addEventListener("click", function () { $("delete-box").style.display = $("delete-box").style.display === "none" ? "" : "none"; });
+    $("btn-delete-confirm").addEventListener("click", function () {
+      if ($("delete-confirm").value.trim() !== "DELETE") { setStatus($("delete-status"), 'Type DELETE to confirm.', "error"); return; }
+      var cred = $("stepup-input").value;
+      if (!cred) { setStatus($("delete-status"), "Confirm with your " + (me && me.mfaEnabled ? "authenticator code." : "password."), "error"); return; }
+      var body = me && me.mfaEnabled ? { code: cred.trim() } : { password: cred };
+      var btn = $("btn-delete-confirm"); btn.disabled = true; setStatus($("delete-status"), "Deleting…", "info");
+      A.authFetch("/user/account", { method: "DELETE", body: JSON.stringify(body) }).then(function () {
+        A.clearSession();
+        document.querySelector(".account-shell").innerHTML = '<div class="account-card"><h1>Account deleted</h1><p class="acct-muted">Your account and its data have been removed.</p><a href="/" class="account-btn" style="display:inline-block;width:auto;text-decoration:none;">Return home</a></div>';
+      }).catch(function (err) { btn.disabled = false; setStatus($("delete-status"), err.message, "error"); });
+    });
+
+    // ── Sign out ──────────────────────────────────────────────────────────────
+    $("btn-signout").addEventListener("click", function () { A.clearSession(); location.reload(); });
+
+    loadMe().then(loadKeys);
+  })();
   </script>
 </body>
 </html>
