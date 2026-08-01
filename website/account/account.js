@@ -42,19 +42,25 @@
   }
 
   /**
-   * Read the Turnstile response token from the first widget on the page.
-   * Returns an empty string when Turnstile has not been solved or is absent.
+   * Read the Turnstile response token from the solved widget in the currently
+   * visible view. The auth page renders TWO widgets (sign-in + sign-up), so
+   * `turnstile.getResponse()` without a widgetId is unreliable — it can return
+   * the wrong widget's (empty) response. Read the hidden `cf-turnstile-response`
+   * input written by the widget instead, preferring one inside a view that is
+   * not `.account-hidden`. Returns "" when nothing has been solved.
    */
   function turnstileToken() {
-    try {
-      if (global.turnstile && typeof global.turnstile.getResponse === "function") {
-        return global.turnstile.getResponse() || "";
-      }
-    } catch (e) {
-      /* widget not ready */
+    var inputs = document.querySelectorAll('input[name="cf-turnstile-response"]');
+    // Prefer the token of a widget in the currently visible view.
+    for (var i = 0; i < inputs.length; i++) {
+      var hidden = inputs[i].closest && inputs[i].closest(".account-hidden");
+      if (!hidden && inputs[i].value) return inputs[i].value;
     }
-    var input = document.querySelector('input[name="cf-turnstile-response"]');
-    return input ? input.value : "";
+    // Fallback: any solved widget on the page.
+    for (var j = 0; j < inputs.length; j++) {
+      if (inputs[j].value) return inputs[j].value;
+    }
+    return "";
   }
 
   /**
