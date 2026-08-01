@@ -25,6 +25,35 @@ export interface CourtIdentifier {
    * 2007, "FamCAFC" from 2008).
    */
   mncTo?: number;
+  /**
+   * ISO-8601 date (YYYY-MM-DD) on which the institution commenced, where a
+   * post-AGLC4 machinery-of-government change created or renamed it. This is
+   * official-record factual metadata (not an AGLC4 rule-2.3.1 datum); it is
+   * carried so that legacy citations stay unambiguous across succession, per
+   * the dated institutional-succession recommendation. Present only on the
+   * post-2018 succession rows below.
+   */
+  commencedOn?: string;
+  /**
+   * ISO-8601 date (YYYY-MM-DD) on which the institution ceased (as a court,
+   * tribunal or citable institutional author). Set on the predecessor row of
+   * a succession pair (eg the AAT, superseded by the ART on 2024-10-14) and
+   * on institutions whose authorship was end-dated (eg VOCAT).
+   */
+  endedOn?: string;
+  /**
+   * Code of the identifier that succeeds this one after `endedOn`
+   * (eg AATA → ARTA), or that this one succeeds after `commencedOn`.
+   * Records the succession link for legacy-citation disambiguation.
+   */
+  succeededBy?: string;
+  succeeds?: string;
+  /**
+   * The enabling instrument that created, renamed or wound up the
+   * institution, in AGLC4 statute form (short title, jurisdiction, Act
+   * number). Official-record citation for the succession row.
+   */
+  enablingAct?: string;
 }
 
 /**
@@ -74,25 +103,104 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
   },
   {
     // Rule 2.3.1 table: Family Court of Australia (also its Full Court
-    // 1998–2007; "FamCAFC" from 2008).
+    // 1998–2007; "FamCAFC" from 2008). Continued as FCFCOA Division 1 on
+    // 1 Sep 2021 (FedCFamC1F first instance); retained for pre-2021 decisions.
     code: "FamCA",
     fullName: "Family Court of Australia",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 1998,
+    mncTo: 2021,
+    endedOn: "2021-09-01",
+    succeededBy: "FedCFamC1F",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
+    // Continued as FCFCOA Division 1 (Appellate) on 1 Sep 2021 (FedCFamC1A).
     code: "FamCAFC",
     fullName: "Family Court of Australia (Full Court)",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 2008,
+    mncTo: 2021,
+    endedOn: "2021-09-01",
+    succeededBy: "FedCFamC1A",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
+    // Legacy: the Federal Circuit Court of Australia operated until the
+    // FCFCOA commenced on 1 Sep 2021, when its jurisdiction continued as the
+    // FCFCOA Division 2 (FedCFamC2*). Retained for pre-2021 decisions.
     code: "FCCA",
     fullName: "Federal Circuit Court of Australia",
     jurisdiction: "CTH",
     level: "federal",
+    mncTo: 2021,
+    endedOn: "2021-09-01",
+    succeededBy: "FedCFamC2G",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+  },
+
+  // Federal Circuit and Family Court of Australia (FCFCOA)
+  // ---------------------------------------------------------------------------
+  // Commenced 1 September 2021 under the Federal Circuit and Family Court of
+  // Australia Act 2021 (Cth) No 12 of 2021, merging the Family Court and the
+  // Federal Circuit Court into a single court with two divisions:
+  //   Division 1 continues the former Family Court of Australia (FamCA/FamCAFC);
+  //   Division 2 continues the former Federal Circuit Court (FCCA).
+  // NZLII/AustLII neutral-citation codes: FedCFamC1A (Div 1 Appellate),
+  // FedCFamC1F (Div 1 first instance), FedCFamC2F (Div 2 Family Law),
+  // FedCFamC2G (Div 2 General Federal Law).
+  {
+    code: "FedCFamC1A",
+    fullName:
+      "Federal Circuit and Family Court of Australia (Division 1, Appellate Jurisdiction)",
+    jurisdiction: "CTH",
+    level: "federal",
+    mncFrom: 2021,
+    commencedOn: "2021-09-01",
+    succeeds: "FamCAFC",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+  },
+  {
+    code: "FedCFamC1F",
+    fullName:
+      "Federal Circuit and Family Court of Australia (Division 1, First Instance)",
+    jurisdiction: "CTH",
+    level: "federal",
+    mncFrom: 2021,
+    commencedOn: "2021-09-01",
+    succeeds: "FamCA",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+  },
+  {
+    code: "FedCFamC2F",
+    fullName:
+      "Federal Circuit and Family Court of Australia (Division 2, Family Law)",
+    jurisdiction: "CTH",
+    level: "federal",
+    mncFrom: 2021,
+    commencedOn: "2021-09-01",
+    succeeds: "FCCA",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+  },
+  {
+    code: "FedCFamC2G",
+    fullName:
+      "Federal Circuit and Family Court of Australia (Division 2, General Federal Law)",
+    jurisdiction: "CTH",
+    level: "federal",
+    mncFrom: 2021,
+    commencedOn: "2021-09-01",
+    succeeds: "FCCA",
+    enablingAct:
+      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
 
   // New South Wales
@@ -279,16 +387,54 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
 
   // Tribunals — Federal
   {
+    // Superseded by the Administrative Review Tribunal (ART) on 14 Oct 2024.
     code: "AAT",
     fullName: "Administrative Appeals Tribunal",
     jurisdiction: "CTH",
     level: "tribunal",
+    endedOn: "2024-10-14",
+    succeededBy: "ARTA",
+    enablingAct: "Administrative Review Tribunal Act 2024 (Cth) No 40 of 2024",
   },
   {
+    // AATA is the medium neutral citation identifier for the Administrative
+    // Appeals Tribunal. The tribunal was abolished and replaced by the
+    // Administrative Review Tribunal on 14 Oct 2024 (AAT Act 1975 (Cth)
+    // repealed by the transitional Acts No 38 and No 39 of 2024). Legacy AATA
+    // identifiers persist for pre-14-Oct-2024 decisions; ARTA is used
+    // thereafter.
     code: "AATA",
     fullName: "Administrative Appeals Tribunal of Australia",
     jurisdiction: "CTH",
     level: "tribunal",
+    endedOn: "2024-10-14",
+    succeededBy: "ARTA",
+    enablingAct: "Administrative Review Tribunal Act 2024 (Cth) No 40 of 2024",
+  },
+  {
+    // Administrative Review Tribunal — replaced the AAT on 14 Oct 2024 under
+    // the Administrative Review Tribunal Act 2024 (Cth) No 40 of 2024
+    // (transitional Acts No 38 and No 39 of 2024). ART/ARTA identifiers apply
+    // to decisions from 14 Oct 2024; pre-commencement decisions keep AATA.
+    code: "ARTA",
+    fullName: "Administrative Review Tribunal of Australia",
+    jurisdiction: "CTH",
+    level: "tribunal",
+    mncFrom: 2024,
+    commencedOn: "2024-10-14",
+    succeeds: "AATA",
+    enablingAct: "Administrative Review Tribunal Act 2024 (Cth) No 40 of 2024",
+  },
+  {
+    // Short form of the Administrative Review Tribunal identifier.
+    code: "ART",
+    fullName: "Administrative Review Tribunal",
+    jurisdiction: "CTH",
+    level: "tribunal",
+    mncFrom: 2024,
+    commencedOn: "2024-10-14",
+    succeeds: "AAT",
+    enablingAct: "Administrative Review Tribunal Act 2024 (Cth) No 40 of 2024",
   },
   { code: "FWC", fullName: "Fair Work Commission", jurisdiction: "CTH", level: "tribunal" },
 
@@ -324,10 +470,17 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     level: "tribunal",
   },
   {
+    // Commenced 5 Nov 2021, consolidating nine Tasmanian tribunals, under the
+    // Tasmanian Civil and Administrative Tribunal Act 2020 (Tas) No 24 of 2020
+    // (establishment day deferred by proclamation).
     code: "TASCAT",
     fullName: "Tasmanian Civil and Administrative Tribunal",
     jurisdiction: "TAS",
     level: "tribunal",
+    mncFrom: 2021,
+    commencedOn: "2021-11-05",
+    enablingAct:
+      "Tasmanian Civil and Administrative Tribunal Act 2020 (Tas) No 24 of 2020",
   },
   {
     code: "ACAT",
@@ -629,6 +782,39 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     fullName: "Western Australia State Administrative Tribunal",
     jurisdiction: "WA",
     level: "tribunal",
+  },
+
+  // =========================================================================
+  // POST-2018 MACHINERY-OF-GOVERNMENT SUCCESSION (official-record data;
+  // AGLC5 feedback-package Part B.2). Each row carries its enabling-Act
+  // citation and commencement/cessation date so legacy citations stay
+  // unambiguous across the change. Not experimental — official record.
+  // =========================================================================
+  {
+    // Personal Injury Commission (NSW) — commenced 1 Mar 2021, absorbing the
+    // Workers Compensation Commission and motor-accident dispute functions,
+    // under the Personal Injury Commission Act 2020 (NSW) No 18 of 2020.
+    code: "NSWPIC",
+    fullName: "Personal Injury Commission of New South Wales",
+    jurisdiction: "NSW",
+    level: "tribunal",
+    mncFrom: 2021,
+    commencedOn: "2021-03-01",
+    enablingAct: "Personal Injury Commission Act 2020 (NSW) No 18 of 2020",
+  },
+  {
+    // Victims of Crime Assistance Tribunal (Vic) — its authorship ended on
+    // 18 Nov 2024, when victim financial assistance moved to an administrative
+    // Financial Assistance Scheme under the Victims of Crime (Financial
+    // Assistance Scheme) Act 2022 (Vic) No 21 of 2022. Retained for pre-2024
+    // decisions; VOCAT ceases as an institutional author from 18 Nov 2024.
+    code: "VOCAT",
+    fullName: "Victims of Crime Assistance Tribunal",
+    jurisdiction: "VIC",
+    level: "tribunal",
+    endedOn: "2024-11-18",
+    enablingAct:
+      "Victims of Crime (Financial Assistance Scheme) Act 2022 (Vic) No 21 of 2022",
   },
 ];
 
