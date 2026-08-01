@@ -1520,6 +1520,39 @@ AGLC5 confirmed in-progress-but-unpublished (MULR+MJIL); DECISION-033 RESOLVED (
 link/date/clause corrections applied); DECISION-035 opened (rule 14.3.2 ECtHR); CRIT-DEEP confirmed
 the engine is already correct on all eight re-checked rules. Feeds the LETTER epic (`website/aglc5.html`).
 
+### EPIC: AGLC5X — AGLC5 Feedback Package: docs, website, letter & experimental features (seeded 2026-08-01)
+Backlog: `../footnote-backlog.md` (EPIC: AGLC5X). Source: `../aglc5-feedback-package.md` (CRIT-005
+outcomes). Turns the package's Parts D/E/F into stories. **Labelling principle:** every item beyond
+official AGLC4 (all EXP-*) ships badged **"Experimental · pending AGLC5 (not an official AGLC4
+form)"**; court-mode items labelled practice-direction-sourced; only DATA-* rows are official record.
+`A5-LABEL` is a hard prerequisite for all EXP-* stories. Seeded; not started.
+
+| ID | Stream | Title | Type | Deps | Status |
+|----|--------|-------|------|------|--------|
+| A5-LETTER | Letter | Revise + publish the AGLC5 open letter (Part A.2) | DOCS | — | TODO (owner sign-off on Editor Notes 1–4) |
+| A5-WEB-1 | Website | Merge revised letter into aglc5.html + redeploy | FEATURE | A5-LETTER | TODO |
+| A5-WEB-2 | Website | Stale-claim sweep (2,000→~3,300) + experimental hygiene | DOCS | — | TODO |
+| A5-DOC-1 | Docs | Close DECISION-022 + 035; NZ dual-year table | DOCS | — | TODO |
+| A5-DOC-2 | Docs | aglc4-audit hygiene + experimental-count separation | DOCS | A5-LABEL | TODO |
+| A5-DOC-3 | Docs | court-practices-review 2026-07 AI-instrument addendum | DOCS | — | TODO |
+| A5-DOC-4 | Docs | modern-sources / peer-standards / extensions refresh | DOCS | — | TODO |
+| A5-LABEL | Label | Experimental labelling policy + data-driven badge (**prerequisite**) | FEATURE | — | TODO |
+| A5-DATA-1 | Data | Institutional-succession rows (official record) | FEATURE | — | TODO |
+| A5-DATA-2 | Data | NZ dual-year reference metadata | FEATURE | A5-DOC-1 | TODO |
+| A5-CM-1 | Court mode | Jurisdiction-keyed AI-use reminder (two families) | FEATURE | A5-DOC-3 | TODO |
+| A5-CM-2 | Court mode | Preset sign-off changes (parallel "preferred", NSW→SC CA 1) | FEATURE | — | TODO (owner sign-off) |
+| A5-CM-3 | Court mode | Victoria AI-guidance supersession (PN SC Gen 25) | FEATURE | A5-DOC-3 | TODO |
+| A5-EXP-1 | Experimental | genai_output v2 (model/version/custody/archive) | FEATURE | A5-LABEL | TODO (P0) |
+| A5-EXP-2 | Experimental | dataset source type | FEATURE | A5-LABEL | TODO (P1) |
+| A5-EXP-3 | Experimental | software / code source type | FEATURE | A5-LABEL | TODO (P1) |
+| A5-EXP-4 | Experimental | archived-web fields on internet_material | FEATURE | A5-LABEL | TODO (P1) |
+| A5-EXP-5 | Experimental | AI-layer marker preset (optional) | FEATURE | A5-LABEL | TODO (P2) |
+| A5-WS-1 | Ops | AGLC5 publication-day runbook + monitoring cadence | OPS | — | TODO |
+
+Suggested sequencing (package Part E): (1) letter editor notes → publish; (2) DATA + doc updates
+(zero behaviour risk); (3) CM-1/CM-3 court-mode data; (4) CM-2 on sign-off; (5) A5-LABEL → EXP-1;
+(6) EXP-2/3/4; (7) EXP-5 if wanted.
+
 ### v1.16.0 DEPLOYED TO PRODUCTION (2026-07-22)
 Committed, tagged `v1.16.0`, pushed, and **deployed live** to obiter.com.au: server (accounts
 backend, secrets `AUTH_TOKEN_SECRET`/`AUDIT_IP_SALT`/`VAULT_MASTER_KEY`/`NODE_ENV=production`
