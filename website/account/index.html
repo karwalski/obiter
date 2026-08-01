@@ -19,8 +19,19 @@
     .acct-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--colour-border); }
     .acct-key { font-family: ui-monospace, Menlo, monospace; }
     .acct-danger { color: #c62828; }
-    .acct-btn-sm { padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--colour-border); background: transparent; font-size: 0.875rem; }
-    .acct-btn-danger { border-color: #c62828; color: #c62828; }
+    /* Ghost buttons must take the theme's ink colour — a bare <button> defaults
+       to a dark browser colour, which is invisible on the dark-mode surface. */
+    .acct-btn-sm { padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--colour-border); background: var(--colour-bg); color: var(--colour-ink); font-size: 0.875rem; }
+    .acct-btn-sm:hover { background: var(--colour-surface); }
+    .acct-btn-danger, .acct-btn-danger:hover { border-color: #c62828; color: #c62828; background: transparent; }
+    /* account.css styles .account-field input; the provider <select> needs the same. */
+    .account-field select {
+      display: block; width: 100%; margin-top: var(--space-xs);
+      padding: 0.5rem 0.625rem; font: inherit; font-weight: 400;
+      color: var(--colour-ink); background: var(--colour-bg);
+      border: 1px solid var(--colour-border); border-radius: var(--radius-sm);
+    }
+    .account-field select:focus { outline: 2px solid var(--colour-accent); outline-offset: 1px; }
     .acct-code-list { font-family: ui-monospace, Menlo, monospace; columns: 2; list-style: none; padding: 12px; background: var(--colour-surface, #f4f5f7); border-radius: var(--radius-sm); }
     #mfa-qr { display:block; border:1px solid var(--colour-border); border-radius: var(--radius-sm); background:#fff; }
   </style>
