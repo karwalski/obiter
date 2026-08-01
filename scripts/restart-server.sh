@@ -4,16 +4,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_deploy-env.sh"
 
-# Kill any stale node AND any dead/orphan screen session named obiter, then
-# start detached with exec (so signals reach node) and a logfile (a detached
-# screen with no output sink was dropping the process — left production down).
-ssh -i "$SSH_KEY" "$SSH_TARGET" '
-  pkill -f "node.*index.js" 2>/dev/null
-  screen -S obiter -X quit 2>/dev/null
-  sleep 1
-  cd /var/www/obiter/server
-  screen -dmS obiter bash -c "source /etc/obiter/env.sh && exec node index.js >> /var/www/obiter/server/server.log 2>&1"
-'
+# The server runs as the `obiter` systemd service (/etc/systemd/system/
+# obiter.service) — it survives logout/reboot and auto-restarts on crash.
+# (The old screen/nohup approach was reaped by systemd-logind on SSH logout and
+# repeatedly left production down; systemctl is the reliable path.)
+# Logs: `journalctl -u obiter`.
+ssh -i "$SSH_KEY" "$SSH_TARGET" 'sudo systemctl restart obiter'
 sleep 3
 # Verify the process is actually up; fail loudly if not (do not report success blindly).
 STATUS=$(ssh -i "$SSH_KEY" "$SSH_TARGET" 'curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/api/signatures')
