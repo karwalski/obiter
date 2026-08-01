@@ -405,7 +405,7 @@
 | AUDIT-CH15-26 | Chapters 15-26 Foreign — audit, test, fix | FEATURE | DONE |
 | AUDIT-A11Y | Heading numbering + Accessibility (WCAG 2.1 AA) | FEATURE | DONE |
 
-Audit results: 2,000+ tests across the engine, Word layer, API, and UI suites. See `docs/aglc4-audit.md` for full section-by-section status.
+Audit results: around 3,300 rule-pinned tests across the engine, Word layer, API, and UI suites. See `docs/aglc4-audit.md` for full section-by-section status.
 
 ---
 

@@ -13,8 +13,10 @@
 
 > **Transcription / accuracy note.** No verbatim AGLC4 text. Institutional dates and
 > external facts in §5 are cross-checked against the deep-research report
-> `docs/aglc5-and-peer-standards-research.md` (CRIT-003); any item still awaiting that
-> confirmation is marked *(verify: CRIT-003)*.
+> `docs/aglc5-and-peer-standards-research.md` (CRIT-003) and the CRIT-005 P0/P1 research
+> outcomes (`../aglc5-feedback-package.md` Parts B.2/B.3, verified July 2026), which now
+> supply official citations for every §5 institution and the national court AI-instrument
+> list; the earlier *(verify: CRIT-003)* placeholders have been satisfied and removed.
 
 ---
 
@@ -39,14 +41,24 @@ to rule 7.12 written correspondence, per MULR/library guidance — see
 `docs/obiter-extensions.md` and CRIT-003 §2 for the interim-guidance ecosystem).
 
 ### 2.1 Generative-AI output (chat/completion)
-- **Elements:** Tool/platform name · model name and version · nature of interaction
-  (prompt/conversation) · date of output · custodian of the transcript (usually "the
-  author") · optional archived-transcript URL/identifier.
+- **EXP-1 element set (`genai_output` v2).** The confirmed OSCOLA 5 r 3.7.13 precedent
+  (CRIT-005 Part B.4) and the MULR LibGuide rule-7.12 analogy fix the element list as:
+  1. **Tool / platform name** (eg ChatGPT, Claude, Gemini)
+  2. **Developer** (the developing organisation, eg OpenAI, Anthropic, Google)
+  3. **Model name + version** (eg GPT-5, Claude Opus 4.8)
+  4. **Generation date** (date of output)
+  5. **Transcript custody** statement (custodian of the transcript — usually "the author")
+  6. **Optional archived-transcript URL / identifier** (where the transcript is preserved)
+
+  This keeps the rule-7.12 written-correspondence *shape* while adding the model-version,
+  transcript-custody, and optional-archive elements OSCOLA 5 r 3.7.13 introduced.
 - **Worked example:** `Conversation with ChatGPT (GPT-5, OpenAI), 7 July 2026 (transcript
   held by the author)`.
-- **Recommendation:** **Interim-support (shipped).** Keep the rule-7.12 analogy but add
-  model-version and transcript-custody elements; migrate to the AGLC5 rule when
-  published.
+- **Recommendation:** **Interim-support (shipped; EXP-1, P0).** Keep the rule-7.12 analogy
+  but add the model-version, transcript-custody, and optional archived-transcript elements
+  above; badge as "Experimental · pending AGLC5 (not an official AGLC4 form)"; migrate to the
+  AGLC5 rule when published. Registered per the D.1 labelling policy in
+  `docs/obiter-extensions.md`.
 
 ### 2.2 AI-generated summaries / translations layered over a primary source
 - **Elements:** underlying primary source (cited normally) · a bracketed tag noting AI
@@ -64,12 +76,18 @@ to rule 7.12 written correspondence, per MULR/library guidance — see
   own words with a session note; no new type needed short-term.
 
 ### 2.4 AI-use disclosure in filed documents
-- **Note (not a citation type):** several Australian courts issued practice notes on AI
-  use in litigation (2023–2025) *(verify current list: CRIT-003 §2)*. This belongs in
-  **court mode** as a disclosure reminder, not the academic citation engine — link from
-  `docs/court-practices-review.md`.
-- **Recommendation:** **Interim-support** as a court-mode reminder once the practice-note
-  list is confirmed by CRIT-003 / CRIT-004.
+- **Note (not a citation type):** many Australian courts have issued practice instruments on
+  AI use in litigation (late 2024 – mid 2026). The national list is now **confirmed** and
+  classified into two instrument families in `docs/court-practices-review.md` §5 (CRIT-005
+  Part B.3): **Family 1 (accuracy/verification)** — Qld SC PD 5/2025, District Court PD
+  12/2025, P&E Court PD 7/2025, QCAT PD 10/2025, SA SC guidelines; **Family 2 (disclosure +
+  restriction)** — NSW PN SC Gen 23 (+ UCPR Amendment No 104 of 2025), Vic PN SC Gen 25
+  (14 May 2026, superseding the May 2024 guidelines; County Court 2024 still current), FCA
+  GPN-AI, FCFCOA PD-AI, WA SC guidelines. This belongs in **court mode** as a disclosure /
+  verification reminder, not the academic citation engine.
+- **Recommendation:** **Interim-support** — implemented as the court-mode **CM-1** reminder
+  (jurisdiction-keyed, two families per the confirmed list above). Status: **confirmed list**;
+  see `docs/court-practices-review.md` §5.
 
 ---
 
@@ -114,16 +132,22 @@ to rule 7.12 written correspondence, per MULR/library guidance — see
 ## 5. New institutions since 2018
 
 These change court-identifier lists, report series, and citation forms. The commencement
-dates below are matters of public record; each should carry an official citation (to the
-enabling Act or the court/tribunal's own site) before this document is published.
+dates and enabling instruments below are now **confirmed** against official sources
+(CRIT-005 Part B.2, verified July 2026, [high] unless noted); each row carries its enabling
+Act citation.
 
-| Institution | Change | Citation impact | Status |
+| Institution | Commenced | Enabling instrument | Citation impact |
 |---|---|---|---|
-| **Federal Circuit and Family Court of Australia (FCFCOA)** | Commenced 1 September 2021 (merged the Federal Circuit Court and Family Court of Australia) | New court identifiers; legacy FamCA/FCCA citations remain for pre-2021 matters | Public record; cite enabling Act |
-| **Administrative Review Tribunal (ART)** | Commenced 14 October 2024, replacing the Administrative Appeals Tribunal (AAT) | New identifier; guidance needed on citing legacy AAT decisions going forward | Public record; cite enabling Act |
-| **National Anti-Corruption Commission (NACC)** | Commenced 1 July 2023 | New institutional author for reports/findings | Public record; cite enabling Act |
-| **Queensland Reports abbreviation change** | "Qd R" → "QR" from April 2020 | Report-series abbreviation split by date (already handled — DECISION-031) | Confirmed (Appendix A) |
-| **State/territory tribunal renamings/reconstitutions** | Various since 2018 | Identifier-list refresh | Needs a dated sweep before publication |
+| **Federal Circuit and Family Court of Australia (FCFCOA)** (two divisions; Div 1 continues the Family Court, Div 2 the Federal Circuit Court) | 1 September 2021 | *Federal Circuit and Family Court of Australia Act 2021* (Cth), No 12 of 2021 | New court identifiers; legacy FamCA/FCCA citations remain for pre-2021 matters |
+| **Administrative Review Tribunal (ART)** (replaces AAT) | 14 October 2024 | *Administrative Review Tribunal Act 2024* (Cth), No 40 of 2024 (transitional: No 38, No 39 of 2024; AAT Act 1975 repealed) | New identifier (ARTA); legacy AATA identifiers persist for pre-commencement decisions [medium on identifier mechanics] |
+| **National Anti-Corruption Commission (NACC)** (replaces ACLEI) | 1 July 2023 | *National Anti-Corruption Commission Act 2022* (Cth), No 88 of 2022 (+ No 89 of 2022) | New institutional author for reports/findings |
+| **Personal Injury Commission (PIC)** (NSW; absorbs the Workers Compensation Commission + motor-accident dispute functions) | 1 March 2021 | *Personal Injury Commission Act 2020* (NSW), No 18 of 2020 | New NSW institutional author/identifier |
+| **TASCAT** (consolidates nine Tasmanian tribunals) | 5 November 2021 | *Tasmanian Civil and Administrative Tribunal Act 2020* (Tas), No 24 of 2020 (establishment day deferred by proclamation; corroborated by TASCAT Annual Report 2021–22) | New Tas tribunal identifier; nine legacy tribunal identifiers end-dated |
+| **VOCAT → Financial Assistance Scheme** (Vic; administrative scheme — VOCAT ceases as institutional author) | 18 November 2024 | *Victims of Crime (Financial Assistance Scheme) Act 2022* (Vic), No 21 of 2022 | VOCAT authorship end-dated 18 Nov 2024; the Scheme is administrative, not a tribunal |
+| **Queensland Reports abbreviation change** | From 27 March 2020 | New series abbreviation **QR** (ICLRQ), round-bracket year of judgment delivery | Report-series abbreviation split by date (already handled — DECISION-031); confirmed against Appendix A |
+
+Rule-outs (no change since 2018): SAET/SAEC changes pre-date 2018 (SAEC from 1 July 2017);
+WA SAT, QCAT, ACAT, NTCAT unchanged in name/code ([medium], absence-of-evidence).
 
 - **Recommendation:** **Interim-support** — refresh Obiter's court-identifier and
   institutional-author lists now (data-only changes, low risk), and propose AGLC5 add a

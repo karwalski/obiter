@@ -40,10 +40,8 @@
   <header class="page-header">
     <div class="container">
       <h1>Supporting AGLC5 Adoption</h1>
-      <p>
-        An open letter requesting collaboration between the AGLC5 Committee
-        and the Obiter project to ensure citation tooling is ready from day one.
-      </p>
+      <p class="letter__standfirst"><em>An open letter to the AGLC5 Committee: evidence from a complete AGLC4 implementation, an offer of collaboration, and a proposal for licensing the fifth edition for the digital age.</em></p>
+      <p class="letter__dateline">Revised August 2026 &middot; <a href="aglc5-letter-original.html">read the original letter (April 2026)</a></p>
     </div>
   </header>
 
@@ -65,271 +63,335 @@
 
         <div class="letter__body">
 
-          <!-- The gap between standards and tools -->
-
           <p>
             Citation standards and citation tools have historically been developed
-            independently. A guide is published; tool authors then reverse-engineer
-            the rules into software; researchers wait &mdash; sometimes years &mdash;
-            for their tools to catch up. With each new edition the gap widens, because
-            the rules grow more nuanced while the tools' data models stay the same.
-            The demand for better tooling is real: two independent AGLC4 patches,
-            both generated with the assistance of generative AI, are currently
+            independently. A guide is published; tool authors then reverse-engineer the
+            rules into software; researchers wait, sometimes years, for their tools to
+            catch up. With each edition the gap widens, because the rules grow more
+            nuanced while the tools&rsquo; data models stay the same. The demand is real:
+            two independent AGLC4 patches, both generated with the assistance of
+            generative AI, are currently
             <a href="https://github.com/LawData-user/zotero-aglc4" target="_blank" rel="noopener noreferrer">hosted on GitHub</a>
-            and being used by Australian legal researchers &mdash; not because existing
-            tools are poorly made, but because the distance between what the AGLC
-            requires and what any tool can produce without guidance from the standard's
-            authors is too great for the community to bridge alone. The
-            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">forthcoming fifth edition</a>
-            has an opportunity to close that gap by involving tool implementers
-            during drafting.
+            and in use by Australian legal researchers. That is not because existing tools
+            are poorly made, but because the distance between what the AGLC requires and
+            what any tool can produce without guidance from the standard&rsquo;s authors
+            is too great for the community to bridge alone.
           </p>
-
-          <!-- Who I am -->
 
           <p>
             <a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">Obiter</a>
-            is a free, open-source Microsoft Word add-in that implements the full
-            AGLC4 specification across all 26 chapters. Building it rule by rule has
-            given me a detailed understanding of where citation logic is clear enough
-            to automate confidently and where ambiguity forces tool authors to guess.
-            That experience is what motivates this letter: I believe it would be
-            useful to the Committee, and I would like to offer it.
+            is a free, open-source Microsoft Word add-in that implements the full AGLC4
+            specification across all 26 chapters: 77 source types, a 302-item
+            chapter-by-chapter conformance audit, and around 3,300 unit tests, each pinned
+            to a specific rule or worked example. Building it rule by rule is the strictest
+            reading a text can receive: every ambiguity becomes a forced decision, and
+            every decision is recorded. This letter shares what that process found, engages
+            with the Committee&rsquo;s announced themes, and makes one further proposal about
+            how the fifth edition is published and licensed. I note the Committee&rsquo;s
+            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">website</a>
+            records that consultations ran across 2023 to 2026 and that it is now considering
+            the outcomes; this letter is offered as correspondence in that spirit, in the hope
+            the material below is useful while drafting decisions are still open.
           </p>
 
-          <!-- The opportunity -->
+          <h3>What a Complete Implementation Revealed</h3>
+
+          <p>
+            Implementing a standard mechanically is a form of quality assurance no
+            proofread can match, and it is offered here in that spirit. AGLC4 is a mature
+            and widely adopted standard; its defects are not fatal. But they are numerous,
+            and their shape is systematic. The
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc4-critique.md" target="_blank" rel="noopener noreferrer">consolidated catalogue</a>,
+            published in the Obiter repository in paraphrased form with pinpoint references
+            out of respect for the Review&rsquo;s copyright, records:
+          </p>
+
+          <ul class="letter__list">
+            <li>
+              Roughly 78 anomalies in the worked examples, the guide&rsquo;s weakest
+              surface: examples that contradict their own rule or table, factual slips
+              (wrong weekdays for stated dates, a misspelled translator, a 1949&ndash;1949
+              year span, duplicated proceeding numbers), and cross-references that point at
+              the wrong rule. Around 30 are confirmably wrong against the corrected
+              printings, and about 29 are self-contradictions in which the guide disagrees
+              with itself.
+            </li>
+            <li>
+              Eight rules that cannot be applied mechanically as written. The most striking:
+              rule 1.8.3 makes italicisation of foreign terms turn on membership of the
+              latest Macquarie Dictionary, a proprietary, paywalled work with no edition
+              named, so the test cannot be authoritatively performed by anyone; and rule 4.2
+              requires italics inside title strings that no plain citation data model can
+              represent.
+            </li>
+            <li>
+              At least 19 under-specifications where a rule exists only as a single
+              illustration or an undefined category (&ldquo;non-numeric issue&rdquo;,
+              &ldquo;named lecture&rdquo;, &ldquo;revised edition&rdquo;), or is buried in a
+              prose note, each forcing implementers into silent judgment calls that will
+              differ from tool to tool.
+            </li>
+            <li>
+              Forty-five inconsistencies across the appendices, including authorised-report
+              markers that conflict with the rule chapters, an undefined marker legend, and
+              single abbreviations that each denote several distinct report series.
+            </li>
+            <li>
+              Small self-application gaps that illustrate the pattern: the guide bans spaced
+              em-dashes in citations while using them in its own Part headings, and one
+              journal-title example converts an ampersand that the governing rule says to
+              reproduce.
+            </li>
+          </ul>
+
+          <p>
+            None of this is unusual for a work of this complexity; the 17-page erratum
+            published within nine months of AGLC4&rsquo;s release shows the editors already
+            correct at scale. The point is that mechanical testing during drafting, something
+            tool implementers do as a matter of course, would catch most of this before
+            publication rather than after. The full catalogue, together with every
+            implementation decision it forced, is public and offered to the Committee as
+            input.
+          </p>
 
           <h3>The Opportunity</h3>
 
           <p>
-            Since its first edition in 1998, the <em>Australian Guide to Legal
-            Citation</em> has provided the consistency and rigour that Australian
-            legal scholarship depends on. Earlier editions did not fail &mdash; they
-            simply predated the tooling ecosystem that exists today. AGLC5 can be
-            the first edition designed with implementability as a drafting
-            consideration, because the tools and their user base have matured to a
-            point where the collaboration is now practical and worthwhile.
-          </p>
-
-          <p>
-            OSCOLA&rsquo;s fifth edition (March 2026) and New&nbsp;Zealand&rsquo;s
-            NZLSG reflect an increasing awareness among citation standard authors
-            that implementability matters. The opportunity exists for AGLC5 to go
-            further &mdash; and to set the benchmark.
-          </p>
-
-          <p>
-            Three areas illustrate what that collaboration could look like for
-            AGLC5:
+            Since its first edition in 1998, the <em>Australian Guide to Legal Citation</em>
+            has provided the consistency and rigour that Australian legal scholarship depends
+            on. Earlier editions did not fail; they simply predated the tooling ecosystem
+            that exists today. AGLC5 can be the first edition designed with implementability
+            as a drafting consideration. Three areas illustrate what that collaboration could
+            look like:
           </p>
 
           <ul class="letter__list">
             <li>
               <strong>Generative AI citation.</strong>
-              AGLC4 predates ChatGPT and contains no rule for generative AI outputs.
-              The Melbourne University Law Review editors issued interim guidance
-              advising researchers to cite AI outputs broadly following Rule 7.12
-              (written correspondence), and every major Australian university law
-              library has since propagated that workaround through their LibGuides.
-              No citation tool can emit a correct GenAI citation today because no rule
-              authorises one. If AGLC5 introduces a GenAI rule &mdash; as the
-              Committee's &ldquo;digital age&rdquo; theme suggests it may &mdash;
-              early consultation with tool authors would ensure that working software
-              support is available from day one rather than years later.
+              AGLC4 predates ChatGPT and contains no rule for AI output. The Review&rsquo;s
+              editors issued interim guidance citing AI output broadly following rule 7.12
+              (written correspondence), and every major Australian university law library has
+              propagated that workaround. No citation tool can emit a correct GenAI citation
+              today because no rule authorises one.
             </li>
             <li>
               <strong>Subsequent references.</strong>
-              The <em>(n X)</em> cross-reference system introduced in AGLC4 is one of
-              the most common citation patterns researchers encounter, and it has
-              proven to be among the most difficult to automate reliably. The AGLC4
-              preface acknowledges the system is &ldquo;facultative rather than
-              mandatory,&rdquo; but the rules do not specify a computable criterion
-              for when short titles should appear or how tools should distinguish
-              short titles for whole Acts from short titles for portions of Acts
-              (Rule 3.1.7). If AGLC5 revisits subsequent references &mdash; as the
-              &ldquo;simplification&rdquo; theme invites &mdash; tool implementers
-              could help identify formulations that are both editorially sound and
-              reliably automatable.
+              The above-n cross-reference system is among the most common patterns
+              researchers use and among the hardest to automate reliably, because the rules
+              do not specify a computable criterion for when short titles should appear or how
+              short titles for whole Acts differ from those for portions of Acts.
             </li>
             <li>
               <strong>International materials.</strong>
-              The international materials chapters (Rules 8&ndash;14) &mdash;
-              treaties, UN documents, ICJ decisions, international arbitration, and
-              supranational materials &mdash; have never been fully implemented in
-              any citation tool. The data models that tools use to store citation
-              metadata do not have fields that map naturally to these material types.
-              If the Committee's goal of making AGLC5 more comprehensive includes
-              strengthening this chapter, early dialogue with tool authors about
-              metadata representation would help ensure that comprehensiveness in the
-              guide translates to comprehensiveness in practice.
+              The international chapters (rules 8 to 14) have never been fully implemented in
+              any citation tool, because standard metadata models have no natural fields for
+              these material types. Comprehensiveness in the guide only reaches researchers if
+              it can be represented in software.
             </li>
           </ul>
+
+          <h3>Evidence from the Digital Age</h3>
+
+          <p>
+            Since AGLC4 was finalised in 2018, every peer standard with a recent edition has
+            taken a position on generative AI, and Australian courts have built an entire
+            regulatory layer around it. Both developments point to the same design.
+          </p>
+
+          <p>
+            <em>Peer standards.</em> OSCOLA&rsquo;s fifth edition (published March 2026) adds
+            a generative-AI rule, 3.7.13, citing the tool as author with the prompt,
+            developer, and generation date, and reinstates a substantially revised public
+            international law section. The Bluebook&rsquo;s 22nd edition (May 2025) introduced
+            rule 18.3 for AI content and promptly drew published criticism from scholars and
+            practitioners for over-engineering: for imposing screenshot-preservation burdens,
+            sitting awkwardly with confidentiality and work-product obligations, and treating
+            a research tool as a citable authority. The emerging consensus of that criticism,
+            &ldquo;disclose, don&rsquo;t cite&rdquo;, matches the pattern in APA, MLA, Chicago,
+            and the ICMJE: reuse an existing template with a source-type descriptor for the
+            rare case where AI output is itself the object of discussion, and handle routine
+            AI assistance through a separate disclosure track. Canada shows the cost of
+            standing still: the McGill Guide&rsquo;s tenth edition (2023) has no GenAI rule,
+            and a community standard, the Canadian Open Access Legal Citation Guide, now
+            supplies the format the incumbent lacks.
+          </p>
+
+          <p>
+            <em>Australian courts.</em> Between late 2024 and mid 2026, the courts constructed
+            the disclosure-and-verification layer themselves: the Supreme Court of NSW&rsquo;s
+            Practice Note SC Gen 23 (commenced February 2025, with parallel notes across the
+            NSW District Court, Local Court, NCAT and the Personal Injury Commission),
+            Victoria&rsquo;s Practice Note SC Gen 25 (May 2026, replacing the 2024 guidelines),
+            Queensland&rsquo;s accuracy directions requiring a named practitioner to verify
+            every cited authority (September 2025, mirrored in the District Court, Planning and
+            Environment Court, and QCAT), the Federal Court&rsquo;s GPN-AI (April 2026), and
+            equivalents in the FCFCOA, South Australia and Western Australia. The lesson for an
+            academic citation guide is clean: courts now govern <em>disclosure of AI
+            assistance</em>; AGLC5&rsquo;s job is <em>citation of AI output</em>, and conflating
+            the two, as the Bluebook did, is the documented failure mode to avoid.
+          </p>
+
+          <p>
+            <em>Institutional currency.</em> The guide&rsquo;s institutional data has also
+            aged. Since 2018: the Federal Circuit and Family Court of Australia commenced
+            1 September 2021 (Act No 12 of 2021); the Administrative Review Tribunal replaced
+            the AAT on 14 October 2024 (Act No 40 of 2024); the National Anti-Corruption
+            Commission commenced 1 July 2023 (Act No 88 of 2022); the NSW Personal Injury
+            Commission commenced 1 March 2021; TASCAT consolidated nine Tasmanian tribunals on
+            5 November 2021; and the Queensland Reports abbreviation changed from Qd R to QR in
+            March 2020, a change the current appendix records but the rule chapter does not.
+            AGLC5 could resolve this class of problem permanently with a dated
+            institutional-succession appendix, so that legacy citations remain unambiguous
+            every time the machinery of government changes.
+          </p>
 
           <h3>The Six AGLC5 Themes</h3>
 
           <p>
-            The AGLC5 Committee has announced
-            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">six consultation themes</a>.
-            Each intersects with implementability in ways where tool authors could
-            contribute constructively:
+            Each of the Committee&rsquo;s
+            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">announced themes</a>
+            intersects with implementability: comprehensiveness only reaches researchers when
+            tools can represent the new material types; structural clarity directly determines
+            whether rules can be encoded as deterministic logic; simplification helps human
+            users and software equally, with the subsequent-reference system the clearest
+            candidate; First Nations citation involves controlled vocabularies whose data model
+            must preserve names across languages and scripts with the care they deserve; the
+            digital-age theme is the natural home for the GenAI rule, archived-URL and
+            preservation metadata, and dataset and software types; and because sample citations
+            are the test corpus tool authors build against, inclusive and accurate examples
+            carry normative weight in software from day one.
           </p>
 
-          <ol class="letter__list">
-            <li>
-              <strong>Making the AGLC more comprehensive.</strong>
-              New material types are only truly comprehensive when the tools researchers
-              use can represent and format them. Early review of proposed rules against
-              existing metadata models would identify gaps before publication.
-            </li>
-            <li>
-              <strong>Improving the structure of the AGLC.</strong>
-              Structural clarity in the guide directly determines whether rules can be
-              encoded as deterministic logic. Restructuring with tool implementers in
-              the room would surface ambiguities &mdash; such as fields that must carry
-              two distinct meanings &mdash; before they become implementation problems.
-            </li>
-            <li>
-              <strong>Simplifying the AGLC and improving its usability.</strong>
-              Rules that are simpler for human users are almost always simpler to
-              automate. Simplification of the subsequent-reference system, for example,
-              would benefit researchers and software simultaneously.
-            </li>
-            <li>
-              <strong>Citing First Nations materials and making space for the
-              decolonisation of legal scholarship.</strong>
-              Any rule involving a controlled vocabulary &mdash; language names,
-              Country names, community self-identifications &mdash; has implications
-              for how tools represent and preserve metadata across languages and
-              scripts. Getting the data model right from the start is essential to
-              ensuring these citations are handled with the care and accuracy they
-              deserve.
-            </li>
-            <li>
-              <strong>Updating rules on internet materials and moving the AGLC into
-              the digital age.</strong>
-              This theme is the natural entry point for a generative AI citation rule,
-              for social media formats, and for preservation-oriented metadata such as
-              content hashes and archived URLs. Tool authors can help ensure new digital
-              rules are automatable from day one.
-            </li>
-            <li>
-              <strong>Using gender-inclusive and culturally-sensitive language and
-              examples.</strong>
-              Citation tools render the examples the guide provides. If sample citations
-              are the test corpus that tool authors build against, the examples carry
-              normative weight in software. Ensuring the published examples reflect the
-              Committee's values from the outset avoids the need for post-publication
-              correction.
-            </li>
-          </ol>
+          <h3>Licensing the Fifth Edition</h3>
 
           <p>
-            The AGLC4 experience &mdash; which included a 17-page erratum within
-            nine months of publication, not unusual for a work of that complexity
-            &mdash; suggests that testing rules against real citation data during
-            drafting, something tool implementers do as a matter of course, could
-            catch many such issues earlier and at lower cost.
+            One further question deserves the Committee&rsquo;s attention alongside the rules
+            themselves: how AGLC5 is licensed. I raise it as the maintainer of a tool whose
+            entire transcription discipline, paraphrase only, no verbatim rule text, no guide
+            examples in the interface, exists solely because of the current licensing posture,
+            and every forced paraphrase is a small divergence risk in a standard whose purpose
+            is uniformity.
           </p>
 
           <p>
-            To make that offer concrete, implementing AGLC4 in full produced a
-            systematic, pinpoint-cited catalogue of where the guide contradicts
-            itself, contains a confirmed error, cannot be applied mechanically as
-            written, or is silent &mdash; together with a comparison of how peer
-            citation styles have handled generative AI and digital sources, and a
-            proposal for modern source types. These working documents are published
-            openly as
-            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc4-critique.md" target="_blank" rel="noopener noreferrer">a consolidated AGLC4 critique</a>,
-            <a href="https://github.com/karwalski/obiter/blob/main/docs/modern-sources-proposal.md" target="_blank" rel="noopener noreferrer">a modern-sources proposal</a>,
-            and
-            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc5-and-peer-standards-research.md" target="_blank" rel="noopener noreferrer">peer-standards research</a>,
-            and are offered to the Committee as input.
+            Three observations frame the choice. First, copyright has never protected the
+            citation system itself; systems and methods sit outside copyright, so what the
+            Review owns is the prose, the examples, and the arrangement. Second, the digital
+            shift has already ended pay-to-read: the AGLC4 PDF has been free since 2018, with
+            print surviving as a convenience good. What remains enclosed is <em>reuse</em>:
+            quoting rule text in tools and teaching materials, and machine-readable encodings.
+            That is precisely the layer a citation standard needs open to do its job, and
+            Australia&rsquo;s fair dealing regime, which has no general quotation exception,
+            gives implementers no safe way through. Third, the precedents are instructive.
+            Enclosure of the Bluebook produced the public-domain Indigo Book; the McGill
+            Guide&rsquo;s paywall produced the community COAL guide, which then out-modernised
+            the incumbent on AI. AGLC has no fork, which is exactly the window in which to
+            choose official-open over eventual unofficial-open.
+          </p>
+
+          <p>
+            A model that keeps openness and revenue aligned might look like this: the text of
+            the guide released under a licence such as CC BY-ND, where the no-derivatives term
+            protects canonical integrity, the Review&rsquo;s legitimate concern; a low-cost
+            commercial reuse licence so that large commercial integrators pay while open-source
+            and educational reuse stays free; and the Review&rsquo;s revenue anchored in
+            authority rather than scarcity, through print as artefact, institutional licences
+            for learning-platform and publisher embedding, a certification program for
+            conformant tools, and, above all, an official machine-readable ruleset and
+            conformance test suite licensed to commercial implementers. OSCOLA has long made
+            its text freely available online alongside paid print, without evident harm to
+            either. The Review would lose nothing it currently monetises and would gain the
+            standard-setter&rsquo;s true asset: every tool in the ecosystem building on, and
+            attributing, the official text.
           </p>
 
           <h3>What I Am Asking</h3>
 
           <p>
-            I propose five measures, each designed to ensure that the fifth edition
-            is supported by working citation tools from the date of publication:
+            I propose six measures, each designed to ensure the fifth edition is supported by
+            working citation tools from the date of publication:
           </p>
 
           <ol class="letter__list">
             <li>
-              <strong>Share draft rules with tool implementers under NDA during the
-              drafting phase.</strong> This is low-cost for the Committee and would
-              allow implementation issues to be identified while they can still be
-              addressed through minor clarifications or adjustments to drafting.
+              <strong>Share draft rules with tool implementers under NDA during drafting.</strong>
+              Low-cost for the Committee, and it allows implementation issues to be identified
+              while minor clarifications are still possible.
             </li>
             <li>
-              <strong>Accept implementation-feedback memoranda at drafting
-              milestones.</strong> Translating citation rules into deterministic
-              software logic is a rigorous test of their clarity and completeness.
-              Structured feedback from implementers &mdash; identifying specific
-              rules that prove difficult to automate and, where possible, suggesting
-              alternative formulations that preserve the rule's intent &mdash; would
-              strengthen the finished guide.
+              <strong>Accept implementation-feedback memoranda at drafting milestones.</strong>
+              Translating rules into deterministic software logic is a rigorous test of their
+              clarity; structured feedback identifying rules that resist automation, with
+              alternative formulations that preserve intent, would strengthen the finished
+              guide. The catalogue summarised above is the first such memorandum.
             </li>
             <li>
-              <strong>Publish a machine-readable companion to the printed
-              guide.</strong> A structured expression of the rules &mdash; sufficient
-              for a citation-style author or add-in developer to work from alongside
-              the printed guide &mdash; would dramatically reduce the time between
-              publication and working tool support. Even publishing the sample
-              citation library as an official Committee artefact would close much
-              of the gap.
+              <strong>Publish an official machine-readable companion to the printed guide.</strong>
+              A structured expression of the rules, or even the sample citation library as an
+              official Committee artefact, would collapse the time between publication and
+              working tool support, and under the licensing model above it is also a revenue
+              line rather than a cost.
             </li>
             <li>
-              <strong>Release the AGLC5 Summary of Changes before publication, not
-              after.</strong> The AGLC4 Summary of Changes was published on release.
-              A similar document circulated to implementers during drafting would
-              allow tool authors to begin preparing their implementations before the
-              guide reaches users.
+              <strong>Ship an authoritative erratum process with the edition, and release the
+              Summary of Changes before publication rather than after,</strong>
+              so tool authors can prepare implementations before the guide reaches users, and
+              so the example bands, the fourth edition&rsquo;s primary defect surface, are
+              reconciled against their rules from day one.
             </li>
             <li>
-              <strong>Invite the open-source citation community to an implementer
-              review.</strong> A single consultation session &mdash; even informal
-              &mdash; would yield substantial returns in implementation quality and
-              ensure that the people who translate AGLC5 into working software have
-              the context they need to do so accurately.
+              <strong>Invite the open-source citation community to an implementer review.</strong>
+              A single session, even informal, would yield substantial returns in
+              implementation quality.
+            </li>
+            <li>
+              <strong>Adopt an open licence for the text of the guide,</strong>
+              paired with commercial licensing of the machine-readable ruleset, conformance
+              suite, and certification, per the model above.
             </li>
           </ol>
-
-          <!-- What I am offering -->
 
           <h3>What I Am Offering</h3>
 
           <p>
-            In return, I can offer the Committee a concrete testing service:
-            Obiter&rsquo;s AGLC4 engine covers all 26 chapters, backed by over
-            2,000 unit tests drawn from the guide&rsquo;s own examples. Any draft AGLC5
-            rule shared under NDA can be encoded, tested against real citation data,
-            and returned with a structured report identifying ambiguities, edge
-            cases, and formatting conflicts &mdash; before the rule reaches
-            publication.
+            In return, I can offer the Committee a concrete testing service: Obiter&rsquo;s
+            engine covers all 26 chapters, backed by around 3,300 tests pinned to the
+            guide&rsquo;s own rules and examples. Any draft AGLC5 rule shared under NDA can be
+            encoded, tested against real citation data, and returned with a structured report
+            identifying ambiguities, edge cases, and formatting conflicts before the rule
+            reaches publication. The supporting research is already public in the Obiter
+            repository: the
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc4-critique.md" target="_blank" rel="noopener noreferrer">consolidated defect catalogue</a>,
+            a
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/obiter-extensions.md" target="_blank" rel="noopener noreferrer">register of every point at which the tool was forced beyond the guide</a>,
+            a
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/modern-sources-proposal.md" target="_blank" rel="noopener noreferrer">modern-sources proposal</a>
+            with worked element structures for AI output, datasets, and software, a
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/court-practices-review.md" target="_blank" rel="noopener noreferrer">primary-source review of Australian court citation practice directions</a>,
+            and a
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc5-and-peer-standards-research.md" target="_blank" rel="noopener noreferrer">comparative study</a>
+            of how OSCOLA, the Bluebook, the McGill Guide, APA, MLA, Chicago, and the ICMJE
+            modernised.
           </p>
 
           <p>
-            Beyond testing, I can offer structured feedback on draft rules as they
-            are developed, and a public commitment to making AGLC5 support free and
-            available to every Australian researcher, student, and practitioner. I am
-            not asking for a seat on the Committee. I am asking for the input data
-            that tool authors need to do their best work &mdash; and offering my work
-            in return.
+            Beyond testing, I offer structured feedback on draft rules as they develop, and a
+            public commitment to making AGLC5 support free and available to every Australian
+            researcher, student, and practitioner from the day the edition is published. I am
+            not asking for a seat on the Committee. I am asking for the input data that tool
+            authors need to do their best work, and offering my work in return.
           </p>
-
-          <!-- Closing -->
 
           <p>
-            The AGLC has been an indispensable resource for Australian legal citation
-            for over 25 years. The investment that the open-source community has made
-            in building AGLC4 tooling is itself evidence of the standard&rsquo;s
-            importance. AGLC5 can be the strongest edition yet, and a small amount
-            of collaboration during drafting will make a meaningful difference to
-            how quickly and accurately the new rules reach the researchers who
-            depend on them. I am available to discuss this at the
-            Committee&rsquo;s convenience &mdash; by email, video call, or in
-            person in Melbourne.
+            The AGLC has been indispensable to Australian legal citation for over 25 years, and
+            the open-source community&rsquo;s investment in AGLC4 tooling is itself evidence of
+            the standard&rsquo;s importance. AGLC5 can be the strongest edition yet; a small
+            amount of collaboration during drafting, and one forward-looking licensing decision,
+            will make a meaningful difference to how quickly and accurately the new rules reach
+            the researchers who depend on them. I am available to discuss any of this at the
+            Committee&rsquo;s convenience, by email, video call, or in person in Melbourne.
           </p>
+
 
           <div class="letter__signature">
             <p>Respectfully,</p>

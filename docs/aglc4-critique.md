@@ -227,10 +227,35 @@ lists ~19.
 | 6.3.3 | 126 (101) | "Revised edition" vs "reprint" undefined | `revised` flag; user-detected | parity |
 | 7.2.1 / 7.2.5 | 135–8 | Date granularity ("full date") and thesis title styling (quoted vs italic) shown only in examples | Full dates; quoted roman thesis titles | parity |
 | 7.3 / 7.6 / 7.7 / 7.10 / 7.15 | 138–155 | "Named lecture", online-dictionary form, publisher placement, mandatory constitutive-document date, and internet document-type category all shown only in examples | Inferred from examples | parity |
-| 21.1.3 | 240 (215) | AGLC4's NZ neutral-citation adoption years diverge from real-world NZLII; unclear if AGLC4 years govern a validator | AGLC4 years govern; no dual-year field | DECISION-022 |
+| 21.1.3 | 240 (215) | AGLC4's NZ neutral-citation adoption years diverge from real-world adoption; unclear if AGLC4 years govern a validator | AGLC4 years govern; real-world years kept as reference metadata (dual-year table below); no dual-year *validation* field — **resolved** | DECISION-022 (resolved) |
 | 25.4 | 310 (285) | US Constitution article numeral style unstated | Pass through as entered | DECISION-027 |
 | 26.4 / 1.7 | 328 (303) | Title-case scope on non-English titles vs source-language capitalisation | Reproduce source-language capitalisation | DECISION-030 |
 | 2.2.3 / 26.2 | 74 / 319 | Whether written-out non-common-law series are roman or italic | Default roman (per 2.2.3); caller override retained | DECISION-029 |
+
+### 6.1 NZ neutral-citation dual-year reference table (rule 21.1.3 — DECISION-022, resolved)
+
+DECISION-022 is **resolved** (CRIT-005 Part B.5). AGLC4 rule 21.1.3's adoption years
+govern the validator; the independently-verified real-world adoption years are recorded
+below as **reference metadata** and as letter evidence that the guide's years diverge from
+practice. No `nzliiFrom` validation field is added — the divergence is documented, not
+enforced. Real-world years are verified to [high] confidence except where flagged.
+
+| Court | AGLC4 r 21.1.3 year (governs validator) | Real-world adoption year (reference metadata) | Divergence |
+|---|---|---|---|
+| NZSC (Supreme Court) | 2005 | 2005 | none |
+| NZCA (Court of Appeal) | 2007 | 2007 | none |
+| NZHC (High Court) | 2012 | 2012 | none (note: some NZHC neutral citations appear on NZLII from earlier, but the independent adoption year is 2012) |
+| NZEmpC (Employment Court) | 2010 | 2010 | none |
+| NZEnvC (Environment Court) | 2010 | 2010 | none |
+| NZFC (Family Court) | 2012 | 2012 | none |
+| NZDC (District Court) | — | not established [flagged] | narrow follow-up only if needed |
+| Māori Land / Māori Appellate Court | — | not established [flagged] | narrow follow-up only if needed |
+
+The verified independent years line up with AGLC4's stated years for the six courts the
+guide tables, which is why the design question closed in the negative (document, don't
+enforce). NZDC and the Māori Land/Appellate Court neutral-citation years were not
+established and are flagged for a narrow follow-up should the rule 21.1.3 comparison ever
+need them.
 
 ---
 
@@ -285,7 +310,7 @@ the only substantive 2020→2021 example fix in the entire scan was rule 24.1.6
 
 ## 9. Decision register — full classification (AC coverage)
 
-Every `DECISION-001..034` is classified here or explicitly excluded. Excluded entries
+Every `DECISION-001..035` is classified here or explicitly excluded. Excluded entries
 are Obiter product/infrastructure/legal decisions, not AGLC4-guide defects.
 
 | Decision | Status | Class | Rule(s) | One-line |
@@ -311,7 +336,7 @@ are Obiter product/infrastructure/legal decisions, not AGLC4-guide defects.
 | 019 | Resolved | Excluded | 6.x | Invented ebook "[Platform]" (Obiter extension) |
 | 020 | Resolved | Contradiction | 7.10 | Partial dates vs "Full Date" |
 | 021 | Resolved | Impossibility | 4.2 | Embedded italics |
-| 022 | Open | Ambiguity | 21.1.3 | NZ neutral-citation years |
+| 022 | Resolved | Ambiguity | 21.1.3 | NZ neutral-citation years (CRIT-005 B.5: AGLC4 years govern validator; real-world years = reference metadata) |
 | 023 | Open | Impossibility | 2.2.2 | yearOrganised switch |
 | 024 | Resolved | Impossibility→ok | 3.1.4 | Plural "ords" (confirmed) |
 | 025 | Open | Impossibility | 2.2.2/2.2.3 | NZ series duplicates/typing |
@@ -324,6 +349,7 @@ are Obiter product/infrastructure/legal decisions, not AGLC4-guide defects.
 | 032 | Resolved | Impossibility | 2.3.1 | mncTo bench signal |
 | 033 | Open | (Court practice, not guide) | PDs | Court PD verification queue → CRIT-004 |
 | 034 | Open | Excluded | — | Privacy Act posture (legal) |
+| 035 | Resolved | Ambiguity | 14.3.2 | ECtHR reported-vs-application preference (CRIT-005 B.5: ECtHR note + OSCOLA confirm reported-preferred default) |
 
 \* DECISION-006 is excluded as a *guide defect* (it is an Obiter extension) but the
 underlying **silence on generative AI** is a genuine AGLC4 gap, carried forward in the
@@ -369,9 +395,17 @@ the eight is **ENGINE-CORRECT in the current code**; no engine change is warrant
 | 1.6.3 en-dash spans | 48 | **Engine-correct** | Conversion is span-scoped (skips digits/commas/hyphens/identifiers), so CCH `¶82-091` / `Pub L No 108-201` are preserved. The earlier "impossibility" framing was overstated — downgraded. |
 | 2.1.14/3.5 short-title intro | 71–72 | **Engine-correct** | The *McGinty* example shows the `('McGinty')` introduction even though it is a substring; the engine now emits it (`formatShortTitleIntroduction`). |
 | 2.3.1 MNC year thresholds | 79–80 | **Engine-correct** | The table's year ranges are genuine validity thresholds; the validator treats them as such. |
-| 14.3.2 ECtHR preference | 227 | **New decision** | The rule is silent on reported-vs-application preference; Obiter's reported-preferred default is an inference → **DECISION-035** (open). |
+| 14.3.2 ECtHR preference | 227 | **New decision → now resolved** | The rule is silent on reported-vs-application preference; Obiter's reported-preferred default was an inference → **DECISION-035**, now **RESOLVED** (CRIT-005 B.5): the ECtHR's own citation note (updated Oct 2022) and OSCOLA both prefer the reported form where the case is in the official Reports, application-number-plus-date otherwise. Default confirmed; no engine change. |
 | 9.2.6 vs 9.2.7 SC session | 171 | **Guide defect confirmed** | Real contradiction; the engine follows the rule text (omit the session). §4. |
 | 5.5 "&" vs "and" | 118 | **Guide defect confirmed** | Real contradiction; the engine preserves "&" (DECISION-014). §4. |
+
+**Both re-verification decisions are now closed (CRIT-005, 2026-07-23).** The two findings
+this pass left open — **DECISION-022** (NZ rule 21.1.3 neutral-citation years) and
+**DECISION-035** (rule 14.3.2 ECtHR reported-vs-application preference) — are both
+**RESOLVED** on the Part B.5 evidence: for 022, AGLC4's years govern the validator while the
+independently-verified real-world years are kept as reference metadata (§6.1 dual-year
+table); for 035, the ECtHR's own citation note and OSCOLA confirm Obiter's reported-preferred
+default. Neither required an engine change.
 
 Court practice-direction verification (DECISION-033) is resolved in
 `docs/court-practices-review.md` (CRIT-004): the three queued items were confirmed against

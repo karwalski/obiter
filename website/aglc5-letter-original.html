@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGLC5 Open Letter (Original, April 2026) — Obiter</title>
+  <meta name="description" content="An open letter to the AGLC5 Committee requesting early preview access to draft AGLC5 rules, and an invitation to collaborate on open-source citation tooling.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="aglc4.html">AGLC4</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Hero
+       ============================================================ -->
+  <main id="main-content" role="main">
+  <header class="page-header">
+    <div class="container">
+      <h1>Supporting AGLC5 Adoption</h1>
+      <p class="letter__dateline"><em>Original letter &mdash; first published April 2026.</em></p>
+      <p>
+        An open letter requesting collaboration between the AGLC5 Committee
+        and the Obiter project to ensure citation tooling is ready from day one.
+      </p>
+      <div class="letter__superseded-notice" role="note" style="margin-top:1rem;padding:0.75rem 1rem;border-left:4px solid #888;background:#f4f4f4;">
+        <p style="margin:0;">
+          This is the <strong>original</strong> version of the open letter, retained
+          for reference. It has since been revised and expanded.
+          <a href="aglc5.html">Read the current letter &rarr;</a>
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Open Letter
+       ============================================================ -->
+  <section class="letter-section">
+    <div class="container">
+      <article class="letter">
+
+        <div class="letter__addressees">
+          <p>To:</p>
+          <ul>
+            <li>The Melbourne University Law Review Association</li>
+            <li>The Melbourne Journal of International Law</li>
+            <li>The AGLC5 Committee</li>
+          </ul>
+        </div>
+
+        <div class="letter__body">
+
+          <!-- The gap between standards and tools -->
+
+          <p>
+            Citation standards and citation tools have historically been developed
+            independently. A guide is published; tool authors then reverse-engineer
+            the rules into software; researchers wait &mdash; sometimes years &mdash;
+            for their tools to catch up. With each new edition the gap widens, because
+            the rules grow more nuanced while the tools' data models stay the same.
+            The demand for better tooling is real: two independent AGLC4 patches,
+            both generated with the assistance of generative AI, are currently
+            <a href="https://github.com/LawData-user/zotero-aglc4" target="_blank" rel="noopener noreferrer">hosted on GitHub</a>
+            and being used by Australian legal researchers &mdash; not because existing
+            tools are poorly made, but because the distance between what the AGLC
+            requires and what any tool can produce without guidance from the standard's
+            authors is too great for the community to bridge alone. The
+            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">forthcoming fifth edition</a>
+            has an opportunity to close that gap by involving tool implementers
+            during drafting.
+          </p>
+
+          <!-- Who I am -->
+
+          <p>
+            <a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">Obiter</a>
+            is a free, open-source Microsoft Word add-in that implements the full
+            AGLC4 specification across all 26 chapters. Building it rule by rule has
+            given me a detailed understanding of where citation logic is clear enough
+            to automate confidently and where ambiguity forces tool authors to guess.
+            That experience is what motivates this letter: I believe it would be
+            useful to the Committee, and I would like to offer it.
+          </p>
+
+          <!-- The opportunity -->
+
+          <h3>The Opportunity</h3>
+
+          <p>
+            Since its first edition in 1998, the <em>Australian Guide to Legal
+            Citation</em> has provided the consistency and rigour that Australian
+            legal scholarship depends on. Earlier editions did not fail &mdash; they
+            simply predated the tooling ecosystem that exists today. AGLC5 can be
+            the first edition designed with implementability as a drafting
+            consideration, because the tools and their user base have matured to a
+            point where the collaboration is now practical and worthwhile.
+          </p>
+
+          <p>
+            OSCOLA&rsquo;s fifth edition (March 2026) and New&nbsp;Zealand&rsquo;s
+            NZLSG reflect an increasing awareness among citation standard authors
+            that implementability matters. The opportunity exists for AGLC5 to go
+            further &mdash; and to set the benchmark.
+          </p>
+
+          <p>
+            Three areas illustrate what that collaboration could look like for
+            AGLC5:
+          </p>
+
+          <ul class="letter__list">
+            <li>
+              <strong>Generative AI citation.</strong>
+              AGLC4 predates ChatGPT and contains no rule for generative AI outputs.
+              The Melbourne University Law Review editors issued interim guidance
+              advising researchers to cite AI outputs broadly following Rule 7.12
+              (written correspondence), and every major Australian university law
+              library has since propagated that workaround through their LibGuides.
+              No citation tool can emit a correct GenAI citation today because no rule
+              authorises one. If AGLC5 introduces a GenAI rule &mdash; as the
+              Committee's &ldquo;digital age&rdquo; theme suggests it may &mdash;
+              early consultation with tool authors would ensure that working software
+              support is available from day one rather than years later.
+            </li>
+            <li>
+              <strong>Subsequent references.</strong>
+              The <em>(n X)</em> cross-reference system introduced in AGLC4 is one of
+              the most common citation patterns researchers encounter, and it has
+              proven to be among the most difficult to automate reliably. The AGLC4
+              preface acknowledges the system is &ldquo;facultative rather than
+              mandatory,&rdquo; but the rules do not specify a computable criterion
+              for when short titles should appear or how tools should distinguish
+              short titles for whole Acts from short titles for portions of Acts
+              (Rule 3.1.7). If AGLC5 revisits subsequent references &mdash; as the
+              &ldquo;simplification&rdquo; theme invites &mdash; tool implementers
+              could help identify formulations that are both editorially sound and
+              reliably automatable.
+            </li>
+            <li>
+              <strong>International materials.</strong>
+              The international materials chapters (Rules 8&ndash;14) &mdash;
+              treaties, UN documents, ICJ decisions, international arbitration, and
+              supranational materials &mdash; have never been fully implemented in
+              any citation tool. The data models that tools use to store citation
+              metadata do not have fields that map naturally to these material types.
+              If the Committee's goal of making AGLC5 more comprehensive includes
+              strengthening this chapter, early dialogue with tool authors about
+              metadata representation would help ensure that comprehensiveness in the
+              guide translates to comprehensiveness in practice.
+            </li>
+          </ul>
+
+          <h3>The Six AGLC5 Themes</h3>
+
+          <p>
+            The AGLC5 Committee has announced
+            <a href="https://law.unimelb.edu.au/mulr/aglc/aglc-5" target="_blank" rel="noopener noreferrer">six consultation themes</a>.
+            Each intersects with implementability in ways where tool authors could
+            contribute constructively:
+          </p>
+
+          <ol class="letter__list">
+            <li>
+              <strong>Making the AGLC more comprehensive.</strong>
+              New material types are only truly comprehensive when the tools researchers
+              use can represent and format them. Early review of proposed rules against
+              existing metadata models would identify gaps before publication.
+            </li>
+            <li>
+              <strong>Improving the structure of the AGLC.</strong>
+              Structural clarity in the guide directly determines whether rules can be
+              encoded as deterministic logic. Restructuring with tool implementers in
+              the room would surface ambiguities &mdash; such as fields that must carry
+              two distinct meanings &mdash; before they become implementation problems.
+            </li>
+            <li>
+              <strong>Simplifying the AGLC and improving its usability.</strong>
+              Rules that are simpler for human users are almost always simpler to
+              automate. Simplification of the subsequent-reference system, for example,
+              would benefit researchers and software simultaneously.
+            </li>
+            <li>
+              <strong>Citing First Nations materials and making space for the
+              decolonisation of legal scholarship.</strong>
+              Any rule involving a controlled vocabulary &mdash; language names,
+              Country names, community self-identifications &mdash; has implications
+              for how tools represent and preserve metadata across languages and
+              scripts. Getting the data model right from the start is essential to
+              ensuring these citations are handled with the care and accuracy they
+              deserve.
+            </li>
+            <li>
+              <strong>Updating rules on internet materials and moving the AGLC into
+              the digital age.</strong>
+              This theme is the natural entry point for a generative AI citation rule,
+              for social media formats, and for preservation-oriented metadata such as
+              content hashes and archived URLs. Tool authors can help ensure new digital
+              rules are automatable from day one.
+            </li>
+            <li>
+              <strong>Using gender-inclusive and culturally-sensitive language and
+              examples.</strong>
+              Citation tools render the examples the guide provides. If sample citations
+              are the test corpus that tool authors build against, the examples carry
+              normative weight in software. Ensuring the published examples reflect the
+              Committee's values from the outset avoids the need for post-publication
+              correction.
+            </li>
+          </ol>
+
+          <p>
+            The AGLC4 experience &mdash; which included a 17-page erratum within
+            nine months of publication, not unusual for a work of that complexity
+            &mdash; suggests that testing rules against real citation data during
+            drafting, something tool implementers do as a matter of course, could
+            catch many such issues earlier and at lower cost.
+          </p>
+
+          <p>
+            To make that offer concrete, implementing AGLC4 in full produced a
+            systematic, pinpoint-cited catalogue of where the guide contradicts
+            itself, contains a confirmed error, cannot be applied mechanically as
+            written, or is silent &mdash; together with a comparison of how peer
+            citation styles have handled generative AI and digital sources, and a
+            proposal for modern source types. These working documents are published
+            openly as
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc4-critique.md" target="_blank" rel="noopener noreferrer">a consolidated AGLC4 critique</a>,
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/modern-sources-proposal.md" target="_blank" rel="noopener noreferrer">a modern-sources proposal</a>,
+            and
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/aglc5-and-peer-standards-research.md" target="_blank" rel="noopener noreferrer">peer-standards research</a>,
+            and are offered to the Committee as input.
+          </p>
+
+          <h3>What I Am Asking</h3>
+
+          <p>
+            I propose five measures, each designed to ensure that the fifth edition
+            is supported by working citation tools from the date of publication:
+          </p>
+
+          <ol class="letter__list">
+            <li>
+              <strong>Share draft rules with tool implementers under NDA during the
+              drafting phase.</strong> This is low-cost for the Committee and would
+              allow implementation issues to be identified while they can still be
+              addressed through minor clarifications or adjustments to drafting.
+            </li>
+            <li>
+              <strong>Accept implementation-feedback memoranda at drafting
+              milestones.</strong> Translating citation rules into deterministic
+              software logic is a rigorous test of their clarity and completeness.
+              Structured feedback from implementers &mdash; identifying specific
+              rules that prove difficult to automate and, where possible, suggesting
+              alternative formulations that preserve the rule's intent &mdash; would
+              strengthen the finished guide.
+            </li>
+            <li>
+              <strong>Publish a machine-readable companion to the printed
+              guide.</strong> A structured expression of the rules &mdash; sufficient
+              for a citation-style author or add-in developer to work from alongside
+              the printed guide &mdash; would dramatically reduce the time between
+              publication and working tool support. Even publishing the sample
+              citation library as an official Committee artefact would close much
+              of the gap.
+            </li>
+            <li>
+              <strong>Release the AGLC5 Summary of Changes before publication, not
+              after.</strong> The AGLC4 Summary of Changes was published on release.
+              A similar document circulated to implementers during drafting would
+              allow tool authors to begin preparing their implementations before the
+              guide reaches users.
+            </li>
+            <li>
+              <strong>Invite the open-source citation community to an implementer
+              review.</strong> A single consultation session &mdash; even informal
+              &mdash; would yield substantial returns in implementation quality and
+              ensure that the people who translate AGLC5 into working software have
+              the context they need to do so accurately.
+            </li>
+          </ol>
+
+          <!-- What I am offering -->
+
+          <h3>What I Am Offering</h3>
+
+          <p>
+            In return, I can offer the Committee a concrete testing service:
+            Obiter&rsquo;s AGLC4 engine covers all 26 chapters, backed by over
+            2,000 unit tests drawn from the guide&rsquo;s own examples. Any draft AGLC5
+            rule shared under NDA can be encoded, tested against real citation data,
+            and returned with a structured report identifying ambiguities, edge
+            cases, and formatting conflicts &mdash; before the rule reaches
+            publication.
+          </p>
+
+          <p>
+            Beyond testing, I can offer structured feedback on draft rules as they
+            are developed, and a public commitment to making AGLC5 support free and
+            available to every Australian researcher, student, and practitioner. I am
+            not asking for a seat on the Committee. I am asking for the input data
+            that tool authors need to do their best work &mdash; and offering my work
+            in return.
+          </p>
+
+          <!-- Closing -->
+
+          <p>
+            The AGLC has been an indispensable resource for Australian legal citation
+            for over 25 years. The investment that the open-source community has made
+            in building AGLC4 tooling is itself evidence of the standard&rsquo;s
+            importance. AGLC5 can be the strongest edition yet, and a small amount
+            of collaboration during drafting will make a meaningful difference to
+            how quickly and accurately the new rules reach the researchers who
+            depend on them. I am available to discuss this at the
+            Committee&rsquo;s convenience &mdash; by email, video call, or in
+            person in Melbourne.
+          </p>
+
+          <div class="letter__signature">
+            <p>Respectfully,</p>
+            <p><strong>Matthew Watt</strong><br>Author of Obiter</p>
+            <p class="letter__bio">
+              Matthew Watt is currently enrolled in the Juris Doctor program
+              at the University of Canberra. He holds an Executive Master of
+              Technology Management from the University of Technology Sydney
+              and has over twenty years of experience in the technology
+              industry. He built Obiter to solve a problem he encountered as
+              a law student: no existing tool could produce reliable AGLC4
+              citations across all 26 chapters.
+            </p>
+          </div>
+
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Co-signatories
+       ============================================================ -->
+  <section class="signatories-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Co-signatories</h2>
+        <p>
+          Legal academics, practitioners, and students who support this initiative
+          are invited to add their name.
+        </p>
+      </div>
+
+      <div class="signatories">
+        <div class="signatories__count" aria-live="polite">
+          <span id="signature-count">0</span> signatories
+        </div>
+
+        <div class="signatories__list" id="signatories-list">
+          <!-- Verified signatures are rendered here -->
+        </div>
+
+        <div class="signatories__form-wrapper">
+          <h3>Add Your Name</h3>
+          <form class="signature-form" id="signature-form">
+            <div class="form-group">
+              <label for="sig-name">Full Name</label>
+              <input type="text" id="sig-name" name="name" autocomplete="name" required>
+            </div>
+            <div class="form-group">
+              <label for="sig-title">Title / Position <span class="form-hint">(optional)</span></label>
+              <input type="text" id="sig-title" name="title">
+            </div>
+            <div class="form-group">
+              <label for="sig-institution">Institution / Organisation <span class="form-hint">(optional)</span></label>
+              <input type="text" id="sig-institution" name="institution">
+            </div>
+            <div class="form-group">
+              <label for="sig-email">Email <span class="form-hint">(for verification only &mdash; not displayed)</span></label>
+              <input type="email" id="sig-email" name="email" autocomplete="email" required>
+            </div>
+            <p class="form-note">
+              .edu.au email addresses are verified automatically. Other email domains
+              require brief manual review.
+            </p>
+            <!-- Cloudflare Turnstile (ACCT-002). The site key is public (non-secret)
+                 but environment-specific; replace TURNSTILE_SITE_KEY with the real
+                 site key at deploy. The matching server secret is TURNSTILE_SECRET. -->
+            <div class="cf-turnstile" data-sitekey="TURNSTILE_SITE_KEY" style="margin-bottom: 16px;"></div>
+            <div class="form-status" role="alert" aria-live="polite"></div>
+            <button type="submit" class="btn btn--primary">Add My Name</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Call to Action
+       ============================================================ -->
+  <section class="contribute-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Contribute to Obiter</h2>
+        <p>
+          Obiter is free, open-source, and built by the legal community for the
+          legal community.
+        </p>
+      </div>
+      <div class="contribute__actions">
+        <a href="https://github.com/karwalski/obiter" class="btn btn--primary" target="_blank" rel="noopener noreferrer">Contribute on GitHub</a>
+        <a href="contact.html" class="btn btn--secondary">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">AppSource</a></li>
+        <!-- Placeholder: register at ko-fi.com and replace 'obiter' with your username -->
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="accessibility.html">Accessibility</a></li>        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter does not collect personal data. All citation data remains in your document.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var form = document.getElementById("signature-form");
+      if (!form) return;
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        var statusEl = form.querySelector(".form-status");
+        var submitBtn = form.querySelector('button[type="submit"]');
+
+        if (!statusEl || !submitBtn) return;
+
+        statusEl.className = "form-status";
+        statusEl.textContent = "";
+
+        var name = form.querySelector('input[name="name"]');
+        var title = form.querySelector('input[name="title"]');
+        var institution = form.querySelector('input[name="institution"]');
+        var email = form.querySelector('input[name="email"]');
+
+        if (!name.value.trim() || !title.value.trim() || !email.value.trim()) {
+          statusEl.className = "form-status form-status--error";
+          statusEl.textContent = "All fields are required.";
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting\u2026";
+
+        // Cloudflare Turnstile token
+        var captchaResponse = "";
+        var captchaEl = form.querySelector('[name="cf-turnstile-response"]');
+        if (captchaEl) captchaResponse = captchaEl.value;
+        if (!captchaResponse && typeof turnstile !== "undefined") {
+          try { captchaResponse = turnstile.getResponse(); } catch (e) { captchaResponse = ""; }
+        }
+        if (!captchaResponse) {
+          statusEl.className = "form-status form-status--error";
+          statusEl.textContent = "Please complete the verification.";
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Add My Name";
+          return;
+        }
+
+        var payload = {
+          name: name.value.trim(),
+          title: title.value.trim(),
+          institution: institution.value.trim(),
+          email: email.value.trim(),
+          captcha: captchaResponse
+        };
+
+        fetch("/api/signatures", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("Server returned " + response.status);
+            }
+            return response.json();
+          })
+          .then(function () {
+            statusEl.className = "form-status form-status--success";
+            statusEl.textContent =
+              "A verification email has been sent to your address. Please click the link to confirm your signature.";
+            form.reset();
+          })
+          .catch(function () {
+            statusEl.className = "form-status form-status--error";
+            statusEl.textContent =
+              "Unable to submit your signature. Please try again or contact us directly.";
+          })
+          .finally(function () {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Add My Name";
+            if (typeof turnstile !== "undefined") turnstile.reset();
+          });
+      });
+
+      // Load existing signatures
+      fetch("/api/signatures")
+        .then(function (response) {
+          if (!response.ok) throw new Error("Failed to load signatures");
+          return response.json();
+        })
+        .then(function (data) {
+          var list = document.getElementById("signatories-list");
+          var countEl = document.getElementById("signature-count");
+          if (!list || !countEl || !data.signatures) return;
+
+          countEl.textContent = String(data.signatures.length);
+
+          data.signatures.forEach(function (sig) {
+            var entry = document.createElement("div");
+            entry.className = "signatory-entry";
+            var details = escapeHtml(sig.title);
+            if (sig.institution) {
+              details += ", " + escapeHtml(sig.institution);
+            }
+            entry.innerHTML =
+              "<strong>" + escapeHtml(sig.name) + "</strong><span>" + details + "</span>";
+            list.appendChild(entry);
+          });
+        })
+        .catch(function () {
+          // Signatures will load when backend is available
+        });
+
+      function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+    })();
+  </script>
+</body>
+</html>

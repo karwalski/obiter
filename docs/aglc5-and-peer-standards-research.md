@@ -12,9 +12,11 @@ than model memory, because they post-date the January 2026 knowledge cutoff.
 > (per the 21 Apr 2026 multi-standard scope decision).
 
 > **Confidence.** Claims are marked **[high]** / **[medium]** where the underlying
-> verification was mixed. Primary Australian sources (unimelb.edu.au) return HTTP 403 to
-> automated fetchers; those claims were corroborated via the Wayback Machine, search-indexed
-> text, and Wikipedia.
+> verification was mixed. Some primary Australian sources (unimelb.edu.au sub-pages) return
+> HTTP 403 to automated fetchers; those claims were corroborated via the Wayback Machine,
+> search-indexed text, and Wikipedia. On the July 2026 CRIT-005 pass the main AGLC5 status
+> page (`/mulr/aglc/aglc-5`) was reachable directly (last-modified 2026-05-12) — see the
+> Part 1 retrieval note.
 
 ---
 
@@ -28,10 +30,18 @@ correct.
 (MULR)** and the **Melbourne Journal of International Law (MJIL)**, through an **AGLC5
 Committee established in 2023**.
 
-**Consultation [high]:** Across **2023–2025** the Committee sought feedback from legal
-academia, the profession, and the public. **Consultations are now closed** and the
-Committee is "preparing the edition for publication" — i.e. drafting/production, no
-published date announced.
+**Consultation [high]:** The Committee's page (last-modified 2026-05-12) now records that
+**consultations ran across 2023–2026** (extended a year from the earlier "2023–2025"
+wording), that it is **"considering the outcomes of this consultation"**, and that it is
+**"not accepting further feedback at this time"** — a softening from the earlier "preparing
+the edition for publication". Implication: publication is not imminent, and the
+correspondence window (open letter / MULR route) is effectively still open even though the
+formal feedback window has closed. No published date announced (CRIT-005 Part B.1).
+
+**Retrieval note [CRIT-005]:** the live `law.unimelb.edu.au/mulr/aglc/aglc-5` page was
+**reachable directly** on the July 2026 pass (page last-modified **2026-05-12**), so no
+Wayback fallback was needed for the current status; the 403-to-bots behaviour below still
+applies to some sub-pages, and if the page 403s later, use the snapshot nearest that date.
 
 **Announced scope [high]** (the Committee's stated "identified areas of improvement" —
 these are *aims*, not confirmed features of a published edition). They map almost exactly
@@ -62,9 +72,13 @@ dominant pattern being **cite GenAI output as Written Correspondence under AGLC4
 
 - **Monash University** — treat GenAI output as Written Correspondence (rule 7.12) as an
   explicit interim workaround; states plainly that AGLC4 "does not include any specific
-  rule for citing Generative AI tools." [high]
-- **UWA, QUT, Macquarie** — parallel AGLC4 GenAI LibGuides (QUT's "legal internet/AI"
-  examples; UWA's AGLC4 Gen-AI guide). [medium — same interim pattern, wording varies]
+  rule for citing Generative AI tools." **Confirmed live [high].**
+- **UWA (dated 15 Sep 2025), Macquarie** — parallel AGLC4 GenAI LibGuides on the same
+  rule-7.12 written-correspondence analogy (rule 1.1.5 discursive text; an appendix for
+  prompt/transcript custody; bibliography under "Other", rule 1.13). **Confirmed live
+  [high]** (CRIT-005 Part B.4).
+- **QUT** — a parallel AGLC4 "legal internet/AI" LibGuide is **inferred only** from the
+  uniform sector pattern; not directly confirmed this pass. [low]
 
 This is precisely the ecosystem Obiter's `genai_output` type mirrors (see
 `docs/obiter-extensions.md`), which strengthens the case that Obiter's interim choice
@@ -94,9 +108,9 @@ sources. The verified highlights:
 | **Chicago 18th ed (2024)** | GenAI addressed in the manual (Ch 14 citation + Ch 4 guidance): cite the tool, note the prompt, and **disclose** AI assistance. [high] | Established dataset/software citation patterns. | Explicit **disclosure** guidance (Ch 4). |
 | **ICMJE / Vancouver** | AI **cannot be an author**; authors must **disclose** AI use in methods/acknowledgements. Focus is integrity, not a citation slot. [high] | Data-sharing/citation norms via ICMJE. | The strongest disclosure regime. |
 | **AMS (sciences)** | — | Explicit **dataset and software** citation templates (reuse-the-template pattern). [medium] | — |
-| **Bluebook (21st ed, 2020)** | A new rule on citing AI attracted **public criticism** from scholars/practitioners (2025 commentary) as awkward/over-engineered. [medium] | Traditional legal focus. | — |
-| **McGill Guide (Canadian)** | Library guidance exists for citing GenAI under McGill conventions. [medium] | — | — |
-| **OSCOLA 5th ed (2026)** | Published in 2026; reintegrated international materials and added modern-source handling (incl. an AI/GenAI provision) per prior project research. [medium — corroborate against the official OSCOLA 5 PDF before relying] | — | — |
+| **Bluebook (22nd ed, May 2025)** | **Rule 18.3** (LLMs, search results, AI-generated content; requires preserving output as a PDF screenshot) drew **published criticism** as over-engineered — Tanner ("disclose, don't cite"; AI is a tool not an authority), Gunder (four grounds: internal errors, unreasonable burden, incompatibility with real usage, conflict with confidentiality/work-product), O'Keefe (the rule's own examples fail its stated requirements); aggregated by Ambrogi (LawSites, Sep 2025). [high] | Traditional legal focus. | Criticism consensus: disclose, don't cite. |
+| **McGill Guide (10th ed, 2023)** | **No GenAI rule.** CanLII elevated in the source hierarchy; commitment to Indigenous-source citation by the 11th ed. The community **COAL** guide (Canadian Open Access Legal Citation, ch 8) is the only Canadian legal style with a GenAI format — a fork out-modernising the incumbent. [high] | — | — |
+| **OSCOLA 5th ed (2026)** | **Published 25 March 2026** (Hart; ed Goudkamp, consultant ed Nolan; **ISBN 978-1-50997-369-9**). GenAI rule **3.7.13**: cite the AI tool as author; user prompts in inverted commas; developing organisation; generation date. Reinstates a substantially revised public-international-law section. [high] | — | — |
 | **NZLSG** | **No AI rule** (defers to lecturers). [high] | — | — |
 | **Harvard / MHRA / ALWD** | Thinner or institution-specific GenAI guidance; not a distinct structured rule of note in the verified set. [low] | — | — |
 

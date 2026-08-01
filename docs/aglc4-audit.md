@@ -33,7 +33,7 @@
 | CH1-017 | 1.5.2 | Introducing quotations | PASS | Structural/editorial rule |
 | CH1-018 | 1.5.3 | Ellipses | FIX | (PARITY) form was inverted — canonical is spaced `…`; `. . .`/`...` now flagged |
 | CH1-019 | 1.5.4 | Editing quotations | PASS | Structural/editorial rule |
-| CH1-020 | 1.5.5 | Sic | BLOCKED | Italicisation of 'sic' undecided — guide silent (DECISION-017) |
+| CH1-020 | 1.5.5 | Sic | PASS | Italic 'sic', roman brackets — resolved by DECISION-017 (RESOLVED 2026-07-03; matches MULR house practice) |
 | CH1-021 | 1.5.6 | Quotation closing punctuation | PASS | Structural/editorial rule |
 | CH1-022 | 1.5.7 | Omitting citations / emphasis | FIX | (PARITY) dropdown/validator use the rule's closed five-clause table |
 | CH1-023 | 1.6.1 | Full stops in abbreviations | PASS | `checkAbbreviationFullStops` and `fixAbbreviationFullStops` correct |
@@ -357,7 +357,7 @@
 | ID | Section | Title | Status |
 |----|---------|-------|--------|
 | CH20-001 | 20.1 | Cases | PASS — pinpoint support added |
-| CH20-002 | 20.1.1 | Report series | PASS — pre-1966 MLJ square brackets per the guide's examples (DECISION-028 OPEN) |
+| CH20-002 | 20.1.1 | Report series | PASS — pre-1966 MLJ square brackets per the guide's examples (DECISION-028 RESOLVED 2026-07-03: examples govern; the volume-organised note is in error) |
 | CH20-003 | 20.2.1 | Statutes and delegated legislation | PASS |
 | CH20-004 | 20.2.2 | Constitution | PASS |
 
@@ -445,6 +445,8 @@
 ---
 
 **Total audit items: 302** (the previous "271" undercounted the table rows; corrected in the 2026-07-02 rebase)
+
+**Experimental (EXP) source types are tracked separately and are NOT counted in this 302-item total.** Obiter's experimental, clearly-labelled "pending AGLC5 (not an official AGLC4 form)" types and fields — the interim `genai_output` refinements and the proposed dataset/software/archived-web extensions — are registered in `docs/obiter-extensions.md` and `docs/modern-sources-proposal.md`, carry their own provenance marker, and are excluded from every AGLC4-conformance claim. This audit measures engine conformance to AGLC4 only; the 302 count reflects AGLC4 rule coverage, not experimental extensions.
 
 ---
 

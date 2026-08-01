@@ -310,13 +310,14 @@ Rule 4.2 preserves italics inside secondary-source titles (eg a case name like *
 
 ## DECISION-022: Rule 21.1.3 — NZ Neutral-Citation Adoption Years (AGLC4 vs NZLII)
 
-**Status:** OPEN
+**Status:** RESOLVED (2026-07-23, CRIT-005 Part B.5)
 **Raised:** 2026-07-02 (PARITY wave 1, review-data-styling.md)
 `nz-court-identifiers.ts` `neutralCitationFrom` now holds the AGLC4 rule 21.1.3 years (NZSC 2005, NZCA 2007, NZHC 2012, NZEmpC 2010, NZEnvC 2010, NZFC 2012), which diverge from real-world NZLII adoption (eg NZHC 2003 on NZLII).
 **Interim:** AGLC4 years govern per project policy.
 **Researchers:** confirm AGLC4 years suffice, or approve a dual field (aglcFrom/nzliiFrom) for validator tolerance.
 **Held (2026-07-03, Matthew):** remains OPEN; interim behaviour stands pending DATA-004 / researcher pass.
-**Verified against the printed guide (2026-07-21):** rule 21.1.3 was scanned (2021 printing, printed p240). The court-identifier table reads exactly NZSC 2005–, NZCA 2007–, NZHC 2012–, NZEmpC 2010–, NZEnvC 2010–, NZFC 2012– — i.e. `nz-court-identifiers.ts` faithfully matches AGLC4. So the AGLC4-side is confirmed correct. The decision stays OPEN only on the *design* question (whether to add an `nzliiFrom` field so the validator tolerates real-world NZLII neutral-citation years, which diverge from AGLC4); a scan of AGLC4 cannot resolve that, as the guide only ever states its own years.
+**Verified against the printed guide (2026-07-21):** rule 21.1.3 was scanned (2021 printing, printed p240). The court-identifier table reads exactly NZSC 2005–, NZCA 2007–, NZHC 2012–, NZEmpC 2010–, NZEnvC 2010–, NZFC 2012– — i.e. `nz-court-identifiers.ts` faithfully matches AGLC4. So the AGLC4-side is confirmed correct. The decision stayed OPEN only on the *design* question (whether to add an `nzliiFrom` field so the validator tolerates real-world NZLII neutral-citation years, which diverge from AGLC4); a scan of AGLC4 cannot resolve that, as the guide only ever states its own years.
+**Resolution (2026-07-23, CRIT-005 Part B.5):** The real-world independent adoption years were verified to [high] confidence — NZSC 2005, NZCA 2007, NZHC 2012, NZEmpC 2010, NZEnvC 2010, NZFC 2012 (NZDC and the Māori Land/Appellate Court neutral-citation years were not established and remain flagged for narrow follow-up if ever needed). **Engine posture is unchanged:** AGLC4 rule 21.1.3's years continue to govern the validator; the real-world years are recorded as **reference metadata** (and as letter evidence of AGLC4-vs-practice divergence), not as a competing validation threshold. No dual `nzliiFrom` validation field is added — the divergence is documented, not enforced. The NZ dual-year reference table is recorded in `docs/aglc4-critique.md` §6. This closes the design question in the negative: document the divergence, do not tolerate it in the validator.
 
 ## DECISION-023: yearOrganised Flags — Series That Switched Systems (Appendix A)
 
@@ -459,7 +460,7 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 
 ## DECISION-035: Rule 14.3.2 — ECtHR reported-vs-application-number preference
 
-**Status:** OPEN (default adopted; needs researcher sign-off)
+**Status:** RESOLVED (2026-07-23, CRIT-005 Part B.5)
 **Raised:** 2026-07-22 (CRIT-DEEP re-verification against PDF p.227)
 
 **Context:** Rule 14.3.2 (European Court of Human Rights) sets out the reported form (report series) and the unreported form (application number), but where a decision is available in **both**, the rule states no explicit preference. Obiter defaults to the **reported form where a report series is present**, falling back to the application number otherwise.
@@ -467,3 +468,5 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 **Decision (default):** prefer the reported form when a report series is available. This is a reasonable inference from AGLC4's general preference for authorised/reported citations (cf rule 2.2), but it is **not stated by rule 14.3.2** — the rule is silent/under-specified here.
 
 **Researchers:** confirm whether AGLC4 intends the reported form to be preferred when both are available, or whether the choice is left to the author. If the latter, no engine change is needed; if a firm preference is intended, confirm it matches Obiter's default. Recorded in `docs/aglc4-critique.md` §6 (Ambiguities).
+
+**Resolution (2026-07-23, CRIT-005 Part B.5):** External authority confirms Obiter's reported-preferred default. Both the ECtHR's own citation note (updated October 2022) and OSCOLA prefer the **reported form** where the case appears in the official *Reports of Judgments and Decisions* (the "ECHR" designation; the volume element was dropped from 2008), and use the **application-number-plus-date** form for unreported decisions; the application number is always carried as the stable identifier regardless. Obiter's default therefore rests on an external standard rather than on a bare inference from AGLC4's general reported-citation preference, so no engine change is needed — the reported-preferred behaviour stands and is now evidence-backed.
