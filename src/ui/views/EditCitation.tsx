@@ -27,6 +27,11 @@ import type { FormattedRun } from "../../types/formattedRun";
 import CitationPreview from "../components/CitationPreview";
 import { getFieldsForSourceType } from "./editCitationFields";
 import { nameListToStr, parseNameList } from "../nameList";
+import {
+  EXPERIMENTAL_BADGE,
+  isExperimentalSourceType,
+  getProvenanceNote,
+} from "../../engine/ruleExporter";
 
 // ─── Format Preference ───────────────────────────────────────────────────────
 
@@ -87,6 +92,8 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   internet_material: "Internet Material",
   social_media: "Social Media",
   genai_output: "Generative AI Output",
+  dataset: "Dataset",
+  software: "Software / Code",
   treaty: "Treaty",
   "treaty.mou": "Memorandum of Understanding",
   "un.charter": "UN Charter",
@@ -814,6 +821,23 @@ export default function EditCitation(): JSX.Element {
       </div>
 
       <div className="edit-type-badge">{typeLabel}</div>
+
+      {/* A5-LABEL: experimental (beyond-AGLC4) types carry the unmistakable
+          badge with the interim-basis tooltip in the edit header. */}
+      {isExperimentalSourceType(citation.sourceType) && (
+        <div
+          className="ic-experimental-badge"
+          title={getProvenanceNote(citation.sourceType)}
+          role="note"
+        >
+          <span className="ic-experimental-badge-label">{EXPERIMENTAL_BADGE}</span>
+          {getProvenanceNote(citation.sourceType) && (
+            <span className="ic-experimental-badge-note">
+              Interim basis: {getProvenanceNote(citation.sourceType)}
+            </span>
+          )}
+        </div>
+      )}
 
       <div aria-live="polite" role="status">
         {error && <p className="edit-error">Error: {error}</p>}

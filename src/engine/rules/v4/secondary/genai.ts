@@ -14,6 +14,23 @@ export interface GenaiOutputData {
   prompt?: string;
   outputDate: string;
   url?: string;
+  /**
+   * A5-EXP-1 (experimental, pending AGLC5): model version, rendered inside the
+   * model parenthetical (eg "GPT-5" for model "ChatGPT"). Per OSCOLA 5
+   * r 3.7.13, the version disambiguates model revisions.
+   */
+  modelVersion?: string;
+  /**
+   * A5-EXP-1 (experimental): transcript-custody statement (the custodian of the
+   * transcript, usually "the author"). Stored for the record view; not part of
+   * the rule-7.12 correspondence line.
+   */
+  transcriptCustody?: string;
+  /**
+   * A5-EXP-1 (experimental): optional archived-transcript URL. When present,
+   * an "(archived at <url>)" note follows the citation.
+   */
+  archivedUrl?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -80,9 +97,14 @@ export function formatGenaiOutput(data: GenaiOutputData): FormattedRun[] {
 
   let text = `Correspondence from ${data.platform}`;
 
-  // Model parenthetical — only where a model is recorded (WEB-008b)
-  if (data.model && data.model.trim()) {
-    text += ` (${data.model.trim()})`;
+  // Model parenthetical — only where a model is recorded (WEB-008b). A5-EXP-1:
+  // when a model version is supplied it renders alongside the model name (eg
+  // "ChatGPT (GPT-5)") per the OSCOLA 5 r 3.7.13 element set.
+  const model = (data.model ?? "").trim();
+  const modelVersion = (data.modelVersion ?? "").trim();
+  const modelParen = [model, modelVersion].filter(Boolean).join(" ");
+  if (modelParen) {
+    text += ` (${modelParen})`;
   }
 
   text += " to the author";
@@ -97,6 +119,12 @@ export function formatGenaiOutput(data: GenaiOutputData): FormattedRun[] {
 
   if (data.url) {
     runs.push({ text: " <" + data.url + ">" });
+  }
+
+  // A5-EXP-1: archived-transcript note appended after the URL when present.
+  const archivedUrl = (data.archivedUrl ?? "").trim();
+  if (archivedUrl) {
+    runs.push({ text: ` (archived at ${archivedUrl})` });
   }
 
   return runs;

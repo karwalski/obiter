@@ -65,6 +65,8 @@ import {
 } from "./rules/v4/secondary/books";
 import { formatTreaty, formatMou } from "./rules/v4/international/treaties";
 import { formatGenaiOutput } from "./rules/v4/secondary/genai";
+import { formatDataset } from "./rules/v4/secondary/dataset";
+import { formatSoftware } from "./rules/v4/secondary/software";
 import {
   formatReport,
   formatParliamentaryReport,
@@ -884,6 +886,48 @@ function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
     prompt: (d.prompt as string) || undefined,
     outputDate: (d.outputDate as string) ?? "",
     url: (d.url as string) || undefined,
+    // A5-EXP-1 (experimental, pending AGLC5) fields.
+    modelVersion: (d.modelVersion as string) || undefined,
+    // transcriptCustody is stored/shown in the record view, not the citation.
+    transcriptCustody: (d.transcriptCustody as string) || undefined,
+    archivedUrl: (d.archivedUrl as string) || undefined,
+  });
+}
+
+/**
+ * A5-EXP-2 (experimental, pending AGLC5): dispatches a dataset citation.
+ * AGLC4 has no dataset rule; delegates to formatDataset (peer-standard
+ * analogy, docs/modern-sources-proposal.md §3.1).
+ */
+function dispatchDataset(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatDataset({
+    creator: toStr(d.creator),
+    title: toStr(d.title),
+    repository: toStr(d.repository),
+    year: toStr(d.year),
+    version: toStr(d.version) || undefined,
+    doi: toStr(d.doi) || undefined,
+    persistentId: toStr(d.persistentId) || undefined,
+    accessDate: toStr(d.accessDate) || undefined,
+  });
+}
+
+/**
+ * A5-EXP-3 (experimental, pending AGLC5): dispatches a software / code
+ * citation. AGLC4 has no software rule; delegates to formatSoftware
+ * (docs/modern-sources-proposal.md §3.2).
+ */
+function dispatchSoftware(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatSoftware({
+    author: toStr(d.author),
+    title: toStr(d.title),
+    year: toStr(d.year),
+    versionOrCommit: toStr(d.versionOrCommit) || undefined,
+    designation: toStr(d.designation) || undefined,
+    host: toStr(d.host) || undefined,
+    url: toStr(d.url) || undefined,
   });
 }
 
@@ -1656,6 +1700,10 @@ function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
     // Rule 7.15: pinpoint (usually bracketed paragraphs) before the URL
     pinpoint: normalisePinpoint(d.pinpoint),
     url: toStr(d.url),
+    // A5-EXP-4 (experimental, pending AGLC5): archived-web fields.
+    archiveService: toStr(d.archiveService) || undefined,
+    archivedUrl: toStr(d.archivedUrl) || undefined,
+    archiveDate: toStr(d.archiveDate) || undefined,
   });
 }
 
@@ -3284,6 +3332,8 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   treaty: dispatchTreaty,
   "treaty.mou": dispatchTreatyMou,
   genai_output: dispatchGenaiOutput,
+  dataset: dispatchDataset,
+  software: dispatchSoftware,
   custom: dispatchCustom,
   explanatory_note: dispatchExplanatoryNote,
 };

@@ -33,6 +33,12 @@ import { classifySourceType } from "../../llm/classifySource";
 import { parseCitationText } from "../../llm/parseCitation";
 import { suggestShortTitle as suggestShortTitleLlm } from "../../llm/suggestShortTitle";
 import { getCitationLabel, getSourceTypeBadge } from "./CitationLibrary";
+import {
+  EXPERIMENTAL_BADGE,
+  isExperimentalSourceType,
+  getProvenanceNote,
+} from "../../engine/ruleExporter";
+import { buildAiLayerMarker } from "../../engine/rules/v4/secondary/aiMarker";
 import { personToStr, parseNameList, nameListToStr } from "../nameList";
 import { listMissingRequiredFields } from "../../engine/validator";
 import {
@@ -159,9 +165,13 @@ const SOURCE_TYPE_CATEGORIES: SourceTypeCategory[] = [
         ],
       },
       {
-        label: "AI-Generated Content",
+        // A5-LABEL: every type in this group goes beyond official AGLC4 and
+        // renders the experimental badge (isExperimentalSourceType).
+        label: "Experimental (pending AGLC5)",
         types: [
           { value: "genai_output", label: "AI-Generated Content" },
+          { value: "dataset", label: "Dataset" },
+          { value: "software", label: "Software / Code" },
         ],
       },
       {
@@ -1574,6 +1584,12 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
+      {/* A5-LABEL: experimental (beyond-AGLC4) types carry an unmistakable
+          badge with the interim-basis tooltip, in the form header. */}
+      {selectedSourceType && isExperimentalSourceType(selectedSourceType) && (
+        <ExperimentalBadge sourceType={selectedSourceType} />
+      )}
+
       {/* Dynamic Form */}
       {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard, searchEnabled)}
       {selectedSourceType === "case.unreported.mnc" && renderCaseUnreportedMncForm(formData, updateField, isAglcStandard)}
@@ -1596,6 +1612,8 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "treaty" && renderTreatyForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "treaty.mou" && renderMouForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "genai_output" && renderGenaiForm(formData, updateField, isAglcStandard)}
+      {selectedSourceType === "dataset" && renderDatasetForm(formData, updateField)}
+      {selectedSourceType === "software" && renderSoftwareForm(formData, updateField)}
       {selectedSourceType === "report" && renderReportForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "report.parliamentary" && renderReportParliamentaryForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "report.royal_commission" && renderReportRoyalCommissionForm(formData, updateField, isAglcStandard)}
@@ -1807,6 +1825,34 @@ export default function InsertCitation(): JSX.Element {
               placeholder="e.g., where the court distinguished the earlier authority"
               onChange={(e) => setCommentaryAfter(e.target.value)}
             />
+            {/* A5-EXP-5 (experimental, pending AGLC5): AI-layer marker preset.
+                Layers a bracketed AI-generation tag over a normally-cited
+                primary source via the commentary field — no schema change. The
+                AI layer is not authoritative, so the note is prominent. */}
+            <div className="ic-experimental-badge" role="note">
+              <span className="ic-experimental-badge-label">{EXPERIMENTAL_BADGE}</span>
+              <span className="ic-experimental-badge-note">
+                AI-layer marker: layers a bracketed AI-generation tag (analogy to
+                the rule 26.1 translator marker) over the source above. The AI
+                layer is not authoritative.
+              </span>
+              <button
+                type="button"
+                className="ic-experimental-badge-btn"
+                onClick={() => {
+                  const marker = buildAiLayerMarker({
+                    kind: "summary",
+                    tool: (formData.platform as string) || "AI tool",
+                    model:
+                      (formData.modelVersion as string) || (formData.model as string) || undefined,
+                    date: (formData.outputDate as string) || undefined,
+                  });
+                  setCommentaryAfter(marker);
+                }}
+              >
+                Add AI-generated marker
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -5134,6 +5180,261 @@ function renderTreatyForm(
   );
 }
 
+/**
+ * A5-LABEL / DECISION-036: badge shown for any source type that goes beyond
+ * official AGLC4. Renders the canonical EXPERIMENTAL_BADGE copy with the
+ * interim-basis note (from SOURCE_TYPE_METADATA) as a tooltip, so the type can
+ * never be mistaken for an official AGLC4 form. Data-driven — no per-type copy.
+ */
+function ExperimentalBadge({ sourceType }: { sourceType: string }): JSX.Element {
+  const note = getProvenanceNote(sourceType);
+  return (
+    <div className="ic-experimental-badge" title={note} role="note">
+      <span className="ic-experimental-badge-label">{EXPERIMENTAL_BADGE}</span>
+      {note && <span className="ic-experimental-badge-note">Interim basis: {note}</span>}
+    </div>
+  );
+}
+
+/**
+ * A5-EXP-2 (experimental, pending AGLC5): dataset form. AGLC4 has no dataset
+ * rule; the experimental badge above the form carries the labelling. A DOI is
+ * preferred; where none exists a persistent id or access date is used.
+ */
+function renderDatasetForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-creator">
+          Creator
+        </label>
+        <input
+          id="ic-dataset-creator"
+          className="ic-input"
+          type="text"
+          value={(data.creator as string) || ""}
+          placeholder="e.g. Australian Bureau of Statistics"
+          onChange={(e) => updateField("creator", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-title">
+          Title
+        </label>
+        <input
+          id="ic-dataset-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Census of Population and Housing"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-version">
+          Version (optional)
+        </label>
+        <input
+          id="ic-dataset-version"
+          className="ic-input"
+          type="text"
+          value={(data.version as string) || ""}
+          placeholder="e.g. v2"
+          onChange={(e) => updateField("version", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-repository">
+          Repository / Publisher
+        </label>
+        <input
+          id="ic-dataset-repository"
+          className="ic-input"
+          type="text"
+          value={(data.repository as string) || ""}
+          placeholder="e.g. data.gov.au"
+          onChange={(e) => updateField("repository", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-year">
+          Year
+        </label>
+        <input
+          id="ic-dataset-year"
+          className="ic-input"
+          type="text"
+          value={(data.year as string) || ""}
+          placeholder="e.g. 2021"
+          onChange={(e) => updateField("year", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-doi">
+          DOI (preferred)
+        </label>
+        <input
+          id="ic-dataset-doi"
+          className="ic-input"
+          type="text"
+          value={(data.doi as string) || ""}
+          placeholder="e.g. https://doi.org/10.xxxx/xxxx"
+          onChange={(e) => updateField("doi", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-persistent-id">
+          Persistent ID / URL (if no DOI)
+        </label>
+        <input
+          id="ic-dataset-persistent-id"
+          className="ic-input"
+          type="text"
+          value={(data.persistentId as string) || ""}
+          placeholder="e.g. https://..."
+          onChange={(e) => updateField("persistentId", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-dataset-access-date">
+          Access Date (fallback when no DOI)
+        </label>
+        <input
+          id="ic-dataset-access-date"
+          className="ic-input"
+          type="text"
+          value={(data.accessDate as string) || ""}
+          placeholder="e.g. 15 March 2026"
+          onChange={(e) => updateField("accessDate", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A5-EXP-3 (experimental, pending AGLC5): software / code form. AGLC4 has no
+ * software rule; the experimental badge above the form carries the labelling.
+ */
+function renderSoftwareForm(
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element {
+  return (
+    <div className="ic-form-fields">
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-author">
+          Author / Organisation
+        </label>
+        <input
+          id="ic-software-author"
+          className="ic-input"
+          type="text"
+          value={(data.author as string) || ""}
+          placeholder="e.g. Matthew Watt"
+          onChange={(e) => updateField("author", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-title">
+          Title
+        </label>
+        <input
+          id="ic-software-title"
+          className="ic-input"
+          type="text"
+          value={(data.title as string) || ""}
+          placeholder="e.g. Obiter"
+          onChange={(e) => updateField("title", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-version">
+          Version or Commit (optional)
+        </label>
+        <input
+          id="ic-software-version"
+          className="ic-input"
+          type="text"
+          value={(data.versionOrCommit as string) || ""}
+          placeholder="e.g. v1.16.0 or a1b2c3d"
+          onChange={(e) => updateField("versionOrCommit", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-designation">
+          Designation
+        </label>
+        <select
+          id="ic-software-designation"
+          className="ic-select"
+          value={(data.designation as string) || ""}
+          onChange={(e) => updateField("designation", e.target.value)}
+        >
+          <option value="">Default (Software)</option>
+          <option value="Software">Software</option>
+          <option value="Source code">Source code</option>
+        </select>
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-host">
+          Host (optional)
+        </label>
+        <input
+          id="ic-software-host"
+          className="ic-input"
+          type="text"
+          value={(data.host as string) || ""}
+          placeholder="e.g. GitHub"
+          onChange={(e) => updateField("host", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-year">
+          Year
+        </label>
+        <input
+          id="ic-software-year"
+          className="ic-input"
+          type="text"
+          value={(data.year as string) || ""}
+          placeholder="e.g. 2026"
+          onChange={(e) => updateField("year", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-software-url">
+          URL (optional)
+        </label>
+        <input
+          id="ic-software-url"
+          className="ic-input"
+          type="url"
+          value={(data.url as string) || ""}
+          placeholder="e.g. https://github.com/..."
+          onChange={(e) => updateField("url", e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
 function renderGenaiForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
@@ -5200,8 +5501,36 @@ function renderGenaiForm(
           className="ic-input"
           type="text"
           value={(data.model as string) || ""}
-          placeholder="e.g. GPT-4o, Claude Sonnet 4.6"
+          placeholder="e.g. ChatGPT, Claude"
           onChange={(e) => updateField("model", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-model-version">
+          Model Version (optional)
+        </label>
+        <input
+          id="ic-genai-model-version"
+          className="ic-input"
+          type="text"
+          value={(data.modelVersion as string) || ""}
+          placeholder="e.g. GPT-5, Claude Opus 4.8"
+          onChange={(e) => updateField("modelVersion", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-transcript-custody">
+          Transcript Custody (optional)
+        </label>
+        <input
+          id="ic-genai-transcript-custody"
+          className="ic-input"
+          type="text"
+          value={(data.transcriptCustody as string) || ""}
+          placeholder="e.g. the author"
+          onChange={(e) => updateField("transcriptCustody", e.target.value)}
         />
       </div>
 
@@ -5246,10 +5575,25 @@ function renderGenaiForm(
         />
       </div>
 
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-archived-url">
+          Archived Transcript URL (optional)
+        </label>
+        <input
+          id="ic-genai-archived-url"
+          className="ic-input"
+          type="url"
+          value={(data.archivedUrl as string) || ""}
+          placeholder="e.g. https://web.archive.org/..."
+          onChange={(e) => updateField("archivedUrl", e.target.value)}
+        />
+      </div>
+
       <div className="ic-note">
-        Per MULR interim guidance, AI-generated content is cited as written
-        correspondence (Rule 7.12). This will be updated when AGLC5 provides
-        formal guidance.
+        Experimental, pending AGLC5. AGLC4 has no generative-AI rule; Obiter
+        cites AI-generated content by analogy to written correspondence (Rule
+        7.12), following MULR interim guidance and the OSCOLA 5 r 3.7.13 element
+        set. The form will migrate to the AGLC5 rule when published.
       </div>
     </div>
   );
@@ -8908,6 +9252,59 @@ function renderInternetMaterialForm(
           placeholder="e.g. 3"
           onChange={(e) => updateField("pinpoint", e.target.value)}
         />
+      </div>
+
+      {/* A5-EXP-4: archived-web fields. internet_material stays AGLC4; these
+          fields are experimental (AGLC4 has no archive form), so they carry
+          their own experimental note. */}
+      <div className="ic-field-group ic-experimental-fields">
+        <div className="ic-note">
+          {EXPERIMENTAL_BADGE}. AGLC4 has no archived-web form. When an archived
+          URL is entered, Obiter appends &ldquo;(archived at [service] [date])&rdquo;
+          after the URL, pending AGLC5 guidance.
+        </div>
+
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-web-archive-service">
+            Archive Service (optional)
+          </label>
+          <input
+            id="ic-web-archive-service"
+            className="ic-input"
+            type="text"
+            value={(data.archiveService as string) || ""}
+            placeholder="e.g. Wayback Machine, Perma.cc"
+            onChange={(e) => updateField("archiveService", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-web-archived-url">
+            Archived URL (optional)
+          </label>
+          <input
+            id="ic-web-archived-url"
+            className="ic-input"
+            type="url"
+            value={(data.archivedUrl as string) || ""}
+            placeholder="e.g. https://web.archive.org/web/..."
+            onChange={(e) => updateField("archivedUrl", e.target.value)}
+          />
+        </div>
+
+        <div className="ic-field">
+          <label className="ic-label" htmlFor="ic-web-archive-date">
+            Archive Date (optional)
+          </label>
+          <input
+            id="ic-web-archive-date"
+            className="ic-input"
+            type="text"
+            value={(data.archiveDate as string) || ""}
+            placeholder="e.g. 15 March 2026"
+            onChange={(e) => updateField("archiveDate", e.target.value)}
+          />
+        </div>
       </div>
     </div>
   );

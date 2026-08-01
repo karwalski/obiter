@@ -222,6 +222,17 @@ export interface InternetMaterialData {
    */
   pinpoint?: Pinpoint;
   url: string;
+  /**
+   * A5-EXP-4 (experimental, pending AGLC5): archive service name (eg
+   * "Wayback Machine", "Perma.cc"). AGLC4 has no archived-web form; these
+   * fields render "(archived at [service] [date])" after the URL and are
+   * badged experimental in the form. See docs/obiter-extensions.md §3/§4.
+   */
+  archiveService?: string;
+  /** A5-EXP-4 (experimental): stable archived-snapshot URL. */
+  archivedUrl?: string;
+  /** A5-EXP-4 (experimental): date the snapshot was archived/captured. */
+  archiveDate?: string;
 }
 
 export interface SocialMediaData {
@@ -928,6 +939,16 @@ export function formatInternetMaterial(data: InternetMaterialData): FormattedRun
 
   if (data.url) {
     runs.push({ text: ` <${data.url}>` });
+  }
+
+  // A5-EXP-4 (experimental, pending AGLC5): archived-web note after the URL.
+  // AGLC4 has no archive form; rendered "(archived at [service] [date])" when
+  // an archive URL is recorded. Service and date are optional refinements.
+  const archivedUrl = (data.archivedUrl ?? "").trim();
+  if (archivedUrl) {
+    const parts = [data.archiveService, data.archiveDate].map((p) => (p ?? "").trim());
+    const suffix = parts.filter(Boolean).join(" ");
+    runs.push({ text: ` (archived at ${suffix ? `${suffix} ` : ""}${archivedUrl})` });
   }
 
   return runs;

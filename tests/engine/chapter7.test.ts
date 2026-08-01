@@ -24,6 +24,9 @@ import {
   HansardData,
 } from "../../src/engine/rules/v4/secondary/other";
 import { formatGenaiOutput } from "../../src/engine/rules/v4/secondary/genai";
+import { formatDataset } from "../../src/engine/rules/v4/secondary/dataset";
+import { formatSoftware } from "../../src/engine/rules/v4/secondary/software";
+import { buildAiLayerMarker } from "../../src/engine/rules/v4/secondary/aiMarker";
 import {
   formatParliamentaryEvidence,
   formatConstitutionalConvention,
@@ -968,6 +971,139 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
         "<https://claude.ai/chat/abc123>"
     );
   });
+
+  // ── A5-EXP-1 (experimental, pending AGLC5): v2 fields ──────────────────────
+
+  it("A5-EXP-1: renders the model with its version inside the parenthetical", () => {
+    const runs = formatGenaiOutput({
+      platform: "OpenAI",
+      model: "ChatGPT",
+      modelVersion: "GPT-5",
+      outputDate: "7 July 2026",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026"
+    );
+  });
+
+  it("A5-EXP-1: renders the model alone when no version is supplied", () => {
+    const runs = formatGenaiOutput({
+      platform: "OpenAI",
+      model: "ChatGPT",
+      outputDate: "7 July 2026",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from OpenAI (ChatGPT) to the author, 7 July 2026"
+    );
+  });
+
+  it("A5-EXP-1: appends an archived-transcript note after the URL", () => {
+    const runs = formatGenaiOutput({
+      platform: "OpenAI",
+      model: "ChatGPT",
+      modelVersion: "GPT-5",
+      outputDate: "7 July 2026",
+      url: "https://chat.openai.com/share/abc",
+      archivedUrl: "https://web.archive.org/web/2026/https://chat.openai.com/share/abc",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026 " +
+        "<https://chat.openai.com/share/abc> " +
+        "(archived at https://web.archive.org/web/2026/https://chat.openai.com/share/abc)"
+    );
+  });
+
+  it("A5-EXP-1: transcriptCustody does not appear in the correspondence line", () => {
+    const runs = formatGenaiOutput({
+      platform: "OpenAI",
+      model: "ChatGPT",
+      outputDate: "7 July 2026",
+      transcriptCustody: "the author",
+    });
+    expect(toPlainText(runs)).not.toContain("the author, 7 July 2026 (");
+    expect(toPlainText(runs)).toBe(
+      "Correspondence from OpenAI (ChatGPT) to the author, 7 July 2026"
+    );
+  });
+});
+
+// ─── A5-EXP-2 (experimental, pending AGLC5) — Dataset ─────────────────────────
+
+describe("A5-EXP-2 — Dataset (experimental, pending AGLC5)", () => {
+  it("renders creator, italic title, dataset parenthetical, and DOI", () => {
+    const runs = formatDataset({
+      creator: "Australian Bureau of Statistics",
+      title: "Census of Population and Housing",
+      repository: "data.gov.au",
+      year: "2021",
+      doi: "https://doi.org/10.1234/abcd",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Australian Bureau of Statistics, Census of Population and Housing " +
+        "(Dataset, data.gov.au, 2021) <https://doi.org/10.1234/abcd>"
+    );
+    const titleRun = runs.find((r) => r.text === "Census of Population and Housing");
+    expect(titleRun?.italic).toBe(true);
+  });
+
+  it("includes the version when present", () => {
+    const runs = formatDataset({
+      creator: "ABS",
+      title: "Census",
+      version: "v2",
+      repository: "data.gov.au",
+      year: "2021",
+      doi: "doi:10.1/x",
+    });
+    expect(toPlainText(runs)).toContain("(Dataset, v2, data.gov.au, 2021)");
+  });
+
+  it("falls back to an accessed-date note when no DOI or persistent id exists", () => {
+    const runs = formatDataset({
+      creator: "ABS",
+      title: "Census",
+      repository: "data.gov.au",
+      year: "2021",
+      accessDate: "15 March 2026",
+    });
+    expect(toPlainText(runs)).toBe(
+      "ABS, Census (Dataset, data.gov.au, 2021) (accessed 15 March 2026)"
+    );
+  });
+});
+
+// ─── A5-EXP-3 (experimental, pending AGLC5) — Software / Code ──────────────────
+
+describe("A5-EXP-3 — Software / Code (experimental, pending AGLC5)", () => {
+  it("renders author, italic title, designation parenthetical, and URL", () => {
+    const runs = formatSoftware({
+      author: "Matthew Watt",
+      title: "Obiter",
+      versionOrCommit: "v1.16.0",
+      host: "GitHub",
+      year: "2026",
+      url: "https://github.com/karwalski/obiter",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Matthew Watt, Obiter (Software, v1.16.0, GitHub, 2026) " +
+        "<https://github.com/karwalski/obiter>"
+    );
+    const titleRun = runs.find((r) => r.text === "Obiter");
+    expect(titleRun?.italic).toBe(true);
+  });
+
+  it("defaults the designation to 'Software' and honours 'Source code'", () => {
+    const dflt = formatSoftware({ author: "A", title: "T", year: "2026" });
+    expect(toPlainText(dflt)).toContain("(Software, 2026)");
+
+    const src = formatSoftware({
+      author: "A",
+      title: "T",
+      designation: "Source code",
+      year: "2026",
+    });
+    expect(toPlainText(src)).toContain("(Source code, 2026)");
+  });
 });
 
 // ─── Rules 7.11.1–7.11.2 — Newspaper Articles ─────────────────────────────────
@@ -1384,6 +1520,77 @@ describe("Rule 7.15 — Internet Materials", () => {
 });
 
 // ─── Rule 7.16 — Social Media ──────────────────────────────────────────────────
+
+describe("A5-EXP-5 — AI-layer marker preset (experimental, no schema change)", () => {
+  it("builds a bracketed AI-generation marker with tool, model, and date", () => {
+    const marker = buildAiLayerMarker({
+      kind: "summary",
+      tool: "ChatGPT",
+      model: "GPT-5",
+      date: "7 July 2026",
+    });
+    expect(marker).toBe("[AI-generated summary, ChatGPT (GPT-5), 7 July 2026]");
+  });
+
+  it("defaults the kind to 'summary' and omits an absent model/date", () => {
+    const marker = buildAiLayerMarker({ tool: "Claude" });
+    expect(marker).toBe("[AI-generated summary, Claude]");
+  });
+
+  it("supports custom layer kinds (eg translation) for the rule 26.1 analogy", () => {
+    const marker = buildAiLayerMarker({
+      kind: "plain-language summary",
+      tool: "ChatGPT",
+      model: "GPT-5",
+      date: "7 July 2026",
+    });
+    expect(marker).toBe("[AI-generated plain-language summary, ChatGPT (GPT-5), 7 July 2026]");
+  });
+});
+
+describe("A5-EXP-4 — Archived-web fields on internet_material (experimental)", () => {
+  it("appends '(archived at [service] [date] url)' after the URL", () => {
+    const data: InternetMaterialData = {
+      title: "Koani v The Queen",
+      website: "Opinions on High",
+      documentType: "Blog Post",
+      date: "18 October 2017",
+      url: "http://example.com/koani",
+      archiveService: "Wayback Machine",
+      archiveDate: "15 March 2026",
+      archivedUrl: "https://web.archive.org/web/2026/http://example.com/koani",
+    };
+    const text = toPlainText(formatInternetMaterial(data));
+    expect(text).toBe(
+      "‘Koani v The Queen’, Opinions on High (Blog Post, 18 October 2017) " +
+        "<http://example.com/koani> (archived at Wayback Machine 15 March 2026 " +
+        "https://web.archive.org/web/2026/http://example.com/koani)"
+    );
+  });
+
+  it("renders the archive note with the URL alone when service/date are absent", () => {
+    const data: InternetMaterialData = {
+      title: "Koani",
+      website: "Opinions on High",
+      date: "",
+      url: "http://example.com/koani",
+      archivedUrl: "https://perma.cc/ABCD-1234",
+    };
+    const text = toPlainText(formatInternetMaterial(data));
+    expect(text).toContain("(archived at https://perma.cc/ABCD-1234)");
+  });
+
+  it("adds no archive note when no archived URL is recorded (internet_material stays AGLC4)", () => {
+    const data: InternetMaterialData = {
+      title: "Koani",
+      website: "Opinions on High",
+      date: "",
+      url: "http://example.com/koani",
+    };
+    const text = toPlainText(formatInternetMaterial(data));
+    expect(text).not.toContain("archived at");
+  });
+});
 
 describe("Rule 7.16 — Social Media", () => {
   /*

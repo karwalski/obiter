@@ -181,7 +181,9 @@ export type SourceType =
   | "film_tv_media" // Rule 7.14
   | "internet_material" // Rule 7.15
   | "social_media" // Rule 7.16
-  | "genai_output" // MULR interim guidance (Rule 7.12)
+  | "genai_output" // Experimental pending AGLC5 (MULR interim guidance, Rule 7.12 analogy)
+  | "dataset" // Experimental pending AGLC5 (A5-EXP-2 — no official AGLC4 form)
+  | "software" // Experimental pending AGLC5 (A5-EXP-3 — no official AGLC4 form)
 
   // Part IV — International Materials
   | "treaty" // Rule 8

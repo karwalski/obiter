@@ -35,6 +35,8 @@ export interface RuleReference {
     requiredFields: string[];
     optionalFields: string[];
     formatTemplate: string;
+    provenance?: "aglc4" | "experimental_pending_aglc5";
+    provenanceNote?: string;
   }>;
   reportSeries: Array<{
     abbreviation: string;
@@ -69,7 +71,34 @@ interface SourceTypeMeta {
   requiredFields: string[];
   optionalFields: string[];
   formatTemplate: string;
+  /**
+   * A5-LABEL: provenance of the source type. Absent means the type is an
+   * official AGLC4 form (treated as `'aglc4'`). `'experimental_pending_aglc5'`
+   * marks a type or field set that goes BEYOND official AGLC4 — Obiter renders
+   * it on an interim basis (by analogy or peer-standard precedent) and it is
+   * excluded from the AGLC4-conformance count. Every experimental type carries
+   * the `EXPERIMENTAL_BADGE` in the UI. On AGLC5 publication each such item is
+   * re-mapped or retired per the WS-1 runbook (DECISION-036).
+   */
+  provenance?: "aglc4" | "experimental_pending_aglc5";
+  /**
+   * A5-LABEL: short note stating the interim basis for an experimental type
+   * (the analogy/precedent Obiter follows pending AGLC5). Rendered as the badge
+   * tooltip in the type picker and form header. Only meaningful when
+   * `provenance` is `'experimental_pending_aglc5'`.
+   */
+  provenanceNote?: string;
 }
+
+// ─── A5-LABEL: Experimental-labelling constants ─────────────────────────────
+
+/**
+ * A5-LABEL / DECISION-036: the canonical badge copy shown wherever an
+ * experimental (beyond-AGLC4) source type or field set surfaces in the UI or
+ * docs. Every experimental item MUST carry this exact text so users can never
+ * mistake it for an official AGLC4 form.
+ */
+export const EXPERIMENTAL_BADGE = "Experimental · pending AGLC5 (not an official AGLC4 form)";
 
 /**
  * Comprehensive metadata for every SourceType the engine dispatcher supports
@@ -674,8 +703,19 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Internet Material",
     category: "secondary",
     requiredFields: ["title", "websiteName", "url"],
-    optionalFields: ["authors", "documentType", "date"],
-    formatTemplate: "Author, 'Title', WebsiteName (DocumentType, FullDate) <URL>.",
+    // A5-EXP-4: archiveService/archivedUrl/archiveDate are experimental fields
+    // (AGLC4 has no archive form). internet_material itself stays AGLC4; only
+    // the archive fields carry the experimental note in the form.
+    optionalFields: [
+      "authors",
+      "documentType",
+      "date",
+      "archiveService",
+      "archivedUrl",
+      "archiveDate",
+    ],
+    formatTemplate:
+      "Author, 'Title', WebsiteName (DocumentType, FullDate) <URL> (archived at ArchiveService ArchiveDate).",
   },
   {
     type: "social_media",
@@ -688,15 +728,49 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
   },
   {
     type: "genai_output",
-    ruleNumber: "MULR interim guidance (non-AGLC4)",
+    ruleNumber: "Obiter experimental (pending AGLC5)",
     label: "Generative AI Output",
     category: "secondary",
     requiredFields: ["platform", "model", "outputDate"],
-    // `prompt` is stored for the record but is not rendered in the citation.
-    optionalFields: ["prompt", "url"],
+    // A5-EXP-1: modelVersion renders with the model; archivedUrl appends an
+    // "(archived at …)" note; transcriptCustody + prompt are stored for the
+    // record but are not part of the correspondence line.
+    optionalFields: ["prompt", "url", "modelVersion", "transcriptCustody", "archivedUrl"],
     // Treated as written correspondence (rule 7.12) per MULR interim
     // guidance; AGLC4 itself contains no generative-AI rule.
-    formatTemplate: "Correspondence from Platform (Model) to the author, OutputDate <URL>.",
+    formatTemplate:
+      "Correspondence from Platform (Model Version) to the author, OutputDate <URL> (archived at ArchivedUrl).",
+    provenance: "experimental_pending_aglc5",
+    provenanceNote: "MULR interim guidance by analogy to rule 7.12; OSCOLA 5 r 3.7.13 precedent",
+  },
+  {
+    // A5-EXP-2: dataset — experimental, no AGLC4 rule. Basis: APA §10.10 /
+    // Chicago 18 / AMS precedent (docs/modern-sources-proposal.md §3.1).
+    type: "dataset",
+    ruleNumber: "Obiter experimental (pending AGLC5)",
+    label: "Dataset",
+    category: "secondary",
+    requiredFields: ["creator", "title", "repository", "year"],
+    optionalFields: ["version", "doi", "persistentId", "accessDate"],
+    formatTemplate:
+      "Creator, *Title* (Dataset, Version, Repository, Year) <doi/persistentId>. | No DOI: … (accessed AccessDate).",
+    provenance: "experimental_pending_aglc5",
+    provenanceNote:
+      "No AGLC4 form; dataset element set by analogy to APA §10.10 / Chicago 18 / AMS precedent",
+  },
+  {
+    // A5-EXP-3: software / code — experimental, no AGLC4 rule. Basis:
+    // docs/modern-sources-proposal.md §3.2 (CRIT-002 P2).
+    type: "software",
+    ruleNumber: "Obiter experimental (pending AGLC5)",
+    label: "Software / Code",
+    category: "secondary",
+    requiredFields: ["author", "title", "year"],
+    optionalFields: ["versionOrCommit", "designation", "host", "url"],
+    formatTemplate: "Author, *Title* (Designation, VersionOrCommit, Host, Year) <URL>.",
+    provenance: "experimental_pending_aglc5",
+    provenanceNote:
+      "No AGLC4 form; software/code element set proposed for AGLC5 (docs/modern-sources-proposal.md §3.2)",
   },
 
   // ── Part IV — International Materials ─────────────────────────────────────
@@ -1357,4 +1431,49 @@ export function exportRuleReference(): RuleReference {
       shortTitleRules: SHORT_TITLE_RULES,
     },
   };
+}
+
+// ─── A5-LABEL: Experimental-provenance helpers ──────────────────────────────
+
+const METADATA_BY_TYPE = new Map(SOURCE_TYPE_METADATA.map((m) => [m.type, m]));
+
+/**
+ * A5-LABEL / DECISION-036: returns true when a source type goes beyond official
+ * AGLC4 and is rendered on an interim, pending-AGLC5 basis. Data-driven: reads
+ * the `provenance` flag on SOURCE_TYPE_METADATA (absent ⇒ official AGLC4), so no
+ * per-type hardcoding is needed in the UI or the conformance count.
+ *
+ * @param sourceType - The source type key.
+ * @returns True when the type is flagged `experimental_pending_aglc5`.
+ */
+export function isExperimentalSourceType(sourceType: string): boolean {
+  return METADATA_BY_TYPE.get(sourceType)?.provenance === "experimental_pending_aglc5";
+}
+
+/**
+ * A5-LABEL: returns the interim-basis note for an experimental source type
+ * (the badge tooltip text), or undefined for official AGLC4 types.
+ *
+ * @param sourceType - The source type key.
+ * @returns The provenance note, or undefined.
+ */
+export function getProvenanceNote(sourceType: string): string | undefined {
+  const meta = METADATA_BY_TYPE.get(sourceType);
+  if (meta?.provenance !== "experimental_pending_aglc5") return undefined;
+  return meta.provenanceNote;
+}
+
+/**
+ * A5-LABEL / A5-DOC-2: the set of source types that count towards Obiter's
+ * AGLC4-conformance total. Experimental (pending-AGLC5) types are excluded so
+ * they never inflate the conformance count or any "AGLC4 output" claim.
+ *
+ * @returns The AGLC4-conformance source-type set.
+ */
+export function getAglc4ConformanceSourceTypes(): Set<string> {
+  return new Set(
+    SOURCE_TYPE_METADATA.filter((m) => m.provenance !== "experimental_pending_aglc5").map(
+      (m) => m.type
+    )
+  );
 }

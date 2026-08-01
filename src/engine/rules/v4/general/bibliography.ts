@@ -125,6 +125,11 @@ export function getBibliographyCategory(
   // but bibliographically it belongs in section E (Other) pending AGLC5 guidance.
   if (sourceType === "genai_output") return "E";
 
+  // A5-EXP-2 / A5-EXP-3 (experimental, pending AGLC5): datasets and software
+  // have no AGLC4 bibliography category; classified as Other (E) pending AGLC5.
+  if (sourceType === "dataset") return "E";
+  if (sourceType === "software") return "E";
+
   // Everything else: international materials, foreign sources, etc.
   return "E";
 }

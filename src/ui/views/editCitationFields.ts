@@ -186,6 +186,52 @@ export const EDIT_FIELDS_BY_SOURCE_TYPE: Partial<Record<SourceType, FieldDefinit
     // Rule 7.15: pinpoint (usually a bracketed paragraph) before the URL
     { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [4]" },
     { key: "url", label: "URL", required: true },
+    // A5-EXP-4 (experimental, pending AGLC5): archived-web fields. AGLC4 has
+    // no archive form — see docs/obiter-extensions.md §3/§4.
+    {
+      key: "archiveService",
+      label: "Archive Service (experimental)",
+      placeholder: "Wayback Machine",
+    },
+    {
+      key: "archivedUrl",
+      label: "Archived URL (experimental)",
+      placeholder: "https://web.archive.org/...",
+    },
+    { key: "archiveDate", label: "Archive Date (experimental)", placeholder: "15 March 2026" },
+  ],
+  // A5-EXP-1 (experimental, pending AGLC5): GenAI output. AGLC4 has no
+  // generative-AI rule; cited by analogy to rule 7.12. See A5-LABEL.
+  genai_output: [
+    { key: "platform", label: "Platform", required: true, placeholder: "ChatGPT" },
+    { key: "model", label: "Model", placeholder: "ChatGPT, Claude" },
+    { key: "modelVersion", label: "Model Version", placeholder: "GPT-5, Claude Opus 4.8" },
+    { key: "outputDate", label: "Date of Output", required: true, placeholder: "7 July 2026" },
+    { key: "transcriptCustody", label: "Transcript Custody", placeholder: "the author" },
+    { key: "prompt", label: "Prompt" },
+    { key: "url", label: "URL" },
+    { key: "archivedUrl", label: "Archived Transcript URL" },
+  ],
+  // A5-EXP-2 (experimental, pending AGLC5): dataset. AGLC4 has no dataset rule.
+  dataset: [
+    { key: "creator", label: "Creator", required: true },
+    { key: "title", label: "Title", required: true },
+    { key: "version", label: "Version" },
+    { key: "repository", label: "Repository / Publisher", required: true },
+    { key: "year", label: "Year", required: true },
+    { key: "doi", label: "DOI (preferred)" },
+    { key: "persistentId", label: "Persistent ID / URL" },
+    { key: "accessDate", label: "Access Date" },
+  ],
+  // A5-EXP-3 (experimental, pending AGLC5): software / code. AGLC4 has no rule.
+  software: [
+    { key: "author", label: "Author / Organisation", required: true },
+    { key: "title", label: "Title", required: true },
+    { key: "versionOrCommit", label: "Version or Commit" },
+    { key: "designation", label: "Designation", placeholder: "Software / Source code" },
+    { key: "host", label: "Host" },
+    { key: "year", label: "Year", required: true },
+    { key: "url", label: "URL" },
   ],
   // BUG-005 (d): the newspaper dispatcher reads no `pinpoint` key (the page
   // element carries the locator, Rule 7.11.2), so that dead field is gone.

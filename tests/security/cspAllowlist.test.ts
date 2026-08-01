@@ -97,6 +97,7 @@ const IGNORED_HOSTS: ReadonlySet<string> = new Set([
   "https://www.smh.com.au", // newspaper citation example
   "https://www.health.gov.au", // government-material citation example
   "https://chat.openai.com", // AI-tool citation example (AGLC internet materials)
+  "https://web.archive.org", // A5-EXP-4 archived-web field placeholder/example (never fetched)
   "https://twitter.com", // social-media citation example
   "https://youtube.com", // social-media citation example
 ]);

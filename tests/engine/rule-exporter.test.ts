@@ -22,7 +22,13 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { exportRuleReference } from "../../src/engine/ruleExporter";
+import {
+  exportRuleReference,
+  isExperimentalSourceType,
+  getProvenanceNote,
+  getAglc4ConformanceSourceTypes,
+  EXPERIMENTAL_BADGE,
+} from "../../src/engine/ruleExporter";
 
 const ENGINE_PATH = path.resolve(__dirname, "../../src/engine/engine.ts");
 const RULES_JSON_PATH = path.resolve(__dirname, "../../docs/aglc4-rules.json");
@@ -157,7 +163,9 @@ describe("SOURCE_TYPE_METADATA <-> SOURCE_DISPATCH consistency (PARITY-118)", ()
 
   test("non-AGLC4 types are labelled honestly", () => {
     const byType = new Map(sourceTypes.map((st) => [st.type, st]));
-    expect(byType.get("genai_output")!.ruleNumber).toBe("MULR interim guidance (non-AGLC4)");
+    // A5-LABEL: genai_output is now flagged as an experimental pending-AGLC5
+    // extension (was "MULR interim guidance (non-AGLC4)").
+    expect(byType.get("genai_output")!.ruleNumber).toContain("Obiter experimental");
     expect(byType.get("book.ebook")!.ruleNumber).toContain("Obiter extension");
     expect(byType.get("report.waitangi_tribunal")!.ruleNumber).toContain("NZLSG");
   });
@@ -167,6 +175,47 @@ describe("SOURCE_TYPE_METADATA <-> SOURCE_DISPATCH consistency (PARITY-118)", ()
     for (const t of ["book.ebook", "report.waitangi_tribunal", "treaty.mou", "periodical"]) {
       expect(types.has(t)).toBe(true);
     }
+  });
+});
+
+describe("A5-LABEL: experimental provenance + conformance exclusion", () => {
+  const EXPERIMENTAL_TYPES = ["genai_output", "dataset", "software"];
+
+  test("EXPERIMENTAL_BADGE is the canonical not-official-AGLC4 copy", () => {
+    expect(EXPERIMENTAL_BADGE).toBe("Experimental · pending AGLC5 (not an official AGLC4 form)");
+  });
+
+  test.each(EXPERIMENTAL_TYPES)("%s is flagged experimental with a provenance note", (type) => {
+    expect(isExperimentalSourceType(type)).toBe(true);
+    const note = getProvenanceNote(type);
+    expect(typeof note).toBe("string");
+    expect((note ?? "").trim()).not.toBe("");
+    // The metadata entry itself must carry the machine value.
+    const meta = sourceTypes.find((st) => st.type === type);
+    expect(meta?.provenance).toBe("experimental_pending_aglc5");
+  });
+
+  test("official AGLC4 types are not flagged experimental", () => {
+    for (const type of ["case.reported", "legislation.statute", "book", "internet_material"]) {
+      expect(isExperimentalSourceType(type)).toBe(false);
+      expect(getProvenanceNote(type)).toBeUndefined();
+    }
+  });
+
+  test("experimental types are excluded from the AGLC4-conformance set", () => {
+    const conformance = getAglc4ConformanceSourceTypes();
+    for (const type of EXPERIMENTAL_TYPES) {
+      expect(conformance.has(type)).toBe(false);
+    }
+    // Sanity: official types remain in the set.
+    expect(conformance.has("case.reported")).toBe(true);
+    expect(conformance.has("book")).toBe(true);
+  });
+
+  test("the conformance set equals all metadata types minus the experimental ones", () => {
+    const conformance = getAglc4ConformanceSourceTypes();
+    const experimental = sourceTypes.filter((st) => st.provenance === "experimental_pending_aglc5");
+    expect(conformance.size).toBe(sourceTypes.length - experimental.length);
   });
 });
 
