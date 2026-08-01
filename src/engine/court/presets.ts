@@ -11,6 +11,14 @@
  * These presets are stored as typed data, not hardcoded logic, so they can
  * be updated when practice directions change.
  *
+ * CRIT-004 §4 sign-off (2026-07-23): NSWCA/NSWSC and QCA/QSC
+ * `parallelCitations` softened "mandatory" -> "preferred" to match the
+ * "should, as far as possible" wording in SC Gen 20 and PD 1 of 2024; the
+ * NSW Part A/B List of Authorities is re-sourced to SC CA 1 (loaType
+ * unchanged). Jurisdiction-keyed generative-AI use reminders live in
+ * practiceDirections.ts (A5-CM-1); they are court-mode practice-direction
+ * guidance, not AGLC citation rules.
+ *
  * Sources (verified against primary court sources 2026-07-21):
  *   - Federal Court GPN-AUTH (reissued 7 May 2025)
  *   - HCA PD 2 of 2024
@@ -218,10 +226,17 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   },
 
   // ── New South Wales ─────────────────────────────────────────────────────
+  // CRIT-004 §4 sign-off (2026-07-23): SC Gen 20 does not make parallel
+  // citation strictly mandatory — the authorised report "should, as far as
+  // possible, also be noted" (a best-efforts obligation). parallelCitations
+  // softened "mandatory" -> "preferred" to match those words. The Part A/B
+  // List of Authorities derives from the Court of Appeal note SC CA 1, not
+  // SC Gen 20; loaType stays "part-ab" (the attribution is corrected in the
+  // court reference guide and practice-direction links).
   NSWCA: {
     label: "NSW Court of Appeal",
     group: "New South Wales",
-    parallelCitations: "mandatory",
+    parallelCitations: "preferred",
     pinpointStyle: "para-only",
     authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
     unreportedGate: "warn",
@@ -231,7 +246,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   NSWSC: {
     label: "NSW Supreme Court",
     group: "New South Wales",
-    parallelCitations: "mandatory",
+    parallelCitations: "preferred",
     pinpointStyle: "para-only",
     authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
     unreportedGate: "warn",
@@ -294,10 +309,14 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   },
 
   // ── Queensland ──────────────────────────────────────────────────────────
+  // CRIT-004 §4 sign-off (2026-07-23): PD 1 of 2024 relaxed parallel
+  // citation to "should, as far as possible" (access-to-justice), not
+  // strictly mandatory. parallelCitations softened "mandatory" ->
+  // "preferred" for the QCA and QSC presets to match those words.
   QCA: {
     label: "Qld Court of Appeal",
     group: "Queensland",
-    parallelCitations: "mandatory",
+    parallelCitations: "preferred",
     pinpointStyle: "para-only",
     authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
     unreportedGate: "warn",
@@ -307,7 +326,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   QSC: {
     label: "Qld Supreme Court",
     group: "Queensland",
-    parallelCitations: "mandatory",
+    parallelCitations: "preferred",
     pinpointStyle: "para-only",
     authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
     unreportedGate: "warn",

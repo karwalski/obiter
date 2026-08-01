@@ -172,9 +172,12 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── New South Wales ─────────────────────────────────────────────────────
 
-  test("NSWCA: mandatory parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, Part A-B", () => {
+  // CRIT-004 §4 sign-off (2026-07-23): NSWCA/NSWSC parallelCitations softened
+  // "mandatory" -> "preferred" to match SC Gen 20's "should, as far as
+  // possible" wording. Part A/B LOA re-sourced to SC CA 1 (loaType unchanged).
+  test("NSWCA: preferred parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, Part A-B (SC CA 1)", () => {
     expectPreset("NSWCA", {
-      parallelCitations: "mandatory",
+      parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
       unreportedGate: "warn",
@@ -183,9 +186,9 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("NSWSC: mandatory parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+  test("NSWSC: preferred parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
     expectPreset("NSWSC", {
-      parallelCitations: "mandatory",
+      parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
       unreportedGate: "warn",
@@ -245,9 +248,12 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── Queensland ──────────────────────────────────────────────────────────
 
-  test("QCA: mandatory parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, Part A-B", () => {
+  // CRIT-004 §4 sign-off (2026-07-23): QCA/QSC parallelCitations softened
+  // "mandatory" -> "preferred" to match PD 1 of 2024's "should, as far as
+  // possible" wording.
+  test("QCA: preferred parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, Part A-B", () => {
     expectPreset("QCA", {
-      parallelCitations: "mandatory",
+      parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
       unreportedGate: "warn",
@@ -256,9 +262,9 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("QSC: mandatory parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+  test("QSC: preferred parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
     expectPreset("QSC", {
-      parallelCitations: "mandatory",
+      parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
       unreportedGate: "warn",

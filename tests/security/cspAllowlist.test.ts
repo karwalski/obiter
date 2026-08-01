@@ -86,6 +86,12 @@ const IGNORED_HOSTS: ReadonlySet<string> = new Set([
   "https://www.supremecourt.wa.gov.au",
   "https://www.supremecourt.tas.gov.au",
   "https://www.supremecourt.nt.gov.au",
+  // A5-CM-1: AI-use practice-direction reference links (displayed, never fetched)
+  "https://www.districtcourt.nsw.gov.au",
+  "https://localcourt.nsw.gov.au",
+  "https://ncat.nsw.gov.au",
+  "https://www.countycourt.vic.gov.au",
+  "https://www.qcat.qld.gov.au",
 
   // -- Example citations in reference-guide data (cited sources, not fetched) --
   "https://www.smh.com.au", // newspaper citation example

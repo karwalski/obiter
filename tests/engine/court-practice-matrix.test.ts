@@ -16,6 +16,12 @@
  */
 
 import { COURT_PRESETS, CourtJurisdiction, CourtPreset } from "../../src/engine/court/presets";
+import {
+  AI_USE_REMINDERS,
+  getAiUseReminderForJurisdiction,
+  getAllAiUseReminders,
+  type AiReminderFamily,
+} from "../../src/engine/court/practiceDirections";
 import { buildCourtConfig } from "../../src/engine/standards";
 import { STANDARD_PROFILES } from "../../src/engine/standards/profiles";
 import { generateListOfAuthorities } from "../../src/engine/rules/v4/general/bibliography";
@@ -143,5 +149,130 @@ describe("CRIT-004: court-practice validation matrix", () => {
     expect(sections.length).toBeGreaterThan(0);
     const totalEntries = sections.reduce((n, s) => n + s.entries.length, 0);
     expect(totalEntries).toBeGreaterThan(0);
+  });
+
+  // ── CRIT-004 §4 / A5-CM-2: softened parallel-citation presets ──────────────
+  // A future practice-direction change to any of these presets forces a
+  // visible diff here. These four jurisdictions were softened "mandatory" ->
+  // "preferred" to match the "should, as far as possible" wording verified in
+  // CRIT-004 (SC Gen 20; PD 1 of 2024). The Part A/B LOA is unchanged
+  // (NSW Part A/B is re-sourced to SC CA 1, but loaType stays "part-ab").
+  describe("A5-CM-2: softened parallelCitations presets", () => {
+    test.each([
+      ["NSWCA", "part-ab"],
+      ["NSWSC", "simple"],
+      ["QCA", "part-ab"],
+      ["QSC", "simple"],
+    ] as [CourtJurisdiction, string][])(
+      "%s parallelCitations is 'preferred' (loaType %s unchanged)",
+      (jurisdiction, expectedLoa) => {
+        expect(COURT_PRESETS[jurisdiction].parallelCitations).toBe("preferred");
+        expect(COURT_PRESETS[jurisdiction].loaType).toBe(expectedLoa);
+      }
+    );
+
+    test("no jurisdiction other than the tribunals reports parallelCitations 'off'", () => {
+      // Guard: the softening must not have flipped any preset to "off".
+      const off = JURISDICTIONS.filter((j) => COURT_PRESETS[j].parallelCitations === "off");
+      expect(off.sort()).toEqual(["ART", "FWC", "STATE_TRIBUNAL"]);
+    });
+  });
+
+  // ── A5-CM-1 / A5-CM-3: court-mode AI-use reminders (practice-direction) ────
+  // These are court-mode practice-direction guidance, NOT AGLC citation rules.
+  // The matrix pins the family classification and instrument set so a future
+  // practice-direction change forces a visible diff.
+  describe("A5-CM-1: jurisdiction-keyed AI-use reminders", () => {
+    const FAMILY_1: CourtJurisdiction[] = ["QSC", "QCA", "QLD_DISTRICT_MAG", "SASC"];
+    const FAMILY_2_PRESET: CourtJurisdiction[] = [
+      "NSWSC",
+      "NSWCA",
+      "NSW_DISTRICT_LOCAL",
+      "VSC",
+      "VSCA",
+      "VIC_COUNTY_MAG",
+      "FCA",
+      "FCFCOA",
+      "WASC",
+    ];
+
+    test("every AI reminder carries an instrument with a link and lastVerified 2026-07-23", () => {
+      for (const r of getAllAiUseReminders()) {
+        expect(r.instruments.length).toBeGreaterThan(0);
+        for (const i of r.instruments) {
+          expect(i.name.length).toBeGreaterThan(0);
+          expect(i.date.length).toBeGreaterThan(0);
+          expect(i.url).toMatch(/^https:\/\//);
+        }
+        expect(r.lastVerified).toBe("2026-07-23");
+      }
+    });
+
+    test("reminder labels always mark this as court-mode guidance, never an AGLC rule", () => {
+      for (const r of getAllAiUseReminders()) {
+        expect(r.label.toLowerCase()).toContain("court-mode");
+        expect(r.reminder.toLowerCase()).toContain("practice direction");
+        // The reminder must explicitly disclaim being an AGLC citation rule.
+        expect(r.reminder.toLowerCase()).toContain("not an aglc rule");
+      }
+    });
+
+    test.each(FAMILY_1)(
+      "%s surfaces a Family 1 accuracy/verification reminder (no disclosure addendum)",
+      (jurisdiction) => {
+        const r = getAiUseReminderForJurisdiction(jurisdiction);
+        expect(r).toBeDefined();
+        expect(r!.family).toBe<AiReminderFamily>("accuracy-verification");
+        expect(r!.reminder).toContain("verify the accuracy");
+        // Family 1 has no disclosure/affidavit addendum.
+        expect(r!.reminder).not.toContain("affidavit");
+      }
+    );
+
+    test.each(FAMILY_2_PRESET)(
+      "%s surfaces a Family 2 disclosure + restriction reminder (accuracy + affidavit warning)",
+      (jurisdiction) => {
+        const r = getAiUseReminderForJurisdiction(jurisdiction);
+        expect(r).toBeDefined();
+        expect(r!.family).toBe<AiReminderFamily>("disclosure-restriction");
+        // Family 2 = accuracy reminder PLUS disclosure + affidavit warning.
+        expect(r!.reminder).toContain("verify the accuracy");
+        expect(r!.reminder).toContain("disclosure");
+        expect(r!.reminder).toContain("affidavit");
+      }
+    );
+
+    test("A5-CM-3: Victoria supreme/appeal reminders cite PN SC Gen 25 (14 May 2026), not the superseded May 2024 guidelines", () => {
+      for (const j of ["VSC", "VSCA"]) {
+        const r = getAiUseReminderForJurisdiction(j);
+        expect(r).toBeDefined();
+        const names = r!.instruments.map((i) => i.name).join(" ");
+        const dates = r!.instruments.map((i) => i.date).join(" ");
+        expect(names).toContain("SC Gen 25");
+        expect(dates).toContain("14 May 2026");
+        expect(names).not.toContain("May 2024");
+      }
+    });
+
+    test("A5-CM-3: County Court 2024 guidelines remain as a separate current entry", () => {
+      const r = getAiUseReminderForJurisdiction("VIC_COUNTY_MAG");
+      expect(r).toBeDefined();
+      const names = r!.instruments.map((i) => i.name).join(" ");
+      expect(names).toContain("County Court");
+      expect(r!.instruments.some((i) => i.date.includes("2024"))).toBe(true);
+    });
+
+    test("the full AI-reminder family split matches CRIT-004 / feedback Part B.3", () => {
+      const byFamily = (fam: AiReminderFamily) =>
+        AI_USE_REMINDERS.filter((r) => r.family === fam)
+          .map((r) => r.jurisdiction)
+          .sort();
+      expect(byFamily("accuracy-verification")).toEqual(
+        [...FAMILY_1].sort()
+      );
+      expect(byFamily("disclosure-restriction")).toEqual(
+        [...FAMILY_2_PRESET].sort()
+      );
+    });
   });
 });

@@ -145,14 +145,19 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "October 2023",
     },
     citationRequirements: [
-      "Parallel citations are mandatory.",
+      // CRIT-004 §4 sign-off (2026-07-23): SC Gen 20 states the authorised
+      // report "should, as far as possible, also be noted" — a best-efforts
+      // obligation, not a strict mandate. Softened from "mandatory".
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be noted (SC Gen 20).",
       "Preferred report hierarchy: NSWLR, then CLR, then ALR.",
       "Pinpoint style is para-only: paragraph numbers are sufficient and appropriate.",
       "Unreported judgments: citation restricted to cases containing a material statement of legal principle not found in reported authority.",
       "Ibid and (n X) cross-references are not used.",
     ],
     loaRequirements: [
-      "Part A / Part B LOA required.",
+      // CRIT-004 §4 sign-off: the Part A/B List of Authorities derives from
+      // the Court of Appeal note SC CA 1, not SC Gen 20.
+      "Part A / Part B LOA required (SC CA 1).",
       "Key authority marker available (up to 5 cases marked with asterisk).",
       "Secondary sources requiring hardcopy lodgement should be separately identified.",
     ],
@@ -172,7 +177,9 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "October 2023",
     },
     citationRequirements: [
-      "Parallel citations are mandatory.",
+      // CRIT-004 §4 sign-off (2026-07-23): softened from "mandatory" to match
+      // SC Gen 20's "should, as far as possible" wording.
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be noted (SC Gen 20).",
       "Preferred report hierarchy: NSWLR, then CLR, then ALR.",
       "Pinpoint style is para-only.",
       "Unreported judgments: citation restricted to cases containing a material statement of legal principle not found in reported authority.",
@@ -276,7 +283,10 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "2024",
     },
     citationRequirements: [
-      "Parallel citations are mandatory.",
+      // CRIT-004 §4 sign-off (2026-07-23): PD 1 of 2024 relaxed parallel
+      // citation to "should, as far as possible" (access-to-justice), not a
+      // strict mandate. Softened from "mandatory".
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be cited (PD 1/2024).",
       "Preferred report hierarchy: Qd R, then CLR, then ALR.",
       "Pinpoint style is para-only (cl 4(b)).",
       "Unreported judgment gate: citation restricted to cases containing a material statement of legal principle (cl 4(d)).",
@@ -299,7 +309,9 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "2024",
     },
     citationRequirements: [
-      "Parallel citations are mandatory.",
+      // CRIT-004 §4 sign-off (2026-07-23): softened from "mandatory" to match
+      // PD 1/2024's "should, as far as possible" wording.
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be cited (PD 1/2024).",
       "Preferred report hierarchy: Qd R, then CLR, then ALR.",
       "Pinpoint style is para-only.",
       "Unreported judgment gate applies (cl 4(d)).",
