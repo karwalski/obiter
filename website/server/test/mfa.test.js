@@ -58,6 +58,7 @@ async function enrollMfa(accessToken, userId) {
   assert.equal(enroll.status, 200);
   assert.ok(enroll.body.secret, "base32 secret returned");
   assert.match(enroll.body.otpauthUri, /^otpauth:\/\/totp\//);
+  assert.match(enroll.body.qrDataUri, /^data:image\/png;base64,/, "QR data URI returned");
   const secret = enroll.body.secret;
   const verify = await h.api(
     base,

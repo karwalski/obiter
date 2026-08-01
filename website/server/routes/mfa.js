@@ -12,6 +12,7 @@
 
 const express = require("express");
 const nodeCrypto = require("crypto");
+const QRCode = require("qrcode");
 const db = require("../db");
 const totp = require("../lib/totp");
 const crypto = require("../lib/crypto");
@@ -62,8 +63,18 @@ router.post("/enroll", requireAuth, async function (req, res) {
     db.setMfaSecret.run({ id: user.id, secretEnc });
 
     const uri = totp.keyUri(user.email, "Obiter", secret);
+
+    // Render a scannable QR of the otpauth URI (best-effort — the base32
+    // `secret` remains the reliable manual-entry fallback if this fails).
+    let qrDataUri = null;
+    try {
+      qrDataUri = await QRCode.toDataURL(uri, { margin: 1, width: 220 });
+    } catch (qrErr) {
+      console.error("MFA enroll QR generation failed:", qrErr.message);
+    }
+
     audit.record(user.id, "self", "auth.mfa.enroll_started", req, null);
-    return res.status(200).json({ otpauthUri: uri, secret });
+    return res.status(200).json({ otpauthUri: uri, secret, qrDataUri });
   } catch (err) {
     console.error("POST /api/auth/mfa/enroll error:", err.message);
     return res.status(500).json({ error: "Internal server error." });
