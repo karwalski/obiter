@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="account.css">
   <style>
+    /* The site-nav is position:fixed; clear it so the card is not cut off. */
+    .account-shell { padding-top: 104px; }
     .acct-section { border-top: 1px solid var(--colour-border); padding-top: 20px; margin-top: 24px; }
     .acct-section h2 { font-size: 1.0625rem; margin-bottom: 8px; }
     .acct-muted { color: var(--colour-text-secondary); font-size: 0.9375rem; }
@@ -151,7 +153,7 @@
     </div>
   </footer>
 
-  <script src="account.js?v=20260801c"></script>
+  <script src="account.js?v=20260801d"></script>
   <script>
   (function () {
     "use strict";

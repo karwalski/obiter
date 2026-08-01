@@ -78,7 +78,11 @@
    * inside an Office Dialog. Returns true when the message was sent.
    */
   function messageTokensToParent(tokens, email) {
-    if (inOfficeDialog()) {
+    if (!inOfficeDialog()) return false;
+    // office.js is loaded on the auth page so this can be reached from a plain
+    // browser too; messageParent throws outside a real dialog. Treat any failure
+    // as "not in a dialog" so the caller falls back to the web-session redirect.
+    try {
       global.Office.context.ui.messageParent(
         JSON.stringify({
           accessToken: tokens.accessToken,
@@ -88,8 +92,9 @@
         })
       );
       return true;
+    } catch (e) {
+      return false;
     }
-    return false;
   }
 
   // ─── Web session (portal use — not the Office Dialog bridge) ────────────────
