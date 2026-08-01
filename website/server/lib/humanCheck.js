@@ -19,8 +19,6 @@
 
 "use strict";
 
-const { clientIp } = require("./rateLimit");
-
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 /** Abort siteverify if Cloudflare does not respond promptly (ms). */
@@ -50,8 +48,13 @@ async function verifyHuman(token, req) {
   const params = new URLSearchParams();
   params.set("secret", secret);
   params.set("response", String(token));
-  const remoteip = clientIp(req);
-  if (remoteip && remoteip !== "unknown") params.set("remoteip", remoteip);
+  // `remoteip` is OPTIONAL. Behind Cloudflare the server-observed address (via
+  // X-Forwarded-For through the CF→nginx chain) frequently differs from the IP
+  // that actually solved the challenge, which causes Cloudflare to reject a
+  // valid token. Only bind it when Cloudflare hands us the real client IP
+  // directly (CF-Connecting-IP); otherwise omit it and rely on the token alone.
+  const cfIp = req && req.headers && req.headers["cf-connecting-ip"];
+  if (typeof cfIp === "string" && cfIp.trim()) params.set("remoteip", cfIp.trim());
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SITEVERIFY_TIMEOUT_MS);
@@ -64,9 +67,14 @@ async function verifyHuman(token, req) {
     });
     if (!res.ok) return false;
     const data = await res.json();
-    return data && data.success === true;
-  } catch {
+    if (data && data.success === true) return true;
+    // Never log the token or secret; the error-codes are safe and are needed to
+    // diagnose a failing verification (e.g. timeout-or-duplicate, bad hostname).
+    console.warn("humanCheck: Turnstile siteverify rejected —", JSON.stringify((data && data["error-codes"]) || data));
+    return false;
+  } catch (err) {
     // Network error, timeout/abort, or malformed response: fail closed.
+    console.warn("humanCheck: siteverify error —", err && err.message);
     return false;
   } finally {
     clearTimeout(timer);
