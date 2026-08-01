@@ -1,7 +1,7 @@
 {
   "version": "AGLC4",
-  "generatedAt": "2026-07-03T08:39:16.148Z",
-  "generatedBy": "Obiter v1.14.0",
+  "generatedAt": "2026-08-01T03:30:09.773Z",
+  "generatedBy": "Obiter v1.16.0",
   "sourceTypes": [
     {
       "type": "case.reported",
@@ -932,9 +932,12 @@
       "optionalFields": [
         "authors",
         "documentType",
-        "date"
+        "date",
+        "archiveService",
+        "archivedUrl",
+        "archiveDate"
       ],
-      "formatTemplate": "Author, 'Title', WebsiteName (DocumentType, FullDate) <URL>."
+      "formatTemplate": "Author, 'Title', WebsiteName (DocumentType, FullDate) <URL> (archived at ArchiveService ArchiveDate)."
     },
     {
       "type": "social_media",
@@ -956,7 +959,7 @@
     },
     {
       "type": "genai_output",
-      "ruleNumber": "MULR interim guidance (non-AGLC4)",
+      "ruleNumber": "Obiter experimental (pending AGLC5)",
       "label": "Generative AI Output",
       "category": "secondary",
       "requiredFields": [
@@ -966,9 +969,55 @@
       ],
       "optionalFields": [
         "prompt",
+        "url",
+        "modelVersion",
+        "transcriptCustody",
+        "archivedUrl"
+      ],
+      "formatTemplate": "Correspondence from Platform (Model Version) to the author, OutputDate <URL> (archived at ArchivedUrl).",
+      "provenance": "experimental_pending_aglc5",
+      "provenanceNote": "MULR interim guidance by analogy to rule 7.12; OSCOLA 5 r 3.7.13 precedent"
+    },
+    {
+      "type": "dataset",
+      "ruleNumber": "Obiter experimental (pending AGLC5)",
+      "label": "Dataset",
+      "category": "secondary",
+      "requiredFields": [
+        "creator",
+        "title",
+        "repository",
+        "year"
+      ],
+      "optionalFields": [
+        "version",
+        "doi",
+        "persistentId",
+        "accessDate"
+      ],
+      "formatTemplate": "Creator, *Title* (Dataset, Version, Repository, Year) <doi/persistentId>. | No DOI: … (accessed AccessDate).",
+      "provenance": "experimental_pending_aglc5",
+      "provenanceNote": "No AGLC4 form; dataset element set by analogy to APA §10.10 / Chicago 18 / AMS precedent"
+    },
+    {
+      "type": "software",
+      "ruleNumber": "Obiter experimental (pending AGLC5)",
+      "label": "Software / Code",
+      "category": "secondary",
+      "requiredFields": [
+        "author",
+        "title",
+        "year"
+      ],
+      "optionalFields": [
+        "versionOrCommit",
+        "designation",
+        "host",
         "url"
       ],
-      "formatTemplate": "Correspondence from Platform (Model) to the author, OutputDate <URL>."
+      "formatTemplate": "Author, *Title* (Designation, VersionOrCommit, Host, Year) <URL>.",
+      "provenance": "experimental_pending_aglc5",
+      "provenanceNote": "No AGLC4 form; software/code element set proposed for AGLC5 (docs/modern-sources-proposal.md §3.2)"
     },
     {
       "type": "treaty",
@@ -2122,6 +2171,13 @@
       "yearOrganised": false
     },
     {
+      "abbreviation": "ACTR",
+      "fullName": "Australian Capital Territory Reports (authorised, in ALR)",
+      "jurisdiction": "ACT",
+      "type": "authorised",
+      "yearOrganised": false
+    },
+    {
       "abbreviation": "A Crim R",
       "fullName": "Australian Criminal Reports",
       "jurisdiction": "CTH",
@@ -3041,6 +3097,26 @@
       "jurisdiction": "CTH"
     },
     {
+      "code": "FedCFamC1A",
+      "fullName": "Federal Circuit and Family Court of Australia (Division 1, Appellate Jurisdiction)",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FedCFamC1F",
+      "fullName": "Federal Circuit and Family Court of Australia (Division 1, First Instance)",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FedCFamC2F",
+      "fullName": "Federal Circuit and Family Court of Australia (Division 2, Family Law)",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FedCFamC2G",
+      "fullName": "Federal Circuit and Family Court of Australia (Division 2, General Federal Law)",
+      "jurisdiction": "CTH"
+    },
+    {
       "code": "NSWSC",
       "fullName": "Supreme Court of New South Wales",
       "jurisdiction": "NSW"
@@ -3176,6 +3252,16 @@
       "jurisdiction": "CTH"
     },
     {
+      "code": "ARTA",
+      "fullName": "Administrative Review Tribunal of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ART",
+      "fullName": "Administrative Review Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
       "code": "FWC",
       "fullName": "Fair Work Commission",
       "jurisdiction": "CTH"
@@ -3219,9 +3305,284 @@
       "code": "NTCAT",
       "fullName": "Northern Territory Civil and Administrative Tribunal",
       "jurisdiction": "NT"
+    },
+    {
+      "code": "ACompT",
+      "fullName": "Australian Competition Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ACopyT",
+      "fullName": "Australian Copyright Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ACTAAT",
+      "fullName": "Australian Capital Territory Administrative Appeals Tribunal",
+      "jurisdiction": "ACT"
+    },
+    {
+      "code": "ADFDAT",
+      "fullName": "Defence Force Discipline Appeal Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ADO",
+      "fullName": "Australian Designs Office",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "AICmr",
+      "fullName": "Australian Information Commissioner",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "AIRC",
+      "fullName": "Australian Industrial Relations Commission",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "AIRCFB",
+      "fullName": "Australian Industrial Relations Commission — Full Bench",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "APO",
+      "fullName": "Australian Patent Office",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ATMO",
+      "fullName": "Australian Trade Marks Office",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ATP",
+      "fullName": "Australian Takeovers Panel",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FMCA",
+      "fullName": "Federal Magistrates' Court of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FMCAfam",
+      "fullName": "Federal Magistrates' Court of Australia — Family Law",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FWA",
+      "fullName": "Fair Work Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FWAFB",
+      "fullName": "Fair Work Australia — Full Bench",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "FWCFB",
+      "fullName": "Fair Work Commission — Full Bench",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "HCATrans",
+      "fullName": "High Court of Australia — Transcripts",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "ICQ",
+      "fullName": "Industrial Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "IRCA",
+      "fullName": "Industrial Relations Court of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "MRTA",
+      "fullName": "Migration Review Tribunal of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "NFSC",
+      "fullName": "Supreme Court of Norfolk Island",
+      "jurisdiction": "EXT"
+    },
+    {
+      "code": "NNTTA",
+      "fullName": "National Native Title Tribunal",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "NSWADT",
+      "fullName": "New South Wales Administrative Decisions Tribunal",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWADTAP",
+      "fullName": "New South Wales Administrative Decisions Tribunal — Appeal Panel",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCATAD",
+      "fullName": "New South Wales Civil and Administrative Tribunal — Administrative and Equal Opportunity Division",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCATAP",
+      "fullName": "New South Wales Civil and Administrative Tribunal — Appeal Panel",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCATCD",
+      "fullName": "New South Wales Civil and Administrative Tribunal — Consumer and Commercial Division",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCATGD",
+      "fullName": "New South Wales Civil and Administrative Tribunal — Guardianship Division",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCATOD",
+      "fullName": "New South Wales Civil and Administrative Tribunal — Occupational Division",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCC",
+      "fullName": "Compensation Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWCSAT",
+      "fullName": "Community Services Appeals Tribunal of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWDRGC",
+      "fullName": "Drug Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWFTT",
+      "fullName": "Fair Trading Tribunal of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "NSWIRComm",
+      "fullName": "Industrial Court of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "QADT",
+      "fullName": "Queensland Anti-Discrimination Tribunal",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QLAC",
+      "fullName": "Land Appeal Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QLAT",
+      "fullName": "Queensland Liquor Appeals Tribunal",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QLRT",
+      "fullName": "Queensland Land and Resources Tribunal",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QLC",
+      "fullName": "Land Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "QPEC",
+      "fullName": "Planning and Environment Court of Queensland",
+      "jurisdiction": "QLD"
+    },
+    {
+      "code": "RRTA",
+      "fullName": "Refugee Review Tribunal of Australia",
+      "jurisdiction": "CTH"
+    },
+    {
+      "code": "SAEOT",
+      "fullName": "Equal Opportunity Tribunal of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAERDC",
+      "fullName": "Environment, Resources and Development Court of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAIRC",
+      "fullName": "Industrial Relations Court of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAIRComm",
+      "fullName": "Industrial Relations Commission of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAWCAT",
+      "fullName": "Workers Compensation Appeal Tribunal of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "SAWCT",
+      "fullName": "Workers Compensation Tribunal of South Australia",
+      "jurisdiction": "SA"
+    },
+    {
+      "code": "TASADT",
+      "fullName": "Anti-Discrimination Tribunal of Tasmania",
+      "jurisdiction": "TAS"
+    },
+    {
+      "code": "TASRMPAT",
+      "fullName": "Resources Management and Planning Appeal Tribunal of Tasmania",
+      "jurisdiction": "TAS"
+    },
+    {
+      "code": "VMHRB",
+      "fullName": "Mental Health Review Board of Victoria",
+      "jurisdiction": "VIC"
+    },
+    {
+      "code": "WASAT",
+      "fullName": "Western Australia State Administrative Tribunal",
+      "jurisdiction": "WA"
+    },
+    {
+      "code": "NSWPIC",
+      "fullName": "Personal Injury Commission of New South Wales",
+      "jurisdiction": "NSW"
+    },
+    {
+      "code": "VOCAT",
+      "fullName": "Victims of Crime Assistance Tribunal",
+      "jurisdiction": "VIC"
     }
   ],
   "pinpointAbbreviations": [
+    {
+      "type": "amendment",
+      "singular": "amend",
+      "plural": "amends"
+    },
+    {
+      "type": "annexure",
+      "singular": "annex",
+      "plural": "annex"
+    },
     {
       "type": "appendix",
       "singular": "app",
@@ -3238,6 +3599,16 @@
       "plural": "chs"
     },
     {
+      "type": "chapter",
+      "singular": "c",
+      "plural": "c"
+    },
+    {
+      "type": "chapter",
+      "singular": "cap",
+      "plural": "cap"
+    },
+    {
       "type": "clause",
       "singular": "cl",
       "plural": "cls"
@@ -3246,6 +3617,26 @@
       "type": "division",
       "singular": "div",
       "plural": "divs"
+    },
+    {
+      "type": "figure",
+      "singular": "fig",
+      "plural": "figs"
+    },
+    {
+      "type": "item",
+      "singular": "item",
+      "plural": "items"
+    },
+    {
+      "type": "note",
+      "singular": "note",
+      "plural": "notes"
+    },
+    {
+      "type": "order",
+      "singular": "ord",
+      "plural": "ords"
     },
     {
       "type": "paragraph",
@@ -3258,6 +3649,21 @@
       "plural": "pts"
     },
     {
+      "type": "preamble",
+      "singular": "Preamble",
+      "plural": "Preamble"
+    },
+    {
+      "type": "regulation",
+      "singular": "reg",
+      "plural": "regs"
+    },
+    {
+      "type": "rule",
+      "singular": "r",
+      "plural": "rr"
+    },
+    {
       "type": "schedule",
       "singular": "sch",
       "plural": "schs"
@@ -3266,6 +3672,11 @@
       "type": "section",
       "singular": "s",
       "plural": "ss"
+    },
+    {
+      "type": "section",
+      "singular": "§",
+      "plural": "§§"
     },
     {
       "type": "sub-clause",
@@ -3283,29 +3694,34 @@
       "plural": "sub-paras"
     },
     {
+      "type": "sub-regulation",
+      "singular": "sub-reg",
+      "plural": "sub-regs"
+    },
+    {
+      "type": "sub-rule",
+      "singular": "sub-rule",
+      "plural": "sub-rules"
+    },
+    {
       "type": "subsection",
       "singular": "sub-s",
       "plural": "sub-ss"
     },
     {
-      "type": "order",
-      "singular": "ord",
-      "plural": "ords"
+      "type": "table",
+      "singular": "tbl",
+      "plural": "tbls"
     },
     {
-      "type": "rule",
-      "singular": "r",
-      "plural": "rr"
+      "type": "title",
+      "singular": "tit",
+      "plural": "tits"
     },
     {
       "type": "footnote",
       "singular": "n",
       "plural": "nn"
-    },
-    {
-      "type": "regulation",
-      "singular": "reg",
-      "plural": "regs"
     },
     {
       "type": "column",

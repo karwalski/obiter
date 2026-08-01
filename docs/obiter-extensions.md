@@ -19,16 +19,19 @@
 
 ## 1. Summary
 
-Obiter supports **77 source types**. Of these:
+Obiter supports **79 source types**. Of these:
 
 | Provenance | Count | Meaning |
 |---|---|---|
 | **Guide-mandated** | 74 | Maps to a specific AGLC4 rule (Rules 2.2–7.16, 8–26) |
-| **Guide-silent judgment** | 1 | `genai_output` — AGLC4 has no rule; Obiter follows MULR interim guidance by analogy to rule 7.12 |
+| **Experimental · pending AGLC5** (machine value `provenance: experimental_pending_aglc5`) | 3 | `genai_output`, `dataset`, `software` — no official AGLC4 form; badged "Experimental · pending AGLC5 (not an official AGLC4 form)" and **excluded from the AGLC4-conformance count** (A5-LABEL / DECISION-036) |
 | **Non-AGLC standard** | 1 | `report.waitangi_tribunal` — from the New Zealand Law Style Guide (NZLSG), not AGLC4 |
 | **Obiter extension** | 3 | `book.ebook`, `custom`, `explanatory_note` — no AGLC4 rule |
 
-Plus **17 field-level extensions** (fields the forms collect that AGLC4 never defines),
+Plus field-level extensions (fields the forms collect that AGLC4 never defines) — including
+the experimental A5-EXP-1 (`modelVersion`/`transcriptCustody`/`archivedUrl` on `genai_output`),
+A5-EXP-4 (`archiveService`/`archivedUrl`/`archiveDate` on the otherwise-AGLC4 `internet_material`),
+and the A5-EXP-5 AI-layer marker (over the existing commentary field, no schema change) —
 **7 documented silent-rule formatting decisions**, and **3 court-mode departures** sourced
 from practice directions rather than the guide.
 
@@ -55,7 +58,9 @@ this document covers only the material where Obiter goes beyond AGLC4.
 | `book.ebook` | **Obiter extension pending AGLC5** | An ebook entry | AGLC4 has no ebook rule. Renders as an ordinary book (rules 6.1–6.5) plus a URL. An invented `[Platform]` bracket was **retired** — ebooks now format identically to print books. A UI convenience only. | DECISION-019 |
 | `custom` | **Obiter extension** | Free-text citation | Verbatim escape hatch: the user's text is inserted as-is in roman type; excluded from ibid, short-reference resolution, and the bibliography. The "force an override" mechanism for anything the engine cannot model. | — |
 | `explanatory_note` | **Obiter extension** | Free-text footnote | A substantive footnote that is not a citation; inserted verbatim and excluded from ibid, short references, and the bibliography. | — |
-| `genai_output` | **Guide silence — interim judgment** | Generative-AI output (ChatGPT etc.) | AGLC4 predates generative AI and has no rule. Obiter follows the interim guidance circulated by Australian law libraries and MULR: cite by analogy to rule 7.12 (written correspondence) — "Correspondence from [Platform] ([Model]) to the author, [Date]". **Will be replaced by the AGLC5 rule.** See `docs/modern-sources-proposal.md`. | DECISION-006 |
+| `genai_output` | **Obiter extension pending AGLC5** — provenance `experimental_pending_aglc5`; badge "Experimental · pending AGLC5 (not an official AGLC4 form)" | Generative-AI output (ChatGPT etc.) | AGLC4 predates generative AI and has no rule. Obiter follows the interim guidance circulated by Australian law libraries and MULR: cite by analogy to rule 7.12 (written correspondence) — "Correspondence from [Platform] ([Model Version]) to the author, [Date]". **A5-EXP-1** added model-version, transcript-custody, and an optional archived-transcript URL (OSCOLA 5 r 3.7.13 element set). Excluded from the AGLC4-conformance count. **Will be re-mapped or retired on AGLC5 publication (WS-1 runbook).** See `docs/modern-sources-proposal.md` §2.1. | DECISION-006, DECISION-036 |
+| `dataset` | **Obiter extension pending AGLC5** — provenance `experimental_pending_aglc5`; badge "Experimental · pending AGLC5 (not an official AGLC4 form)" | Published dataset | **A5-EXP-2.** AGLC4 has no dataset form. Element set (creator · italic title · version · repository · year · DOI/persistent id · access-date fallback) by analogy to APA §10.10 / Chicago 18 / AMS precedent. Renders `Creator, *Title* (Dataset, Version, Repository, Year) <doi/URL>`. Bibliography section E (Other). Excluded from the AGLC4-conformance count. Re-mapped or retired on AGLC5 publication (WS-1). See `docs/modern-sources-proposal.md` §3.1. | DECISION-036 |
+| `software` | **Obiter extension pending AGLC5** — provenance `experimental_pending_aglc5`; badge "Experimental · pending AGLC5 (not an official AGLC4 form)" | Software / code repository | **A5-EXP-3.** AGLC4 has no software form. Element set (author/organisation · title · version or commit · "Software"/"Source code" designation · host · year · URL). Renders `Author, *Title* (Software, Version, Host, Year) <URL>`. Bibliography section E (Other). Excluded from the AGLC4-conformance count. Re-mapped or retired on AGLC5 publication (WS-1). See `docs/modern-sources-proposal.md` §3.2. | DECISION-036 |
 | `report.waitangi_tribunal` | **Non-AGLC (NZLSG)** | Waitangi Tribunal report | Not in AGLC4; taken from the New Zealand Law Style Guide. Rendered in the NZLSG output path / bibliography section, not the AGLC4 path. Present because Obiter also implements NZLSG. | — |
 
 ---
@@ -81,6 +86,9 @@ support court mode (§6), enhanced metadata, or Obiter's escape hatches.
 | `yearType` | `case.reported` (court mode) | round vs square bracket control | Court-mode parallel-citation control |
 | `titleMarkup` | any title | Inline `*asterisk*` = italic span | Represents rule 4.2 embedded italics without a schema change (DECISION-021) |
 | `translatedTitle` / `translatedCaseName` | foreign/secondary | Bracketed English translation | Supports rules 26.1/26.4 as structured data |
+| `archiveService` / `archivedUrl` / `archiveDate` | `internet_material` | **A5-EXP-4** — archived-web snapshot. Renders "(archived at [service] [date])" after the URL | **Experimental · pending AGLC5 (not an official AGLC4 form).** internet_material itself stays AGLC4; only these archive fields are experimental (AGLC4 has no archive form). Badged in the form; excluded from the conformance count |
+| `modelVersion` / `transcriptCustody` / `archivedUrl` | `genai_output` | **A5-EXP-1** — model version (rendered with the model), transcript-custody statement (record view), optional archived-transcript URL | **Experimental · pending AGLC5.** OSCOLA 5 r 3.7.13 element set over the rule-7.12 shape |
+| `commentaryAfter` (AI-layer marker) | any primary source | **A5-EXP-5** — bracketed AI-generation tag ("[AI-generated summary, Tool (Model), Date]") layered via the existing commentary field, no schema change | **Experimental · pending AGLC5.** Analogy to the rule 26.1 translator marker; the AI layer is not authoritative and is flagged prominently in the UI |
 
 ---
 

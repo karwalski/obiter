@@ -1553,6 +1553,18 @@ Suggested sequencing (package Part E): (1) letter editor notes → publish; (2) 
 (zero behaviour risk); (3) CM-1/CM-3 court-mode data; (4) CM-2 on sign-off; (5) A5-LABEL → EXP-1;
 (6) EXP-2/3/4; (7) EXP-5 if wanted.
 
+**Implemented 2026-08-01 (all stories DONE; A5-LETTER pending owner sign-off on Editor Notes 1–4):**
+DATA-1/2, CM-1/2/3, DOC-1..4, WEB-1/2, and the letter (dated + original archived at
+`website/aglc5-letter-original.html`) shipped in wave 1. A5-LABEL landed the data-driven
+`provenance: experimental_pending_aglc5` field, the badge **"Experimental · pending AGLC5 (not an
+official AGLC4 form)"** (rendered in the Insert/Edit type picker + form header), conformance
+exclusion via `getAglc4ConformanceSourceTypes()`, and DECISION-036. EXP-1 (genai_output v2 —
+model version, transcript custody, archived URL), EXP-2 (`dataset`), EXP-3 (`software`), EXP-4
+(archived-web fields on `internet_material`, per-field experimental note), and EXP-5 (AI-layer
+marker over the commentary field, no schema change) all shipped, badged, and excluded from the
+302-item conformance count. A5-WS-1 runbook: `docs/aglc5-publication-runbook.md`. Full suite
+99 suites / 3476 tests green; tsc + lint clean.
+
 ### v1.16.0 DEPLOYED TO PRODUCTION (2026-07-22)
 Committed, tagged `v1.16.0`, pushed, and **deployed live** to obiter.com.au: server (accounts
 backend, secrets `AUTH_TOKEN_SECRET`/`AUDIT_IP_SALT`/`VAULT_MASTER_KEY`/`NODE_ENV=production`

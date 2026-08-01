@@ -470,3 +470,27 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 **Researchers:** confirm whether AGLC4 intends the reported form to be preferred when both are available, or whether the choice is left to the author. If the latter, no engine change is needed; if a firm preference is intended, confirm it matches Obiter's default. Recorded in `docs/aglc4-critique.md` §6 (Ambiguities).
 
 **Resolution (2026-07-23, CRIT-005 Part B.5):** External authority confirms Obiter's reported-preferred default. Both the ECtHR's own citation note (updated October 2022) and OSCOLA prefer the **reported form** where the case appears in the official *Reports of Judgments and Decisions* (the "ECHR" designation; the volume element was dropped from 2008), and use the **application-number-plus-date** form for unreported decisions; the application number is always carried as the stable identifier regardless. Obiter's default therefore rests on an external standard rather than on a bare inference from AGLC4's general reported-citation preference, so no engine change is needed — the reported-preferred behaviour stands and is now evidence-backed.
+
+---
+
+## DECISION-036: Experimental-labelling policy for beyond-AGLC4 source types and fields
+
+**Status:** RESOLVED (2026-08-01, AGLC5X / A5-LABEL — feedback package Part D.1)
+**Raised:** 2026-08-01 (AGLC5X epic — hard prerequisite of every EXP-* story)
+
+**Context:** The AGLC5X epic ships source types and fields that go **beyond official AGLC4** (generative-AI output, datasets, software/code, archived-web fields, an AI-layer marker). AGLC4 contains no rule for any of these; Obiter renders them on an interim basis by analogy or peer-standard precedent (MULR LibGuide, OSCOLA 5, APA/Chicago/AMS). The user's non-negotiable requirement is that every such item is **unmistakably** labelled as not an official AGLC4 form, and never counted as AGLC4 output.
+
+**Decision:**
+
+1. **Badge copy (exact, canonical).** Every experimental item carries the text
+   **"Experimental · pending AGLC5 (not an official AGLC4 form)"** (exported as `EXPERIMENTAL_BADGE` from `src/engine/ruleExporter.ts`). No emoji, no exclamation marks (Obiter style guide). Each type also carries a short **interim-basis note** (`provenanceNote` on `SourceTypeMeta`) shown as the badge tooltip — eg genai_output: "MULR interim guidance by analogy to rule 7.12; OSCOLA 5 r 3.7.13 precedent".
+
+2. **Machine value.** Source-type metadata carries `provenance: 'aglc4' | 'experimental_pending_aglc5'` (absent ⇒ `'aglc4'`/official). The badge is **data-driven** off this flag via `isExperimentalSourceType(sourceType)` — no per-type hardcoding in the UI. Rendered in the Insert type picker/form header and the Edit header; per-field experimental notes are shown for archive fields on the otherwise-AGLC4 `internet_material` and for the AI-layer marker preset.
+
+3. **Conformance exclusion.** Experimental types are excluded from the AGLC4-conformance set via `getAglc4ConformanceSourceTypes()` (returns all metadata types minus the experimental ones), and therefore from the 302-item conformance count (A5-DOC-2) and any "AGLC4 output" website claim (A5-WEB-2). Enforced by `tests/engine/rule-exporter.test.ts`.
+
+4. **Current experimental set.** `genai_output` (A5-EXP-1), `dataset` (A5-EXP-2), `software` (A5-EXP-3) as whole types; the archive fields on `internet_material` (A5-EXP-4) and the AI-layer marker over the commentary field (A5-EXP-5) as field-level extensions. All registered in `docs/obiter-extensions.md` §3/§4.
+
+5. **Migration commitment (WS-1).** On AGLC5 publication each experimental item is **re-mapped to the AGLC5 rule or retired** per the WS-1 publication-day runbook, so existing user documents keep rendering (no stranding). The `provenance` flag is the switch: an item flipped to `'aglc4'` (or re-pointed at a v5 rule) leaves the badge and conformance exclusion behind automatically.
+
+**Researchers:** none required — this is an Obiter product-labelling policy, not an AGLC4 interpretation. It will be revisited only when AGLC5 publishes rules for these sources.
