@@ -471,12 +471,18 @@ async function appendCitationToParent(
   }
 
   // A new citation needs separators and closing punctuation that only the
-  // refresher's rebuild adds — which it skips for a locked footnote. So if the
-  // target footnote is locked, unlock it first; the post-insert refresh then
-  // formats the whole footnote (the user can re-lock afterwards).
+  // refresher's rebuild adds. Appending changes the footnote's text, so its
+  // parent-CC title must be reset to the plain title (no rendered-text hash):
+  //  - a stored hash now points at the OLD single-citation text, so the
+  //    refresher would read the changed text, see it differ from that hash, and
+  //    misclassify the footnote as manually edited — skipping the rebuild and
+  //    leaving the new citation jammed against the previous one's "." with no
+  //    "; " separator (SAFE-002); dropping the hash forces a clean rebuild;
+  //  - a locked footnote must likewise be unlocked so the rebuild can run (the
+  //    user can re-lock afterwards).
   parentCC.load("title");
   await context.sync();
-  if (isFootnoteLocked(parentCC.title)) {
+  if (parentCC.title !== PARENT_CC_TITLE) {
     parentCC.title = PARENT_CC_TITLE;
   }
 
