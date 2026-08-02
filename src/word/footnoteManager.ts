@@ -34,6 +34,7 @@
 
 import { FormattedRun } from "../types/formattedRun";
 import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
+import { hashRenderedText } from "../utils/textHash";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -688,11 +689,43 @@ export async function updateCitationContent(
     contentControls.load("items");
     await context.sync();
 
+    // Capture each child CC's parent footnote CC so its rendered-text hash can
+    // be resynced after the write (below).
+    const parents: Word.ContentControl[] = [];
     for (const cc of contentControls.items ?? []) {
       writeFormattedRunsToControl(cc, formattedRuns);
+      parents.push(cc.parentContentControlOrNullObject);
     }
-
     await context.sync();
+
+    // SAFE-002: writing new content into a child CC leaves the parent footnote
+    // CC's rendered-text hash (stored in its title) pointing at the OLD text.
+    // The refresher then reads the parent's now-changed text, sees it differ
+    // from that stale hash, and misclassifies this programmatic update as a
+    // manual edit — so it skips the footnote (e.g. a short-title change never
+    // propagates). Recompute the hash from the parent's current text to keep
+    // edit-detection in sync. Locked footnotes are never touched.
+    for (const parent of parents) {
+      parent.load("isNullObject,tag,title,text");
+    }
+    await context.sync();
+
+    let touched = false;
+    for (const parent of parents) {
+      if (parent.isNullObject || parent.tag !== PARENT_CC_TAG) continue;
+      if (parseParentTitle(parent.title).locked) continue;
+      const nextTitle = buildParentTitle({
+        locked: false,
+        renderedHash: hashRenderedText(parent.text),
+      });
+      if (parent.title !== nextTitle) {
+        parent.title = nextTitle;
+        touched = true;
+      }
+    }
+    if (touched) {
+      await context.sync();
+    }
   });
 }
 

@@ -57,6 +57,17 @@ jest.mock("../../src/ui/views/CitationLibrary", () => ({
   getCitationLabel: (c: { id: string }) => c.id,
 }));
 
+// Saving re-renders the whole document (short-title/ibid chains are
+// document-wide), so the Edit view calls refreshAllCitations inside Word.run
+// rather than rewriting a single citation.
+jest.mock("../../src/word/citationRefresher", () => ({
+  refreshAllCitations: jest.fn(async () => undefined),
+}));
+
+(globalThis as unknown as { Word: { run: (cb: (ctx: unknown) => unknown) => unknown } }).Word = {
+  run: async (cb: (ctx: unknown) => unknown) => cb({}),
+};
+
 // The live preview's paste-to-parse path pulls in the LLM/corpus stack —
 // stub the component; the round trip asserts on the engine output directly.
 jest.mock("../../src/ui/components/CitationPreview", () => ({
@@ -74,7 +85,7 @@ jest.mock("../../src/ui/context/CitationContext", () => ({
   }),
 }));
 
-import { updateCitationContent } from "../../src/word/footnoteManager";
+import { refreshAllCitations } from "../../src/word/citationRefresher";
 
 const toPlainText = (runs: FormattedRun[]): string => runs.map((r) => r.text).join("");
 
@@ -127,11 +138,10 @@ describe("BUG-005 (d): edit round trip is lossless", () => {
     // The saved citation formats identically to the inserted one.
     expect(toPlainText(getFormattedPreview(saved, CONFIG))).toBe(insertedText);
 
-    // And the document content control received the same runs.
-    const updateMock = updateCitationContent as jest.Mock;
-    expect(updateMock).toHaveBeenCalledTimes(1);
-    expect(updateMock.mock.calls[0][0]).toBe(mockCitation.id);
-    expect(toPlainText(updateMock.mock.calls[0][1] as FormattedRun[])).toBe(insertedText);
+    // And saving triggers a document-wide re-render (which re-resolves
+    // short-title/ibid chains and keeps SAFE-002 edit-detection in sync).
+    const refreshMock = refreshAllCitations as jest.Mock;
+    expect(refreshMock).toHaveBeenCalledTimes(1);
   });
 
   it("unreported case (no MNC): the (d) known mismatch — parties, judges and date survive the round trip (Rule 2.3.2)", async () => {

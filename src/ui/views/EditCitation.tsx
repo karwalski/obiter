@@ -11,7 +11,6 @@ import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { Citation, SourceType, SourceData, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import {
-  updateCitationContent,
   deleteCitationFootnote,
   getAllCitationFootnotes,
   appendToFootnoteByIndex,
@@ -637,15 +636,16 @@ export default function EditCitation(): JSX.Element {
       await store.update(updatedCitation);
       setCitation(updatedCitation);
 
-      // Refresh the citation content in the document using the engine formatter.
-      // Build court config from the document's stored toggles (device pref is
-      // the legacy fallback) for court-mode support.
-      const courtToggles =
-        store.getCourtToggles() ??
-        (getDevicePref("courtToggles") as Record<string, string> | undefined);
-      const courtConfig = buildCourtConfig(standardConfig, courtToggles);
-      const runs = getFormattedPreview(updatedCitation, courtConfig);
-      await updateCitationContent(citation.id, runs);
+      // Re-render the whole document rather than rewriting this one citation in
+      // isolation: a short title is introduced on the first reference and
+      // collapsed on later ones, and ibid/subsequent chains span footnotes — all
+      // document-wide resolutions an isolated single-citation rewrite cannot
+      // perform (and which would desync SAFE-002 edit-detection, leaving the
+      // footnote flagged as "manually edited"). Mirrors the occurrence handlers.
+      await Word.run(async (ctx) => {
+        const { refreshAllCitations } = await import("../../word/citationRefresher");
+        await refreshAllCitations(ctx, store);
+      });
 
       setSuccessMessage("Citation updated successfully.");
     } catch (err) {
