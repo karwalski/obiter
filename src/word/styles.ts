@@ -697,19 +697,38 @@ function isRomanNumeral(s: string): boolean {
   return s.length > 0 && STRICT_ROMAN.test(s.toUpperCase());
 }
 
+// A single-character enumerator (e.g. Level II "A", Level I "I") is ambiguous
+// with a real leading word — "A" in "A tale of two fish", "I" in "I object". A
+// genuine enumerator is either punctuated ("A." / "A)") or followed by the
+// Title-Cased heading it numbers ("A Overview"); an article/pronoun is followed
+// by a lower-case word. Only treat a bare single character as an enumerator when
+// one of those signals is present. Multi-character tokens ("III", "IV") are
+// unambiguous and handled by the caller without this check.
+function singleCharIsEnumerator(trailingPunct: string, nextChar: string | undefined): boolean {
+  if (trailingPunct) return true; // "A." / "A)" is never an article
+  if (!nextChar) return false; // nothing follows — treat as heading text
+  return /[A-Z0-9]/.test(nextChar); // followed by a Title-Cased/numeric word
+}
+
 // Strips the enumerator for a SPECIFIC heading level (the level being applied),
 // matching the format the engine itself emits for that level. A trailing "." or
 // ")" is tolerated (pasted outlines often carry one). Level I validates the
-// Roman numeral so heading bodies that merely start with Roman letters survive.
+// Roman numeral so heading bodies that merely start with Roman letters survive;
+// single-character enumerators use singleCharIsEnumerator to avoid eating a
+// leading article/pronoun.
 function stripLevelEnumerator(text: string, level: number): string {
   switch (level) {
     case 1: {
-      const m = text.match(/^([IVXLCDM]+)[.)]?\s+/);
-      return m && isRomanNumeral(m[1]) ? text.slice(m[0].length) : text;
+      const m = text.match(/^([IVXLCDM]+)([.)]?)(\s+)(\S)?/);
+      if (!m || !isRomanNumeral(m[1])) return text;
+      if (m[1].length === 1 && !singleCharIsEnumerator(m[2], m[4])) return text;
+      return text.slice(m[1].length + m[2].length + m[3].length);
     }
     case 2: {
-      const m = text.match(/^[A-Z][.)]?\s+/);
-      return m ? text.slice(m[0].length) : text;
+      const m = text.match(/^([A-Z])([.)]?)(\s+)(\S)?/);
+      if (!m) return text;
+      if (!singleCharIsEnumerator(m[2], m[4])) return text;
+      return text.slice(m[1].length + m[2].length + m[3].length);
     }
     case 3: {
       const m = text.match(/^\d+(?:\.\d+)*[.)]?\s+/);

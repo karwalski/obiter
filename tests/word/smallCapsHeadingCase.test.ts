@@ -82,6 +82,23 @@ describe("cleanHeadingBody", () => {
     expect(cleanHeadingBody("I Object to the Ruling", 3)).toBe("I Object to the Ruling");
   });
 
+  it("keeps a leading article/pronoun that is part of the title", () => {
+    // "A" is the article, not a Level II enumerator — next word is lower-case.
+    expect(cleanHeadingBody("## A tale of two fish", 2)).toBe("A tale of two fish");
+    expect(cleanHeadingBody("A tale of two fish", 2)).toBe("A tale of two fish");
+    // "I" as a leading pronoun at Level I, followed by a lower-case word.
+    expect(cleanHeadingBody("I object to the ruling", 1)).toBe("I object to the ruling");
+  });
+
+  it("still strips a genuine single-letter enumerator (Title-Cased or punctuated)", () => {
+    // Followed by a Title-Cased word — this is an enumerated outline heading.
+    expect(cleanHeadingBody("A Tale of Two Fish", 2)).toBe("Tale of Two Fish");
+    // Punctuated enumerators are unambiguous.
+    expect(cleanHeadingBody("A. Overview", 2)).toBe("Overview");
+    expect(cleanHeadingBody("A) Overview", 2)).toBe("Overview");
+    expect(cleanHeadingBody("I. Introduction", 1)).toBe("Introduction");
+  });
+
   it("strips a Markdown marker alone when there is no number", () => {
     expect(cleanHeadingBody("## Background", 1)).toBe("Background");
     expect(cleanHeadingBody("### Reasons", 2)).toBe("Reasons");
