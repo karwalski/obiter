@@ -22,7 +22,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { EDIT_FIELDS_BY_SOURCE_TYPE } from "../../src/ui/views/editCitationFields";
+import {
+  EDIT_FIELDS_BY_SOURCE_TYPE,
+  applyFieldAliases,
+} from "../../src/ui/views/editCitationFields";
 import type { SourceType } from "../../src/types/citation";
 
 const ENGINE_PATH = path.resolve(__dirname, "../../src/engine/engine.ts");
@@ -132,5 +135,50 @@ describe("EditCitation field keys <-> SOURCE_DISPATCH consistency (BUG-005 (d))"
       expect.arrayContaining(["party1", "party2", "year", "reportSeries", "startingPage"])
     );
     expect(keys).not.toContain("caseName");
+  });
+});
+
+/**
+ * Alias resolution (unreported-case court loaded blank regression).
+ *
+ * The edit form reads canonical keys (`court`, `caseNumber`), but other insert
+ * paths store the same values under aliases the dispatcher also reads
+ * (`courtId`/`courtIdentifier`, `decisionNumber`). applyFieldAliases must
+ * surface those so the field loads its value instead of blank.
+ */
+describe("applyFieldAliases", () => {
+  const mncFields = EDIT_FIELDS_BY_SOURCE_TYPE["case.unreported.mnc"]!;
+
+  test("populates court from a courtId alias (paste-parsed unreported MNC case)", () => {
+    const data = { party1: "Kyluk Pty Ltd", year: "2013", courtId: "NSWCCA", caseNumber: "114" };
+    const resolved = applyFieldAliases(data, mncFields);
+    expect(resolved.court).toBe("NSWCCA");
+    // Canonical value already present must not be overwritten by an alias.
+    expect(resolved.caseNumber).toBe("114");
+  });
+
+  test("does not overwrite a present canonical value with an alias", () => {
+    const data = { court: "FCA", courtId: "HCA" };
+    expect(applyFieldAliases(data, mncFields).court).toBe("FCA");
+  });
+
+  test("leaves fields without aliases untouched and returns a copy", () => {
+    const data = { party1: "A" };
+    const resolved = applyFieldAliases(data, mncFields);
+    expect(resolved).not.toBe(data);
+    expect(resolved.party1).toBe("A");
+    expect(resolved.court).toBeUndefined();
+  });
+
+  test("every alias is a key the dispatcher for that type actually reads", () => {
+    // Guards against reintroducing the BUG-005 class via an alias the engine
+    // never consumes. Aliases must appear in the engine source as `d.<alias>`.
+    for (const fields of Object.values(EDIT_FIELDS_BY_SOURCE_TYPE)) {
+      for (const field of fields ?? []) {
+        for (const alias of field.aliases ?? []) {
+          expect(engineSource.includes(`d.${alias}`)).toBe(true);
+        }
+      }
+    }
   });
 });

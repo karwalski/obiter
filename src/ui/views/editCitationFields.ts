@@ -15,7 +15,7 @@
  * dispatcher the same way tests/engine/rule-exporter.test.ts does.
  */
 
-import type { SourceType } from "../../types/citation";
+import type { SourceType, SourceData } from "../../types/citation";
 
 export interface FieldDefinition {
   key: string;
@@ -27,6 +27,15 @@ export interface FieldDefinition {
    * edited as a single comma/'and'-separated line (see src/ui/nameList.ts).
    */
   type?: "text" | "checkbox" | "namelist";
+  /**
+   * Alternative data keys the same value may have been stored under by other
+   * insert paths (paste parser, AI mapper, older documents). The engine
+   * dispatchers already read these aliases, so the edit form must too — else
+   * a field loads blank even though the citation renders correctly. On load,
+   * the first non-empty alias populates `key`; on save the canonical `key` is
+   * written. See applyFieldAliases.
+   */
+  aliases?: string[];
 }
 
 /**
@@ -58,8 +67,21 @@ export const EDIT_FIELDS_BY_SOURCE_TYPE: Partial<Record<SourceType, FieldDefinit
     { key: "party1", label: "Party 1", required: true, placeholder: "e.g. Mabo" },
     { key: "party2", label: "Party 2", required: true, placeholder: "e.g. Queensland" },
     { key: "year", label: "Year", required: true, placeholder: "2022" },
-    { key: "court", label: "Court", required: true, placeholder: "e.g. FCA, HCA" },
-    { key: "caseNumber", label: "Case Number", required: true, placeholder: "e.g. 1136" },
+    {
+      key: "court",
+      label: "Court",
+      required: true,
+      placeholder: "e.g. FCA, HCA",
+      // Paste parser stores courtId; AI mapper / older docs use courtIdentifier.
+      aliases: ["courtIdentifier", "courtId"],
+    },
+    {
+      key: "caseNumber",
+      label: "Case Number",
+      required: true,
+      placeholder: "e.g. 1136",
+      aliases: ["decisionNumber", "judgmentNumber"],
+    },
     { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [42]" },
     { key: "judicialOfficer", label: "Judicial Officer", placeholder: "e.g. Crennan J" },
   ],
@@ -303,4 +325,30 @@ const DEFAULT_FIELDS: FieldDefinition[] = [
  */
 export function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
   return EDIT_FIELDS_BY_SOURCE_TYPE[sourceType] ?? DEFAULT_FIELDS;
+}
+
+/**
+ * Returns a shallow copy of `data` with each aliased field's canonical `key`
+ * populated from the first non-empty alias when the canonical key is empty.
+ * Lets the edit form load values stored by other insert paths under a
+ * different key (e.g. an unreported-case court saved as `courtId` by the paste
+ * parser), instead of showing a blank field. Saving then writes the canonical
+ * key, normalising the record.
+ */
+export function applyFieldAliases(data: SourceData, fields: FieldDefinition[]): SourceData {
+  const result: SourceData = { ...data };
+  for (const field of fields) {
+    if (!field.aliases || field.aliases.length === 0) continue;
+    const current = result[field.key];
+    const isEmpty = current === undefined || current === null || current === "";
+    if (!isEmpty) continue;
+    for (const alias of field.aliases) {
+      const aliasValue = data[alias];
+      if (aliasValue !== undefined && aliasValue !== null && aliasValue !== "") {
+        result[field.key] = aliasValue;
+        break;
+      }
+    }
+  }
+  return result;
 }

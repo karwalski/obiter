@@ -24,7 +24,7 @@ import { getCitationLabel } from "./CitationLibrary";
 import { getFormattedPreview } from "../../engine/engine";
 import type { FormattedRun } from "../../types/formattedRun";
 import CitationPreview from "../components/CitationPreview";
-import { getFieldsForSourceType } from "./editCitationFields";
+import { getFieldsForSourceType, applyFieldAliases } from "./editCitationFields";
 import { nameListToStr, parseNameList } from "../nameList";
 import {
   EXPERIMENTAL_BADGE,
@@ -303,7 +303,10 @@ export default function EditCitation(): JSX.Element {
 
         setLoadError(null);
         setCitation(found);
-        setFormData({ ...found.data });
+        // Populate canonical field keys from any aliases the data was stored
+        // under (e.g. a paste-parsed unreported case keeps its court in
+        // `courtId`), so those fields load their value instead of blank.
+        setFormData(applyFieldAliases(found.data, getFieldsForSourceType(found.sourceType)));
         setShortTitle(found.shortTitle ?? "");
         setSignal(found.signal ?? "");
         setCommentaryBefore(found.commentaryBefore ?? "");
