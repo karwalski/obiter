@@ -741,11 +741,32 @@ function stripStaleEnumerator(text: string): string {
   return text;
 }
 
+// Removes Markdown inline emphasis markers, keeping the text they wrap: heading
+// levels carry their own formatting (Level II+ is italic), so a pasted
+// "*Paragraph 19*" or "**Note**" should render as plain wrapped text, not with
+// literal asterisks. Only PAIRED markers with non-space-adjacent content are
+// unwrapped (as Markdown requires), so "2 * 3" or a stray "*" is left alone.
+// Underscore emphasis is only unwrapped when it wraps the whole title, to avoid
+// touching snake_case-style text.
+function stripInlineEmphasis(text: string): string {
+  let t = text;
+  let prev: string;
+  do {
+    prev = t;
+    // *italic*, **bold**, ***both*** — content must not be flanked by spaces.
+    t = t.replace(/(\*{1,3})(\S(?:.*?\S)?)\1/g, "$2");
+  } while (t !== prev);
+  // _italic_ / __bold__ / ___both___ only when wrapping the entire string.
+  t = t.replace(/^(_{1,3})(\S(?:.*?\S)?)\1$/, "$2");
+  return t;
+}
+
 /**
  * Cleans a heading paragraph's raw text into a bare title, ready for the engine
  * to re-number. Removes, in order:
  *   1. a leading Markdown ATX marker ("#".."######"), e.g. a pasted "## Heading";
- *   2. one leading enumerator — the target level's own format if present,
+ *   2. Markdown inline emphasis markers ("*", "**", "_", "__"), keeping the text;
+ *   3. one leading enumerator — the target level's own format if present,
  *      otherwise a stale/mismatched one (Arabic, parenthesised, or a validated
  *      multi-char Roman numeral). The existing number is never trusted: the
  *      engine assigns the correct one afterwards.
@@ -757,6 +778,7 @@ export function cleanHeadingBody(text: string, level: number): string {
     .replace(/^\s+/, "")
     .replace(/^#{1,6}\s+/, "")
     .replace(/^\s+/, "");
+  t = stripInlineEmphasis(t).replace(/^\s+/, "");
   const afterLevel = stripLevelEnumerator(t, level);
   t = afterLevel !== t ? afterLevel : stripStaleEnumerator(t);
   return t.replace(/^\s+/, "");

@@ -87,6 +87,23 @@ describe("cleanHeadingBody", () => {
     expect(cleanHeadingBody("### Reasons", 2)).toBe("Reasons");
   });
 
+  it("strips Markdown italic/bold emphasis around the heading text", () => {
+    // The reported case: ### B *Paragraph 19 ...* applied as Level II.
+    expect(cleanHeadingBody("### B *Paragraph 19 and the Identity of the Item Examined*", 2)).toBe(
+      "Paragraph 19 and the Identity of the Item Examined"
+    );
+    expect(cleanHeadingBody("## **Background**", 1)).toBe("Background");
+    expect(cleanHeadingBody("*B Paragraph 19*", 2)).toBe("Paragraph 19");
+    expect(cleanHeadingBody("Statutory *Framework* and Principles", 1)).toBe(
+      "Statutory Framework and Principles"
+    );
+  });
+
+  it("does not strip lone or arithmetic asterisks", () => {
+    expect(cleanHeadingBody("Damages of 2 * 3 Kinds", 1)).toBe("Damages of 2 * 3 Kinds");
+    expect(cleanHeadingBody("Costs and Fees *", 1)).toBe("Costs and Fees *");
+  });
+
   it("leaves an already-clean title unchanged", () => {
     expect(cleanHeadingBody("Statutory Framework", 1)).toBe("Statutory Framework");
   });
