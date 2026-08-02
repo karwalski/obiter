@@ -122,7 +122,14 @@ Per the 2026-07-08 decision, only the **last two classic releases** stay publish
 
 Every version change must end with the release publish step; releases must not drift from tags again:
 
-1. Bump the version: `package.json`, `src/constants.ts` `APP_VERSION`, the manifests' `<Version>` (and `?v=` icon cache-busters where applicable). The tag **must** equal `v<package.json version>` or the release workflow fails.
+1. Bump the version in **every** location — `npm run check-version` enforces this and runs automatically before `npm run build` (`prebuild`) and in CI, so drift fails the build rather than shipping silently:
+   - `package.json` — the single source of truth.
+   - `src/constants.ts` `APP_VERSION` — the version shown in the UI; must match exactly.
+   - `src/sw.js` `CACHE_NAME` (`obiter-v<version>`) — bumping it makes the service worker purge stale caches on activate. **This is the web-deploy cache-buster and must change on every release, including patches**, or clients keep serving the old bundle.
+   - The manifests' `<Version>` — major.minor must match `package.json`. A **patch is web-deploy only and does not touch the manifest XML** (see the versioning policy), so the patch component may lag; the guard allows this.
+   - `?v=` icon/asset cache-busters where applicable.
+
+   The tag **must** equal `v<package.json version>` or the release workflow fails.
 2. Build and deploy (`scripts/build-prod.sh`, `scripts/deploy-app.sh` / website scripts as applicable).
 3. Package the zip (`scripts/package.sh`) — CI repeats this for the release asset, so a local zip is for verification only.
 4. Commit, tag `vX.Y.Z`, and push the commit **and the tag**.

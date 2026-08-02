@@ -37,7 +37,9 @@
     "deploy:server": "bash scripts/deploy-server.sh",
     "deploy:app": "bash scripts/deploy-app.sh",
     "deploy:beta": "bash scripts/deploy-beta.sh",
-    "restart:server": "bash scripts/restart-server.sh"
+    "restart:server": "bash scripts/restart-server.sh",
+    "check-version": "node scripts/check-version-sync.js",
+    "prebuild": "node scripts/check-version-sync.js"
   },
   "dependencies": {
     "core-js": "^3.36.0",

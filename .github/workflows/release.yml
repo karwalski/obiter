@@ -48,6 +48,11 @@ jobs:
       - name: Run type check
         run: npm run typecheck
 
+      # Guard against a release that displays a stale version or ships a stale
+      # service-worker cache key (docs/ci-cd.md deploy checklist).
+      - name: Check version sync
+        run: npm run check-version
+
       - name: Package add-in
         run: bash scripts/package.sh
 
