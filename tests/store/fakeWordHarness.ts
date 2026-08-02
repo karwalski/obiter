@@ -127,13 +127,22 @@ export function makeFakeContext(doc: FakeDocState): FakeContextHandle {
   };
 }
 
-/** Install a fake `Word.run` backed by the given document state. */
-export function installFakeWord(doc: FakeDocState): void {
-  const { context } = makeFakeContext(doc);
+/**
+ * Install a fake `Word.run` backed by the given document state. Returns the
+ * sync/part-write counters so callers can assert batching (persist counts);
+ * existing callers may ignore the return value.
+ */
+export function installFakeWord(doc: FakeDocState): {
+  getSyncCount: () => number;
+  getPartAddCount: () => number;
+} {
+  const { context, getSyncCount, getPartAddCount } = makeFakeContext(doc);
 
   (global as Record<string, unknown>).Word = {
     run: async <T>(callback: (ctx: typeof context) => Promise<T>): Promise<T> => callback(context),
   };
+
+  return { getSyncCount, getPartAddCount };
 }
 
 // ─── Shared fixtures ────────────────────────────────────────────────────────

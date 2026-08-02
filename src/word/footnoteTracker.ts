@@ -119,14 +119,19 @@ export async function updateFirstFootnoteNumbers(
 ): Promise<void> {
   const citations = store.getAll();
 
+  // Collect every citation whose first-footnote number changed, then persist
+  // them in ONE store write. Persisting per citation serialized the whole store
+  // and did several Word round-trips each time — O(N^2) on a large document and
+  // a major slice of insert latency (PERF).
+  const changed: typeof citations = [];
   for (const citation of citations) {
-    const footnoteNumber = footnoteMap.get(citation.id);
-    const newValue = footnoteNumber ?? undefined;
-
+    const newValue = footnoteMap.get(citation.id) ?? undefined;
     if (citation.firstFootnoteNumber !== newValue) {
-      const updated = { ...citation, firstFootnoteNumber: newValue };
-      await store.update(updated);
+      changed.push({ ...citation, firstFootnoteNumber: newValue });
     }
+  }
+  if (changed.length > 0) {
+    await store.updateMany(changed);
   }
 }
 

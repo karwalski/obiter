@@ -393,6 +393,32 @@ export class CitationStore {
   }
 
   /**
+   * Update multiple existing citations in a SINGLE persist. Each persist
+   * serializes the whole store and does several Word round-trips, so updating
+   * in a loop (persist per citation) is O(N^2) — the dominant cost when a
+   * document-wide refresh re-derives firstFootnoteNumber for many citations
+   * at once (PERF). Unknown ids are skipped. Persists once iff anything
+   * actually changed.
+   *
+   * @returns The number of citations updated.
+   */
+  async updateMany(citations: Citation[]): Promise<number> {
+    this.ensureInitialised();
+    const byId = new Map(this.storeData!.citations.map((c, i) => [c.id, i] as const));
+    let changed = 0;
+    for (const citation of citations) {
+      const index = byId.get(citation.id);
+      if (index === undefined) continue;
+      this.storeData!.citations[index] = citation;
+      changed++;
+    }
+    if (changed > 0) {
+      await this.persist();
+    }
+    return changed;
+  }
+
+  /**
    * Remove a citation by ID and persist.
    * Throws if the citation ID is not found.
    */

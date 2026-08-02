@@ -241,6 +241,58 @@ describeIfDOMParser("CitationStore persist (BUG-003)", () => {
     ).toEqual(["a", "b"]);
   });
 
+  test("updateMany applies every change in a SINGLE persist (PERF)", async () => {
+    const doc = new FakeDocState();
+    const handle = installFakeWord(doc);
+    doc.addPart(serializeStore(["a", "b", "c"].map((id) => makeCitation(id))));
+
+    const store = new CitationStore();
+    await store.initStore();
+    // Warm up so the SAFE-001 backup part already exists and each subsequent
+    // persist has a stable part-write cost.
+    await store.update({ ...makeCitation("a"), firstFootnoteNumber: 0 });
+
+    // Two separate update() calls = two persist cycles.
+    const s0 = handle.getPartAddCount();
+    await store.update({ ...makeCitation("b"), firstFootnoteNumber: 2 });
+    await store.update({ ...makeCitation("c"), firstFootnoteNumber: 3 });
+    const twoUpdateAdds = handle.getPartAddCount() - s0;
+
+    // One updateMany covering two changes = a SINGLE persist cycle.
+    const s1 = handle.getPartAddCount();
+    const updated = await store.updateMany([
+      { ...makeCitation("a"), firstFootnoteNumber: 1 },
+      { ...makeCitation("c"), firstFootnoteNumber: 4 },
+      { ...makeCitation("zzz"), firstFootnoteNumber: 9 }, // unknown id — skipped
+    ]);
+    const manyAdds = handle.getPartAddCount() - s1;
+
+    expect(updated).toBe(2);
+    // Batched: two changes cost strictly fewer part-writes than two persists.
+    expect(manyAdds).toBeLessThan(twoUpdateAdds);
+
+    const reloaded = new CitationStore();
+    await reloaded.initStore();
+    const byId = new Map(reloaded.getAll().map((c) => [c.id, c] as const));
+    expect(byId.get("a")!.firstFootnoteNumber).toBe(1); // set by updateMany
+    expect(byId.get("c")!.firstFootnoteNumber).toBe(4); // set by updateMany
+    expect(byId.get("b")!.firstFootnoteNumber).toBe(2); // set by the earlier update()
+  });
+
+  test("updateMany with no matching changes does not persist", async () => {
+    const doc = new FakeDocState();
+    const handle = installFakeWord(doc);
+    doc.addPart(serializeStore([makeCitation("a")]));
+
+    const store = new CitationStore();
+    await store.initStore();
+
+    const before = handle.getPartAddCount();
+    const updated = await store.updateMany([{ ...makeCitation("nope") }]);
+    expect(updated).toBe(0);
+    expect(handle.getPartAddCount() - before).toBe(0);
+  });
+
   test("concurrent persists serialize and still leave exactly one part", async () => {
     const doc = new FakeDocState();
     installFakeWord(doc);
