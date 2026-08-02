@@ -11,6 +11,7 @@ import { getSharedStore } from "../../store/singleton";
 import { importWordSources } from "../../word/sourceImporter";
 import { importBibTeX } from "../../api/bibtexImporter";
 import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences, buildOccurrenceTitle } from "../../word/footnoteManager";
+import { mergeDuplicateCitation } from "../../actions/citationService";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
 import type { Citation, SourceType } from "../../types/citation";
@@ -176,6 +177,23 @@ function getDisambiguatedShortTitle(citation: Citation, allCitations: Citation[]
   if (year) return `${shortTitle} (${year})`;
 
   return `${shortTitle} [${citation.id.slice(0, 4)}]`;
+}
+
+/**
+ * Other citations that share this one's short title — the candidate originals a
+ * duplicate can be merged into. Sorted so the earliest-cited appears first (the
+ * natural "original").
+ */
+function getShortTitleDuplicates(citation: Citation, allCitations: Citation[]): Citation[] {
+  const shortTitle = citation.shortTitle;
+  if (!shortTitle) return [];
+  return allCitations
+    .filter((c) => c.id !== citation.id && c.shortTitle === shortTitle)
+    .sort(
+      (a, b) =>
+        (a.firstFootnoteNumber ?? Number.MAX_SAFE_INTEGER) -
+        (b.firstFootnoteNumber ?? Number.MAX_SAFE_INTEGER)
+    );
 }
 
 /** Safely coerce an unknown value to string, returning empty string for non-strings. */
@@ -561,6 +579,34 @@ export default function CitationLibrary(): JSX.Element {
   );
 
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Merge-duplicate UI: which card's "merge into…" chooser is open, and busy state.
+  const [mergingId, setMergingId] = useState<string | null>(null);
+  const [mergeLoading, setMergeLoading] = useState(false);
+
+  const handleMerge = useCallback(async (duplicateId: string, targetId: string) => {
+    if (mergeLoading) return;
+    setMergeLoading(true);
+    setError(null);
+    try {
+      const moved = await mergeDuplicateCitation(duplicateId, targetId);
+      // The duplicate entry is gone and occurrences now resolve against the
+      // target; reload the library from the (refreshed) store.
+      const fresh = (await getSharedStore()).getAll();
+      setCitations(fresh);
+      setMergingId(null);
+      setRefreshStatus(
+        moved > 0
+          ? `Merged duplicate into the original — ${moved} reference${moved === 1 ? "" : "s"} updated.`
+          : "Merged duplicate into the original."
+      );
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to merge the duplicate citation.");
+      setMergingId(null);
+    } finally {
+      setMergeLoading(false);
+    }
+  }, [mergeLoading]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -1024,11 +1070,53 @@ export default function CitationLibrary(): JSX.Element {
               </div>
               {(() => {
                 const dup = getDisambiguatedShortTitle(citation, citations);
-                return dup ? (
+                if (!dup) return null;
+                const candidates = getShortTitleDuplicates(citation, citations);
+                return (
                   <div style={{ fontSize: "var(--text-min)", color: "var(--colour-warning, #f59e0b)", margin: "2px 0" }}>
                     Duplicate short title — consider: {dup}
+                    {candidates.length > 0 && (
+                      <div style={{ marginTop: 3 }}>
+                        {mergingId === citation.id ? (
+                          <div>
+                            <div style={{ color: "var(--colour-text-secondary)", marginBottom: 2 }}>
+                              {mergeLoading
+                                ? "Merging…"
+                                : "Merge this into (its references become ibid / short / (n X)):"}
+                            </div>
+                            {!mergeLoading &&
+                              candidates.map((target) => (
+                                <button
+                                  key={target.id}
+                                  className="library-btn"
+                                  style={{ marginRight: 4, marginBottom: 2 }}
+                                  onClick={() => void handleMerge(citation.id, target.id)}
+                                >
+                                  {getCitationLabel(target)}
+                                  {target.firstFootnoteNumber != null
+                                    ? ` (n ${target.firstFootnoteNumber})`
+                                    : ""}
+                                </button>
+                              ))}
+                            {!mergeLoading && (
+                              <button className="library-btn" onClick={() => setMergingId(null)}>
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            className="library-btn"
+                            onClick={() => setMergingId(citation.id)}
+                            disabled={mergeLoading}
+                          >
+                            Mark as duplicate / merge
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ) : null;
+                );
               })()}
               <div className="library-card-actions">
                 <button

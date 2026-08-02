@@ -23,6 +23,7 @@ import {
   insertCitationFootnote,
   updateCitationContent,
   deleteCitationFootnote,
+  retagOccurrences,
 } from "../word/footnoteManager";
 import { refreshAllCitationsNow } from "../word/citationRefresher";
 import { getSharedStore } from "../store/singleton";
@@ -218,4 +219,29 @@ export async function deleteCitation(citationId: string, footnoteIndex: number):
   await deleteCitationFootnote(citationId, footnoteIndex);
   const store = await getSharedStore();
   await refreshAllCitationsNow(store);
+}
+
+/**
+ * Merges a duplicate citation into an existing one: every occurrence of
+ * `duplicateId` is re-pointed to `targetId`, the now-orphaned duplicate library
+ * entry is removed, and the document is re-rendered so the moved occurrences
+ * resolve as subsequent references (ibid / short / (n X)) of the target,
+ * keeping their pinpoints. Resolves the "duplicate short title" warning.
+ *
+ * @returns The number of occurrences moved.
+ */
+export async function mergeDuplicateCitation(
+  duplicateId: string,
+  targetId: string
+): Promise<number> {
+  if (!duplicateId || !targetId || duplicateId === targetId) return 0;
+  const store = await getSharedStore();
+  const moved = await retagOccurrences(duplicateId, targetId);
+  try {
+    await store.remove(duplicateId);
+  } catch {
+    // The duplicate entry is already gone — nothing more to remove.
+  }
+  await refreshAllCitationsNow(store);
+  return moved;
 }

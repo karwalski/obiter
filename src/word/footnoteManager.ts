@@ -382,6 +382,46 @@ export async function updateOccurrenceMetadata(
   });
 }
 
+/**
+ * Re-tags every occurrence (child CC) of `fromCitationId` to `toCitationId` —
+ * used to merge a duplicate citation into an existing one. The moved
+ * occurrences then resolve as subsequent references of the target. Each
+ * occurrence's pinpoint is preserved; its format preference is reset to "auto"
+ * so it collapses to ibid / short / (n X) as appropriate (adjustable per
+ * occurrence afterwards). The rendered text is left unchanged — the caller must
+ * trigger a refresh to re-render. The parent-CC rendered-text hash is left as
+ * is: the footnote text has not changed, so it still matches, and the refresh
+ * correctly reclassifies the footnote as a rebuild once the expected text
+ * (now a subsequent reference) differs.
+ *
+ * @returns The number of occurrences re-tagged.
+ */
+export async function retagOccurrences(
+  fromCitationId: string,
+  toCitationId: string
+): Promise<number> {
+  if (!fromCitationId || !toCitationId || fromCitationId === toCitationId) return 0;
+  let retagged = 0;
+  await Word.run(async (context) => {
+    // getByTag finds child CCs across every footnote in one call.
+    const controls = context.document.contentControls.getByTag(fromCitationId);
+    controls.load("items/title");
+    await context.sync();
+
+    // eslint-disable-next-line office-addins/load-object-before-read -- items/title is loaded + synced above; the linter only recognises a literal "items" load
+    for (const cc of controls.items ?? []) {
+      const { pinpoint } = parseOccurrenceTitle(cc.title);
+      cc.tag = toCitationId;
+      cc.title = buildOccurrenceTitle("auto", pinpoint);
+      retagged++;
+    }
+    if (retagged > 0) {
+      await context.sync();
+    }
+  });
+  return retagged;
+}
+
 // ─── Adjacent Footnote Detection ────────────────────────────────────────────
 
 /**
