@@ -826,11 +826,21 @@ function renderFootnoteCitations(
     // different pages of the same source).
     // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
     const rawPinpoint = child.pinpoint ?? citation.data.pinpoint;
-    const currentPinpoint: Pinpoint | undefined = rawPinpoint
-      ? typeof rawPinpoint === "string"
-        ? { type: "page" as const, value: rawPinpoint }
-        : (rawPinpoint as Pinpoint)
-      : undefined;
+    let currentPinpoint: Pinpoint | undefined;
+    if (typeof rawPinpoint === "string") {
+      const trimmed = rawPinpoint.trim();
+      currentPinpoint = trimmed ? { type: "page" as const, value: trimmed } : undefined;
+    } else if (
+      rawPinpoint &&
+      typeof (rawPinpoint as Pinpoint).value === "string" &&
+      (rawPinpoint as Pinpoint).value.trim() !== ""
+    ) {
+      // A Pinpoint object with a real value. An empty/partial one (value
+      // undefined) is dropped so it never renders as "undefined".
+      currentPinpoint = rawPinpoint as Pinpoint;
+    } else {
+      currentPinpoint = undefined;
+    }
 
     const citationContext: CitationContext = {
       footnoteNumber: fnEntry.footnoteNumber,

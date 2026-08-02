@@ -86,12 +86,24 @@ const PINPOINT_PREFIX: Record<Pinpoint["type"], string> = {
  * in square brackets by convention (stored in `value`).
  */
 function formatPinpoint(pinpoint: Pinpoint): FormattedRun[] {
-  const prefix = PINPOINT_PREFIX[pinpoint.type];
+  // Defensive: an empty or malformed pinpoint (no usable value, or an
+  // unrecognised type) must never render the literal string "undefined" —
+  // `${undefined}${undefined}` produced "undefinedundefined" in subsequent
+  // references and ", undefined" in full citations. Callers should already
+  // have dropped valueless pinpoints (see normalisePinpoint), but guard here so
+  // no path can emit it.
+  if (!pinpoint || typeof pinpoint.value !== "string" || pinpoint.value.trim() === "") {
+    return [];
+  }
+  const prefix = PINPOINT_PREFIX[pinpoint.type] ?? "";
   const runs: FormattedRun[] = [{ text: `${prefix}${pinpoint.value}` }];
 
   if (pinpoint.subPinpoint) {
-    runs.push({ text: " " });
-    runs.push(...formatPinpoint(pinpoint.subPinpoint));
+    const subRuns = formatPinpoint(pinpoint.subPinpoint);
+    if (subRuns.length > 0) {
+      runs.push({ text: " " });
+      runs.push(...subRuns);
+    }
   }
 
   return runs;

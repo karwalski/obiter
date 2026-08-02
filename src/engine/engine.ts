@@ -291,10 +291,19 @@ function normalisePinpoint(raw: unknown): Pinpoint | undefined {
   if (!raw) return undefined;
   if (typeof raw === "string") {
     // Plain string from UI — wrap as a generic pinpoint
-    return { type: "page", value: raw };
+    const trimmed = raw.trim();
+    return trimmed ? { type: "page", value: trimmed } : undefined;
   }
-  // Already a Pinpoint object
-  return raw as Pinpoint;
+  if (typeof raw === "object") {
+    // A Pinpoint object — but treat one with no usable value as "no pinpoint".
+    // An empty/partial object (e.g. { value: undefined } left over from a
+    // cleared field) must NOT reach the formatters, or `${prefix}${value}`
+    // renders the literal string "undefined".
+    const value = (raw as Partial<Pinpoint>).value;
+    if (typeof value !== "string" || value.trim() === "") return undefined;
+    return raw as Pinpoint;
+  }
+  return undefined;
 }
 
 // ─── PLUMB-001: Type Coercion Helpers ────────────────────────────────────────
