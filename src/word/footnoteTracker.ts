@@ -23,15 +23,21 @@ export async function buildFootnoteMap(context: Word.RequestContext): Promise<Ma
   await context.sync();
 
   const fnItems = footnotes.items ?? [];
-  for (let i = 0; i < fnItems.length; i++) {
-    const noteItem = fnItems[i];
-    const contentControls = noteItem.body.contentControls;
-    contentControls.load("items/tag");
-    await context.sync();
 
+  // Batch every footnote's content-control load into ONE round trip. Syncing
+  // inside the loop instead made this O(N) Word round-trips, the dominant cost
+  // when inserting into a document with many footnotes (PERF).
+  const ccCollections = fnItems.map((noteItem) => {
+    const ccs = noteItem.body.contentControls;
+    ccs.load("items/tag");
+    return ccs;
+  });
+  await context.sync();
+
+  for (let i = 0; i < fnItems.length; i++) {
     const footnoteNumber = i + 1; // 1-based footnote numbering
 
-    for (const cc of contentControls.items ?? []) {
+    for (const cc of ccCollections[i].items ?? []) {
       if (cc.tag && !cc.tag.startsWith("obiter-")) {
         const existing = map.get(cc.tag);
         if (existing === undefined || footnoteNumber < existing) {

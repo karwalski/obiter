@@ -378,33 +378,45 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
   const footnoteEntries: FootnoteEntry[] = [];
   const fnItems = footnotes.items ?? [];
 
-  for (let i = 0; i < fnItems.length; i++) {
-    const noteItem = fnItems[i];
-    const contentControls = noteItem.body.contentControls;
-    contentControls.load("items/tag,items/title");
-    await context.sync();
+  // Sync round-trips are the dominant cost of a refresh in a large document.
+  // Syncing once per footnote (as this loop previously did, twice over) made
+  // the scan O(N) round-trips; since a refresh runs on every insert, that grew
+  // insertion time linearly with the footnote count. Batch the two dependent
+  // load stages so the whole scan costs a constant 3 syncs regardless of N.
 
-    const footnoteNumber = i + 1;
+  // Stage 1: load every footnote's top-level content controls in ONE sync.
+  const bodyCCs = fnItems.map((noteItem) => {
+    const ccs = noteItem.body.contentControls;
+    ccs.load("items/tag,items/title");
+    return ccs;
+  });
+  await context.sync();
 
-    // Find the parent CC with tag "obiter-fn"
-    let parentCC: Word.ContentControl | undefined;
-    for (const cc of contentControls.items ?? []) {
-      if (cc.tag === PARENT_CC_TAG) {
-        parentCC = cc;
-        break;
-      }
+  // Stage 2: locate each footnote's obiter-fn parent, then load ALL their
+  // child CCs in ONE sync.
+  const parentCCs: Array<Word.ContentControl | undefined> = bodyCCs.map((ccs) =>
+    (ccs.items ?? []).find((cc) => cc.tag === PARENT_CC_TAG)
+  );
+  const childCCColls: Array<Word.ContentControlCollection | undefined> = parentCCs.map(
+    (parentCC) => {
+      if (!parentCC) return undefined;
+      const childCCs = parentCC.contentControls;
+      childCCs.load("items/tag,items/text,items/title");
+      return childCCs;
     }
+  );
+  await context.sync();
 
-    if (!parentCC) {
+  // Stage 3: assemble entries — pure, no round trips.
+  for (let i = 0; i < fnItems.length; i++) {
+    const parentCC = parentCCs[i];
+    const childCCs = childCCColls[i];
+    if (!parentCC || !childCCs) {
       // No parent CC — skip this footnote (non-Obiter or legacy format)
       continue;
     }
 
-    // Find child CCs inside the parent (UUID tags)
-    const childCCs = parentCC.contentControls;
-    childCCs.load("items/tag,items/text,items/title");
-    await context.sync();
-
+    const footnoteNumber = i + 1;
     const children: ChildEntry[] = [];
     for (const childCC of childCCs.items ?? []) {
       if (childCC.tag && !childCC.tag.startsWith("obiter-")) {

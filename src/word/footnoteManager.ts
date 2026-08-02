@@ -755,13 +755,18 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
     await context.sync();
 
     const fnItems = footnotes.items ?? [];
-    for (let i = 0; i < fnItems.length; i++) {
-      const noteItem = fnItems[i];
-      const contentControls = noteItem.body.contentControls;
-      contentControls.load("items/tag,items/title");
-      await context.sync();
 
-      const ccs = contentControls.items ?? [];
+    // Batch every footnote's content-control load into ONE round trip rather
+    // than syncing per footnote (which was O(N) Word round-trips) — PERF.
+    const ccCollections = fnItems.map((noteItem) => {
+      const cc = noteItem.body.contentControls;
+      cc.load("items/tag,items/title");
+      return cc;
+    });
+    await context.sync();
+
+    for (let i = 0; i < fnItems.length; i++) {
+      const ccs = ccCollections[i].items ?? [];
       // Lock state lives on the parent CC title and applies to the whole footnote.
       const parentCC = ccs.find((cc) => cc.tag === PARENT_CC_TAG);
       const locked = isFootnoteLocked(parentCC?.title);
