@@ -418,7 +418,7 @@ export async function applyHeadingLevel(
   // Strip any old text-based numbering prefixes from previous approaches
   paragraph.load("text");
   await context.sync();
-  const stripped = stripPrefix(paragraph.text, level);
+  const stripped = cleanHeadingBody(paragraph.text, level);
   if (stripped !== paragraph.text) {
     paragraph.insertText(stripped, "Replace" as Word.InsertLocation.replace);
     await context.sync();
@@ -588,8 +588,8 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
     const prefix = getHeadingPrefix(level, counters[level]);
     const currentText = para.text;
 
-    // Strip any existing prefix pattern
-    let stripped = stripPrefix(currentText, level);
+    // Strip Markdown markers and any existing (possibly wrong) numbering.
+    let stripped = cleanHeadingBody(currentText, level);
     // Level I is small-capped; convert ALL-CAPS body text to title case so the
     // small-caps style renders (Word only small-caps lower-case letters).
     if (level === 1) {
@@ -629,8 +629,26 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
 
 // Minor words left lower-case in title-cased headings (unless first/last word).
 const HEADING_MINOR_WORDS = new Set([
-  "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on",
-  "or", "per", "the", "to", "v", "via", "vs", "with",
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "but",
+  "by",
+  "for",
+  "in",
+  "nor",
+  "of",
+  "on",
+  "or",
+  "per",
+  "the",
+  "to",
+  "v",
+  "via",
+  "vs",
+  "with",
 ]);
 
 /**
@@ -655,9 +673,7 @@ export function toSmallCapsHeadingCase(text: string): string {
   const capitalise = (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
 
   const tokens = text.split(/(\s+)/); // keep whitespace tokens for round-trip
-  const wordIdx = tokens
-    .map((t, i) => (/\S/.test(t) ? i : -1))
-    .filter((i) => i >= 0);
+  const wordIdx = tokens.map((t, i) => (/\S/.test(t) ? i : -1)).filter((i) => i >= 0);
   const firstWord = wordIdx[0];
   const lastWord = wordIdx[wordIdx.length - 1];
 
@@ -673,16 +689,77 @@ export function toSmallCapsHeadingCase(text: string): string {
     .join("");
 }
 
-/** Strips an existing heading prefix from text. */
-function stripPrefix(text: string, level: number): string {
-  const patterns: RegExp[] = [
-    /^[IVXLCDM]+\s+/, // Level 1: Upper Roman
-    /^[A-Z]\s+/, // Level 2: Upper Letter
-    /^\d+\s+/, // Level 3: Arabic
-    /^\([a-z]\)\s+/, // Level 4: Lower letter in parens
-    /^\([ivxlcdm]+\)\s+/, // Level 5: Lower Roman in parens
-  ];
-  return text.replace(patterns[level - 1], "");
+// A strictly well-formed Roman numeral (1–3999). Used so an all-caps word made
+// only of Roman letters (e.g. "CIVIL", "MILL") is NOT mistaken for a numeral and
+// stripped, while genuine numerals ("III", "IV", "XII") are.
+const STRICT_ROMAN = /^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/;
+function isRomanNumeral(s: string): boolean {
+  return s.length > 0 && STRICT_ROMAN.test(s.toUpperCase());
+}
+
+// Strips the enumerator for a SPECIFIC heading level (the level being applied),
+// matching the format the engine itself emits for that level. A trailing "." or
+// ")" is tolerated (pasted outlines often carry one). Level I validates the
+// Roman numeral so heading bodies that merely start with Roman letters survive.
+function stripLevelEnumerator(text: string, level: number): string {
+  switch (level) {
+    case 1: {
+      const m = text.match(/^([IVXLCDM]+)[.)]?\s+/);
+      return m && isRomanNumeral(m[1]) ? text.slice(m[0].length) : text;
+    }
+    case 2: {
+      const m = text.match(/^[A-Z][.)]?\s+/);
+      return m ? text.slice(m[0].length) : text;
+    }
+    case 3: {
+      const m = text.match(/^\d+(?:\.\d+)*[.)]?\s+/);
+      return m ? text.slice(m[0].length) : text;
+    }
+    case 4: {
+      const m = text.match(/^\([a-z]\)\s+/);
+      return m ? text.slice(m[0].length) : text;
+    }
+    default: {
+      const m = text.match(/^\([ivxlcdm]+\)\s+/);
+      return m ? text.slice(m[0].length) : text;
+    }
+  }
+}
+
+// Strips a leading enumerator that does NOT match the target level — a stale or
+// mistaken number carried in from pasted markup (the number is re-derived, so it
+// is not trusted). Only UNAMBIGUOUS forms are removed: Arabic (dotted) numbers,
+// parenthesised letters/numerals, and multi-character validated Roman numerals.
+// Bare single letters (e.g. "A New Approach") are deliberately left alone.
+function stripStaleEnumerator(text: string): string {
+  let m = text.match(/^\d+(?:\.\d+)*[.)]?\s+/); // 3, 3., 1.2.3, 10)
+  if (m) return text.slice(m[0].length);
+  m = text.match(/^\((?:[a-zA-Z]|[ivxlcdm]+|[IVXLCDM]+)\)\s+/); // (a) (A) (iv) (IV)
+  if (m) return text.slice(m[0].length);
+  m = text.match(/^([IVXLCDM]{2,})[.)]?\s+/); // II, III, IV ... (validated)
+  if (m && isRomanNumeral(m[1])) return text.slice(m[0].length);
+  return text;
+}
+
+/**
+ * Cleans a heading paragraph's raw text into a bare title, ready for the engine
+ * to re-number. Removes, in order:
+ *   1. a leading Markdown ATX marker ("#".."######"), e.g. a pasted "## Heading";
+ *   2. one leading enumerator — the target level's own format if present,
+ *      otherwise a stale/mismatched one (Arabic, parenthesised, or a validated
+ *      multi-char Roman numeral). The existing number is never trusted: the
+ *      engine assigns the correct one afterwards.
+ *
+ * Example: cleanHeadingBody("## III Statutory Framework", 1) -> "Statutory Framework".
+ */
+export function cleanHeadingBody(text: string, level: number): string {
+  let t = text
+    .replace(/^\s+/, "")
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^\s+/, "");
+  const afterLevel = stripLevelEnumerator(t, level);
+  t = afterLevel !== t ? afterLevel : stripStaleEnumerator(t);
+  return t.replace(/^\s+/, "");
 }
 
 // ─── MULTI-011: Heading styles per standard ─────────────────────────────────
