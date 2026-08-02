@@ -589,7 +589,12 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
     const currentText = para.text;
 
     // Strip any existing prefix pattern
-    const stripped = stripPrefix(currentText, level);
+    let stripped = stripPrefix(currentText, level);
+    // Level I is small-capped; convert ALL-CAPS body text to title case so the
+    // small-caps style renders (Word only small-caps lower-case letters).
+    if (level === 1) {
+      stripped = toSmallCapsHeadingCase(stripped);
+    }
     const expectedText = stripped.length > 0 ? `${prefix} ${stripped}` : prefix;
 
     if (currentText !== expectedText) {
@@ -620,6 +625,52 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
   }
 
   return renumbered;
+}
+
+// Minor words left lower-case in title-cased headings (unless first/last word).
+const HEADING_MINOR_WORDS = new Set([
+  "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on",
+  "or", "per", "the", "to", "v", "via", "vs", "with",
+]);
+
+/**
+ * Normalises the body text of a Level I heading so Word's small-caps rendering
+ * is visible. Word only renders *lower-case* letters as small capitals, so a
+ * heading typed in ALL CAPS ("BACKGROUND") shows as full-size caps — the
+ * small-caps style has no effect. This title-cases such headings
+ * ("BACKGROUND" -> "Background"), which small caps then renders with a large
+ * leading capital and small capitals for the rest ("Bᴀᴄᴋɢʀᴏᴜɴᴅ").
+ *
+ * Only fully upper-case text is touched: if the heading already contains any
+ * lower-case letter the author's casing is respected and returned unchanged.
+ * Caveat: an all-caps heading containing an acronym (e.g. "ROLE OF ASIC")
+ * will lower-case the acronym ("Role of Asic") — type such headings in normal
+ * case to preserve the acronym, and they will be left as-is.
+ */
+export function toSmallCapsHeadingCase(text: string): string {
+  // Respect deliberate casing — only act on headings typed entirely in caps.
+  if (/[a-z]/.test(text)) return text;
+  if (!/[A-Z]/.test(text)) return text; // nothing cased to convert
+
+  const capitalise = (w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+
+  const tokens = text.split(/(\s+)/); // keep whitespace tokens for round-trip
+  const wordIdx = tokens
+    .map((t, i) => (/\S/.test(t) ? i : -1))
+    .filter((i) => i >= 0);
+  const firstWord = wordIdx[0];
+  const lastWord = wordIdx[wordIdx.length - 1];
+
+  return tokens
+    .map((tok, i) => {
+      if (!/\S/.test(tok)) return tok; // whitespace — preserve as-is
+      const bare = tok.toLowerCase().replace(/[^a-z]/g, "");
+      if (i !== firstWord && i !== lastWord && HEADING_MINOR_WORDS.has(bare)) {
+        return tok.toLowerCase();
+      }
+      return capitalise(tok);
+    })
+    .join("");
 }
 
 /** Strips an existing heading prefix from text. */
