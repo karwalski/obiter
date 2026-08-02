@@ -464,6 +464,24 @@ export async function applyHeadingLevel(
 
   await context.sync();
 
+  // Word (notably Word for Mac) attaches its own built-in multilevel list to
+  // paragraphs when the built-in "Heading N" style is applied, which renders
+  // an automatic number (e.g. "1"). AGLC4 numbering is applied separately as a
+  // text prefix by renumberAllHeadings, so leaving Word's list attached yields
+  // a doubled "1  I BACKGROUND". Detach from any auto-applied list so only the
+  // AGLC4 text prefix remains. detachFromList() throws if the paragraph is not
+  // a list item, so guard on isListItem.
+  try {
+    paragraph.load("isListItem");
+    await context.sync();
+    if (paragraph.isListItem) {
+      paragraph.detachFromList();
+      await context.sync();
+    }
+  } catch {
+    // detachFromList unsupported on this host — nothing to strip.
+  }
+
   // Numbering: use text-prefix approach instead of Word's multilevel
   // list API, which is unreliable on Mac (numbering disappears after
   // document close/reopen, re-renders, or undo). Text prefixes are
@@ -522,7 +540,7 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
   // This is more reliable than Word's multilevel list API on Mac.
   const body = context.document.body;
   const paragraphs = body.paragraphs;
-  paragraphs.load("items/style,items/text");
+  paragraphs.load("items/style,items/text,items/isListItem");
   await context.sync();
 
   const paraItems = paragraphs.items ?? [];
@@ -539,6 +557,24 @@ export async function renumberAllHeadings(context: Word.RequestContext): Promise
   }
 
   if (headings.length === 0) return 0;
+
+  // Strip Word's auto-applied built-in Heading list numbering (see
+  // applyHeadingLevel) so it does not double up with the AGLC4 text prefix.
+  // Handles documents whose headings were styled before this fix.
+  let detached = false;
+  for (const { para } of headings) {
+    if (para.isListItem) {
+      try {
+        para.detachFromList();
+        detached = true;
+      } catch {
+        // detachFromList unsupported on this host — nothing to strip.
+      }
+    }
+  }
+  if (detached) {
+    await context.sync();
+  }
 
   const counters = [0, 0, 0, 0, 0, 0]; // index 0 unused
   let renumbered = 0;
