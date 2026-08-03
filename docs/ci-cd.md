@@ -117,6 +117,7 @@ Per the 2026-07-08 decision, only the **last two classic releases** stay publish
 - Only the **release entry and its assets** are deleted — git tags are always kept.
 - **Copilot skill releases and tags are never touched**: anything matching `copilot` or the reserved `v1.15.1` tag is excluded, both from the candidate list and re-checked before each delete.
 - The script can be run locally: `DRY_RUN=1 bash scripts/prune-releases.sh` prints what would be deleted without deleting anything. `KEEP=<n>` overrides the retention count (default 2).
+- **Retention amplifies a failed release.** With only two entries kept, a single failed workflow run leaves the Releases page showing a version that is two behind production, which reads as "GitHub is stale". Raising `KEEP` widens the visible history; `npm run verify-release` is what actually catches the failure.
 
 ### Deploy checklist — every version change
 
@@ -125,15 +126,30 @@ Every version change must end with the release publish step; releases must not d
 1. Bump the version in **every** location — `npm run check-version` enforces this and runs automatically before `npm run build` (`prebuild`) and in CI, so drift fails the build rather than shipping silently:
    - `package.json` — the single source of truth.
    - `src/constants.ts` `APP_VERSION` — the version shown in the UI; must match exactly.
+   - `README.md` — the `# Obiter vX.Y.Z` H1. This is the repo's landing page, so a stale heading is the most publicly visible drift there is (it sat at v1.14.4 while v1.16.12 was live). The guard now enforces it.
    - `src/sw.js` `CACHE_NAME` (`obiter-v<version>`) — bumping it makes the service worker purge stale caches on activate. **This is the web-deploy cache-buster and must change on every release, including patches**, or clients keep serving the old bundle.
    - The manifests' `<Version>` — major.minor must match `package.json`. A **patch is web-deploy only and does not touch the manifest XML** (see the versioning policy), so the patch component may lag; the guard allows this.
    - `?v=` icon/asset cache-busters where applicable.
 
    The tag **must** equal `v<package.json version>` or the release workflow fails.
-2. Build and deploy (`scripts/build-prod.sh`, `scripts/deploy-app.sh` / website scripts as applicable).
+2. Build and deploy **both slots** — `npm run deploy:app` (production `/app/`) *and* `npm run deploy:beta` (staging `/app/beta/`). Deploying only production is a silent drift: beta keeps serving an old bundle and beta testers report bugs that were already fixed.
 3. Package the zip (`scripts/package.sh`) — CI repeats this for the release asset, so a local zip is for verification only.
 4. Commit, tag `vX.Y.Z`, and push the commit **and the tag**.
-5. Confirm the **Release** workflow run succeeded and the GitHub Release exists with `obiter-vX.Y.Z.zip` + `SHA256SUMS.txt` attached. Retention pruning is automatic.
+5. **Run `npm run verify-release`.** Do not treat a release as done until this passes.
+
+   Pushing the tag is not the same as publishing a release: the workflow can fail *after* the tag exists (a flaky test is enough), and nothing surfaces that — the tag is there, the deploy went out from the laptop, and GitHub quietly keeps showing an older version as Latest. `v1.16.5`, `v1.16.8` and `v1.16.11` all failed exactly that way and published no release.
+
+   `verify-release` walks the whole chain for the current `package.json` version and names every broken link:
+
+   - version locations agree (`check-version-sync`)
+   - the local tag exists and sits on `HEAD`
+   - the tag is on `origin`
+   - the release workflow run for the tag **succeeded**
+   - a GitHub Release exists for the tag, and it is the one marked **Latest**
+   - production serves that version
+   - the beta slot serves that version
+
+   If the workflow failed, re-run it (`gh run rerun <run-id>`) rather than leaving the release unpublished.
 
 The Copilot skill packages (`scripts/package-skill.sh`) are on hold and outside this flow; they are released manually if and when that variant resumes.
 

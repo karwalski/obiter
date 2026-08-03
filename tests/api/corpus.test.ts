@@ -25,6 +25,16 @@ import {
   getAllCoverage,
 } from "../../src/api/corpus/corpusCoverage";
 
+/**
+ * downloadCorpusIndex yields to the event loop every batch to drive progress
+ * reporting, so a single download takes ~4.5s — uncomfortably close to Jest's
+ * 5s default. On a loaded CI runner it tipped over, timing out a test and
+ * leaving an orphaned download that broke the *next* test; that intermittently
+ * failed the release build (v1.16.5, v1.16.8, v1.16.11 all published no
+ * GitHub Release because of it). Give the suite real headroom.
+ */
+jest.setTimeout(60000);
+
 // Mock devicePreferences for skip preference persistence
 jest.mock("../../src/store/devicePreferences", () => {
   const store: Record<string, unknown> = {};
@@ -407,6 +417,23 @@ describe("CorpusAdapter (Story 17.10)", () => {
     expect(await adapter.healthcheck()).toBe("offline");
     // Reload for any subsequent tests
     await downloadCorpusIndex();
+  });
+
+  it("stays offline when a download in flight during a reset completes late", async () => {
+    _resetCorpusState();
+    // Start a download but reset before it can publish — the orphaned download
+    // must not revive the corpus. This raced in CI and intermittently failed
+    // the release build (a slow runner let the stale download win).
+    const inFlight = downloadCorpusIndex();
+    _resetCorpusState();
+    await inFlight;
+
+    expect(await adapter.healthcheck()).toBe("offline");
+    expect(getCorpusStatus()).toBe("not-downloaded");
+
+    // Reload for any subsequent tests
+    await downloadCorpusIndex();
+    expect(await adapter.healthcheck()).toBe("healthy");
   });
 });
 

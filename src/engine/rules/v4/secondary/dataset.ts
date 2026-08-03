@@ -4,6 +4,7 @@
  */
 
 import { FormattedRun } from "../../../../types/formattedRun";
+import { toText } from "../general/coerce";
 
 // ─── Data Interface ──────────────────────────────────────────────────────────
 
@@ -54,28 +55,31 @@ export interface DatasetData {
 export function formatDataset(data: DatasetData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  const creator = data.creator?.trim();
+  const creator = toText(data.creator);
   if (creator) {
     runs.push({ text: creator });
     runs.push({ text: ", " });
   }
 
-  if (data.title?.trim()) {
-    runs.push({ text: data.title.trim(), italic: true });
+  const title = toText(data.title);
+  if (title) {
+    runs.push({ text: title, italic: true });
   }
 
   // Parenthetical: (Dataset, Version, Repository, Year)
+  // `year` is a NUMERIC_DATA_FIELD — it returns from the XML store as a JS
+  // number, so these must be coerced rather than trimmed (see toText).
   const parenParts = ["Dataset", data.version, data.repository, data.year]
-    .map((p) => (p ?? "").trim())
+    .map(toText)
     .filter(Boolean);
   if (parenParts.length > 0) {
     runs.push({ text: ` (${parenParts.join(", ")})` });
   }
 
   // Trailing identifier: DOI preferred, then persistent id, then access date.
-  const doi = (data.doi ?? "").trim();
-  const persistentId = (data.persistentId ?? "").trim();
-  const accessDate = (data.accessDate ?? "").trim();
+  const doi = toText(data.doi);
+  const persistentId = toText(data.persistentId);
+  const accessDate = toText(data.accessDate);
   if (doi) {
     runs.push({ text: ` <${doi}>` });
   } else if (persistentId) {

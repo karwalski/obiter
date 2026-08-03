@@ -4,6 +4,7 @@
  */
 
 import { FormattedRun } from "../../../../types/formattedRun";
+import { toText } from "../general/coerce";
 
 // ─── Data Interface ──────────────────────────────────────────────────────────
 
@@ -48,26 +49,29 @@ export interface SoftwareData {
 export function formatSoftware(data: SoftwareData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  const author = data.author?.trim();
+  const author = toText(data.author);
   if (author) {
     runs.push({ text: author });
     runs.push({ text: ", " });
   }
 
-  if (data.title?.trim()) {
-    runs.push({ text: data.title.trim(), italic: true });
+  const title = toText(data.title);
+  if (title) {
+    runs.push({ text: title, italic: true });
   }
 
   // Parenthetical: (Designation, VersionOrCommit, Host, Year)
-  const designation = (data.designation ?? "").trim() || "Software";
+  // `year` is a NUMERIC_DATA_FIELD — it returns from the XML store as a JS
+  // number, so these must be coerced rather than trimmed (see toText).
+  const designation = toText(data.designation) || "Software";
   const parenParts = [designation, data.versionOrCommit, data.host, data.year]
-    .map((p) => (p ?? "").trim())
+    .map(toText)
     .filter(Boolean);
   if (parenParts.length > 0) {
     runs.push({ text: ` (${parenParts.join(", ")})` });
   }
 
-  const url = (data.url ?? "").trim();
+  const url = toText(data.url);
   if (url) {
     runs.push({ text: ` <${url}>` });
   }

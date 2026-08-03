@@ -1,6 +1,6 @@
 {
   "name": "obiter",
-  "version": "1.16.12",
+  "version": "1.16.13",
   "description": "AGLC4 Word Add-in — Citation Engine, Document Formatter, and Research Layer",
   "repository": {
     "type": "git",
@@ -39,7 +39,8 @@
     "deploy:beta": "bash scripts/deploy-beta.sh",
     "restart:server": "bash scripts/restart-server.sh",
     "check-version": "node scripts/check-version-sync.js",
-    "prebuild": "node scripts/check-version-sync.js"
+    "prebuild": "node scripts/check-version-sync.js",
+    "verify-release": "bash scripts/verify-release.sh"
   },
   "dependencies": {
     "core-js": "^3.36.0",

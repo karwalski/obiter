@@ -9,6 +9,7 @@ import { formatAuthors, formatBodyAuthor } from "./authors";
 import { formatSecondaryTitle, formatSecondaryTitleText } from "./general";
 import { formatPinpoint } from "../general/pinpoints";
 import { parseTitleMarkup, quoteTitleRuns } from "../general/titleMarkup";
+import { toText } from "../general/coerce";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -27,8 +28,8 @@ function formatQuotedTitle(title: string): FormattedRun[] {
  * every part is empty — callers must then omit the parenthetical entirely,
  * so a source with no date/type data never renders a bare '()' (WEB-007b).
  */
-function parenthetical(parts: Array<string | undefined>): string {
-  const filled = parts.filter((p): p is string => Boolean(p && p.trim().length > 0));
+function parenthetical(parts: Array<unknown>): string {
+  const filled = parts.map(toText).filter((p) => p.length > 0);
   if (filled.length === 0) {
     return "";
   }
@@ -39,9 +40,11 @@ function parenthetical(parts: Array<string | undefined>): string {
  * The '«Document Type» No «Number»' element used across rules 7.1–7.2:
  * the number is included only where one exists (Rules 7.1.1, 7.2.1).
  */
-function docTypeWithNumber(documentType: string | undefined, number: string | undefined): string {
-  const type = documentType?.trim() ?? "";
-  const num = number?.trim() ?? "";
+function docTypeWithNumber(documentType: unknown, number: unknown): string {
+  // `number` is a NUMERIC_DATA_FIELD: it comes back from the XML store as a JS
+  // number, so `?.trim()` here threw "trim is not a function" (see toText).
+  const type = toText(documentType);
+  const num = toText(number);
   if (type && num) return `${type} No ${num}`;
   if (type) return type;
   if (num) return `No ${num}`;
@@ -743,9 +746,8 @@ export function formatHansard(data: HansardData): FormattedRun[] {
   runs.push({ text: "Parliamentary Debates", italic: true });
 
   // Chamber, Full Date, Pinpoint — skip empties
-  const tail = [data.chamber, data.date, data.page]
-    .map((p) => (p ?? "").trim())
-    .filter((p) => p.length > 0);
+  // `page` is a NUMERIC_DATA_FIELD — coerce rather than calling .trim() on it.
+  const tail = [data.chamber, data.date, data.page].map(toText).filter((p) => p.length > 0);
   if (tail.length > 0) {
     runs.push({ text: `, ${tail.join(", ")}` });
   }

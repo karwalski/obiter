@@ -13,6 +13,11 @@
  *                                           (bumping it forces the service worker
  *                                           to purge old caches on activate — the
  *                                           web-deploy cache-buster for patches).
+ *   - README.md          H1 heading         must EXACTLY equal `# Obiter v<version>`.
+ *                                           This is the repo's landing page — a
+ *                                           stale H1 is the most visible drift
+ *                                           there is (it read v1.14.4 while
+ *                                           v1.16.12 was live).
  *   - manifest*.xml      <Version>          major.minor must match package.json.
  *                                           The patch component is allowed to lag:
  *                                           a patch is web-deploy only and does not
@@ -57,6 +62,17 @@ if (!swMatch) {
 } else if (swMatch[1] !== expectedCache) {
   errors.push(
     `src/sw.js CACHE_NAME is "${swMatch[1]}" but should be "${expectedCache}" — bump it so the service worker purges stale caches on deploy.`
+  );
+}
+
+// README.md — the H1 is the GitHub landing page; it must name the current version.
+const readmeMatch = read("README.md").match(/^#\s+Obiter\s+v([\d.]+)\s*$/m);
+if (!readmeMatch) {
+  errors.push('README.md: could not find an "# Obiter v<version>" H1 heading');
+} else if (readmeMatch[1] !== pkgVersion) {
+  errors.push(
+    `README.md H1 is "Obiter v${readmeMatch[1]}" but package.json is "${pkgVersion}" — ` +
+      `update the heading to "# Obiter v${pkgVersion}" (it is the first thing shown on GitHub).`
   );
 }
 

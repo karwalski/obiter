@@ -34,6 +34,16 @@ const IDB_VERSION = 1;
 let corpusStatus: CorpusStatus = "not-downloaded";
 let corpusIndex: InMemoryCorpusIndex | null = null;
 
+/**
+ * Bumped whenever corpus state is deliberately cleared (reset/delete). A
+ * download captures the generation when it starts and refuses to publish its
+ * result if the value has moved on, so a download that is still in flight when
+ * the corpus is cleared cannot resurrect it seconds later. Without this, a slow
+ * download racing a reset left the corpus reporting "healthy" after it had been
+ * cleared.
+ */
+let corpusGeneration = 0;
+
 // ---------------------------------------------------------------------------
 // IndexedDB helpers
 // ---------------------------------------------------------------------------
@@ -405,6 +415,7 @@ export async function downloadCorpusIndex(onProgress?: CorpusProgressCallback): 
   }
 
   corpusStatus = "downloading";
+  const generation = corpusGeneration;
 
   try {
     // Try CDN first
@@ -435,6 +446,13 @@ export async function downloadCorpusIndex(onProgress?: CorpusProgressCallback): 
     }
 
     index.loadFromJson(entries, version);
+
+    // The corpus was reset or deleted while this download was in flight —
+    // discard the result rather than reviving state the caller cleared.
+    if (generation !== corpusGeneration) {
+      return;
+    }
+
     corpusIndex = index;
     corpusStatus = "ready";
 
@@ -446,7 +464,9 @@ export async function downloadCorpusIndex(onProgress?: CorpusProgressCallback): 
       // IDB save failed — corpus is still loaded in memory for this session
     }
   } catch {
-    corpusStatus = "error";
+    if (generation === corpusGeneration) {
+      corpusStatus = "error";
+    }
     throw new Error("Corpus download failed");
   }
 }
@@ -457,6 +477,7 @@ export async function downloadCorpusIndex(onProgress?: CorpusProgressCallback): 
  */
 export async function deleteCorpus(): Promise<void> {
   await clearCorpusFromIDB();
+  corpusGeneration++;
   corpusIndex = null;
   corpusStatus = "not-downloaded";
 }
@@ -466,6 +487,7 @@ export async function deleteCorpus(): Promise<void> {
  * @internal
  */
 export function _resetCorpusState(): void {
+  corpusGeneration++;
   corpusStatus = "not-downloaded";
   corpusIndex = null;
   setDevicePref("corpusSkipped", undefined);
