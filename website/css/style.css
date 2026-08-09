@@ -262,11 +262,28 @@ section:nth-child(even) {
   margin-bottom: var(--space-md);
 }
 
+/*
+ * The tagline sits inside the <h1> so the heading carries the descriptive
+ * keywords ("AGLC referencing for Microsoft Word") rather than the bare brand
+ * name, while still rendering as a separate line beneath it. The h1 drops its
+ * own bottom margin because the nested tagline now supplies that spacing, so
+ * the rendered layout matches the previous h1 + <p> markup exactly.
+ */
+.hero__title {
+  margin-bottom: 0;
+}
+
 .hero__tagline {
+  display: block;
   font-family: var(--font-brand);
   font-size: 1.25rem;
   font-style: italic;
+  /* Reset the properties inherited from the enclosing <h1> so the tagline
+     renders exactly as it did when it was a sibling <p>. */
+  letter-spacing: normal;
+  line-height: 1.6;
   color: var(--colour-accent);
+  margin-top: var(--space-md);
   margin-bottom: var(--space-xl);
   font-weight: 400;
 }
@@ -1481,6 +1498,13 @@ section:nth-child(even) {
   font-size: 0.9375rem;
   line-height: 1.7;
   margin-bottom: 0;
+}
+
+/* Multi-paragraph answers ran together, because every answer paragraph had
+   its bottom margin zeroed. Space the later ones only, so the closing
+   padding of .faq__answer still governs the gap at the end. */
+.faq__answer p + p {
+  margin-top: var(--space-md);
 }
 
 /* ============================================================

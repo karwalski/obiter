@@ -40,7 +40,8 @@
     "restart:server": "bash scripts/restart-server.sh",
     "check-version": "node scripts/check-version-sync.js",
     "prebuild": "node scripts/check-version-sync.js",
-    "verify-release": "bash scripts/verify-release.sh"
+    "verify-release": "bash scripts/verify-release.sh",
+    "check-seo": "node scripts/check-seo.js"
   },
   "dependencies": {
     "core-js": "^3.36.0",
