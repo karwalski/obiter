@@ -33,6 +33,12 @@ import { useComfortMode } from "./hooks/useComfortMode";
 import CommandPalette, { type PaletteCommand } from "./components/CommandPalette";
 import ShortcutsHelp from "./components/ShortcutsHelp";
 import { areShortcutsEnabled, getPaletteKey, modifierLabel } from "./shortcuts";
+import {
+  DocumentReadOnlyError,
+  isNotAllowedError,
+  READ_ONLY_MESSAGE,
+  writeErrorMessage,
+} from "../word/documentAccess";
 
 const NAV_ITEMS = [
   { to: "/", label: "Insert" },
@@ -84,6 +90,7 @@ export default function Layout(): JSX.Element {
   const [shortcutsHelpOpen, setShortcutsHelpOpen] = useState(false);
   const [storeInitFailure, setStoreInitFailure] = useState<Error | null>(null);
   const [storeErrorReporterOpen, setStoreErrorReporterOpen] = useState(false);
+  const [documentReadOnly, setDocumentReadOnly] = useState(false);
 
   // Re-read manual mode when refreshCounter changes (toggled from Settings)
   useEffect(() => {
@@ -126,13 +133,19 @@ export default function Layout(): JSX.Element {
         setStandardId(store.getStandardId());
         setWritingMode(store.getWritingMode());
         setStoreInitFailure(null);
+        // The store now initialises on a read-only document rather than
+        // rejecting; surface that state so the user knows writes will not save.
+        setDocumentReadOnly(store.isReadOnly());
       } catch (err) {
         // Default to aglc4, academic — but surface the init failure in a
         // persistent banner instead of a silently defaulted, empty-looking
         // library (SAFE-006).
-        setStoreInitFailure(
-          getStoreInitError() ?? (err instanceof Error ? err : new Error(String(err)))
-        );
+        const failure = getStoreInitError() ?? (err instanceof Error ? err : new Error(String(err)));
+        if (isNotAllowedError(failure) || failure instanceof DocumentReadOnlyError) {
+          setDocumentReadOnly(true);
+        } else {
+          setStoreInitFailure(failure);
+        }
       }
     })();
   }, [refreshCounter]);
@@ -170,9 +183,15 @@ export default function Layout(): JSX.Element {
           total === 0 ? "info" : "success"
         );
       }
-    } catch {
-      // Surface the failure instead of swallowing it (WCAG 3.3.1).
-      announce("Could not refresh footnotes. Please check the document and try again.", "error");
+    } catch (err: unknown) {
+      // Surface the failure instead of swallowing it (WCAG 3.3.1). A refresh
+      // rewrites every footnote, so a read-only document fails here first —
+      // say so rather than sending the user to "check the document".
+      announce(
+        writeErrorMessage(err, "Could not refresh footnotes. Please check the document and try again."),
+        "error"
+      );
+      if (isNotAllowedError(err)) setDocumentReadOnly(true);
     } finally {
       setRefreshing(false);
     }
@@ -289,7 +308,15 @@ export default function Layout(): JSX.Element {
           onDismiss={() => setCorpusBannerVisible(false)}
         />
       )}
-      {storeInitFailure && (
+      {/* A document the user cannot edit is an ordinary situation with a fix
+          the user can apply, not a defect — say what to do and do not invite
+          an error report for it. */}
+      {documentReadOnly && (
+        <div className="obiter-store-error-banner" role="status">
+          <span>{READ_ONLY_MESSAGE}</span>
+        </div>
+      )}
+      {storeInitFailure && !documentReadOnly && (
         <div className="obiter-store-error-banner" role="alert">
           <span>
             The citation store could not be loaded, so citations may appear missing. The data

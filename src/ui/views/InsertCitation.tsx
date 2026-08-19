@@ -41,6 +41,7 @@ import {
 import { buildAiLayerMarker } from "../../engine/rules/v4/secondary/aiMarker";
 import { personToStr, parseNameList, nameListToStr } from "../nameList";
 import { listMissingRequiredFields } from "../../engine/validator";
+import { writeErrorMessage } from "../../word/documentAccess";
 import {
   type CourtJurisdiction,
   type SubsequentTreatment,
@@ -1304,8 +1305,9 @@ export default function InsertCitation(): JSX.Element {
       setAppendToFootnote(false);
       setSelectedFootnoteIndex(0);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
-      setFeedback({ type: "error", message });
+      // Inserting writes a footnote and persists the store, so a read-only or
+      // protected document fails here with Word's bare "NotAllowed".
+      setFeedback({ type: "error", message: writeErrorMessage(err, "An unexpected error occurred.") });
     } finally {
       setInserting(false);
     }

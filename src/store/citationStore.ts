@@ -22,6 +22,12 @@ import { addSnapshot } from "./backupStore";
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
 import { createLogger } from "../debug/logger";
+import {
+  hostReportsReadOnly,
+  isNotAllowedError,
+  isWriteRefused,
+  rethrowWriteFailure,
+} from "../word/documentAccess";
 
 const DEFAULT_SCHEMA_VERSION = "2";
 const DEFAULT_AGLC_VERSION: "4" | "5" = "4";
@@ -42,7 +48,7 @@ const log = createLogger("CitationStore");
  *                   presents as empty but the data is still in the document;
  *                   corrupt parts are never deleted or overwritten.
  */
-export type StoreStatus = "ok" | "new" | "recovered" | "unreadable";
+export type StoreStatus = "ok" | "new" | "recovered" | "unreadable" | "read-only";
 
 /** Per-part detail recorded during initStore() part selection. */
 export interface StorePartInfo {
@@ -93,6 +99,8 @@ export class CitationStore {
   private diagnostics: StoreDiagnostics = emptyDiagnostics();
   /** Serializes persist() calls so delete+add cycles never interleave. */
   private persistChain: Promise<void> = Promise.resolve();
+  /** Set once the document has refused a write because it cannot be edited. */
+  private readOnly = false;
 
   /**
    * Initialise the store. Loads an existing Custom XML Part if one exists
@@ -302,14 +310,54 @@ export class CitationStore {
 
     // Persist the new empty store outside the initial Word.run to avoid nesting.
     // Never auto-persist in the unreadable state (xmlPartId is also null there).
+    //
+    // A read-only document (Protected View, marked final, IRM, restricted
+    // editing, a file locked by another user) refuses this write with
+    // NotAllowed. Reading worked, so failing the whole init here would take
+    // the pane down over a document the user can still legitimately read.
+    // Degrade instead: keep the empty in-memory store and record the state,
+    // so the library renders and only writes are refused (with an
+    // explanation, from persist()).
     if (this.storeData && this.xmlPartId === null && this.diagnostics.status === "new") {
-      await this.persist();
+      try {
+        await this.persist();
+      } catch (err: unknown) {
+        if (!isWriteRefused(err)) throw err;
+        this.readOnly = true;
+        this.diagnostics = {
+          ...this.diagnostics,
+          status: "read-only",
+          detail:
+            "The document refused the initial store write (NotAllowed) — it is " +
+            "read-only, in Protected View, marked as final, restricted, or locked " +
+            "by another user. Citations can be read but not saved.",
+        };
+        log.warn("initStore: document is read-only; continuing without persisting", {
+          hostReportsReadOnly: hostReportsReadOnly(),
+        });
+      }
     }
 
     // Persist the merged result so duplicate recovery survives the session.
+    // Best-effort for the same reason: the merge is already applied in memory.
     if (mergedCount > 0) {
-      await this.persist();
+      try {
+        await this.persist();
+      } catch (err: unknown) {
+        if (!isWriteRefused(err)) throw err;
+        this.readOnly = true;
+        log.warn("initStore: could not persist merged duplicates (document read-only)");
+      }
     }
+  }
+
+  /**
+   * True when the document has refused a write because it cannot be edited.
+   * Views use this to disable insert/refresh affordances rather than letting
+   * the user trigger a failure they cannot fix from inside the pane.
+   */
+  isReadOnly(): boolean {
+    return this.readOnly;
   }
 
   /**
@@ -699,7 +747,19 @@ export class CitationStore {
    *   Deliberate clears are unaffected — they drain one citation at a time.
    */
   private persist(opts: { allowDataLoss?: boolean } = {}): Promise<void> {
-    const run = this.persistChain.then(() => this.doPersist(opts.allowDataLoss === true));
+    const run = this.persistChain
+      .then(() => this.doPersist(opts.allowDataLoss === true))
+      .catch((err: unknown) => {
+        // A document that cannot be edited rejects the write with NotAllowed,
+        // whose stack is entirely inside Word's runtime — it reaches the user
+        // as the bare word "NotAllowed". Record the state and re-throw
+        // something that says what to do about it.
+        if (isNotAllowedError(err)) {
+          this.readOnly = true;
+          rethrowWriteFailure(err);
+        }
+        throw err;
+      });
     // Keep the chain alive after failures so later persists still run.
     this.persistChain = run.catch(() => undefined);
     return run;

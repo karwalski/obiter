@@ -50,6 +50,14 @@ export class FakeDocState {
   parts: FakePart[] = [];
   private nextId = 1;
 
+  /**
+   * When true, every part write is refused the way Word refuses a write to a
+   * document the user cannot edit (Protected View, marked final, IRM,
+   * restricted editing, a file locked by another user): a `NotAllowed` error
+   * whose stack contains nothing of ours.
+   */
+  readOnly = false;
+
   addPart(xml: string, namespaceUri?: string): FakePart {
     const ns = namespaceUri ?? inferNamespace(xml);
     const part = new FakePart(this, `part-${this.nextId++}`, ns, xml);
@@ -92,6 +100,25 @@ export interface FakeContextHandle {
  * Build a fake request context over the given document state, with sync and
  * part-write counters for batching assertions (SAFE-003/SAFE-004 pattern).
  */
+/**
+ * Reproduces the shape Word throws for a refused write: a `RichApi.Error`
+ * carrying the `NotAllowed` code on both the error and its debugInfo, with a
+ * stack pointing only at the Office runtime.
+ */
+export function makeNotAllowedError(): Error & {
+  code: string;
+  debugInfo: { code: string; errorLocation: string };
+} {
+  const err = new Error("NotAllowed") as Error & {
+    code: string;
+    debugInfo: { code: string; errorLocation: string };
+  };
+  err.name = "RichApi.Error";
+  err.code = "NotAllowed";
+  err.debugInfo = { code: "NotAllowed", errorLocation: "CustomXmlPartCollection.add" };
+  return err;
+}
+
 export function makeFakeContext(doc: FakeDocState): FakeContextHandle {
   let syncCount = 0;
   let partAddCount = 0;
@@ -109,6 +136,7 @@ export function makeFakeContext(doc: FakeDocState): FakeContextHandle {
     },
     add(xml: string): FakePart {
       partAddCount++;
+      if (doc.readOnly) throw makeNotAllowedError();
       return doc.addPart(xml);
     },
   };

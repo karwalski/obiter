@@ -15,6 +15,7 @@ import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import type { LoaType } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { runsToHtml } from "../../word/formattedRunsHtml";
+import { isNotAllowedError, writeErrorMessage } from "../../word/documentAccess";
 
 // ─── FormattedRun Renderer ──────────────────────────────────────────────────
 
@@ -255,13 +256,19 @@ export default function Bibliography(): JSX.Element {
       await insertBibliographyIntoDocument(sections);
       setSuccessMessage(`${getBibliographyHeading(writingMode, bibStructure)} inserted successfully.`);
     } catch (err) {
-      // Unwrap OfficeExtension.Error debugInfo — the generic message alone
-      // ("Sorry, something went wrong") is undiagnosable in field reports.
-      const debug = err as { debugInfo?: { errorLocation?: string; message?: string } };
-      const location = debug.debugInfo?.errorLocation ? ` (at ${debug.debugInfo.errorLocation})` : "";
-      setError(
-        err instanceof Error ? `${err.message}${location}` : "Failed to insert bibliography."
-      );
+      // A read-only or protected document refuses the write with "NotAllowed",
+      // which needs an explanation rather than an error location.
+      if (isNotAllowedError(err)) {
+        setError(writeErrorMessage(err, "Failed to insert bibliography."));
+      } else {
+        // Unwrap OfficeExtension.Error debugInfo — the generic message alone
+        // ("Sorry, something went wrong") is undiagnosable in field reports.
+        const debug = err as { debugInfo?: { errorLocation?: string; message?: string } };
+        const location = debug.debugInfo?.errorLocation ? ` (at ${debug.debugInfo.errorLocation})` : "";
+        setError(
+          err instanceof Error ? `${err.message}${location}` : "Failed to insert bibliography."
+        );
+      }
     } finally {
       setInserting(false);
     }

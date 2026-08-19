@@ -15,6 +15,7 @@ import { applyAglc4Template, insertTitleParagraph, insertAuthorParagraph } from 
 import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
+import { writeErrorMessage } from "../../word/documentAccess";
 
 
 interface HeadingDef {
@@ -166,7 +167,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus(`Applied Level ${HEADINGS[level - 1].label.split(" ")[1]} heading.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to apply heading.");
+      setError(writeErrorMessage(err, "Failed to apply heading."));
     } finally {
       setApplying(false);
     }
@@ -191,7 +192,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Applied block quote formatting.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to apply block quote.");
+      setError(writeErrorMessage(err, "Failed to apply block quote."));
     } finally {
       setApplying(false);
     }
@@ -212,7 +213,7 @@ export default function Styling(): JSX.Element {
         ? "Document set up with AGLC4 styles and template."
         : "Document set up with template formatting.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to set up document.");
+      setError(writeErrorMessage(err, "Failed to set up document."));
     } finally {
       setApplying(false);
     }
@@ -232,7 +233,7 @@ export default function Styling(): JSX.Element {
         ? "Inserted title in small caps (note: not standard AGLC4)."
         : "Inserted title.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add title.");
+      setError(writeErrorMessage(err, "Failed to add title."));
     } finally {
       setApplying(false);
     }
@@ -250,7 +251,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Inserted author.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add author.");
+      setError(writeErrorMessage(err, "Failed to add author."));
     } finally {
       setApplying(false);
     }
@@ -340,7 +341,7 @@ export default function Styling(): JSX.Element {
         }
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to format quotation.");
+      setError(writeErrorMessage(err, "Failed to format quotation."));
     } finally {
       setApplying(false);
     }
@@ -363,7 +364,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Inserted AGLC4 ellipsis.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to insert ellipsis.");
+      setError(writeErrorMessage(err, "Failed to insert ellipsis."));
     } finally {
       setApplying(false);
     }
@@ -393,7 +394,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Wrapped in editorial brackets.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to insert brackets.");
+      setError(writeErrorMessage(err, "Failed to insert brackets."));
     } finally {
       setApplying(false);
     }
@@ -421,7 +422,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Inserted [sic].");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to insert [sic].");
+      setError(writeErrorMessage(err, "Failed to insert [sic]."));
     } finally {
       setApplying(false);
     }
@@ -445,7 +446,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus(`Inserted ${annotation}.`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to insert annotation.");
+      setError(writeErrorMessage(err, "Failed to insert annotation."));
     } finally {
       setApplying(false);
     }
@@ -475,7 +476,7 @@ export default function Styling(): JSX.Element {
       });
       setStatus("Applied emphasis and inserted annotation.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add emphasis.");
+      setError(writeErrorMessage(err, "Failed to add emphasis."));
     } finally {
       setApplying(false);
     }
