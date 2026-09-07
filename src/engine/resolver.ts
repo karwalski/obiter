@@ -11,7 +11,7 @@
  * references, and abbreviation definitions.
  */
 
-import type { Citation, Pinpoint, SourceType } from "../types/citation";
+import type { Author, Citation, Pinpoint, SourceType } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import type { CitationConfig } from "./standards/types";
 import { formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
@@ -23,6 +23,11 @@ import {
   internationalShortTitleStyle,
   styleInternationalShortTitle,
 } from "./rules/v4/international/subsequent";
+import {
+  formatAuthorSurname,
+  formatFreeTextAuthorLead,
+  joinAuthorNames,
+} from "./rules/v4/secondary/authors";
 import { formatSecondaryShortTitle } from "./rules/v4/secondary/general";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
@@ -158,19 +163,39 @@ function chineseScriptFullName(author: {
  */
 function getAuthorSurname(citation: Citation): string {
   const data = citation.data;
-  // Structured authors array (journal articles, books)
-  if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
-    const first = data.authors[0] as { surname?: string; givenNames?: string };
-    return chineseScriptFullName(first) ?? first.surname ?? "";
+  // Structured authors array (journal articles, books; chapter authors for
+  // book chapters). Rule 4.1.2 carries into subsequent references: two or
+  // three authors are all named ('Edelman and Bant (n 2)'), four or more
+  // collapse to 'Rishworth et al (n 3)'.
+  const authors =
+    Array.isArray(data.authors) && data.authors.length > 0
+      ? data.authors
+      : Array.isArray(data.chapterAuthors)
+        ? data.chapterAuthors
+        : [];
+  if (authors.length > 0) {
+    const surnames = (authors as Author[])
+      .map((author) => chineseScriptFullName(author) ?? formatAuthorSurname(author))
+      .filter((name) => name.length > 0);
+    if (surnames.length > 0) {
+      return joinAuthorNames(surnames);
+    }
   }
   // Structured author object
   if (data.author && typeof data.author === "object") {
     const author = data.author as { surname?: string; givenNames?: string };
     return chineseScriptFullName(author) ?? author.surname ?? "";
   }
-  // Plain string author (reports, speeches, press releases, etc.)
+  // Rule 7.3: a speech leads with its speaker, who occupies the author
+  // position of the rule 7.3 template ('Heydon (n 41)'; DECISION-037).
+  if (citation.sourceType === "speech" && typeof data.speaker === "string" && data.speaker) {
+    return formatFreeTextAuthorLead(data.speaker);
+  }
+  // Plain string author (newspapers, internet materials, reports, press
+  // releases, etc.): personal names reduce to surnames per rule 1.4.1;
+  // body authors stay verbatim (DECISION-037).
   if (typeof data.author === "string" && data.author) {
-    return data.author;
+    return formatFreeTextAuthorLead(data.author);
   }
   // Institutional author
   if (typeof data.institutionalAuthor === "string" && data.institutionalAuthor) {
@@ -191,6 +216,10 @@ function getAuthorSurname(citation: Citation): string {
  * body author is italicised: *Traditional Rights and Freedoms* (n 52).
  */
 function formatSecondaryLead(citation: Citation): FormattedRun[] {
+  const exchangeLead = formatExchangeLead(citation);
+  if (exchangeLead !== null) {
+    return exchangeLead;
+  }
   const surname = getAuthorSurname(citation);
   if (surname) {
     return [{ text: surname }];
@@ -201,6 +230,53 @@ function formatSecondaryLead(citation: Citation): FormattedRun[] {
     return formatStyledShortTitle(title, citation.sourceType);
   }
   return [];
+}
+
+/**
+ * Formats the short-reference lead for interviews (Rule 7.13) and written
+ * correspondence (Rule 7.12), which have neither an author nor a title
+ * element for rule 1.4.1 to fall back on.
+ *
+ * DECISION-037: the leading identifier is kept and the parties reduce to
+ * surnames, following edited AGLC4 practice (UNSW Law Journal editing
+ * materials r 7.13.1: 'Interview with Petschler and Gergis (n 109) 5';
+ * 'Written Response from Sidhu (n 119) 2') and the community CSL style
+ * ('Email from Li to Jones (n X)'). A user-assigned short title (rule 1.4.4)
+ * replaces the generated lead and is rendered roman.
+ *
+ * Returns null for every other source type.
+ */
+function formatExchangeLead(citation: Citation): FormattedRun[] | null {
+  const type = citation.sourceType;
+  if (type !== "interview" && type !== "correspondence") {
+    return null;
+  }
+  const data = citation.data;
+  const str = (...keys: string[]): string => {
+    for (const key of keys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return "";
+  };
+  const shortTitle = citation.shortTitle ?? str("shortTitle");
+  if (shortTitle) {
+    return parseTitleMarkup(shortTitle, false);
+  }
+  if (type === "interview") {
+    const interviewee = str("interviewee", "author", "name");
+    if (!interviewee) return [];
+    const label = str("interviewType", "format") || "Interview";
+    return [{ text: `${label} with ${formatFreeTextAuthorLead(interviewee)}` }];
+  }
+  const sender = str("sender", "author");
+  if (!sender) return [];
+  const label = str("type", "correspondenceType") || "Letter";
+  const recipient = str("recipient");
+  const text = recipient
+    ? `${label} from ${formatFreeTextAuthorLead(sender)} to ${formatFreeTextAuthorLead(recipient)}`
+    : `${label} from ${formatFreeTextAuthorLead(sender)}`;
+  return [{ text }];
 }
 
 /**

@@ -6,6 +6,8 @@
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { parseTitleMarkup, quoteTitleRuns } from "./titleMarkup";
+import { formatAuthorName, invertAuthorName, parseFreeTextAuthors } from "../secondary/authors";
+import type { Author } from "../../../../types/citation";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
 import type { CaseEntry, LegislationEntry } from "../../oscola/tables";
@@ -149,36 +151,49 @@ export function getBibliographyCategory(
  *   array if there are no authors.
  */
 function formatBibliographyAuthors(data: Record<string, unknown>): FormattedRun[] {
-  const authors = data["authors"] as
-    | Array<{ givenNames: string; surname: string; suffix?: string }>
-    | undefined;
+  const structured = (
+    Array.isArray(data["authors"]) && data["authors"].length > 0
+      ? data["authors"]
+      : Array.isArray(data["chapterAuthors"])
+        ? data["chapterAuthors"]
+        : []
+  ) as Author[];
 
-  if (!authors || authors.length === 0) return [];
+  let authors: Author[] = structured.filter((a) => a && (a.surname || a.givenNames));
 
-  const first = authors[0];
-  const invertedFirst = first.suffix
-    ? `${first.surname}, ${first.givenNames} ${first.suffix}`
-    : `${first.surname}, ${first.givenNames}`;
+  // Free-text author fields (newspapers, internet materials, reports, etc.):
+  // personal names are parsed so the first can be inverted; a body author
+  // is rendered verbatim (Rule 4.1.4; DECISION-037).
+  if (authors.length === 0) {
+    const freeText = data["author"];
+    if (typeof freeText === "string" && freeText.trim()) {
+      const parsed = parseFreeTextAuthors(freeText);
+      if (!parsed) {
+        return [{ text: freeText.trim() }];
+      }
+      authors = parsed;
+    }
+  }
 
+  if (authors.length === 0) return [];
+
+  // Rules 4.1.1–4.1.2 apply as in the footnote (initials collapsed,
+  // post-nominals dropped, 'et al' for four or more authors); only the
+  // first author's name is inverted (Rule 1.13).
+  const withSuffix = (name: string, author: Author): string =>
+    author.suffix ? `${name} ${author.suffix}` : name;
+  const invertedFirst = withSuffix(invertAuthorName(authors[0]), authors[0]);
   if (authors.length === 1) {
     return [{ text: invertedFirst }];
   }
-
-  // Subsequent authors in normal order.
-  const rest = authors.slice(1).map((a) => {
-    const name = `${a.givenNames} ${a.surname}`;
-    return a.suffix ? `${name} ${a.suffix}` : name;
-  });
-
-  // Join with commas; final author preceded by "and".
-  let authorText: string;
-  if (rest.length === 1) {
-    authorText = `${invertedFirst} and ${rest[0]}`;
-  } else {
-    const allButLast = rest.slice(0, -1).join(", ");
-    authorText = `${invertedFirst}, ${allButLast} and ${rest[rest.length - 1]}`;
+  if (authors.length > 3) {
+    return [{ text: `${invertedFirst} et al` }];
   }
-
+  const rest = authors.slice(1).map((a) => withSuffix(formatAuthorName(a), a));
+  const authorText =
+    rest.length === 1
+      ? `${invertedFirst} and ${rest[0]}`
+      : `${invertedFirst}, ${rest.slice(0, -1).join(", ")} and ${rest[rest.length - 1]}`;
   return [{ text: authorText }];
 }
 

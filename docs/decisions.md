@@ -494,3 +494,25 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 5. **Migration commitment (WS-1).** On AGLC5 publication each experimental item is **re-mapped to the AGLC5 rule or retired** per the WS-1 publication-day runbook, so existing user documents keep rendering (no stranding). The `provenance` flag is the switch: an item flipped to `'aglc4'` (or re-pointed at a v5 rule) leaves the badge and conformance exclusion behind automatically.
 
 **Researchers:** none required — this is an Obiter product-labelling policy, not an AGLC4 interpretation. It will be revisited only when AGLC5 publishes rules for these sources.
+
+---
+
+## DECISION-037: Subsequent references to interviews, correspondence, speeches and free-text authors
+
+**Status:** IMPLEMENTED AS DEFAULT (2026-09-07) — pending researcher confirmation
+**Raised:** 2026-09-07 (field report: multi-author books shortened to the first surname only)
+
+**Context:** Rule 1.4.1 gives the subsequent-reference form for authored secondary sources ('Author Surname (n X)') and for authorless sources ('Short Title (n X)'). Chapter 7 has no 'Short Title and Subsequent References' section (unlike chapters 3, 4 and 8–14), and the MULR *Summary of Changes* says only that rule 1.4.1 was broadened to apply to all source types. Interviews (rule 7.13, 'Interview with Name (Interviewer, Forum, Date)') and written correspondence (rule 7.12, 'Email from A to B, Date') have neither an author element nor a title element, so neither branch of rule 1.4.1 fits. Speeches (rule 7.3) place the speaker in the author position. Several chapter 7 forms capture the author as one free-text string, which the engine previously reproduced whole in the short form ('Jane Smith (n 3)').
+
+**Research (deep-research run, 2026-09-07):** no official MULR/AGLC commentary, FAQ or errata addresses the point; nine university library guides restate rule 1.4.1 without an example. Edited practice was found in one journal: the UNSW Law Journal editing materials (as at 5 June 2023) prescribe r 7.13.1 'Interview with Last Name of Interviewee/s (n X) pinpoint' (example 'Interview with Petschler and Gergis (n 109) 5'), applied about sixty times in Freeburn and Ramsay (2021) 44(3) UNSWLJ 1142 ('Interview with O'Brien (n 109) 5–7', 'Interview with van de Pol (n 114) 2', 'Written Response from Sidhu (n 119) 2') and over eighty times in Schofield-Georgeson (2020) 43(4) UNSWLJ 1405 ('Interview with Anonymous 10 (n 56)'). Zheng (2023) 46(1) UNSWLJ keeps the sender's full name through a defined short title ('Email from Tim Soutphommasane (n 114)'). The community CSL AGLC4 style renders 'Interview with John Roberts (n 96)' (full name) and 'Email from Li to Jones (n X)'. No source repeats the full citation and none reduces an interview or email to a bare surname. Multi-author forms are confirmed by the guide itself (rule 4.1.2: 'Edelman and Bant (n 2) 260', 'Rishworth et al (n 3)'; rule 4.1.3: 'Birks (ed) (n 6)').
+
+**Decision (default):**
+
+1. **Interviews:** '«Interview|Conversation» with «Surname(s)» (n X) pinpoint'; several interviewees joined per rule 4.1.2; pseudonymous or organisational interviewees kept verbatim; positions and honorifics dropped.
+2. **Correspondence:** '«Type» from «Sender surname» to «Recipient surname» (n X)'; date and positions dropped. The recipient is retained because it mirrors the rule 7.12 template and disambiguates a sender who wrote to several people. Dropping the recipient (both UNSWLJ articles) is an attested variant available through a user short title.
+3. **Speeches:** speaker surname per rule 1.4.1 ('Heydon (n 41)').
+4. **Free-text author fields:** personal names reduce to surnames and join per rule 4.1.2; body authors (rule 4.1.4) and anything that does not parse as a personal name stay verbatim. The same parser inverts the first author in the bibliography (rule 1.13).
+5. A user-assigned short title (rule 1.4.4) replaces the generated lead for interviews and correspondence, rendered roman.
+
+**Researchers:** confirm (a) the recipient is retained in correspondence short forms; (b) whether an honorific or judicial title survives in an interview lead ('Conversation with Chief Justice Roberts' versus 'Conversation with Roberts'); (c) whether MULR, MJIL or Sydney Law Review house practice differs from UNSWLJ; (d) whether AGLC5 adds a chapter 7 subsequent-reference section. The engine default is UNSWLJ practice generalised, not a demonstrated cross-journal consensus.
+

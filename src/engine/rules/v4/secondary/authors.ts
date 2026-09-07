@@ -58,6 +58,38 @@ const POST_NOMINALS: ReadonlySet<string> = new Set([
   "PSM",
   "RFD",
   "ED",
+  // Imperial and Royal Victorian orders, gallantry and service awards
+  "CMG",
+  "CB",
+  "GCB",
+  "KCB",
+  "DCB",
+  "GCVO",
+  "KCVO",
+  "DCVO",
+  "LVO",
+  "MVO",
+  "ISO",
+  "DSC",
+  "DSO",
+  "MC",
+  "AFC",
+  "DFC",
+  "GM",
+  // Fellowships and further degrees
+  "FRS",
+  "FAHA",
+  "FTSE",
+  "FRSN",
+  "FACLM",
+  "MBBS",
+  "BCom",
+  "BEng",
+  "MPhil",
+  "DSc",
+  "DLitt",
+  "LittD",
+  "JP",
 ]);
 
 /**
@@ -334,6 +366,37 @@ export function invertAuthorName(author: Author): string {
 }
 
 /**
+ * Joins a list of already-formatted author names per AGLC4 Rule 4.1.2.
+ *
+ * Two or three names are all listed, the last joined with 'and'; four or
+ * more collapse to the first name followed by 'et al'. The same treatment
+ * applies in subsequent references (Rule 1.4.1, guide ex 5: 'Edelman and
+ * Bant (n 2) 260. See Rishworth et al (n 3).'), so the resolver reuses this
+ * helper with bare surnames.
+ */
+export function joinAuthorNames(names: string[]): string {
+  if (names.length === 0) {
+    return "";
+  }
+  if (names.length === 1) {
+    return names[0];
+  }
+  if (names.length <= 3) {
+    return names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  }
+  // 4+ authors: first author + et al
+  return names[0] + " et al";
+}
+
+/**
+ * Returns an author's surname as it appears in a subsequent reference
+ * (Rule 1.4.1): post-nominals stripped, as in the first citation.
+ */
+export function formatAuthorSurname(author: Author): string {
+  return stripPostNominals((author.surname ?? "").trim());
+}
+
+/**
  * Formats a list of authors, handling multiple-author rules and editor
  * suffixes (Rules 4.1.2, 4.1.3).
  *
@@ -366,18 +429,7 @@ export function formatAuthors(authors: Author[], isEditor?: boolean): FormattedR
           .join("")
       : formatAuthorName(author);
 
-  let nameStr: string;
-
-  if (authors.length === 1) {
-    nameStr = displayName(authors[0]);
-  } else if (authors.length <= 3) {
-    const names = authors.map(displayName);
-    const allButLast = names.slice(0, -1);
-    nameStr = allButLast.join(", ") + " and " + names[names.length - 1];
-  } else {
-    // 4+ authors: first author + et al
-    nameStr = displayName(authors[0]) + " et al";
-  }
+  let nameStr = joinAuthorNames(authors.map(displayName));
 
   if (isEditor) {
     const suffix = authors.length === 1 ? " (ed)" : " (eds)";
@@ -473,4 +525,227 @@ export function formatJudicialAuthor(author: Author): FormattedRun[] {
   parts.push(surname);
 
   return [{ text: parts.join(" ") }];
+}
+
+// ─── Free-text author strings (DECISION-037) ────────────────────────────────
+
+/**
+ * Judicial and office titles that precede a personal name on the source
+ * (Rule 4.1.5) and are dropped when reducing free text to a surname.
+ */
+const FREE_TEXT_TITLE_PREFIXES: ReadonlyArray<string> = [
+  "Chief Justice",
+  "Justice",
+  "Judge",
+  "Magistrate",
+  "His Honour",
+  "Her Honour",
+  "Senator",
+];
+
+/** Generational suffixes kept with the surname ('Brennan Jr (n 94)'). */
+const NAME_SUFFIXES: ReadonlySet<string> = new Set(["Jr", "Sr", "II", "III", "IV"]);
+
+/**
+ * Words that mark a free-text author as a body rather than a person
+ * (Rule 4.1.4). Matched case-insensitively against each token.
+ */
+const BODY_WORDS: ReadonlySet<string> = new Set([
+  "of",
+  "for",
+  "the",
+  "and",
+  "&",
+  "commission",
+  "department",
+  "council",
+  "committee",
+  "association",
+  "institute",
+  "office",
+  "ltd",
+  "pty",
+  "inc",
+  "co",
+  "limited",
+  "government",
+  "university",
+  "society",
+  "board",
+  "authority",
+  "bureau",
+  "court",
+  "tribunal",
+  "group",
+  "centre",
+  "center",
+  "foundation",
+  "bank",
+  "corporation",
+  "company",
+  "ministry",
+  "parliament",
+  "union",
+  "agency",
+  "service",
+  "services",
+  "australia",
+  "australian",
+  "international",
+  "national",
+  "federal",
+  "state",
+  "organisation",
+  "organization",
+  "network",
+  "school",
+  "faculty",
+  "college",
+  "library",
+  "press",
+  "review",
+  "journal",
+  "media",
+  "news",
+  "team",
+  "project",
+  "program",
+  "programme",
+  "fund",
+  "trust",
+  "party",
+  "secretariat",
+  "chamber",
+  "chambers",
+  "firm",
+  "partners",
+  "consulting",
+  "forum",
+  "alliance",
+  "coalition",
+  "federation",
+  "league",
+  "club",
+  "church",
+  "hospital",
+  "health",
+  "editorial",
+  "editor",
+  "staff",
+  "anonymous",
+]);
+
+/** Lower-case surname particles kept with the surname ('van de Pol'). */
+const SURNAME_PARTICLES: ReadonlySet<string> = new Set([
+  "van",
+  "von",
+  "de",
+  "der",
+  "den",
+  "del",
+  "della",
+  "di",
+  "da",
+  "du",
+  "la",
+  "le",
+  "al",
+  "bin",
+  "ibn",
+  "ter",
+  "ten",
+  "des",
+  "dos",
+  "das",
+]);
+
+/**
+ * Parses a free-text author field ('Jane Smith and Bob Jones') into
+ * structured authors, or returns null where any part does not look like a
+ * personal name (a body author such as 'Australian Law Reform Commission',
+ * a pseudonym such as 'Anonymous 10', or a single bare word).
+ *
+ * Rule 1.4.1 reduces personal authors to surnames in subsequent references
+ * and rule 1.13 inverts the first author in a bibliography, but many chapter
+ * 7 forms (newspapers, internet materials, speeches, interviews,
+ * correspondence) capture the name as one string. This parser applies the
+ * rule 4.1.1 name conventions to that string conservatively: when in doubt
+ * the caller keeps the text verbatim, which is always a permissible reading
+ * of the full citation. Recorded in docs/decisions.md as DECISION-037.
+ */
+export function parseFreeTextAuthors(text: string): Author[] | null {
+  const parts = text
+    .split(/;|,|\band\b|&/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) {
+    return null;
+  }
+  const authors: Author[] = [];
+  for (const part of parts) {
+    const author = parsePersonalName(part);
+    if (!author) {
+      return null;
+    }
+    authors.push(author);
+  }
+  return authors;
+}
+
+function parsePersonalName(part: string): Author | null {
+  let name = stripHonorifics(part);
+  for (const prefix of FREE_TEXT_TITLE_PREFIXES) {
+    const re = new RegExp(`^${prefix}\\b\\s*`, "i");
+    if (re.test(name)) {
+      name = name.replace(re, "").trim();
+    }
+  }
+  const [, withoutRetainedTitle] = extractRetainedTitle(name);
+  name = stripPostNominals(withoutRetainedTitle.trim());
+
+  const tokens = name.split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || tokens.length > 5) {
+    return null;
+  }
+  for (const token of tokens) {
+    if (!/^[A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F'\u2019.-]*$/.test(token)) {
+      return null;
+    }
+    if (BODY_WORDS.has(token.toLowerCase())) {
+      return null;
+    }
+  }
+
+  let end = tokens.length;
+  let suffix: string | undefined;
+  if (NAME_SUFFIXES.has(tokens[end - 1]) && end >= 3) {
+    suffix = tokens[end - 1];
+    end -= 1;
+  }
+  let start = end - 1;
+  while (start > 1 && SURNAME_PARTICLES.has(tokens[start - 1].toLowerCase())) {
+    start -= 1;
+  }
+  const surnameTokens = tokens.slice(start, end);
+  if (suffix) {
+    surnameTokens.push(suffix);
+  }
+  return {
+    givenNames: tokens.slice(0, start).join(" "),
+    surname: surnameTokens.join(" "),
+  };
+}
+
+/**
+ * Reduces a free-text author field to the rule 1.4.1 short-reference lead:
+ * personal names become surnames joined per rule 4.1.2 ('Smith and Jones',
+ * 'Rishworth et al'); anything else is returned verbatim (DECISION-037).
+ */
+export function formatFreeTextAuthorLead(text: string): string {
+  const trimmed = text.trim();
+  const authors = parseFreeTextAuthors(trimmed);
+  if (!authors) {
+    return trimmed;
+  }
+  return joinAuthorNames(authors.map(formatAuthorSurname));
 }
