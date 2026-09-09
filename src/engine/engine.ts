@@ -12,6 +12,7 @@
  */
 
 import type { Citation, Pinpoint, SourceType, Author } from "../types/citation";
+import { normaliseAuthorList, normaliseOptionalAuthorList } from "./rules/v4/secondary/authors";
 import type { FormattedRun } from "../types/formattedRun";
 import { formatCaseName } from "./rules/v4/domestic/case-names";
 import { formatReportedCase } from "./rules/v4/domestic/cases";
@@ -554,7 +555,7 @@ function dispatchStatute(citation: Citation): FormattedRun[] {
 function dispatchJournalArticle(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const core = {
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     // Rule 5.3: string years admit spans for year-organised journals
     // (eg '1992–93'); the formatter accepts both shapes.
@@ -584,7 +585,7 @@ function dispatchJournalArticle(citation: Citation): FormattedRun[] {
 function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   const base = {
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     // Rule 26.4: bracketed translation of a non-English title (ex 21)
     translatedTitle: toStr(d.translatedTitle) || undefined,
@@ -595,7 +596,7 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
     // Rule 6.3.4: string years admit spans (eg '1984–88', '1975–')
     year: toStr(d.year) || toNumber(d.year, 0),
     // Rule 6.6.2: editors of an authored book
-    editors: d.editors as Author[] | undefined,
+    editors: normaliseOptionalAuthorList(d.editors),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
   };
@@ -1145,7 +1146,7 @@ function dispatchQuasiLegislative(citation: Citation): FormattedRun[] {
 function dispatchJournalOnline(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatOnlineJournalArticle({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     year: toStr(d.year) || toNumber(d.year, 0),
     volume: toOptionalNumber(d.volume),
@@ -1166,7 +1167,7 @@ function dispatchJournalOnline(citation: Citation): FormattedRun[] {
 function dispatchJournalForthcoming(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatForthcomingArticle({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     journal: (d.journal as string) ?? "",
     // Rule 5.11: include as much of year/volume/issue as is available
@@ -1188,9 +1189,9 @@ function dispatchJournalForthcoming(citation: Citation): FormattedRun[] {
 function dispatchBookChapter(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatBookChapter({
-    chapterAuthors: (d.chapterAuthors as Author[]) ?? (d.authors as Author[]) ?? [],
+    chapterAuthors: normaliseAuthorList(d.chapterAuthors ?? d.authors),
     chapterTitle: (d.chapterTitle as string) ?? (d.title as string) ?? "",
-    editors: (d.editors as Author[]) ?? [],
+    editors: normaliseAuthorList(d.editors),
     bookTitle: (d.bookTitle as string) ?? "",
     publisher: (d.publisher as string) ?? "",
     year: toNumber(d.year, 0),
@@ -1206,14 +1207,14 @@ function dispatchBookChapter(citation: Citation): FormattedRun[] {
 function dispatchBookTranslated(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   return formatTranslatedBook({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: toStr(d.publisher) || undefined,
     edition: toOptionalNumber(d.edition),
     revised: toBool(d.revised),
     year: toStr(d.year) || toNumber(d.year, 0),
     translator: (d.translator as string) ?? "",
-    editors: d.editors as Author[] | undefined,
+    editors: normaliseOptionalAuthorList(d.editors),
     // Rule 6.7: optional '[trans of: «Original Title» (first published «Year»)]'
     originalTitle: toStr(d.originalTitle) || undefined,
     originalYear: toStr(d.originalYear) || undefined,
@@ -1230,7 +1231,7 @@ function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): For
   const d = citation.data;
   // Rule 6.9: the narrator is not an AGLC4 element and is no longer passed
   return formatAudiobook({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? "",
     edition: toOptionalNumber(d.edition),
@@ -1253,7 +1254,7 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
   const d = citation.data;
   // Rules 6.1–6.5: format exactly like a regular book
   const runs = formatBook({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? "",
     edition: toOptionalNumber(d.edition),
@@ -1280,7 +1281,7 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
 function dispatchReport(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatReport({
-    authors: Array.isArray(d.authors) ? (d.authors as Author[]) : undefined,
+    authors: normaliseOptionalAuthorList(d.authors),
     body: toStr(d.body) || toStr(d.institutionalAuthor) || toStr(d.author) || undefined,
     bodyJurisdiction: d.bodyJurisdiction as string | undefined,
     bodySubdivision: d.bodySubdivision as string | undefined,
@@ -1383,7 +1384,7 @@ function dispatchWaitangiTribunalReport(citation: Citation): FormattedRun[] {
 function dispatchResearchPaper(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatResearchPaper({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     documentType: (d.documentType as string) ?? "Working Paper",
     // Rule 7.2.1: number as printed; omitted when the paper is unnumbered
@@ -1405,7 +1406,7 @@ function dispatchParliamentaryResearchPaper(citation: Citation): FormattedRun[] 
   const d = citation.data;
   return formatParliamentaryResearchPaper({
     // Rule 7.2.3: individual author(s) lead where prominently indicated (ex 33)
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     body: pickString(d.body, d.institutionalAuthor) || undefined,
     legislature: toStr(d.legislature) || toStr(d.jurisdiction) || undefined,
     title: (d.title as string) ?? "",
@@ -1425,7 +1426,7 @@ function dispatchParliamentaryResearchPaper(citation: Citation): FormattedRun[] 
 function dispatchConferencePaper(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatConferencePaper({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     // Rule 7.2.4: document type as it appears (default 'Conference Paper')
     documentType: toStr(d.documentType) || undefined,
@@ -1441,7 +1442,7 @@ function dispatchConferencePaper(citation: Citation): FormattedRun[] {
 function dispatchThesis(citation: Citation): FormattedRun[] {
   const d = citation.data;
   // formatThesis expects a single Author, not Author[]
-  const authors = d.authors as Author[] | undefined;
+  const authors = normaliseOptionalAuthorList(d.authors);
   const singleAuthor: Author =
     authors && authors.length > 0
       ? authors[0]
@@ -1480,7 +1481,7 @@ function dispatchSpeech(citation: Citation): FormattedRun[] {
 function dispatchPressRelease(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatPressRelease({
-    authors: d.authors as Author[] | undefined,
+    authors: normaliseOptionalAuthorList(d.authors),
     // d.issuingBody is no longer an author fallback — it has its own slot
     body: pickString(d.body, d.author) || undefined,
     title: (d.title as string) ?? "",
@@ -1506,7 +1507,7 @@ function dispatchNewspaper(citation: Citation): FormattedRun[] {
   // silently dropped at the dispatch boundary (BUG-005 (d) audit).
   let authors: Author[] | undefined;
   if (Array.isArray(d.authors) && d.authors.length > 0) {
-    authors = d.authors as Author[];
+    authors = normaliseAuthorList(d.authors);
   } else if (d.author && typeof d.author === "string") {
     authors = [{ givenNames: "", surname: d.author as string }];
   }
@@ -1690,7 +1691,7 @@ function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
   // Author: may be a plain string (form) or authors array (AI parser)
   let authors: Author[] | undefined;
   if (Array.isArray(d.authors) && d.authors.length > 0) {
-    authors = d.authors as Author[];
+    authors = normaliseAuthorList(d.authors);
   } else if (d.author && typeof d.author === "string") {
     authors = [{ givenNames: "", surname: d.author as string }];
   }
@@ -1785,7 +1786,7 @@ function dispatchLegalEncyclopedia(citation: Citation): FormattedRun[] {
 function dispatchLooseleaf(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatLooseleaf({
-    authors: (d.authors as Author[]) ?? [],
+    authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? (d.service as string) ?? "",
     date: (d.date as string) ?? "",
@@ -1862,7 +1863,7 @@ function dispatchHansard(citation: Citation): FormattedRun[] {
 function dispatchSubmissionGovernment(citation: Citation): FormattedRun[] {
   const d = citation.data;
   return formatSubmissionToInquiry({
-    authors: d.authors as Author[] | undefined,
+    authors: normaliseOptionalAuthorList(d.authors),
     body: d.body as string | undefined,
     documentType: (d.documentType as string) ?? "Submission",
     number: d.number as string | undefined,
@@ -3590,7 +3591,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "book") {
     return nzlsgFormatBook({
-      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author:
+        (d.author as string) ?? formatNzlsgAuthorString(normaliseOptionalAuthorList(d.authors)),
       title: (d.title as string) ?? "",
       edition: nzlsgEdition(d.edition),
       publisher: (d.publisher as string) ?? "",
@@ -3602,7 +3604,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "journal.article") {
     return nzlsgFormatJournalArticle({
-      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author:
+        (d.author as string) ?? formatNzlsgAuthorString(normaliseOptionalAuthorList(d.authors)),
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
       volume: toOptionalNumber(d.volume),
@@ -3624,7 +3627,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 
   if (st === "thesis") {
     return nzlsgFormatThesis({
-      author: (d.author as string) ?? formatNzlsgAuthorString(d.authors as Author[] | undefined),
+      author:
+        (d.author as string) ?? formatNzlsgAuthorString(normaliseOptionalAuthorList(d.authors)),
       title: (d.title as string) ?? "",
       degree: (d.degree as string) ?? "",
       university: (d.university as string) ?? "",
@@ -3704,7 +3708,7 @@ function resolveNzlsgSubsequent(
     citation.shortTitle ??
     (citation.data.shortTitle as string | undefined) ??
     (citation.data.author as string | undefined) ??
-    formatNzlsgAuthorString(citation.data.authors as Author[] | undefined) ??
+    formatNzlsgAuthorString(normaliseOptionalAuthorList(citation.data.authors)) ??
     (citation.data.title as string | undefined) ??
     "";
 
@@ -4339,7 +4343,7 @@ export function formatGenericCitation(citation: Citation): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   // Author(s) — structured array or plain string
-  const authors = Array.isArray(d.authors) ? (d.authors as Author[]) : undefined;
+  const authors = normaliseOptionalAuthorList(d.authors);
   const plainAuthor =
     toStr(d.author) || toStr(d.institutionalAuthor) || toStr(d.speaker) || toStr(d.witness) || "";
 

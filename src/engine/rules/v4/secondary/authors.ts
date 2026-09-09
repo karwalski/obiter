@@ -417,6 +417,11 @@ export function formatAuthorSurname(author: Author): string {
  * @returns FormattedRun[] — plain text (no italic, no bold)
  */
 export function formatAuthors(authors: Author[], isEditor?: boolean): FormattedRun[] {
+  // Stored data is not always the shape the type says: the book-chapter
+  // form saved editors as one string until 1.16.16, and AI-parsed input can
+  // arrive as a single object. Normalise rather than throw ('e.map is not a
+  // function', field report 2026-09-08).
+  authors = normaliseAuthorList(authors);
   if (authors.length === 0) {
     return [];
   }
@@ -748,4 +753,50 @@ export function formatFreeTextAuthorLead(text: string): string {
     return trimmed;
   }
   return joinAuthorNames(authors.map(formatAuthorSurname));
+}
+
+/**
+ * Coerces a stored author-list value into `Author[]`.
+ *
+ * Accepts an array of authors (objects or free-text strings), a single
+ * author object, or one free-text string such as 'Michael Coper and George
+ * Williams'. Free text is parsed with {@link parseFreeTextAuthors}; text
+ * that is not a list of personal names (a body author) becomes a single
+ * author whose surname carries the whole string, matching how the engine
+ * already renders string authors. Anything else yields an empty list.
+ *
+ * Backwards compatibility: documents created before 1.16.16 hold chapter
+ * editors as a plain string; they must keep rendering unchanged.
+ */
+export function normaliseAuthorList(value: unknown): Author[] {
+  if (Array.isArray(value)) {
+    const out: Author[] = [];
+    for (const entry of value) {
+      out.push(...normaliseAuthorList(entry));
+    }
+    return out;
+  }
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return [];
+    return parseFreeTextAuthors(text) ?? [{ givenNames: "", surname: text }];
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Partial<Author> & { name?: unknown };
+    const surname = typeof obj.surname === "string" ? obj.surname : "";
+    const givenNames = typeof obj.givenNames === "string" ? obj.givenNames : "";
+    if (surname || givenNames) {
+      return [{ ...(obj as Author), givenNames, surname }];
+    }
+    if (typeof obj.name === "string" && obj.name.trim()) {
+      return normaliseAuthorList(obj.name);
+    }
+  }
+  return [];
+}
+
+/** {@link normaliseAuthorList}, returning undefined for an empty list. */
+export function normaliseOptionalAuthorList(value: unknown): Author[] | undefined {
+  const list = normaliseAuthorList(value);
+  return list.length > 0 ? list : undefined;
 }

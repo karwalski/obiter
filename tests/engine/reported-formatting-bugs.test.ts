@@ -10,10 +10,17 @@
  *  3. Multi-author books shortened to the first surname only ('A (n 1)').
  *     AGLC4 Rule 4.1.2 carries into subsequent references (Rule 1.4.1):
  *     'Edelman and Bant (n 2) 260. See Rishworth et al (n 3).'
+ *  4. 'e.map is not a function' on Insert Citation for a book chapter
+ *     (2026-09-08, v1.16.15): the chapter form stored editors as one string
+ *     and the engine cast it as Author[]. Documents created before 1.16.16
+ *     still hold that shape, so the engine must accept it (and render it
+ *     correctly — it previously produced 'A et al (eds)').
  */
 
 import { getFormattedPreview } from "../../src/engine/engine";
 import { formatShortReference, resolveSubsequentReference } from "../../src/engine/resolver";
+import { formatAuthors, normaliseAuthorList } from "../../src/engine/rules/v4/secondary/authors";
+import type { Author } from "../../src/types/citation";
 import type { Citation } from "../../src/types/citation";
 import type { FormattedRun } from "../../src/types/formattedRun";
 
@@ -180,5 +187,71 @@ describe("Multi-author subsequent references (AGLC4 Rules 1.4.1 and 4.1.2)", () 
     );
     expect(result).not.toBeNull();
     expect(plain(result!)).toBe("Edelman and Bant (n 2) 260");
+  });
+});
+
+describe("Author lists stored as strings (backwards compatibility, v1.16.16)", () => {
+  const chapter = (editors: unknown) =>
+    preview("book.chapter", {
+      authors: [{ givenNames: "John", surname: "Gardner" }],
+      chapterTitle: "The Purity and Priority of Private Law",
+      editors,
+      title: "The Goals of Private Law",
+      publisher: "Hart Publishing",
+      year: "2009",
+      startingPage: "1",
+    });
+
+  it("renders a book chapter whose editors were saved as one string", () => {
+    const text = plain(chapter("Andrew Robertson and Tang Hang Wu"));
+    expect(text).toContain("in Andrew Robertson and Tang Hang Wu (eds), ");
+    expect(text).not.toContain("et al");
+    expect(plain(chapter("Peter Birks"))).toContain("in Peter Birks (ed), ");
+  });
+
+  it("still renders editors saved as a structured list", () => {
+    expect(
+      plain(
+        chapter([
+          { givenNames: "Andrew", surname: "Robertson" },
+          { givenNames: "Tang Hang", surname: "Wu" },
+        ])
+      )
+    ).toContain("in Andrew Robertson and Tang Hang Wu (eds), ");
+  });
+
+  it("accepts a string editor on an authored book (Rule 6.6.2)", () => {
+    const text = plain(
+      preview("book", {
+        authors: [{ givenNames: "Michael", surname: "Kirby" }],
+        title: "Bk",
+        editors: "George Williams",
+        publisher: "P",
+        year: "2020",
+      })
+    );
+    expect(text).toContain("ed George Williams");
+  });
+
+  it("normalises strings, single objects and mixed arrays without throwing", () => {
+    expect(normaliseAuthorList("Jane Smith and Bob Jones")).toEqual([
+      { givenNames: "Jane", surname: "Smith" },
+      { givenNames: "Bob", surname: "Jones" },
+    ]);
+    expect(normaliseAuthorList("Law Council of Australia")).toEqual([
+      { givenNames: "", surname: "Law Council of Australia" },
+    ]);
+    expect(normaliseAuthorList({ givenNames: "Kim", surname: "Rubenstein" })).toEqual([
+      { givenNames: "Kim", surname: "Rubenstein" },
+    ]);
+    expect(
+      normaliseAuthorList(["Jane Smith", { givenNames: "Bob", surname: "Jones" }])
+    ).toHaveLength(2);
+    expect(normaliseAuthorList(undefined)).toEqual([]);
+    expect(normaliseAuthorList(42)).toEqual([]);
+    expect(() => formatAuthors("Peter Birks" as unknown as Author[], true)).not.toThrow();
+    expect(plain(formatAuthors("Peter Birks" as unknown as Author[], true))).toBe(
+      "Peter Birks (ed)"
+    );
   });
 });

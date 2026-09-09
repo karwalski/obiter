@@ -12339,9 +12339,15 @@ function renderBookChapterForm(
           id="ic-bc-editors"
           className="ic-input"
           type="text"
-          value={(data.editors as string) || ""}
+          value={(data.editorsText as string) ?? nameListToStr(data.editors)}
           placeholder="e.g. Michael Coper and George Williams"
-          onChange={(e) => updateField("editors", e.target.value)}
+          onChange={(e) => {
+            // Keep the raw text for display; the engine reads `editors` as Author[]
+            // (Rule 6.6.1). Stored as a string until 1.16.16 — the engine still
+            // accepts that shape for documents created earlier.
+            updateField("editorsText", e.target.value);
+            updateField("editors", e.target.value.trim() ? parseNameList(e.target.value) : undefined);
+          }}
         />
       </div>
 
