@@ -1,0 +1,19 @@
+[
+  {
+    "id": "mabo1992",
+    "type": "legal_case",
+    "title": "Mabo v Queensland (No 2)",
+    "container-title": "CLR",
+    "volume": "175",
+    "page": "1",
+    "authority": "High Court of Australia",
+    "issued": {
+      "date-parts": [[1992, 6, 3]]
+    },
+    "jurisdiction": "au",
+    "number": "F.C. 92/014",
+    "URL": "http://www.austlii.edu.au/au/cases/cth/HCA/1992/23.html",
+    "note": "Landmark native title decision.",
+    "citation-key": "mabo1992"
+  }
+]

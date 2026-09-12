@@ -1,0 +1,10 @@
+{
+  "id": "single1",
+  "type": "article-journal",
+  "title": "A Single Item",
+  "author": [{ "family": "Smith", "given": "Jane" }],
+  "container-title": "Sydney Law Review",
+  "volume": "40",
+  "issued": { "date-parts": [[2018]] },
+  "note": "obiter-id: cit-123\nobiter-type: journal.article\nAGLC4 footnote: Jane Smith, 'A Single Item' (2018) 40 Sydney Law Review.\nKeep this note."
+}

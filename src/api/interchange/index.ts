@@ -7,6 +7,10 @@
  * See docs/decisions.md DECISION-038.
  */
 
+// Codecs register themselves on load.
+import "./codecs/ris";
+import "./codecs/cslJson";
+
 export type {
   InterchangeFormat,
   InterchangeKind,

@@ -1,0 +1,85 @@
+[
+  {
+    "id": "luntz2005",
+    "type": "article-journal",
+    "title": "The Use of Policy in Negligence Cases in the High Court of Australia",
+    "author": [{ "family": "Luntz", "given": "Harold" }],
+    "container-title": "Melbourne University Law Review",
+    "container-title-short": "MULR",
+    "volume": "27",
+    "issue": "3",
+    "page": "393-420",
+    "issued": {
+      "date-parts": [[2005]]
+    },
+    "keyword": "negligence, policy; torts",
+    "abstract": "Examines the role of policy in negligence.",
+    "ISSN": "0025-8938",
+    "DOI": "10.1000/example"
+  },
+  {
+    "id": "edelman2016",
+    "type": "book",
+    "title": "Unjust Enrichment",
+    "author": [
+      { "family": "Edelman", "given": "James" },
+      { "family": "Bant", "given": "Elise" }
+    ],
+    "edition": 2,
+    "publisher": "Hart Publishing",
+    "publisher-place": "Oxford",
+    "issued": {
+      "date-parts": [[2016]]
+    },
+    "ISBN": "9781849466493"
+  },
+  {
+    "id": "gardner2011",
+    "type": "chapter",
+    "title": "What is Tort Law For? Part 1: The Place of Corrective Justice",
+    "author": [{ "family": "Gardner", "given": "John" }],
+    "editor": [{ "family": "Oberdiek", "given": "John" }],
+    "container-title": "Philosophical Foundations of the Law of Torts",
+    "publisher": "Oxford University Press",
+    "page": "5–35",
+    "issued": {
+      "date-parts": [[2014]]
+    }
+  },
+  {
+    "id": "hca-about",
+    "type": "webpage",
+    "title": "About the Court",
+    "author": [{ "literal": "High Court of Australia" }],
+    "container-title": "High Court of Australia",
+    "URL": "https://www.hcourt.gov.au/about/about-the-court",
+    "accessed": {
+      "date-parts": [[2026, 9, 12]]
+    }
+  },
+  {
+    "id": "alrc99",
+    "type": "report",
+    "title": "Genes and Ingenuity: Gene Patenting and Human Health",
+    "author": [{ "literal": "Australian Law Reform Commission" }],
+    "number": "99",
+    "genre": "Report",
+    "issued": {
+      "date-parts": [[2004, 6]]
+    },
+    "publisher-place": "Sydney"
+  },
+  {
+    "id": "watt2020",
+    "type": "thesis",
+    "title": "Citation Practice in Australian Legal Scholarship",
+    "author": [{ "family": "Watt", "given": "Matthew" }],
+    "genre": "PhD Thesis",
+    "publisher": "University of Melbourne",
+    "issued": {
+      "raw": "Spring 2020"
+    },
+    "archive_location": "Box 3",
+    "custom": { "obiter": true }
+  }
+]
