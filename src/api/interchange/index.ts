@@ -10,6 +10,7 @@
 // Codecs register themselves on load.
 import "./codecs/ris";
 import "./codecs/cslJson";
+import "./codecs/bibtex";
 
 export type {
   InterchangeFormat,
