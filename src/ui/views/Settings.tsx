@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { downloadTextFile } from "../fileTransfer";
 import { getSharedStore } from "../../store/singleton";
 import { lockAllObiterFootnotes } from "../../word/footnoteManager";
 import { AVAILABLE_STANDARDS, type CitationStandardId, type WritingMode } from "../../engine/standards";
@@ -476,15 +477,7 @@ export default function Settings(): JSX.Element {
     setAccountBusy(true);
     try {
       const data = await authExportData();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "obiter-account-data.json";
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(url);
+      downloadTextFile("obiter-account-data.json", JSON.stringify(data, null, 2), "application/json");
       setAccountStatus("Your data was exported.");
     } catch (err: unknown) {
       setAccountStatus(
@@ -1553,13 +1546,7 @@ export default function Settings(): JSX.Element {
                 setFormatStatus("Download started from obiter.com.au.");
                 return;
               }
-              const blob = new Blob([xslContent], { type: "application/xml" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "AGLC4.xsl";
-              a.click();
-              URL.revokeObjectURL(url);
+              downloadTextFile("AGLC4.xsl", xslContent, "application/xml");
               setFormatStatus(
                 "AGLC4.xsl downloaded. Copy it to Word's Style folder and restart Word."
               );
@@ -2540,14 +2527,11 @@ export default function Settings(): JSX.Element {
           <button
             className="library-btn"
             onClick={() => {
-              const text = exportLogs();
-              const blob = new Blob([text], { type: "text/plain" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `obiter-debug-${new Date().toISOString().slice(0, 19)}.log`;
-              a.click();
-              URL.revokeObjectURL(url);
+              downloadTextFile(
+                `obiter-debug-${new Date().toISOString().slice(0, 19)}.log`,
+                exportLogs(),
+                "text/plain"
+              );
             }}
           >
             Export

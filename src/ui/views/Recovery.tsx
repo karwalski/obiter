@@ -28,6 +28,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { downloadTextFile } from "../fileTransfer";
 import { getSharedStore } from "../../store/singleton";
 import { StoreDataLossError } from "../../store/citationStore";
 import type { CitationStore, StorePartInfo } from "../../store/citationStore";
@@ -109,15 +110,11 @@ function TruncatedText({ text, limit = 140 }: { text: string; limit?: number }):
 
 /** Trigger a browser download of the given XML, byte-exact. */
 function downloadXmlFile(partId: string, xml: string): void {
-  const blob = new Blob([xml], { type: "application/xml" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `obiter-quarantined-${partId.replace(/[^A-Za-z0-9_-]/g, "")}.xml`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
+  downloadTextFile(
+    `obiter-quarantined-${partId.replace(/[^A-Za-z0-9_-]/g, "")}.xml`,
+    xml,
+    "application/xml"
+  );
 }
 
 export default function Recovery(): JSX.Element {

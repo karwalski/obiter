@@ -3182,3 +3182,211 @@ body {
 .error-reporter-btn-primary:disabled {
   background: var(--colour-accent);
 }
+
+/* ─── Interchange: Import and Export dialogs (INTEROP-012/013) ─── */
+
+.library-modal--wide {
+  max-width: 720px;
+}
+
+.library-paste-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-sm);
+  font-family: "Courier New", Courier, monospace;
+  font-size: var(--text-sm);
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  background: var(--colour-surface);
+  color: var(--colour-ink);
+  resize: vertical;
+  margin-bottom: var(--space-xs);
+}
+
+.library-paste-textarea:focus {
+  outline: none;
+  border-color: var(--colour-accent);
+}
+
+.import-error {
+  border-left: 3px solid var(--colour-error);
+  background: var(--colour-surface);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.import-sources {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.import-source-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.import-source-meta,
+.import-detect,
+.export-hint {
+  color: var(--colour-text-secondary);
+}
+
+.import-detect {
+  font-size: var(--text-sm);
+  min-height: 1.4em;
+  margin: 0 0 var(--space-xs);
+}
+
+.import-format-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.import-summary {
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-sm);
+}
+
+.import-issues {
+  font-size: var(--text-sm);
+  color: var(--colour-error);
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-md);
+}
+
+.import-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.import-preview-scroll {
+  overflow-x: auto;
+  margin-bottom: var(--space-sm);
+}
+
+.import-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.import-preview-table th,
+.import-preview-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-xs);
+  border-bottom: 1px solid var(--colour-border);
+}
+
+.import-preview-cell {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.import-update-toggle {
+  display: block;
+  font-size: var(--text-xs);
+  margin-top: var(--space-xs);
+  white-space: nowrap;
+}
+
+.import-experimental {
+  font-size: var(--text-xs);
+  color: var(--colour-warning);
+  margin-top: 2px;
+}
+
+.import-status {
+  border-left: 3px solid transparent;
+  padding-left: var(--space-xs);
+}
+
+.import-status--ready {
+  border-left-color: var(--colour-success);
+}
+
+.import-status--incomplete,
+.import-status--custom {
+  border-left-color: var(--colour-warning);
+}
+
+.import-status--duplicate {
+  border-left-color: var(--colour-info);
+}
+
+.import-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.export-fieldset {
+  border: 1px solid var(--colour-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-sm);
+}
+
+.export-fieldset legend {
+  font-weight: 600;
+  padding: 0 var(--space-xs);
+}
+
+.export-radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px 0;
+}
+
+.export-sub-option {
+  padding-left: var(--space-lg);
+}
+
+.export-text-output {
+  margin-bottom: var(--space-sm);
+}
+
+/* Library selection and review filter (INTEROP-013/014) */
+
+.library-selection-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.library-card-select {
+  margin-right: var(--space-xs);
+}
+
+.library-card--selected {
+  background: var(--colour-accent-subtle, var(--colour-surface));
+  border-left: 3px solid var(--colour-accent);
+}
+
+.library-needs-details {
+  font-size: var(--text-min);
+  color: var(--colour-warning);
+  margin: 2px 0;
+}

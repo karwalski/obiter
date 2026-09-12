@@ -8,8 +8,13 @@ import { useNavigate } from "react-router-dom";
 import { CitationStore } from "../../store";
 import type { StoreDiagnostics } from "../../store";
 import { getSharedStore } from "../../store/singleton";
-import { importWordSources } from "../../word/sourceImporter";
-import { importBibTeX } from "../../api/bibtexImporter";
+import { getWordSourcesXml } from "../../word/sourceImporter";
+import ImportDialog from "../components/ImportDialog";
+import ExportDialog from "../components/ExportDialog";
+import { useStatus } from "../context/StatusContext";
+import { listMissingRequiredFields } from "../../engine/validator";
+import { getFieldsForSourceType } from "./editCitationFields";
+import { formatBibliographyEntry } from "../../engine/rules/v4/general/bibliography";
 import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences, buildOccurrenceTitle } from "../../word/footnoteManager";
 import { mergeDuplicateCitation } from "../../actions/citationService";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
@@ -247,130 +252,6 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "dateAdded", label: "Date added" },
 ];
 
-// ─── BibTeX Modal (A11Y: focus trap, Escape, role="dialog") ─────────────────
-
-interface BibTeXModalProps {
-  bibtexText: string;
-  setBibtexText: (text: string) => void;
-  bibtexImporting: boolean;
-  onImport: () => void;
-  onClose: () => void;
-  onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-function BibTeXModal({
-  bibtexText,
-  setBibtexText,
-  bibtexImporting,
-  onImport,
-  onClose,
-  onFileUpload,
-}: BibTeXModalProps): JSX.Element {
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Focus the modal on mount; trap focus and handle Escape
-  useEffect(() => {
-    const modal = modalRef.current;
-    if (!modal) return;
-
-    // Move focus into the modal
-    const firstFocusable = modal.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    firstFocusable?.focus();
-
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape" && !bibtexImporting) {
-        onClose();
-        return;
-      }
-
-      // Focus trap
-      if (e.key === "Tab") {
-        const focusableElements = modal.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusableElements.length === 0) return;
-
-        const firstEl = focusableElements[0];
-        const lastEl = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey) {
-          if (document.activeElement === firstEl) {
-            e.preventDefault();
-            lastEl.focus();
-          }
-        } else {
-          if (document.activeElement === lastEl) {
-            e.preventDefault();
-            firstEl.focus();
-          }
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [bibtexImporting, onClose]);
-
-  return (
-    // Backdrop click is a redundant pointer affordance; the dialog is keyboard-closable
-    // via Escape (keydown handler) and the visible Close button. (WCAG 2.1.1 met.)
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
-    <div className="library-modal-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget && !bibtexImporting) onClose();
-    }}>
-      <div
-        className="library-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Import BibTeX"
-        ref={modalRef}
-      >
-        <h3>Import BibTeX</h3>
-        <p className="library-modal-description">
-          Paste BibTeX/BibLaTeX entries below, or upload a .bib file.
-        </p>
-        <div className="library-modal-file-row">
-          <label className="library-btn library-btn--import library-file-label">
-            Choose .bib file
-            <input
-              type="file"
-              accept=".bib,.bibtex,text/plain"
-              onChange={onFileUpload}
-              style={{ display: "none" }}
-            />
-          </label>
-        </div>
-        <textarea
-          className="library-bibtex-textarea"
-          rows={12}
-          value={bibtexText}
-          onChange={(e) => setBibtexText(e.target.value)}
-          aria-label="BibTeX entries"
-          placeholder={"@article{smith2020,\n  author = {Smith, John},\n  title = {Example Article},\n  journal = {Example Journal},\n  year = {2020},\n  volume = {1},\n  pages = {1--10}\n}"}
-        />
-        <div className="library-modal-actions">
-          <button
-            className="library-btn library-btn--import"
-            onClick={onImport}
-            disabled={bibtexImporting || !bibtexText.trim()}
-          >
-            {bibtexImporting ? "Importing..." : "Import"}
-          </button>
-          <button
-            className="library-btn"
-            onClick={onClose}
-            disabled={bibtexImporting}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Component ──────────────────────────────────────────────────────────────
 
 let store: InstanceType<typeof CitationStore>;
@@ -387,12 +268,16 @@ export default function CitationLibrary(): JSX.Element {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [insertingId, setInsertingId] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string | null>(null);
   const [finderSignal] = useState(0);
-  const [bibtexModalOpen, setBibtexModalOpen] = useState(false);
-  const [bibtexText, setBibtexText] = useState("");
-  const [bibtexImporting, setBibtexImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [needsDetailsOnly, setNeedsDetailsOnly] = useState(false);
+  const [reviewIds, setReviewIds] = useState<string[]>([]);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const { announce } = useStatus();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
   // Clear-all / clear-unused state
@@ -405,6 +290,16 @@ export default function CitationLibrary(): JSX.Element {
   const [detailsCopied, setDetailsCopied] = useState(false);
 
   const standardConfig = getStandardConfig(standardId);
+
+  // INTEROP-014: imported citations still missing required fields, labelled
+  // with the Edit form's field names.
+  const missingFor = useCallback((citation: Citation): string[] => {
+    if (!citation.tags.includes("import")) return [];
+    const missing = listMissingRequiredFields(citation.sourceType, citation.data);
+    if (missing.length === 0) return [];
+    const fields = getFieldsForSourceType(citation.sourceType);
+    return missing.map((key) => fields.find((f) => f.key === key)?.label ?? key);
+  }, []);
 
   // Load citations on mount and when refreshCounter changes.
   useEffect(() => {
@@ -452,6 +347,11 @@ export default function CitationLibrary(): JSX.Element {
   const filteredCitations = useMemo(() => {
     let result = citations;
 
+    // Needs details (INTEROP-014): imported citations missing required fields
+    if (needsDetailsOnly) {
+      result = result.filter((c) => missingFor(c).length > 0);
+    }
+
     // Text search
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -489,7 +389,7 @@ export default function CitationLibrary(): JSX.Element {
     }
 
     return sortCitations(result, sortBy);
-  }, [citations, searchTerm, typeFilter, sortBy]);
+  }, [citations, searchTerm, typeFilter, sortBy, needsDetailsOnly, missingFor]);
 
   // Actions
   const handleEdit = useCallback(
@@ -713,64 +613,93 @@ export default function CitationLibrary(): JSX.Element {
     window.setTimeout(() => setDetailsCopied(false), 2000);
   }, [buildDiagnosticDetails]);
 
-  const handleImportFromWord = useCallback(async () => {
-    setImporting(true);
-    setImportStatus(null);
-    try {
-      const result = await Word.run(async (context) => {
-        return importWordSources(context, store);
-      });
-      setCitations(store.getAll());
-      setImportStatus(
-        `Imported ${result.imported} source${result.imported !== 1 ? "s" : ""} (${result.skipped} skipped as duplicate${result.skipped !== 1 ? "s" : ""})`,
-      );
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to import sources";
-      setImportStatus(`Import failed: ${message}`);
-    } finally {
-      setImporting(false);
-    }
-  }, []);
+  // ── Interchange (INTEROP-012/013/014) ──────────────────────────────────
 
-  const handleImportBibTeX = useCallback(async (text: string) => {
-    if (!text.trim()) return;
-    setBibtexImporting(true);
-    setImportStatus(null);
-    try {
-      const result = await importBibTeX(text, store);
-      setCitations(store.getAll());
-      setImportStatus(
-        `BibTeX: imported ${result.imported} entr${result.imported !== 1 ? "ies" : "y"} (${result.skipped} skipped as duplicate${result.skipped !== 1 ? "s" : ""})`,
-      );
-      setBibtexModalOpen(false);
-      setBibtexText("");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to import BibTeX";
-      setImportStatus(`BibTeX import failed: ${message}`);
-    } finally {
-      setBibtexImporting(false);
-    }
-  }, []);
+  const courtConfigForPreview = useCallback(() => {
+    const courtToggles =
+      store?.getCourtToggles() ?? (getDevicePref("courtToggles") as Record<string, string> | undefined);
+    return buildCourtConfig(getStandardConfig(standardId), courtToggles);
+  }, [standardId]);
 
-  const handleBibFileUpload = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result;
-        if (typeof content === "string") {
-          setBibtexText(content);
-        }
-      };
-      reader.readAsText(file);
-    },
-    [],
+  const renderCitationText = useCallback(
+    (citation: Citation): string =>
+      getFormattedPreview(citation, courtConfigForPreview())
+        .map((r) => r.text)
+        .join(""),
+    [courtConfigForPreview]
   );
 
+  const formatForExport = useCallback(
+    (citation: Citation): { footnote: string; bibliography?: string } => {
+      const footnote = renderCitationText(citation);
+      let bibliography: string | undefined;
+      try {
+        bibliography = formatBibliographyEntry(citation)
+          .map((r) => r.text)
+          .join("");
+      } catch {
+        bibliography = undefined;
+      }
+      return { footnote, bibliography };
+    },
+    [renderCitationText]
+  );
+
+  const readWordSources = useCallback(
+    () => Word.run(async (context) => getWordSourcesXml(context)),
+    []
+  );
+
+
+  const needsDetailsCount = useMemo(
+    () => citations.filter((c) => missingFor(c).length > 0).length,
+    [citations, missingFor]
+  );
+
+  const handleImported = useCallback(
+    (result: { added: number; updated: number; skippedDuplicates: number; incompleteIds: string[]; formats: string[] }) => {
+      setImportOpen(false);
+      setCitations(store.getAll());
+      triggerRefresh();
+      const parts: string[] = [];
+      const label = result.formats.length > 0 ? ` from ${result.formats.join(", ")}` : "";
+      parts.push(`Added ${result.added} citation${result.added === 1 ? "" : "s"}${label}.`);
+      if (result.updated > 0) parts.push(`${result.updated} updated.`);
+      if (result.skippedDuplicates > 0) parts.push(`${result.skippedDuplicates} skipped as already in library.`);
+      const message = parts.join(" ");
+      setImportStatus(message);
+      setReviewIds(result.incompleteIds);
+      announce(message, "success");
+    },
+    [triggerRefresh, announce]
+  );
+
+  const handleExported = useCallback(
+    (message: string) => {
+      setExportOpen(false);
+      setImportStatus(message);
+      announce(message, "success");
+    },
+    [announce]
+  );
+
+  const toggleSelected = useCallback((id: string, on: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    // Prune selections for citations that no longer exist.
+    setSelectedIds((prev) => {
+      const ids = new Set(citations.map((c) => c.id));
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [citations]);
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -885,17 +814,20 @@ export default function CitationLibrary(): JSX.Element {
           document
         </p>
         <button
+          ref={importButtonRef}
           className="library-btn library-btn--import"
-          onClick={() => void handleImportFromWord()}
-          disabled={importing}
+          onClick={() => setImportOpen(true)}
         >
-          {importing ? "Importing..." : "Import from Word"}
+          Import
         </button>
         <button
+          ref={exportButtonRef}
           className="library-btn library-btn--import"
-          onClick={() => setBibtexModalOpen(true)}
+          onClick={() => setExportOpen(true)}
+          disabled={citations.length === 0}
+          title={citations.length === 0 ? "Add citations to the library before exporting" : undefined}
         >
-          Import BibTeX
+          Export
         </button>
         <button
           className="library-btn library-btn--import"
@@ -954,18 +886,28 @@ export default function CitationLibrary(): JSX.Element {
         </div>
       )}
 
-      {/* BibTeX import modal */}
-      {bibtexModalOpen && (
-        <BibTeXModal
-          bibtexText={bibtexText}
-          setBibtexText={setBibtexText}
-          bibtexImporting={bibtexImporting}
-          onImport={() => void handleImportBibTeX(bibtexText)}
-          onClose={() => {
-            setBibtexModalOpen(false);
-            setBibtexText("");
-          }}
-          onFileUpload={handleBibFileUpload}
+      {/* Import and Export dialogs (INTEROP-012/013) */}
+      {importOpen && (
+        <ImportDialog
+          store={store}
+          renderCitation={renderCitationText}
+          readWordSources={readWordSources}
+          onClose={() => setImportOpen(false)}
+          onImported={handleImported}
+          returnFocusTo={importButtonRef.current}
+        />
+      )}
+      {exportOpen && (
+        <ExportDialog
+          all={citations}
+          selected={citations.filter((c) => selectedIds.has(c.id))}
+          shown={filteredCitations}
+          hasActiveFilter={Boolean(searchTerm.trim()) || typeFilter !== "all" || needsDetailsOnly}
+          formatCitation={formatForExport}
+          standardLabel={standardConfig.standardLabel}
+          onClose={() => setExportOpen(false)}
+          onExported={handleExported}
+          returnFocusTo={exportButtonRef.current}
         />
       )}
 
@@ -974,9 +916,23 @@ export default function CitationLibrary(): JSX.Element {
         {importStatus && (
           <div className="library-toast">
             <span>{importStatus}</span>
+            {reviewIds.length > 0 && (
+              <button
+                className="library-btn"
+                onClick={() => {
+                  setNeedsDetailsOnly(true);
+                  setReviewIds([]);
+                }}
+              >
+                Review {reviewIds.length} needing details
+              </button>
+            )}
             <button
               className="library-toast-dismiss"
-              onClick={() => setImportStatus(null)}
+              onClick={() => {
+                setImportStatus(null);
+                setReviewIds([]);
+              }}
               aria-label="Dismiss"
             >
               &times;
@@ -984,6 +940,56 @@ export default function CitationLibrary(): JSX.Element {
           </div>
         )}
       </div>
+
+      {/* Selection and review controls (INTEROP-013/014) */}
+      {citations.length > 0 && (
+        <div className="library-selection-bar">
+          <label>
+            <input
+              type="checkbox"
+              className="library-card-select"
+              aria-label="Select all shown citations"
+              checked={filteredCitations.length > 0 && filteredCitations.every((c) => selectedIds.has(c.id))}
+              ref={(el) => {
+                if (el) {
+                  const some = filteredCitations.some((c) => selectedIds.has(c.id));
+                  const all = filteredCitations.every((c) => selectedIds.has(c.id));
+                  el.indeterminate = some && !all;
+                }
+              }}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setSelectedIds((prev) => {
+                  const next = new Set(prev);
+                  for (const c of filteredCitations) {
+                    if (on) next.add(c.id);
+                    else next.delete(c.id);
+                  }
+                  return next;
+                });
+              }}
+            />
+            Select all shown
+          </label>
+          {selectedIds.size > 0 && (
+            <>
+              <span role="status">{selectedIds.size} selected</span>
+              <button className="library-btn" onClick={() => setSelectedIds(new Set())}>
+                Clear selection
+              </button>
+            </>
+          )}
+          {needsDetailsCount > 0 && (
+            <button
+              className="library-btn"
+              aria-pressed={needsDetailsOnly}
+              onClick={() => setNeedsDetailsOnly((v) => !v)}
+            >
+              Needs details ({needsDetailsCount})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Search */}
       <input
@@ -1051,8 +1057,18 @@ export default function CitationLibrary(): JSX.Element {
       ) : (
         <div className="library-list">
           {filteredCitations.map((citation) => (
-            <div key={citation.id} className="library-card">
+            <div
+              key={citation.id}
+              className={`library-card${selectedIds.has(citation.id) ? " library-card--selected" : ""}`}
+            >
               <div className="library-card-header">
+                <input
+                  type="checkbox"
+                  className="library-card-select"
+                  checked={selectedIds.has(citation.id)}
+                  onChange={(e) => toggleSelected(citation.id, e.target.checked)}
+                  aria-label={`Select ${getCitationLabel(citation)}`}
+                />
                 <span className="library-card-badge">
                   {getSourceTypeBadge(citation.sourceType)}
                 </span>
@@ -1068,6 +1084,12 @@ export default function CitationLibrary(): JSX.Element {
               <div style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "2px 0" }}>
                 {getCitationDetail(citation)}
               </div>
+              {(() => {
+                const missing = missingFor(citation);
+                return missing.length > 0 ? (
+                  <div className="library-needs-details">Needs details: {missing.join(", ")}</div>
+                ) : null;
+              })()}
               {(() => {
                 const dup = getDisambiguatedShortTitle(citation, citations);
                 if (!dup) return null;

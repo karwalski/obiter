@@ -40,7 +40,12 @@ export {
   getInstallInstructions,
 } from "./styleInstaller";
 
-export { getWordSources, mapWordSourceToObiter, importWordSources } from "./sourceImporter";
+export {
+  getWordSources,
+  getWordSourcesXml,
+  mapWordSourceToObiter,
+  importWordSources,
+} from "./sourceImporter";
 export type { WordSource } from "./sourceImporter";
 
 export {

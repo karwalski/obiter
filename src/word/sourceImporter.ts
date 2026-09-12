@@ -83,6 +83,22 @@ function parseAuthors(sourceEl: Element): Array<{ first: string; last: string }>
 /**
  * Read Word's bibliography XML part and parse all sources.
  */
+/**
+ * Reads Word's Source Manager part as XML, or null when the document has
+ * none. The Import dialog feeds this to the Word Sources codec (INTEROP-007).
+ */
+export async function getWordSourcesXml(context: Word.RequestContext): Promise<string | null> {
+  const parts = context.document.customXmlParts.getByNamespace(BIBLIOGRAPHY_NS);
+  parts.load("items");
+  await context.sync();
+  const partItems = parts.items ?? [];
+  if (partItems.length === 0) return null;
+  const xmlResult = partItems[0].getXml();
+  await context.sync();
+  // eslint-disable-next-line office-addins/load-object-before-read -- ClientResult value populated by the preceding context.sync()
+  return xmlResult.value;
+}
+
 export async function getWordSources(context: Word.RequestContext): Promise<WordSource[]> {
   const parts = context.document.customXmlParts.getByNamespace(BIBLIOGRAPHY_NS);
   parts.load("items");
