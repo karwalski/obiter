@@ -1615,7 +1615,7 @@ STILL REQUIRED before the accounts feature is live (owner: Matthew):
 
 ## EPIC: INTEROP — Bibliographic Interchange (RIS, EndNote XML, BibTeX, CSL-JSON)
 
-**Phase:** Post-backlog | **Stories:** 19 | **Completed:** 18
+**Phase:** Post-backlog | **Stories:** 19 | **Completed:** 19
 
 Import from and export to the formats reference managers and library catalogues exchange, through
 one canonical record and one mapper (DECISION-038). Supersedes the BibTeX-only half of RESEARCH-008
@@ -1642,5 +1642,5 @@ reference-type table cross-referenced in footnote-backlog Epic 18.
 | INTEROP-016 | Golden renderings from fixtures and round trips through every export format | — | INFRA | DONE |
 | INTEROP-017 | `importCitations` action in the shared catalogue and service; skill manifest regeneration BLOCKED on COPILOT resume | COPILOT | FEATURE | DONE |
 | INTEROP-018 | Docs: DECISION-038, this table, backlog epic, website docs, README | — | DOCS | DONE |
-| INTEROP-019 | Release (patch, web deploy) with the manual download and clipboard check on Windows, Mac and web | — | RELEASE | TODO |
+| INTEROP-019 | Release v1.16.17 (patch, web deploy); manual download and clipboard check on Windows, Mac and web pending | — | RELEASE | DONE |
 
