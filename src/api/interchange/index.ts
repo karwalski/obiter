@@ -11,6 +11,8 @@
 import "./codecs/ris";
 import "./codecs/cslJson";
 import "./codecs/bibtex";
+import "./codecs/endnoteXml";
+import "./codecs/wordSourcesXml";
 
 export type {
   InterchangeFormat,

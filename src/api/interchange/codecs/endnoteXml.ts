@@ -36,7 +36,7 @@ import {
   SOURCE_TYPE_TO_UTS_ENDNOTE,
 } from "../mapper/kinds";
 import { creatorsWithRole, formatCommaName, parseCommaName } from "../mapper/names";
-import { child, children, encodeEntities, parseXml, textOf } from "./xmlLite";
+import { children, encodeEntities, parseXml, textOf } from "./xmlLite";
 import type { XmlNode } from "./xmlLite";
 import {
   ENDNOTE_DEFAULT_ID_TO_TYPE,
@@ -47,77 +47,42 @@ import {
   utsRefType,
   utsRefTypeId,
 } from "./endnoteRefTypes";
-import type { EndnoteElement, RoleAssignment } from "./endnoteRefTypes";
+import type { EndnoteElement, RoleAssignment, SimpleField } from "./endnoteRefTypes";
 
 // ─── Element geography ──────────────────────────────────────────────────────
-
-const CONTRIBUTOR_GROUPS: ReadonlySet<string> = new Set([
-  "authors",
-  "secondary-authors",
-  "tertiary-authors",
-  "subsidiary-authors",
-  "translated-authors",
-]);
-
-const TITLE_ELEMENTS: ReadonlySet<string> = new Set([
-  "title",
-  "secondary-title",
-  "tertiary-title",
-  "alt-title",
-  "short-title",
-  "translated-title",
-]);
-
-const PERIODICAL_ELEMENTS: ReadonlySet<string> = new Set(["full-title", "abbr-1"]);
-
-/** Elements that sit directly under <record>. */
-const DIRECT_ELEMENTS: ReadonlySet<string> = new Set([
-  "pages",
-  "volume",
-  "number",
-  "num-vols",
-  "edition",
-  "section",
-  "reprint-edition",
-  "pub-location",
-  "publisher",
-  "orig-pub",
-  "isbn",
-  "accession-num",
-  "call-num",
-  "label",
-  "work-type",
-  "abstract",
-  "notes",
-  "research-notes",
-  "electronic-resource-num",
-  "custom1",
-  "custom2",
-  "custom3",
-  "custom4",
-  "custom5",
-  "custom6",
-  "custom7",
-  "custom8",
-  "access-date",
-  "language",
-  "auth-address",
-  "remote-database-name",
-  "remote-database-provider",
-]);
 
 /** Elements whose line breaks matter, read without whitespace collapsing. */
 const MULTILINE_ELEMENTS: ReadonlySet<string> = new Set(["notes", "research-notes", "abstract"]);
 
-/** Elements that may repeat; everything else is single-valued. */
-const LIST_ELEMENTS: ReadonlySet<string> = new Set([
-  ...CONTRIBUTOR_GROUPS,
-  "keywords",
-  "urls",
-  "pdf-urls",
+const KNOWN_ELEMENTS: ReadonlySet<string> = new Set<string>(ENDNOTE_ELEMENT_ORDER);
+
+/** Roles that name a plain string field on the record. */
+const SIMPLE_FIELDS: ReadonlySet<string> = new Set([
+  "title",
+  "shortTitle",
+  "containerTitle",
+  "containerTitleShort",
+  "collectionTitle",
+  "volume",
+  "issue",
+  "part",
+  "number",
+  "numberOfPages",
+  "edition",
+  "publisher",
+  "place",
+  "institution",
+  "genre",
+  "medium",
+  "event",
+  "eventPlace",
+  "language",
+  "abstract",
 ]);
 
-const KNOWN_ELEMENTS: ReadonlySet<string> = new Set<string>(ENDNOTE_ELEMENT_ORDER);
+function isSimpleField(role: string): role is SimpleField {
+  return SIMPLE_FIELDS.has(role);
+}
 
 /** EndNote's internal database key; meaningless outside the library it came from. */
 const IGNORED_ELEMENTS: ReadonlySet<string> = new Set(["source-app", "foreign-keys"]);
@@ -189,33 +154,23 @@ function readRecord(node: XmlNode, index: number): RawRecord {
     if (IGNORED_ELEMENTS.has(name)) continue;
     switch (name) {
       case "database":
-        raw.databaseName = el.attrs.name ?? textOf(el) ?? undefined;
+        raw.databaseName = el.attrs.name || textOf(el) || undefined;
         break;
       case "rec-number":
         raw.recNumber = textOf(el) || undefined;
         break;
       case "ref-type":
-        raw.typeName = (el.attrs.name ?? "").trim();
+        raw.typeName = (el.attrs.name || "").trim();
         raw.typeId = textOf(el);
         break;
       case "contributors":
-        for (const group of el.children) {
-          const groupName = group.name.toLowerCase();
-          if (CONTRIBUTOR_GROUPS.has(groupName)) putEach(groupName, group, "author");
-          else putEach(groupName, group, "author");
-        }
+        // Each group holds <author> children; an unknown group still has them.
+        for (const group of el.children) putEach(group.name.toLowerCase(), group, "author");
         break;
       case "titles":
-        for (const t of el.children) {
-          const tName = t.name.toLowerCase();
-          put(TITLE_ELEMENTS.has(tName) ? tName : tName, textOf(t));
-        }
-        break;
       case "periodical":
-        for (const p of el.children) {
-          const pName = p.name.toLowerCase();
-          put(PERIODICAL_ELEMENTS.has(pName) ? pName : pName, textOf(p));
-        }
+        // Unknown children are routed to passthrough by put().
+        for (const t of el.children) put(t.name.toLowerCase(), textOf(t));
         break;
       case "dates":
         for (const d of el.children) {
@@ -237,8 +192,7 @@ function readRecord(node: XmlNode, index: number): RawRecord {
         }
         break;
       default:
-        if (DIRECT_ELEMENTS.has(name) && MULTILINE_ELEMENTS.has(name)) put(name, multilineText(el));
-        else put(name, textOf(el));
+        put(name, MULTILINE_ELEMENTS.has(name) ? multilineText(el) : textOf(el));
         break;
     }
   }
@@ -470,6 +424,10 @@ function applyRole(
     applyLegalRole(ctx, el, role, single);
     return;
   }
+  if (isSimpleField(role)) {
+    record[role] = single;
+    return;
+  }
 
   switch (role) {
     case "issued":
@@ -579,8 +537,6 @@ function applyRole(
       else addPassthrough(record, "report-title", single);
       return;
     default:
-      // A plain string field on the record.
-      record[role] = single;
       return;
   }
 }
@@ -602,7 +558,7 @@ function resolveType(raw: RawRecord): ResolvedType {
     const kind = endnoteTypeToKind(raw.typeName);
     if (kind) return { name: raw.typeName, kind, rawType, fallback: false };
   }
-  const numeric = Number(raw.typeId);
+  const numeric = raw.typeId ? Number(raw.typeId) : Number.NaN;
   const defaultName = Number.isInteger(numeric) ? ENDNOTE_DEFAULT_ID_TO_TYPE[numeric] : undefined;
   if (defaultName) {
     const kind = endnoteTypeToKind(defaultName);
@@ -761,20 +717,20 @@ function dateText(date: InterchangeDate | undefined, yearElsewhere: boolean): st
   return toAglcDateString(date);
 }
 
+/**
+ * Notes plus the formatted citation lines. A record's own `formatted` wins;
+ * lines that arrived through an earlier import (passthrough
+ * "formatted-footnote" / "formatted-bibliography") are re-emitted otherwise.
+ */
 function notesLines(ctx: ExportContext): string[] {
   const { record, options } = ctx;
   const lines = [...record.notes];
+  const formatted = options.includeFormatted !== false ? record.formatted : undefined;
   const label = record.formatted?.standard || "AGLC4";
-  const formatted = record.formatted;
-  if (options.includeFormatted !== false && formatted) {
-    if (formatted.footnote) lines.push(`${label} footnote: ${formatted.footnote}`);
-    if (formatted.bibliography) lines.push(`${label} bibliography: ${formatted.bibliography}`);
-  } else {
-    for (const key of ["footnote", "bibliography"] as const) {
-      for (const v of many(record.passthrough[`formatted-${key}`]) ?? []) {
-        lines.push(`${label} ${key}: ${v}`);
-      }
-    }
+  for (const key of ["footnote", "bibliography"] as const) {
+    const own = formatted?.[key];
+    const values = own ? [own] : (many(record.passthrough[`formatted-${key}`]) ?? []);
+    for (const v of values) lines.push(`${label} ${key}: ${v}`);
   }
   return lines;
 }
@@ -804,9 +760,7 @@ function legalValueFor(ctx: ExportContext, role: RoleAssignment): string[] | und
     case "legal.actTitle":
       return one(record.title ?? legal.actTitle);
     case "legal.actYear":
-      return one(
-        legal.actYear !== undefined ? String(legal.actYear) : yearText(record.issued)
-      );
+      return one(legal.actYear !== undefined ? String(legal.actYear) : yearText(record.issued));
     case "legal.parties":
       return legal.parties && legal.parties.length ? [legal.parties.join("; ")] : undefined;
     case "legal.decidedDate":
@@ -870,6 +824,7 @@ function valueFor(
     return list.length ? list.map(formatCommaName) : undefined;
   }
   if (role.startsWith("legal.")) return legalValueFor(ctx, role);
+  if (isSimpleField(role)) return one(record[role]);
 
   switch (role) {
     case "issued":
@@ -879,7 +834,9 @@ function valueFor(
     case "issued.ifNoDate":
       return many(pass[el]);
     case "issued.yearSquareFlag":
-      return pass["year-square-brackets"] === "true" ? one(yearText(record.issued)) : many(pass[el]);
+      return pass["year-square-brackets"] === "true"
+        ? one(yearText(record.issued))
+        : many(pass[el]);
     case "accessed":
       return one(dateText(record.accessed, false));
     case "eventDate":
@@ -895,7 +852,9 @@ function valueFor(
       return one(record.pageFirst);
     case "issueOrNumber":
       return one(
-        record.kind === "article" ? (record.issue ?? record.number) : (record.number ?? record.issue)
+        record.kind === "article"
+          ? (record.issue ?? record.number)
+          : (record.number ?? record.issue)
       );
     case "keywords":
       return record.keywords.length ? record.keywords : undefined;
@@ -929,7 +888,7 @@ function valueFor(
     case "lawReform.reportTitle":
       return ctx.commission !== undefined ? one(record.title) : many(pass["report-title"]);
     default:
-      return one(record[role]);
+      return undefined;
   }
 }
 
@@ -1065,7 +1024,6 @@ export const endnoteXmlCodec: InterchangeCodec = {
     if (/<b:Sources\b/.test(head)) return 0;
     if (/<records\b/i.test(head) && /<record\b/i.test(head)) return 0.95;
     if (/<ref-type\b/i.test(head)) return 0.85;
-    if (/<xml>\s*<records\b/i.test(head)) return 0.9;
     return 0;
   },
 

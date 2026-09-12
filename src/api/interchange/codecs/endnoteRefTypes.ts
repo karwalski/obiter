@@ -915,7 +915,7 @@ const DEFAULT_LIST: readonly EndnoteRefType[] = [
     roles: {
       title: "legal.caseName",
       "secondary-title": "legal.reporter",
-      publisher: "legal.courtName",
+      publisher: "legal.judgesOrCourt",
       volume: "legal.reporterVolume",
       number: "legal.docket",
       pages: "legal.firstPage",

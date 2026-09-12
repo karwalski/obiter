@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<b:Sources SelectedStyle="\APA.XSL" StyleName="APA" Version="2008" xmlns:b="http://schemas.openxmlformats.org/officeDocument/2006/bibliography" xmlns="http://schemas.openxmlformats.org/officeDocument/2006/bibliography">
+  <b:Source>
+    <b:Tag>Ede16</b:Tag>
+    <b:SourceType>Book</b:SourceType>
+    <b:Guid>{7B1A2C3D-0000-4000-8000-000000000001}</b:Guid>
+    <b:LCID>en-AU</b:LCID>
+    <b:Author>
+      <b:Author>
+        <b:NameList>
+          <b:Person>
+            <b:Last>Edelman</b:Last>
+            <b:First>James</b:First>
+          </b:Person>
+          <b:Person>
+            <b:Last>Bant</b:Last>
+            <b:First>Elise</b:First>
+          </b:Person>
+        </b:NameList>
+      </b:Author>
+      <b:Editor>
+        <b:NameList>
+          <b:Person>
+            <b:Last>Degeling</b:Last>
+            <b:First>Simone</b:First>
+            <b:Middle>J</b:Middle>
+          </b:Person>
+        </b:NameList>
+      </b:Editor>
+    </b:Author>
+    <b:Title>Unjust Enrichment</b:Title>
+    <b:Year>2016</b:Year>
+    <b:City>Oxford</b:City>
+    <b:Publisher>Hart Publishing</b:Publisher>
+    <b:Edition>2</b:Edition>
+    <b:StandardNumber>9781849464017</b:StandardNumber>
+    <b:RefOrder>1</b:RefOrder>
+  </b:Source>
+  <b:Source>
+    <b:Tag>Lun05</b:Tag>
+    <b:SourceType>JournalArticle</b:SourceType>
+    <b:Author>
+      <b:Author>
+        <b:NameList>
+          <b:Person>
+            <b:Last>Luntz</b:Last>
+            <b:First>Harold</b:First>
+          </b:Person>
+        </b:NameList>
+      </b:Author>
+    </b:Author>
+    <b:Title>Loss of Chance in Medical Negligence</b:Title>
+    <b:JournalName>Sydney Law Review</b:JournalName>
+    <b:Year>2005</b:Year>
+    <b:Volume>27</b:Volume>
+    <b:Issue>3</b:Issue>
+    <b:Pages>393-420</b:Pages>
+    <b:StandardNumber>0036-6250</b:StandardNumber>
+    <b:URL>https://www.austlii.edu.au/au/journals/SydLawRw/2005/20.html</b:URL>
+    <b:Comments>Peer reviewed</b:Comments>
+    <b:RefOrder>2</b:RefOrder>
+  </b:Source>
+  <b:Source>
+    <b:Tag>Mab92</b:Tag>
+    <b:SourceType>Case</b:SourceType>
+    <b:Title>Mabo v Queensland (No 2)</b:Title>
+    <b:ShortTitle>Mabo</b:ShortTitle>
+    <b:Court>High Court of Australia</b:Court>
+    <b:Reporter>CLR</b:Reporter>
+    <b:Volume>175</b:Volume>
+    <b:Pages>1</b:Pages>
+    <b:CaseNumber>B12/1991</b:CaseNumber>
+    <b:Year>1992</b:Year>
+    <b:Month>June</b:Month>
+    <b:Day>3</b:Day>
+    <b:AbbreviatedCaseNumber>B12</b:AbbreviatedCaseNumber>
+    <b:RefOrder>3</b:RefOrder>
+  </b:Source>
+  <b:Source>
+    <b:Tag>ALR04</b:Tag>
+    <b:SourceType>Report</b:SourceType>
+    <b:Author>
+      <b:Author>
+        <b:Corporate>Australian Law Reform Commission</b:Corporate>
+      </b:Author>
+    </b:Author>
+    <b:Title>Genes and Ingenuity: Gene Patenting and Human Health</b:Title>
+    <b:Year>2004</b:Year>
+    <b:Month>6</b:Month>
+    <b:Institution>Australian Law Reform Commission</b:Institution>
+    <b:Publisher>Commonwealth of Australia</b:Publisher>
+    <b:City>Sydney</b:City>
+    <b:ThesisType>Report 99</b:ThesisType>
+    <b:RefOrder>4</b:RefOrder>
+  </b:Source>
+</b:Sources>

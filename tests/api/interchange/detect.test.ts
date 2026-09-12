@@ -46,7 +46,7 @@ describe("codec registry and detection", () => {
     expect(hasCodec("ris")).toBe(true);
     expect(getCodec("ris").format).toBe("ris");
     expect(listCodecs().map((c) => c.format)).toEqual(expect.arrayContaining(["ris", "bibtex"]));
-    expect(() => getCodec("word-sources-xml")).toThrow(/No interchange codec/);
+    expect(() => getCodec("nope" as InterchangeCodec["format"])).toThrow(/No interchange codec/);
   });
 
   test("normaliseText strips the BOM and CRLF", () => {
