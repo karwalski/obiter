@@ -4,6 +4,7 @@
  */
 
 import type { ValidationIssue } from "./types/validation";
+import { getFieldAliases } from "./fieldAliases";
 import { Citation } from "../types/citation";
 import type { ParallelCitation, SourceType } from "../types/citation";
 import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punctuation";
@@ -1100,59 +1101,8 @@ export function checkCitationCompleteness(citation: Citation): ValidationIssue[]
 
 // ─── BUG-005 (c): Insert-path required-field check ───────────────────────────
 
-/**
- * Alias data keys the engine dispatcher accepts in place of a contract
- * field. The dispatch contract (ruleExporter SOURCE_TYPE_METADATA) names the
- * PRIMARY key each dispatch function reads, but the dispatchers also accept
- * legacy/form aliases (eg `date` for `fullDate`, a flat `author` string for
- * the structured `authors` array) — a citation supplying an alias is
- * complete, so the insert check must not flag it.
- */
-const DISPATCH_FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
-  // Case dates (rules 2.3.2–2.3.4) all fall back to the form's `date` key
-  fullDate: ["date"],
-  orderDate: ["date"],
-  commencedDate: ["date"],
-  // Report/secondary types render the bare year when no full date is stored
-  date: ["year"],
-  court: ["courtIdentifier", "courtId"],
-  caseNumber: ["mnc", "judgmentNumber", "number"],
-  // Author element shapes (rules 4.1, 6.6.3) — mirrors the completeness keys
-  authors: ["author", "chapterAuthors", "institutionalAuthor", "body", "editors"],
-  author: ["authors"],
-  chapterAuthors: ["authors", "author"],
-  editors: ["editorsText"],
-  bookTitle: ["title"],
-  chapterTitle: ["title"],
-  billTitle: ["title"],
-  billYear: ["year"],
-  journal: ["journalName"],
-  newspaper: ["newspaperName", "publication"],
-  websiteName: ["website", "siteName"],
-  speaker: ["author", "authors", "name"],
-  commissionName: ["body", "institutionalAuthor", "author"],
-  sender: ["author"],
-  interviewee: ["author", "name"],
-  interviewer: ["host"],
-  conferenceName: ["event"],
-  thesisType: ["degree"],
-  university: ["institution"],
-  treatySeries: ["conventionSeries"],
-  catalogueNumber: ["number"],
-  legislature: ["jurisdiction"],
-  party: ["party1"],
-  party1: ["caseName", "caseTitle"],
-  caseName: ["party1", "caseTitle", "title"],
-  judges: ["judicialOfficer", "judicialOfficers"],
-  judicialOfficers: ["judges", "judicialOfficer"],
-  documentNumber: ["number"],
-  noteText: ["customText"],
-  awardDescription: ["arbitrationType", "awardDetails"],
-  page: ["startingPage"],
-  startingPage: ["page"],
-  issuingBody: ["body"],
-  documentTitle: ["title"],
-};
+// Alias table shared with the Edit form and the interchange layer
+// (src/engine/fieldAliases.ts, INTEROP-001).
 
 /** Lazily-built lookup of the dispatch contract's required fields per type. */
 let requiredFieldsByType: Map<string, readonly string[]> | null = null;
@@ -1183,7 +1133,7 @@ export function listMissingRequiredFields(
     return [];
   }
   return required.filter((field) => {
-    const keys = [field, ...(DISPATCH_FIELD_ALIASES[field] ?? [])];
+    const keys = [field, ...getFieldAliases(field)];
     return !keys.some((key) => isFieldValuePresent(data[key]));
   });
 }

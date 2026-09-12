@@ -16,6 +16,7 @@
  */
 
 import type { SourceType, SourceData } from "../../types/citation";
+import { getFieldAliases } from "../../engine/fieldAliases";
 
 export interface FieldDefinition {
   key: string;
@@ -73,14 +74,14 @@ export const EDIT_FIELDS_BY_SOURCE_TYPE: Partial<Record<SourceType, FieldDefinit
       required: true,
       placeholder: "e.g. FCA, HCA",
       // Paste parser stores courtId; AI mapper / older docs use courtIdentifier.
-      aliases: ["courtIdentifier", "courtId"],
+      aliases: [...getFieldAliases("court")],
     },
     {
       key: "caseNumber",
       label: "Case Number",
       required: true,
       placeholder: "e.g. 1136",
-      aliases: ["decisionNumber", "judgmentNumber"],
+      aliases: [...getFieldAliases("caseNumber")],
     },
     { key: "pinpoint", label: "Pinpoint", placeholder: "e.g. [42]" },
     { key: "judicialOfficer", label: "Judicial Officer", placeholder: "e.g. Crennan J" },
