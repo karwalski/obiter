@@ -1610,3 +1610,37 @@ STILL REQUIRED before the accounts feature is live (owner: Matthew):
   (managed AI tier — pricing decision), **DECISION-033** court-PD confirmations.
 
 ---
+
+---
+
+## EPIC: INTEROP — Bibliographic Interchange (RIS, EndNote XML, BibTeX, CSL-JSON)
+
+**Phase:** Post-backlog | **Stories:** 19 | **Completed:** 18
+
+Import from and export to the formats reference managers and library catalogues exchange, through
+one canonical record and one mapper (DECISION-038). Supersedes the BibTeX-only half of RESEARCH-008
+(Zotero RDF was never delivered and is now a recorded follow-up). Builds on the UTS EndNote
+reference-type table cross-referenced in footnote-backlog Epic 18.
+
+| ID | Title | Rule / Source | Type | Status |
+|----|-------|---------------|------|--------|
+| INTEROP-001 | Single field-alias table shared by the validator, Edit form and exporter | BUG-005 lineage | REFACTOR | DONE |
+| INTEROP-002 | Interchange model, codec registry, detection, name and date forms, DOM-free XML reader | DECISION-038 | FEATURE | DONE |
+| INTEROP-003 | RIS codec (parse + serialise), Zotero and EndNote placements, fixtures | RIS spec (2001) | FEATURE | DONE |
+| INTEROP-004 | BibTeX parser onto the codec with first tests, serialiser, legacy shim | — | REFACTOR | DONE |
+| INTEROP-005 | EndNote XML codec with the UTS AGLC4 reference-type maps, UTS and generic export profiles | UTS RefTypeTable.xml | FEATURE | DONE |
+| INTEROP-006 | CSL-JSON codec (Zotero, Mendeley, Pandoc) | CSL 1.0.2 | FEATURE | DONE |
+| INTEROP-007 | Word Source Manager XML codec; the Word importer delegates to the pipeline | HYBRID-002 lineage | FEATURE | DONE |
+| INTEROP-008 | Mapper and source-type inference for legal sources | Rules 2, 3, 7.5, 8 | FEATURE | DONE |
+| INTEROP-009 | Mapper for secondary sources | Rules 4–7 | FEATURE | DONE |
+| INTEROP-010 | Import and export pipelines, dedupe index, BibTeX shim, Word import delegation | — | FEATURE | DONE |
+| INTEROP-011 | ModalDialog shell and fileTransfer helpers; Recovery and Settings download sites use them | — | REFACTOR | DONE |
+| INTEROP-012 | Import dialog: sources, detection, preview table, paging, type override, commit | — | FEATURE | DONE |
+| INTEROP-013 | Library multi-select and Export dialog (scope, format, destination, device pref) | — | FEATURE | DONE |
+| INTEROP-014 | Needs details review flow (filter, card label, Review button) | — | FEATURE | DONE |
+| INTEROP-015 | Library, Import and Export dialog UI suites with axe | — | INFRA | DONE |
+| INTEROP-016 | Golden renderings from fixtures and round trips through every export format | — | INFRA | DONE |
+| INTEROP-017 | `importCitations` action in the shared catalogue and service; skill manifest regeneration BLOCKED on COPILOT resume | COPILOT | FEATURE | DONE |
+| INTEROP-018 | Docs: DECISION-038, this table, backlog epic, website docs, README | — | DOCS | DONE |
+| INTEROP-019 | Release (patch, web deploy) with the manual download and clipboard check on Windows, Mac and web | — | RELEASE | TODO |
+

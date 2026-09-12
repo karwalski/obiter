@@ -92,6 +92,13 @@ support court mode (§6), enhanced metadata, or Obiter's escape hatches.
 
 ---
 
+### Interchange passthrough bag (`data.interchange`) — DECISION-038
+
+Not a citation field. Imported records keep the metadata AGLC4 never cites (DOI, ISBN, ISSN,
+keywords, abstract, notes, cite keys and reference-manager ids) under one nested key so exports
+round-trip losslessly. The engine, the Edit form and the required-field check never read it; the
+Error Reporter omits it. It is not counted as AGLC4 output and needs no experimental badge.
+
 ## 5. Formatting decisions where AGLC4 is silent or self-contradictory
 
 Seven judgment calls, each recorded in `docs/decisions.md` and each an **Obiter

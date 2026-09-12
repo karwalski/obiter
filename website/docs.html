@@ -324,21 +324,42 @@
           position in the document.
         </p>
 
-        <h3>Import from Word Source Manager</h3>
+        <h3>Importing from other tools</h3>
         <p>
-          If you have existing citations in Word&rsquo;s built-in Source
-          Manager, Obiter can import them. Click <strong>Import</strong> in the
-          Citation Library and select <strong>Word Source Manager</strong>.
-          Obiter reads the source data and creates properly formatted AGLC4
-          citations from it.
+          Click <strong>Import</strong> in the Citation Library. Paste records
+          copied from a library catalogue or reference manager, choose one or
+          more exported files, or read Word&rsquo;s own Source Manager. Obiter
+          reads RIS, EndNote XML, BibTeX, CSL-JSON and Word Source Manager XML,
+          and tells you what it detected (for example &ldquo;Detected: RIS
+          &middot; 12 records&rdquo;).
+        </p>
+        <p>
+          Before anything is added you see a preview of every record with the
+          AGLC source type Obiter chose, the formatted citation, and whether the
+          record is ready, needs more details, or is already in the library.
+          Change the source type on any row, exclude what you do not want, then
+          click <strong>Add</strong>. Records still missing required fields are
+          marked <strong>Needs details</strong> in the library so you can
+          complete them in Edit.
+        </p>
+        <p>
+          Cases and legislation are the hard part for every reference manager.
+          Obiter recognises a report citation, a medium neutral citation or an
+          Act title wherever the export put it, including EndNote libraries
+          built with the UTS AGLC reference types, and keeps any metadata AGLC
+          does not cite so a later export loses nothing.
         </p>
 
-        <h3>Import from BibTeX</h3>
+        <h3>Exporting the library</h3>
         <p>
-          You can also import citations from a BibTeX file. Click
-          <strong>Import</strong> and select <strong>BibTeX</strong>, then
-          choose your <code>.bib</code> file. Obiter parses the BibTeX entries
-          and maps them to the appropriate AGLC4 source types.
+          Click <strong>Export</strong> to write the whole library, the
+          citations you have selected, or the ones shown by the current search,
+          as RIS, EndNote XML, BibTeX, CSL-JSON or a plain formatted AGLC list.
+          Download the file, copy it to the clipboard, or show it as text. Each
+          exported record carries the formatted AGLC citation as a note, so
+          EndNote and Zotero users see the correct form even where their tool
+          cannot rebuild it, and a later re-import into Obiter recognises the
+          record and offers to update it instead of duplicating it.
         </p>
 
         <figure class="docs-figure">

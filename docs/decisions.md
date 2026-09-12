@@ -516,3 +516,25 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 
 **Researchers:** confirm (a) the recipient is retained in correspondence short forms; (b) whether an honorific or judicial title survives in an interview lead ('Conversation with Chief Justice Roberts' versus 'Conversation with Roberts'); (c) whether MULR, MJIL or Sydney Law Review house practice differs from UNSWLJ; (d) whether AGLC5 adds a chapter 7 subsequent-reference section. The engine default is UNSWLJ practice generalised, not a demonstrated cross-journal consensus.
 
+---
+
+## DECISION-038: Bibliographic interchange (RIS, EndNote XML, BibTeX, CSL-JSON, Word Source Manager)
+
+**Status:** RESOLVED (2026-09-12, INTEROP epic) — product decisions; no AGLC4 interpretation is at stake except item 5
+**Raised:** 2026-09-12 (EndNote and library-catalogue users asked for RIS and EndNote import; export did not exist)
+
+**Context:** Reference managers and library catalogues exchange RIS, EndNote XML, BibTeX and CSL-JSON. None of them models AGLC4's primary sources cleanly (a reporter is a "container title", a medium neutral citation has no slot), and all of them carry metadata AGLC4 never cites (DOI, ISBN, keywords, abstracts, attachment paths). Obiter previously read only BibTeX and Word's Source Manager and wrote nothing.
+
+**Decisions:**
+
+1. **One canonical record, one mapper.** Every format is a codec to and from `InterchangeRecord` (`src/api/interchange/model.ts`); a single mapper writes only the dispatch contract's primary keys so imported citations render and edit exactly like ones typed in. Records with no AGLC4 home become `custom` citations with a warning, never a fabricated web page.
+2. **Passthrough bag.** Metadata Obiter does not cite is kept hidden under `data.interchange` so exports round-trip without loss. Attachment and local file paths are dropped; abstract and notes are capped at 8 KB per record with a preview warning. The bag is never read by the engine, the Edit form or the required-field check.
+3. **Provenance travels with the record.** Exports carry the Obiter id and source type (RIS `AN`/`C8`, EndNote `accession-num`/`custom8`, CSL and BibTeX note lines) so a re-import recognises a round trip and offers Update existing instead of a duplicate. Duplicate detection otherwise uses DOI, ISBN, cite key, a legal signature (medium neutral citation, report citation, statute title with year and jurisdiction) and finally title, year and first surname.
+4. **Formatted citation as a note.** Every exported record carries the AGLC-formatted full citation (`AGLC4 footnote: …`) so EndNote, Zotero and Mendeley users see the correct form even where their tool cannot rebuild it. AGLC-only fields (pinpoint, year bracket type, court identifier, judicial officers, parallel citations) are written as `obiter-<key>:` note lines and restored on a same-tool round trip.
+5. **Formatted-text export order and pinpoints (AGLC4 rule 1.13 note).** The plain-text export lists full first-reference forms in the library's current sort, without pinpoints, because pinpoints belong to occurrences, not sources. Rule 1.13 bibliography ordering is the Bibliography view's job, not the export's. Researchers need not review this; it is a product boundary.
+6. **EndNote XML writes the UTS AGLC4 reference-type names by default** (Case (Reported), Case (Medium Neutral), Statute, Parl. Debate and the rest of the 54-type table the UTS Library distributes), with a profile toggle for EndNote's generic names. The UTS names are what Australian law EndNote libraries actually contain.
+7. **BibLaTeX convention for legal records.** Cases export as `@jurisdiction` (reporter in `journaltitle`, volume, pages, `court`), statutes as `@legislation` (`location` = jurisdiction), because BibTeX has no legal model of its own; Zotero's `@misc` with a citation in the note is recognised on import.
+8. **Import is preview-first.** Detection, mapping, completeness and duplicate status are shown per row with a type override before anything is written; the commit is one persist. The BibTeX importer and Word Source Manager importer are shims over the same pipeline.
+
+**Follow-ups recorded, not decided:** Word Source Manager export (writing back into Word's bibliography part); Zotero RDF; direct Zotero or Mendeley API integrations; a "Delete selected" bulk action on the library selection.
+

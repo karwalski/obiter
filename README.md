@@ -72,7 +72,7 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 ### Other
 
 - **Reference guide** -- searchable index of AGLC4 rules, abbreviations, and source types
-- **Import from Word Source Manager and BibTeX**
+- **Import and export RIS, EndNote XML, BibTeX and CSL-JSON** -- move libraries to and from EndNote, Zotero, Mendeley and library catalogues; Word Source Manager import
 - **Typeahead search** via AustLII, Jade.io, and Federal Register of Legislation
 - **Dark mode** -- respects the Word theme
 - **WCAG 2.2 AA accessible** -- keyboard-first, screen-reader friendly, Comfort mode, reduced-motion and Windows Contrast Themes support
