@@ -15,6 +15,7 @@
  */
 
 import type { Author } from "../../../types/citation";
+import { parseFreeTextAuthors } from "../../../engine/rules/v4/secondary/authors";
 import type { CreatorRole, InterchangeCreator } from "../model";
 
 /** Words that mark a name as a body rather than a person (rule 4.1.4). */
@@ -353,4 +354,17 @@ export function creatorsWithRole(
   role: CreatorRole
 ): InterchangeCreator[] {
   return creators.filter((c) => c.role === role);
+}
+
+/**
+ * Parses a flat Obiter author string ("Jane Smith and Bob Jones", or a
+ * body name) into creators, using the engine's own free-text name parser
+ * so bodies stay whole.
+ */
+export function parseFreeTextCreators(text: string, role: CreatorRole): InterchangeCreator[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  const authors = parseFreeTextAuthors(trimmed);
+  if (!authors) return [{ role, raw: trimmed, literal: trimmed }];
+  return authors.map((a) => authorToCreator(a, role));
 }
