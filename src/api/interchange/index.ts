@@ -43,9 +43,22 @@ export type {
   ImportCommitResult,
   ImportCommitOptions,
 } from "./importPipeline";
-export { prepareImport, retypeRow, commitImport } from "./importPipeline";
+export { prepareImport, retypeRow, recount, commitImport } from "./importPipeline";
 
 export type { ExportFormat, ExportOptions, ExportResult } from "./exportPipeline";
-export { exportCitations } from "./exportPipeline";
+export { exportCitations, citationsToRecords } from "./exportPipeline";
+
+export type { DedupeKey, DedupeMatch, DedupeMatchKind } from "./dedupe";
+export {
+  DedupeIndex,
+  isDuplicateCitation,
+  buildDedupeKeyFromCitation,
+  buildDedupeKeyFromRecord,
+} from "./dedupe";
+
+export { mapRecordToCitation } from "./mapper/toCitation";
+export type { MappedCitation, ToCitationOptions } from "./mapper/toCitation";
+export { mapCitationToRecord } from "./mapper/fromCitation";
+export { inferSourceType, isKnownSourceType } from "./mapper/inferSourceType";
 
 export { sourceTypeToKind } from "./mapper/kinds";
