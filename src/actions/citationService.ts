@@ -14,6 +14,8 @@
  */
 
 import { Citation, SourceData } from "../types/citation";
+import { commitImport, prepareImport } from "../api/interchange";
+import type { InterchangeFormat } from "../api/interchange";
 import { FormattedRun } from "../types/formattedRun";
 import { CitationConfig } from "../engine/standards/types";
 import { getFormattedPreview } from "../engine/engine";
@@ -244,4 +246,70 @@ export async function mergeDuplicateCitation(
   }
   await refreshAllCitationsNow(store);
   return moved;
+}
+
+// ─── INTEROP-017: import references from interchange text ───────────────────
+
+export interface ImportCitationsRequest {
+  /** RIS, EndNote XML, BibTeX, CSL-JSON or Word Sources XML text. */
+  text: string;
+  /** Skip detection and read the text as this format. */
+  format?: InterchangeFormat;
+  /** Preview only: nothing is added to the library. */
+  dryRun?: boolean;
+  /** Add rows that are missing required fields (default true). */
+  includeIncomplete?: boolean;
+}
+
+export interface ImportCitationsResult {
+  added: number;
+  updated: number;
+  skippedDuplicates: number;
+  incomplete: number;
+  /** Ids of the citations added (empty on a dry run). */
+  ids: string[];
+  /** Ids of added citations still missing required fields. */
+  incompleteIds: string[];
+  /** Per-record summary for the caller to show. */
+  records: Array<{ sourceType: string; missingFields: string[]; duplicate: boolean }>;
+  /** Messages worth surfacing (unrecognised format, unreadable records). */
+  messages: string[];
+}
+
+/**
+ * Adds citations to the document's library from interchange text. Does not
+ * insert footnotes; the caller inserts by id afterwards. Shares the
+ * pipeline the Import dialog uses, so detection, mapping, duplicate
+ * handling and the single persist are identical.
+ */
+export async function importCitations(
+  request: ImportCitationsRequest
+): Promise<ImportCitationsResult> {
+  const store = await getSharedStore();
+  const preview = prepareImport([{ text: request.text, formatHint: request.format }], {
+    existing: store.getAll(),
+    aglcVersion: getVersionForStandard(store.getStandardId()),
+  });
+  const records = preview.rows.map((row) => ({
+    sourceType: row.sourceType,
+    missingFields: row.missingFields,
+    duplicate: Boolean(row.duplicateOf),
+  }));
+  const messages = preview.issues.filter((i) => i.severity === "error").map((i) => i.message);
+  if (request.dryRun) {
+    return {
+      added: 0,
+      updated: 0,
+      skippedDuplicates: preview.counts.duplicates,
+      incomplete: preview.counts.incomplete,
+      ids: [],
+      incompleteIds: [],
+      records,
+      messages,
+    };
+  }
+  const result = await commitImport(preview, store, {
+    includeIncomplete: request.includeIncomplete ?? true,
+  });
+  return { ...result, records, messages };
 }

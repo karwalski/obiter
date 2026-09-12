@@ -21,12 +21,14 @@
 import { CitationInsertRequest } from "./citationRequest";
 import { SourceType, SourceData } from "../types/citation";
 import { OBITER_ACTIONS } from "./actionCatalogue";
+import type { ImportCitationsRequest } from "./citationService";
 import {
   insertCitation,
   updateCitation,
   deleteCitation,
   refreshFootnotes,
   formatCitationForRequest,
+  importCitations,
   InsertResult,
 } from "./citationService";
 
@@ -136,12 +138,46 @@ export async function skillRefreshFootnotes(): Promise<{ status: "refreshed" }> 
 }
 
 /** Action-name → dispatcher map, keyed by the OBITER_ACTIONS names (COPILOT-004). */
+/**
+ * INTEROP-017: import references from interchange text. The full skill
+ * manifest wiring waits for the Copilot line to resume; this dispatcher
+ * keeps the catalogue and the skill surface in step on main.
+ */
+export async function skillImportCitations(raw: unknown): Promise<unknown> {
+  if (!raw || typeof raw !== "object") {
+    throw new SkillRequestError("importCitations expects { text, format?, dryRun? }");
+  }
+  const req = raw as {
+    text?: unknown;
+    format?: unknown;
+    dryRun?: unknown;
+    includeIncomplete?: unknown;
+  };
+  if (typeof req.text !== "string" || !req.text.trim()) {
+    throw new SkillRequestError("importCitations needs non-empty text");
+  }
+  const formats = ["ris", "endnote-xml", "bibtex", "csl-json", "word-sources-xml"];
+  if (
+    req.format !== undefined &&
+    (typeof req.format !== "string" || !formats.includes(req.format))
+  ) {
+    throw new SkillRequestError(`importCitations format must be one of ${formats.join(", ")}`);
+  }
+  return importCitations({
+    text: req.text,
+    format: req.format as ImportCitationsRequest["format"],
+    dryRun: req.dryRun === true,
+    includeIncomplete: req.includeIncomplete !== false,
+  });
+}
+
 export const SKILL_DISPATCHERS: Record<string, (raw: unknown) => Promise<unknown>> = {
   insertCitation: skillInsertCitation,
   formatCitation: skillFormatCitation,
   updateCitation: skillUpdateCitation,
   deleteCitation: skillDeleteCitation,
   refreshFootnotes: () => skillRefreshFootnotes(),
+  importCitations: (raw) => skillImportCitations(raw),
 };
 
 /**

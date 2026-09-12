@@ -19,11 +19,11 @@ jest.mock("../../src/ui/fileTransfer", () => ({
   todayStamp: (): string => "2026-09-12",
 }));
 
-const prefs = new Map<string, unknown>();
+const mockPrefs = new Map<string, unknown>();
 jest.mock("../../src/store/devicePreferences", () => ({
-  getDevicePref: (key: string): unknown => prefs.get(key),
+  getDevicePref: (key: string): unknown => mockPrefs.get(key),
   setDevicePref: (key: string, value: unknown): void => {
-    prefs.set(key, value);
+    mockPrefs.set(key, value);
   },
 }));
 
@@ -61,7 +61,7 @@ function renderDialog(overrides: Partial<React.ComponentProps<typeof ExportDialo
 }
 
 beforeEach(() => {
-  prefs.clear();
+  mockPrefs.clear();
   mockDownload.mockClear();
   mockCopy.mockClear();
   mockCopy.mockResolvedValue(true);
@@ -95,11 +95,11 @@ describe("ExportDialog", () => {
       expect.stringContaining("Formatted a"),
       "application/x-bibtex"
     );
-    expect(prefs.get(EXPORT_FORMAT_PREF)).toBe("bibtex");
+    expect(mockPrefs.get(EXPORT_FORMAT_PREF)).toBe("bibtex");
   });
 
   test("the last format is the default next time", () => {
-    prefs.set(EXPORT_FORMAT_PREF, "csl-json");
+    mockPrefs.set(EXPORT_FORMAT_PREF, "csl-json");
     renderDialog();
     expect(screen.getByLabelText(/CSL-JSON/)).toBeChecked();
   });

@@ -71,6 +71,15 @@ export const OBITER_ACTIONS: ObiterAction[] = [
     effect: "mutation",
     handler: "refreshFootnotes",
   },
+  {
+    name: "importCitations",
+    description:
+      "Add citations to the document's library from RIS, EndNote XML, BibTeX or CSL-JSON text (a reference-manager or library-catalogue export). Returns the count added, skipped as duplicates, and those needing more details. Does not insert footnotes; use insertCitation with the returned ids.",
+    input:
+      "{ text: string, format?: 'ris' | 'endnote-xml' | 'bibtex' | 'csl-json', dryRun?: boolean, includeIncomplete?: boolean }",
+    effect: "mutation",
+    handler: "importCitations",
+  },
 ];
 
 /**

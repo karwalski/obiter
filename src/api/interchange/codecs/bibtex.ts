@@ -1021,8 +1021,17 @@ function entryToRecord(
 
 // ─── Export ─────────────────────────────────────────────────────────────────
 
-function escapeValue(text: string): string {
+/** Name fields keep their structural braces ({Corporate Name}); only the LaTeX specials are escaped. */
+const NAME_FIELDS_ON_EXPORT = new Set(["author", "editor", "translator"]);
+
+function escapeNameField(text: string): string {
   return text.replace(/([&%$#_])/g, "\\$1");
+}
+
+function escapeValue(text: string): string {
+  // Braces are structural in BibTeX; a literal brace inside a value (JSON
+  // in a note, a set-theoretic title) must be escaped or the field ends early.
+  return text.replace(/([&%$#_{}])/g, "\\$1");
 }
 
 function asciiWord(text: string): string {
@@ -1165,7 +1174,11 @@ function serialiseRecords(records: InterchangeRecord[], options: SerialiseOption
     const type = KIND_TO_BIBTEX_TYPE[record.kind] ?? "misc";
     const key = uniqueKey(record.identifiers.citeKey?.trim() || generateCiteKey(record), used);
     const lines = recordFields(record, includeFormatted).map(([name, value]) => {
-      const text = UNESCAPED_ON_EXPORT.has(name) ? value : escapeValue(value);
+      const text = UNESCAPED_ON_EXPORT.has(name)
+        ? value
+        : NAME_FIELDS_ON_EXPORT.has(name)
+          ? escapeNameField(value)
+          : escapeValue(value);
       return `  ${name} = {${text}}`;
     });
     const body = lines.length ? `${lines.join(`,${eol}`)}${eol}` : "";

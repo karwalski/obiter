@@ -10,6 +10,8 @@
  */
 
 import type { Citation, SourceType, Author } from "../types/citation";
+import { getVersionForStandard } from "../actions/citationRequest";
+import { commitImport, prepareImport } from "../api/interchange";
 import { CitationStore } from "../store/citationStore";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -232,57 +234,19 @@ export async function importWordSources(
   context: Word.RequestContext,
   store: CitationStore
 ): Promise<{ imported: number; skipped: number }> {
-  const wordSources = await getWordSources(context);
-  const existingCitations = store.getAll();
-
-  let imported = 0;
-  let skipped = 0;
-
-  for (const ws of wordSources) {
-    if (isDuplicate(ws, existingCitations)) {
-      skipped++;
-      continue;
-    }
-
-    const citation = mapWordSourceToObiter(ws);
-    await store.add(citation);
-    imported++;
-  }
-
-  return { imported, skipped };
+  // INTEROP-007: the Word Sources codec and the shared import pipeline do
+  // the mapping and duplicate detection, with one persist for the batch.
+  const xml = await getWordSourcesXml(context);
+  if (!xml) return { imported: 0, skipped: 0 };
+  const preview = prepareImport([{ text: xml, formatHint: "word-sources-xml" }], {
+    existing: store.getAll(),
+    aglcVersion: getVersionForStandard(store.getStandardId()),
+  });
+  const result = await commitImport(preview, store, { includeIncomplete: true });
+  return { imported: result.added, skipped: result.skippedDuplicates };
 }
 
 // ─── Internal Helpers ───────────────────────────────────────────────────────
-
-/**
- * Check whether a Word source is a duplicate of an existing citation
- * by matching title + year + first author surname.
- */
-function isDuplicate(source: WordSource, existing: Citation[]): boolean {
-  const srcTitle = (source.title || "").toLowerCase().trim();
-  const srcYear = (source.year || "").trim();
-  const srcFirstAuthor = (source.authors[0]?.last || "").toLowerCase().trim();
-
-  return existing.some((c) => {
-    const cTitle = (
-      (typeof c.data.title === "string" ? c.data.title : "") ||
-      (typeof c.data.caseName === "string" ? c.data.caseName : "")
-    )
-      .toLowerCase()
-      .trim();
-    const cYear = (typeof c.data.year === "string" ? c.data.year : "").trim();
-
-    let cFirstAuthor = "";
-    if (Array.isArray(c.data.authors) && c.data.authors.length > 0) {
-      const first = c.data.authors[0] as { surname?: string };
-      cFirstAuthor = (first.surname || "").toLowerCase().trim();
-    }
-
-    return (
-      srcTitle !== "" && srcTitle === cTitle && srcYear === cYear && srcFirstAuthor === cFirstAuthor
-    );
-  });
-}
 
 /**
  * Generate a v4-style UUID.

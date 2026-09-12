@@ -289,7 +289,13 @@ function mapStatute(record: InterchangeRecord, data: Data, sourceType: SourceTyp
   set(data, "title", title);
   set(data, "year", year);
   set(data, "jurisdiction", jurisdiction);
-  set(data, "number", legal.actNumber ?? parsed?.number);
+  const actNumber = legal.actNumber ?? parsed?.number;
+  if (actNumber && /^\(?\s*No\.?\s*\d+\s*\)?$/i.test(actNumber)) {
+    set(data, "number", actNumber.startsWith("(") ? actNumber : `(${actNumber.replace(/\./, "")})`);
+  } else if (actNumber) {
+    // A code or volume number from another tool is not AGLC's "(No N)".
+    record.passthrough.actNumber = actNumber;
+  }
   const section = legal.section ?? parsed?.pinpoint ?? legal.pinpoint;
   if (section)
     set(
@@ -375,7 +381,11 @@ function mapTreaty(record: InterchangeRecord, data: Data, sourceType: SourceType
           .filter(Boolean)
       : undefined);
   set(data, "parties", parties);
-  set(data, "openedDate", toAglcDateString(legal.openedDate));
+  set(
+    data,
+    "openedDate",
+    toAglcDateString(legal.openedDate) ?? (sourceType === "treaty" ? dateString(record) : undefined)
+  );
   set(
     data,
     "signedDate",
@@ -808,6 +818,39 @@ function composeCustomText(record: InterchangeRecord): string {
   return `${parts}${details ? ` (${details})` : ""}${url}`.trim();
 }
 
+// ─── Round-trip field notes ─────────────────────────────────────────────────
+
+/**
+ * BibTeX carries every note in one field joined with "; ". Split such a
+ * note back into lines so field notes and the formatted citation are
+ * recognised individually.
+ */
+function expandJoinedNotes(notes: string[]): string[] {
+  const out: string[] = [];
+  for (const note of notes) {
+    const parts = note.split(
+      /;\s*(?=obiter-(?:field|id|type):|AGLC\d? (?:footnote|bibliography):)/
+    );
+    for (const part of parts) if (part.trim()) out.push(part.trim());
+  }
+  return out;
+}
+
+/** Parses "obiter-field:<key>: <json>" note lines into key/value pairs. */
+function readFieldNotes(record: InterchangeRecord): Array<[string, unknown]> {
+  const out: Array<[string, unknown]> = [];
+  for (const note of record.notes) {
+    const m = /^obiter-field:([A-Za-z0-9_]+):\s*([\s\S]*)$/.exec(note.trim());
+    if (!m) continue;
+    try {
+      out.push([m[1], JSON.parse(m[2])]);
+    } catch {
+      out.push([m[1], m[2]]);
+    }
+  }
+  return out;
+}
+
 // ─── Passthrough bag ────────────────────────────────────────────────────────
 
 function truncate(
@@ -844,7 +887,7 @@ function buildBag(
   const abstract = truncate(record.abstract, issues, "abstract");
   if (abstract) bag.abstract = abstract;
   const notes = record.notes.filter(
-    (n) => !/^(obiter-id|obiter-type|AGLC4 (footnote|bibliography)):/.test(n)
+    (n) => !/^(obiter-id|obiter-type|obiter-field|AGLC\d? (footnote|bibliography)):/.test(n)
   );
   if (notes.length > 0) {
     const joined = truncate(notes.join("\n"), issues, "notes");
@@ -869,6 +912,7 @@ export function mapRecordToCitation(
   options: ToCitationOptions
 ): MappedCitation {
   const issues: InterchangeIssue[] = [];
+  record.notes = expandJoinedNotes(record.notes);
   const inference = options.sourceTypeOverride
     ? {
         sourceType: options.sourceTypeOverride,
@@ -961,6 +1005,14 @@ export function mapRecordToCitation(
         "Both a report citation and a medium neutral citation were supplied; the reported form was used and the medium neutral citation kept as a parallel."
       )
     );
+  }
+
+  // A record exported from Obiter carries its data keys as note lines;
+  // when it comes back as the same source type, restore them exactly.
+  if (record.provenance.obiterSourceType === sourceType) {
+    for (const [key, value] of readFieldNotes(record)) {
+      if (value !== undefined && value !== null) data[key] = value;
+    }
   }
 
   const now = options.now ?? new Date().toISOString();

@@ -335,8 +335,21 @@ export function mapCitationToRecord(
   }
 
   if (Object.values(legal).some((v) => v !== undefined)) record.legal = legal;
+
+  // AGLC-only fields (pinpoint, year bracket type, court identifier, treaty
+  // dates, judicial officers) have no slot in any reference manager. Carry
+  // every own data key as an "obiter-field" note line so a re-import into
+  // Obiter restores the citation exactly (DECISION-038 item 4).
+  for (const [key, value] of Object.entries(data)) {
+    if (key === INTERCHANGE_DATA_KEY || value === undefined || value === null || value === "")
+      continue;
+    record.notes.push(`${FIELD_NOTE_PREFIX}${key}: ${JSON.stringify(value)}`);
+  }
   return record;
 }
+
+/** Prefix of the note lines that carry Obiter data keys through an export. */
+export const FIELD_NOTE_PREFIX = "obiter-field:";
 
 function mapSecondaryToRecord(citation: Citation, data: Data, record: InterchangeRecord): void {
   const st = citation.sourceType;
