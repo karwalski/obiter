@@ -1250,7 +1250,20 @@
           '<div style="font-size:0.75rem;">' + (sub || "") + "</div></div>";
       }
 
+      // SITE-ANALYTICS-02: all-time distinct installs (a random id per
+      // browser profile, so an upper bound on people), with the first month.
+      var a = data.allTime || {};
+      var since = a.firstLoadAt ? "since " + String(a.firstLoadAt).slice(0, 10) : "no loads yet";
+      var allTimeSub = since + " &middot; " + (a.loads || 0).toLocaleString() + " loads";
+      var months = (a.byMonth || []);
+      var trend = months.length
+        ? '<div style="margin-top:4px; color:var(--colour-text-secondary);" title="Distinct installs per month">' +
+            months.slice(-6).map(function (m) { return m.month.slice(2) + ": " + m.unique_users; }).join(" &middot; ") +
+          "</div>"
+        : "";
+
       statsEl.innerHTML =
+        card("Unique users (all time)", (a.uniqueUsers || 0).toLocaleString(), allTimeSub + trend) +
         card("Unique users (30d)", (s.uniqueUsers30 || 0).toLocaleString(), delta(s.uniqueUsers30, s.uniqueUsersPrev30)) +
         card("Page loads (30d)", (s.loads30 || 0).toLocaleString(), delta(s.loads30, s.loadsPrev30)) +
         card("Unique (this window)", (data.rangeUnique || 0).toLocaleString(), (data.rangeLoads || 0).toLocaleString() + " loads");

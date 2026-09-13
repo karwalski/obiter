@@ -320,6 +320,43 @@ const getVersionAdoption = db.prepare(`
   ORDER BY unique_users DESC, obiter_version DESC
 `);
 
+// All-time figures (SITE-ANALYTICS-02). A device hash is a random id kept in
+// the add-in's localStorage, so this counts distinct installs (browser
+// profiles) since analytics began — an upper bound on people, never a
+// count of them. Rows with no hash (very old pings) are excluded.
+const getAllTimeUniqueUsers = db.prepare(`
+  SELECT COUNT(DISTINCT device_hash) AS unique_users
+  FROM analytics_loads
+  WHERE device_hash IS NOT NULL
+    AND (@variant IS NULL OR variant = @variant)
+`);
+
+const getAllTimeLoads = db.prepare(`
+  SELECT COUNT(*) AS loads, MIN(created_at) AS first_load_at, MAX(created_at) AS last_load_at
+  FROM analytics_loads
+`);
+
+const getAllTimeVariantBreakdown = db.prepare(`
+  SELECT COALESCE(variant, 'classic') AS variant,
+         COUNT(*) AS loads,
+         COUNT(DISTINCT device_hash) AS unique_users
+  FROM analytics_loads
+  WHERE device_hash IS NOT NULL
+  GROUP BY COALESCE(variant, 'classic')
+  ORDER BY unique_users DESC
+`);
+
+// Distinct installs per calendar month, for the all-time trend.
+const getUniqueUsersByMonth = db.prepare(`
+  SELECT substr(created_at, 1, 7) AS month,
+         COUNT(DISTINCT device_hash) AS unique_users,
+         COUNT(*) AS loads
+  FROM analytics_loads
+  WHERE device_hash IS NOT NULL
+  GROUP BY month
+  ORDER BY month ASC
+`);
+
 const getLoadsByDay = db.prepare(`
   SELECT date(created_at) AS day,
          COUNT(*) AS loads,
@@ -814,6 +851,10 @@ module.exports = {
   getTotalLoadsInRange,
   getVariantBreakdown,
   getVersionAdoption,
+  getAllTimeUniqueUsers,
+  getAllTimeLoads,
+  getAllTimeVariantBreakdown,
+  getUniqueUsersByMonth,
   getVersionChanges,
   recordVersionRelease,
   getSetting,

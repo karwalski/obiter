@@ -689,6 +689,18 @@ app.get("/api/admin/analytics", requireAdmin, function (req, res) {
       versions30: db.getVersionAdoption.all({ start: s30, end: eNow }),
     };
 
+    // All-time figures (SITE-ANALYTICS-02): distinct installs since analytics
+    // began, independent of the chart window.
+    var allTimeLoads = db.getAllTimeLoads.get();
+    var allTime = {
+      uniqueUsers: db.getAllTimeUniqueUsers.get({ variant: null }).unique_users,
+      loads: allTimeLoads.loads,
+      firstLoadAt: allTimeLoads.first_load_at,
+      lastLoadAt: allTimeLoads.last_load_at,
+      variants: db.getAllTimeVariantBreakdown.all(),
+      byMonth: db.getUniqueUsersByMonth.all(),
+    };
+
     res.json({
       start: start,
       end: end,
@@ -700,6 +712,7 @@ app.get("/api/admin/analytics", requireAdmin, function (req, res) {
       variantBreakdown: variantBreakdown,
       versionAdoption: versionAdoption,
       summary: summary,
+      allTime: allTime,
     });
   } catch (err) {
     console.error("GET /api/admin/analytics error:", err);
