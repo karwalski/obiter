@@ -24,7 +24,12 @@ import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCit
 import { useStatus } from "../context/StatusContext";
 import { insertCitation } from "../../actions/citationService";
 import { getVersionForStandard } from "../../actions/citationRequest";
-import { searchViaAdapters } from "../../api/adapterSearch";
+import { getAdapterInstance, searchViaAdapters } from "../../api/adapterSearch";
+import {
+  INTERCHANGE_DATA_KEY,
+  type CitationInterchangeBag,
+  type InterchangeProvenance,
+} from "../../api/interchange/model";
 import { isMasterEnabled } from "../../api/sourceRegistry";
 import { checkCorpusAvailable } from "../../api/corpus/corpusDownload";
 import { LookupResult } from "../../api/types";
@@ -524,6 +529,40 @@ const searchCases = (q: string): Promise<LookupResult[]> =>
 const searchLegislation = (q: string): Promise<LookupResult[]> =>
   searchViaAdapters(q, "legislation");
 
+/**
+ * ENP-006: provenance stamp for a citation filled from a source-lookup hit.
+ * Returns the interchange bag to store under `data.interchange` — a key the
+ * engine never reads, so the rendered citation is unchanged — recording the
+ * adapter, its record id, the page it came from and when it was fetched.
+ * Fields an earlier import left in the bag are kept; a hit without an
+ * adapterId (the mocked or legacy paths) leaves the bag alone.
+ */
+function adapterProvenanceBag(
+  result: LookupResult,
+  contentType: "case" | "legislation",
+  existing: unknown,
+): CitationInterchangeBag | undefined {
+  const adapterId = result.adapterId;
+  if (!adapterId) return undefined;
+  const prior =
+    existing && typeof existing === "object" ? (existing as Partial<CitationInterchangeBag>) : {};
+  const provenance: InterchangeProvenance = {
+    ...prior.provenance,
+    format: "adapter",
+    rawType: contentType,
+    sourceLabel: getAdapterInstance(adapterId)?.descriptor.displayName ?? adapterId,
+    rawId: result.sourceId,
+    adapterId,
+    retrievedAt: new Date().toISOString(),
+  };
+  if (result.sourceUrl) {
+    provenance.sourceUrl = result.sourceUrl;
+  } else {
+    delete provenance.sourceUrl;
+  }
+  return { ...prior, v: 1, provenance };
+}
+
 // ─── Short Title Suggestion ──────────────────────────────────────────────────
 
 function suggestShortTitle(sourceType: SourceType, data: SourceData): string {
@@ -674,6 +713,11 @@ export default function InsertCitation(): JSX.Element {
 
   // Re-check searchEnabled moved below useCitationContext (needs refreshCounter)
 
+  // ENP-006: licence attribution carried by the last selected lookup hit.
+  // Shown under the typeahead only while the form still holds that hit's
+  // provenance bag, so a reset or a new source type clears it with the form.
+  const [lookupAttribution, setLookupAttribution] = useState<string | null>(null);
+
   // COURT-007 / COURT-010: Court mode transient state
   const [unreportedGateShown, setUnreportedGateShown] = useState<Set<string>>(new Set());
   const [unreportedGateVisible, setUnreportedGateVisible] = useState(false);
@@ -735,6 +779,11 @@ export default function InsertCitation(): JSX.Element {
   const standardConfig = getStandardConfig(standardId);
   const standardLabel = standardConfig.standardLabel;
   const isAglcStandard = standardId.startsWith("aglc");
+  // ENP-006: the attribution belongs to the hit whose provenance bag the
+  // form still holds; once the bag is gone (reset, new source type, paste
+  // parse) the note goes with it.
+  const lookupNote =
+    lookupAttribution && formData[INTERCHANGE_DATA_KEY] ? lookupAttribution : undefined;
   const filteredCategories = useMemo(
     () => filterCategoriesForStandard(SOURCE_TYPE_CATEGORIES, standardId),
     [standardId],
@@ -976,9 +1025,14 @@ export default function InsertCitation(): JSX.Element {
         updates.startingPage = reportMatch[4];
       }
 
-      // Apply all updates in a single setFormData call
+      // Apply all updates in a single setFormData call. ENP-006: the
+      // provenance stamp rides in the same batch as the parsed fields.
+      setLookupAttribution(result.attribution ?? null);
       setFormData((prev) => {
-        const next = { ...prev, ...updates };
+        const bag = adapterProvenanceBag(result, "case", prev[INTERCHANGE_DATA_KEY]);
+        const next = bag
+          ? { ...prev, ...updates, [INTERCHANGE_DATA_KEY]: bag }
+          : { ...prev, ...updates };
         if (!shortTitleTouched && selectedSourceType) {
           const suggestion = suggestShortTitle(selectedSourceType as SourceType, next);
           setShortTitle(suggestion);
@@ -992,20 +1046,35 @@ export default function InsertCitation(): JSX.Element {
   const handleLegislationSelect = useCallback(
     (result: LookupResult) => {
       const title = result.title;
+      const updates: Record<string, unknown> = {};
 
       // Try to extract year from the end of the title (e.g. "Competition and Consumer Act 2010")
       const yearMatch = /\b(\d{4})\s*$/.exec(title);
       if (yearMatch) {
-        updateField("title", title.substring(0, yearMatch.index).trim());
-        updateField("year", yearMatch[1]);
+        updates.title = title.substring(0, yearMatch.index).trim();
+        updates.year = yearMatch[1];
       } else {
-        updateField("title", title);
+        updates.title = title;
       }
 
       // Federal Register results are Commonwealth by default
-      updateField("jurisdiction", "Cth");
+      updates.jurisdiction = "Cth";
+
+      // One batched update, with the ENP-006 provenance stamp alongside.
+      setLookupAttribution(result.attribution ?? null);
+      setFormData((prev) => {
+        const bag = adapterProvenanceBag(result, "legislation", prev[INTERCHANGE_DATA_KEY]);
+        const next = bag
+          ? { ...prev, ...updates, [INTERCHANGE_DATA_KEY]: bag }
+          : { ...prev, ...updates };
+        if (!shortTitleTouched && selectedSourceType) {
+          const suggestion = suggestShortTitle(selectedSourceType as SourceType, next);
+          setShortTitle(suggestion);
+        }
+        return next;
+      });
     },
-    [updateField],
+    [shortTitleTouched, selectedSourceType],
   );
 
   // ─── Source Type Change Handler ─────────────────────────────────────────
@@ -1276,34 +1345,20 @@ export default function InsertCitation(): JSX.Element {
 
       if (result.mode === "override") {
         setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
-        // Override keeps the source type selected (matching the prior behaviour).
-        setFormData({});
-        setAuthors([{ givenNames: "", surname: "" }]);
-        setShortTitle("");
-        setShortTitleTouched(false);
-        setSignal("");
-        setCommentaryBefore("");
-        setCommentaryAfter("");
-        return;
+      } else {
+        const successMsg = result.appendedToFootnote
+          ? `Citation appended to footnote ${result.appendedToFootnote} (Rule 1.1.3).`
+          : "Citation inserted as footnote.";
+        setFeedback({ type: "success", message: successMsg });
       }
 
-      const successMsg = result.appendedToFootnote
-        ? `Citation appended to footnote ${result.appendedToFootnote} (Rule 1.1.3).`
-        : "Citation inserted as footnote.";
-      setFeedback({ type: "success", message: successMsg });
-
-      // Reset form — go back to category selection
-      setSelectedCategory("");
-      setSelectedSourceType("");
-      setFormData({});
-      setAuthors([{ givenNames: "", surname: "" }]);
-      setShortTitle("");
-      setShortTitleTouched(false);
-      setSignal("");
-      setCommentaryBefore("");
-      setCommentaryAfter("");
-      setAppendToFootnote(false);
-      setSelectedFootnoteIndex(0);
+      // BUG-008: reset through the context so the Paste Citation, Help me
+      // choose and linking state (which survive navigation, AI-ENH-001) are
+      // cleared with the rest of the form. A manual override keeps the source
+      // type selected; otherwise go back to category selection. The court
+      // jurisdiction is document state, not form input, so it stays.
+      resetForm({ keepSourceType: result.mode === "override", keepCourtJurisdiction: true });
+      setPasteCitationError(null);
     } catch (err: unknown) {
       // Inserting writes a footnote and persists the store, so a read-only or
       // protected document fails here with Word's bare "NotAllowed".
@@ -1311,7 +1366,7 @@ export default function InsertCitation(): JSX.Element {
     } finally {
       setInserting(false);
     }
-  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex, courtConfig, announce]);
+  }, [selectedSourceType, formData, shortTitle, previewRuns, triggerRefresh, standardId, signal, commentaryBefore, commentaryAfter, appendToFootnote, selectedFootnoteIndex, courtConfig, announce, resetForm]);
 
   // ─── Available sub-types for selected category ──────────────────────────
 
@@ -1593,7 +1648,7 @@ export default function InsertCitation(): JSX.Element {
       )}
 
       {/* Dynamic Form */}
-      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard, searchEnabled)}
+      {selectedSourceType === "case.reported" && renderCaseReportedForm(formData, updateField, handleCaseSelect, isAglcStandard, searchEnabled, lookupNote)}
       {selectedSourceType === "case.unreported.mnc" && renderCaseUnreportedMncForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.unreported.no_mnc" && renderCaseUnreportedNoMncForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.proceeding" && renderCaseProceedingForm(formData, updateField, isAglcStandard)}
@@ -1602,7 +1657,7 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "case.arbitration" && renderCaseArbitrationForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.transcript" && renderCaseTranscriptForm(formData, updateField, isAglcStandard)}
       {selectedSourceType === "case.submission" && renderCaseSubmissionForm(formData, updateField, isAglcStandard)}
-      {(selectedSourceType === "legislation.statute" || selectedSourceType === "legislation.delegated") && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard, searchEnabled, selectedSourceType === "legislation.statute")}
+      {(selectedSourceType === "legislation.statute" || selectedSourceType === "legislation.delegated") && renderLegislationForm(formData, updateField, handleLegislationSelect, jurisdictionOptions, isAglcStandard, searchEnabled, selectedSourceType === "legislation.statute", lookupNote)}
       {selectedSourceType === "legislation.bill" && renderBillForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.constitution" && renderConstitutionForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
       {selectedSourceType === "legislation.explanatory" && renderExplanatoryForm(formData, updateField, jurisdictionOptions, isAglcStandard)}
@@ -2079,6 +2134,7 @@ export default function InsertCitation(): JSX.Element {
         <div className="ic-check-citation" style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
             <select
+              aria-label="Check my citation in an external source"
               className="ic-select"
               style={{ flex: 1, fontSize: 11 }}
               value=""
@@ -2220,12 +2276,29 @@ const JUDICIAL_OFFICER_ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "during_argument", label: "During argument (Rule 2.4.4)" },
 ];
 
+/**
+ * ENP-006: the licence attribution a source adapter attached to the selected
+ * hit (eg "CC BY 4.0 (Isaacus)"), as small muted text under the typeahead.
+ */
+function renderLookupAttribution(
+  searchEnabled: boolean,
+  attribution: string | undefined,
+): JSX.Element | null {
+  if (!searchEnabled || !attribution) return null;
+  return (
+    <p className="ic-lookup-attribution ic-experimental-badge-note" data-testid="ic-lookup-attribution">
+      Source: {attribution}
+    </p>
+  );
+}
+
 function renderCaseReportedForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
   onCaseSelect: (result: LookupResult) => void,
   isAglcStandard: boolean,
   searchEnabled: boolean,
+  lookupAttribution?: string,
 ): JSX.Element {
   const officers = (data.judicialOfficers as JudicialOfficerEntry[]) || [];
   const updateOfficer = (index: number, patch: Partial<JudicialOfficerEntry>): void => {
@@ -2264,6 +2337,7 @@ function renderCaseReportedForm(
             onChange={(e) => updateField("party1", e.target.value)}
           />
         )}
+        {renderLookupAttribution(searchEnabled, lookupAttribution)}
       </div>
 
       <div className="ic-field-row">
@@ -3540,6 +3614,7 @@ function renderLegislationForm(
   isAglcStandard: boolean,
   searchEnabled: boolean,
   isStatute: boolean,
+  lookupAttribution?: string,
 ): JSX.Element {
   return (
     <div className="ic-form-fields">
@@ -3572,6 +3647,7 @@ function renderLegislationForm(
             onChange={(e) => updateField("title", e.target.value)}
           />
         )}
+        {renderLookupAttribution(searchEnabled, lookupAttribution)}
       </div>
 
       <div className="ic-field-row">

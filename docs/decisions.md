@@ -538,3 +538,24 @@ The 2026-07-21 refresh updated presets, LOA structures, deadlines and reference-
 
 **Follow-ups recorded, not decided:** Word Source Manager export (writing back into Word's bibliography part); Zotero RDF; direct Zotero or Mendeley API integrations; a "Delete selected" bulk action on the library selection.
 
+
+## DECISION-039: EndNote parity features: source access and AI disclosure
+
+**Status:** RESOLVED (2026-09-13, ENP epic) — engineering and product decisions; researcher review is requested only for item 1's LawCite wording
+**Raised:** 2026-09-13 (EndNote 2025 parity review identified seven features a task pane can match: tags, a duplicate sweep, a record details panel, update from source, cited-by, quoting from a PDF or judgment, and AI summarisation)
+
+**Context:** Four of the seven features touch external sources or an LLM. AustLII's usage policy and Jade's terms prohibit automated access (DECISION-003, DECISION-011, and the legal headers on the link-only adapters), AustLII sits behind Cloudflare bot protection, and Obiter's privacy page promises that only text the user explicitly selects and submits is ever sent to an LLM. The stories must add the features without crossing those lines.
+
+**Decisions:**
+
+1. **AustLII and Jade remain link-only.** No Obiter code, in the pane or on the server, fetches a judgment or a citator page from either service. Cited-by for cases is a link to LawCite (`https://www.austlii.edu.au/cgi-bin/LawCite?cit=…`) and to Jade, opened in the user's browser. Researchers: confirm that a deep link into LawCite is within AustLII's stated usage policy for third-party tools; if not, the LawCite button is dropped and Jade alone remains.
+2. **Quoting a judgment means pasting it.** The Quote panel accepts text the user copied from their browser (or extracted from a PDF they picked) and derives the pinpoint from paragraph markers in the passage. Obiter never retrieves the passage on the user's behalf. The unused server relay that fetched AustLII pages is removed or hardened (ENP-013).
+3. **PDF text is extracted locally.** A bundled copy of pdf.js runs in the pane with its worker served from the app origin, satisfying the existing CSP (`worker-src 'self'`, no `blob:`, no CDN scripts). Text content only; no rendering, no upload, nothing stored in the document except the quoted text and pinpoint.
+4. **AI summarisation stays inside the privacy promise.** Only text the user has loaded into the Quote panel and can see is sent, and only after a button that names the provider and the size of the payload. The privacy page and the Settings AI Assistant disclosure gain a matching bullet before the feature is enabled. The LLM proxy's body limit is raised for that route only; the promise that nothing is logged or retained is unchanged.
+5. **Journal cited-by uses OpenAlex and Crossref.** Both are open data, already allowlisted, and already queried by existing adapters; the stories add fields the adapters currently drop. Attribution ("Data from OpenAlex (CC0)") is shown at the point of use.
+6. **Provenance lives in the interchange bag.** A typeahead selection stamps `data.interchange.provenance` with the adapter id, source id, source URL and retrieval time (DECISION-038 item 3 extended). No new top-level citation fields; older documents show "no source on record" and derive links from the citation itself.
+7. **Duplicate merging is field-level and reversible.** The sweep merges into a survivor the user chooses, field by field, after one store snapshot, and a "Not a duplicate" choice is remembered as a system tag so the pair is not offered again.
+
+**Follow-ups recorded, not decided:** a corpus-derived citation graph for cases if the Open Australian Legal Corpus ever publishes one; the jurisd `find_citing` tool if that collaboration proceeds (DECISION-011 finding 3); streaming responses in the LLM client; Word Source Manager export.
+
+**Implementation notes (2026-09-14, v1.17.0):** (a) The engine now honours `context.currentPinpoint` on a first occurrence and the occurrence title round-trips the pinpoint type (`[42]` paragraph, `s 5` section, bare number page), so a pinpoint typed in the library or the Quote panel survives Refresh All; legacy bare titles decode as pages. (b) A citing work added from the Cited by panel is linked with the phrase "citing", not "cited in": the engine renders `[this record], [phrase] [linked record]`, so "X, citing P" is the correct direction under Rule 1.3. (c) PDF text extraction uses pdf.js 4.10 bundled with the worker emitted from the app origin; the CSP is unchanged. (d) The LLM proxy accepts bodies up to 2 MB on that route only.

@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { downloadTextFile } from "../fileTransfer";
 import { getSharedStore } from "../../store/singleton";
 import { lockAllObiterFootnotes } from "../../word/footnoteManager";
@@ -30,6 +30,15 @@ import { applyAglc4Template } from "../../word/template";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, clearStoredKeys, type LLMConfig } from "../../llm/config";
+import { LLM_MODELS, LLM_PROVIDER_LABELS } from "../../llm/providers";
+import { resolveLlmConfigOnSignIn } from "../../llm/applyAccountLlmConfig";
+import {
+  getSyncedSettings,
+  putSyncedSettings,
+  getSyncedSettingsVersion,
+  type SyncedSettings,
+  type SyncedLlmConfig,
+} from "../../api/settingsSync";
 import {
   isSignedIn as authIsSignedIn,
   getEmail as authGetEmail,
@@ -87,36 +96,6 @@ import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHisto
 
 type AglcVersion = "4" | "5";
 
-interface ModelOption { value: string; label: string }
-const LLM_MODELS: Record<string, ModelOption[]> = {
-  openai: [
-    { value: "gpt-5.5", label: "GPT-5.5" },
-    { value: "gpt-5.4", label: "GPT-5.4" },
-    { value: "gpt-5.4-mini", label: "GPT-5.4 Mini" },
-    { value: "gpt-4o", label: "GPT-4o" },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-  ],
-  anthropic: [
-    { value: "claude-opus-4-8", label: "Claude Opus 4.8" },
-    { value: "claude-opus-4-7", label: "Claude Opus 4.7" },
-    { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-    { value: "claude-haiku-4-5", label: "Claude Haiku 4.5" },
-  ],
-  gemini: [
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  ],
-  grok: [
-    { value: "grok-3", label: "Grok 3" },
-    { value: "grok-3-mini", label: "Grok 3 Mini" },
-  ],
-  deepseek: [
-    { value: "deepseek-chat", label: "DeepSeek Chat" },
-    { value: "deepseek-reasoner", label: "DeepSeek Reasoner" },
-  ],
-};
-
 const LLM_API_KEY_URLS: Record<string, string> = {
   openai: "https://platform.openai.com/api-keys",
   anthropic: "https://console.anthropic.com/settings/keys",
@@ -125,14 +104,6 @@ const LLM_API_KEY_URLS: Record<string, string> = {
   deepseek: "https://platform.deepseek.com/api_keys",
 };
 
-const LLM_PROVIDER_LABELS: Record<string, string> = {
-  openai: "OpenAI",
-  anthropic: "Anthropic",
-  gemini: "Google Gemini",
-  grok: "xAI Grok",
-  deepseek: "DeepSeek",
-  custom: "Custom Endpoint",
-};
 
 
 /** Persists the AGLC4 heading list ID across button clicks so all headings join the same list. */
@@ -331,10 +302,10 @@ export default function Settings(): JSX.Element {
 
   // ─── ACCT-005: Account handlers ───────────────────────────────────────────
 
-  const refreshVaultKeys = useCallback(async () => {
+  const refreshVaultKeys = useCallback(async (): Promise<VaultKeyMeta[]> => {
     if (!authIsSignedIn()) {
       setVaultKeys([]);
-      return;
+      return [];
     }
     try {
       const keys = await listVaultKeys();
@@ -342,15 +313,93 @@ export default function Settings(): JSX.Element {
       // Cache which providers have a vaulted key so the LLM client can decide
       // to omit the local key (ACCT-005).
       setVaultKeyProviders(keys.map((k) => k.provider));
+      return keys;
     } catch {
       /* leave the previous list; a transient network error is non-fatal */
+      return [];
     }
   }, []);
 
-  // Load vault keys when signed in on mount.
+  // BUG-007: push the given namespaces to the account when signed in with
+  // settings sync on. The local save has already happened, so a failure is
+  // reported (default: the Account status line) and never blocks the user.
+  const pushSyncedSettings = useCallback(
+    async (namespaces: SyncedSettings, report: (message: string) => void = setAccountStatus) => {
+      if (!authIsSignedIn() || getDevicePref("syncedSettings") !== true) return;
+      try {
+        await putSyncedSettings(getSyncedSettingsVersion(), namespaces);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Could not reach the server.";
+        report(`Settings saved on this device. Syncing to your account failed: ${message}`);
+      }
+    },
+    []
+  );
+
+  /** The synced view of an LLM config: every field but the key (TRUST-006). */
+  const toSyncedLlmConfig = (config: LLMConfig): SyncedLlmConfig => ({
+    provider: config.provider,
+    model: config.model,
+    endpoint: config.endpoint,
+    maxTokens: config.maxTokens,
+    enabled: config.enabled,
+  });
+
+  /** Reflect a stored LLM config in the AI Assistant form (key as hint only). */
+  const applyLlmConfigToForm = useCallback((config: LLMConfig) => {
+    setLlmProvider(config.provider);
+    // TRUST-006: never echo the stored key back — surface last 4 only.
+    setLlmKeyHint(config.apiKey ? config.apiKey.slice(-4) : "");
+    setLlmApiKey("");
+    setLlmModel(config.model);
+    setLlmEndpoint(config.endpoint ?? "");
+    setLlmMaxTokens(config.maxTokens);
+    setLlmEnabled(config.enabled);
+  }, []);
+
+  // BUG-007: bring the AI Assistant in line with the account after a sign-in
+  // (and on load when already signed in): refresh the vault list, pull the
+  // synced settings when sync is on, then resolve which LLM config to use.
+  // Sync errors are non-fatal; the vault alone still turns AI features on.
+  const applyAccountConfig = useCallback(async (afterSignIn: boolean) => {
+    const keys = await refreshVaultKeys();
+    let synced: SyncedSettings | null = null;
+    let syncError: string | null = null;
+    if (getDevicePref("syncedSettings") === true) {
+      try {
+        synced = (await getSyncedSettings()).settings;
+      } catch (err: unknown) {
+        syncError = err instanceof Error ? err.message : "Could not load settings.";
+      }
+    }
+    const resolved = resolveLlmConfigOnSignIn({
+      synced: synced?.llmConfig ?? null,
+      vaultProviders: keys.map((k) => k.provider),
+      local: loadLlmConfig(),
+    });
+    if (resolved.reason !== "unchanged") {
+      saveLlmConfig(resolved.config);
+      applyLlmConfigToForm(resolved.config);
+    }
+    if (syncError) {
+      setAccountStatus(`${afterSignIn ? "Signed in. " : ""}Syncing settings failed: ${syncError}`);
+    } else if (resolved.message) {
+      setAccountStatus(afterSignIn ? `Signed in. ${resolved.message}` : resolved.message);
+    } else if (afterSignIn) {
+      setAccountStatus("Signed in.");
+    }
+  }, [refreshVaultKeys, applyLlmConfigToForm]);
+
+  // Apply the account configuration once when already signed in on mount.
+  // A sign-in from the pane runs it directly (handleSignIn), so the flag stops
+  // the effect from repeating the work when signedIn flips.
+  const accountConfigApplied = useRef(false);
   useEffect(() => {
-    if (signedIn) void refreshVaultKeys();
-  }, [signedIn, refreshVaultKeys]);
+    if (signedIn && !accountConfigApplied.current) {
+      accountConfigApplied.current = true;
+      void applyAccountConfig(false);
+    }
+  }, [signedIn, applyAccountConfig]);
 
   // Track the local-BYOK override for the currently selected provider.
   useEffect(() => {
@@ -366,7 +415,8 @@ export default function Settings(): JSX.Element {
         setSignedIn(true);
         setAccountEmail(result.email);
         setAccountStatus("Signed in.");
-        await refreshVaultKeys();
+        accountConfigApplied.current = true;
+        await applyAccountConfig(true);
       } else if (result.status === "cancelled") {
         setAccountStatus(null);
       } else if (result.status === "unavailable") {
@@ -377,7 +427,7 @@ export default function Settings(): JSX.Element {
     } finally {
       setAccountBusy(false);
     }
-  }, [refreshVaultKeys]);
+  }, [applyAccountConfig]);
 
   const handleSignOut = useCallback(async () => {
     setAccountBusy(true);
@@ -385,6 +435,7 @@ export default function Settings(): JSX.Element {
       await authSignOut();
     } finally {
       clearVaultMode();
+      accountConfigApplied.current = false;
       setSignedIn(false);
       setAccountEmail(null);
       setVaultKeys([]);
@@ -396,7 +447,29 @@ export default function Settings(): JSX.Element {
   const handleSyncedSettingsToggle = useCallback((next: boolean) => {
     setSyncedSettings(next);
     setDevicePref("syncedSettings", next);
-  }, []);
+    if (next && authIsSignedIn()) {
+      // BUG-007: seed the account with this device's settings straight away.
+      const stored = loadLlmConfig();
+      const llmConfig: SyncedLlmConfig = stored
+        ? toSyncedLlmConfig(stored)
+        : {
+            provider: llmProvider,
+            model: llmModel,
+            endpoint: llmProvider === "custom" ? llmEndpoint : undefined,
+            maxTokens: llmMaxTokens,
+            enabled: llmEnabled,
+          };
+      void pushSyncedSettings({
+        llmConfig,
+        autoRefresh: autoRefreshCitations,
+        templatePrefs,
+        courtToggles: courtJurisdiction ? { ...courtToggles } : {},
+      });
+    }
+  }, [
+    pushSyncedSettings, llmProvider, llmModel, llmEndpoint, llmMaxTokens, llmEnabled,
+    autoRefreshCitations, templatePrefs, courtJurisdiction, courtToggles,
+  ]);
 
   const handleLocalKeyOverrideToggle = useCallback(
     (next: boolean) => {
@@ -782,13 +855,14 @@ export default function Settings(): JSX.Element {
       setCourtToggles(newToggles);
       await store.setCourtToggles(newToggles);
       setDevicePref("courtToggles", undefined);
+      void pushSyncedSettings({ courtToggles: { ...newToggles } });
       setModeNotice(hadExistingCitations ? buildReformatNotice("Jurisdiction updated.") : null);
       triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save jurisdiction";
       setError(message);
     }
-  }, [triggerRefresh]);
+  }, [triggerRefresh, pushSyncedSettings]);
 
   const handleToggleOverride = useCallback(<K extends keyof typeof courtToggles>(
     key: K,
@@ -803,11 +877,19 @@ export default function Settings(): JSX.Element {
         const store = await getSharedStore();
         await store.setCourtToggles(updated);
         setDevicePref("courtToggles", undefined);
+        void pushSyncedSettings({ courtToggles: { ...updated } });
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to save court toggles");
       }
     })();
-  }, [courtToggles]);
+  }, [courtToggles, pushSyncedSettings]);
+
+  // Template defaults: device save plus account sync (BUG-007).
+  const persistTemplatePrefs = useCallback((updated: TemplatePreferences) => {
+    setTemplatePrefs(updated);
+    saveTemplatePreferences(updated);
+    void pushSyncedSettings({ templatePrefs: updated });
+  }, [pushSyncedSettings]);
 
   if (loading) {
     return (
@@ -1221,6 +1303,7 @@ export default function Settings(): JSX.Element {
               setAutoRefreshCitations(e.target.checked);
               setAutoRefreshEnabled(e.target.checked);
               setDocSetting("obiter-autoRefresh", e.target.checked);
+              void pushSyncedSettings({ autoRefresh: e.target.checked });
             }}
           />
           <span className="settings-toggle-label">
@@ -1404,8 +1487,7 @@ export default function Settings(): JSX.Element {
                 value={templatePrefs.fontName}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, fontName: e.target.value };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               >
                 <option value="Times New Roman">Times New Roman</option>
@@ -1423,8 +1505,7 @@ export default function Settings(): JSX.Element {
                 value={templatePrefs.fontSize}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, fontSize: Number(e.target.value) };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               >
                 <option value={10}>10pt</option>
@@ -1442,8 +1523,7 @@ export default function Settings(): JSX.Element {
                 value={templatePrefs.lineSpacing}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, lineSpacing: Number(e.target.value) };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               >
                 <option value={12}>Single</option>
@@ -1457,8 +1537,7 @@ export default function Settings(): JSX.Element {
                 checked={templatePrefs.includeTitle}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, includeTitle: e.target.checked };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               />
               {" "}Include title placeholder
@@ -1469,8 +1548,7 @@ export default function Settings(): JSX.Element {
                 checked={templatePrefs.includeAuthor}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, includeAuthor: e.target.checked };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               />
               {" "}Include author placeholder
@@ -1481,8 +1559,7 @@ export default function Settings(): JSX.Element {
                 checked={templatePrefs.includeNotice}
                 onChange={(e) => {
                   const updated = { ...templatePrefs, includeNotice: e.target.checked };
-                  setTemplatePrefs(updated);
-                  saveTemplatePreferences(updated);
+                  persistTemplatePrefs(updated);
                 }}
               />
               {" "}Include install notice in templates
@@ -2181,8 +2258,9 @@ export default function Settings(): JSX.Element {
 
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 8px" }}>
           Connect an AI provider to verify citations, parse raw citation text,
-          and suggest short titles. You provide your own API key — no data is
-          sent without your explicit action.
+          suggest short titles, and summarise or answer questions about a
+          passage you load into the Quote panel. You provide your own API key
+          — no data is sent without your explicit action.
         </p>
 
         {/* TRUST-006: plain-language disclosure of where key material lives. */}
@@ -2379,7 +2457,9 @@ export default function Settings(): JSX.Element {
               setLlmApiKey("");
               setLlmKeyHint(config.apiKey ? config.apiKey.slice(-4) : "");
               setLlmSaveStatus("Saved");
-              setTimeout(() => setLlmSaveStatus(null), 2000);
+              setTimeout(() => setLlmSaveStatus((s) => (s === "Saved" ? null : s)), 2000);
+              // BUG-007: mirror to the account (never the key) when sync is on.
+              void pushSyncedSettings({ llmConfig: toSyncedLlmConfig(config) }, setLlmSaveStatus);
             }}
           >
             Save

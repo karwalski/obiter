@@ -7,6 +7,9 @@
  * Queries the OpenAlex API for journal article metadata.
  * Intended as a fallback when Crossref returns no results —
  * adapter preference ordering in the orchestrator handles this.
+ *
+ * ENP-008: also a CitatorAdapter — `citedBy` resolves a work and lists the
+ * works that cite it (`filter=cites:{id}`), most-cited first.
  */
 
 import type {
@@ -16,6 +19,8 @@ import type {
   SourceMetadata,
   SearchFilters,
   AdapterHealth,
+  CitatorAdapter,
+  CitedByResult,
 } from "../sourceAdapter";
 
 // ---------------------------------------------------------------------------
@@ -44,6 +49,12 @@ interface OpenAlexWork {
     first_page?: string;
   };
   publication_year?: number;
+  /** ENP-008: number of works citing this one. */
+  cited_by_count?: number;
+  /** ENP-008: OpenAlex's own URL for the citing-works query. */
+  cited_by_api_url?: string;
+  /** ENP-008: OpenAlex ids of the works this one cites. */
+  referenced_works?: string[];
 }
 
 interface OpenAlexSearchResponse {
@@ -55,6 +66,40 @@ interface OpenAlexSearchResponse {
 // ---------------------------------------------------------------------------
 
 const BASE_URL = "https://api.openalex.org";
+
+/** ENP-008: attribution line for anything drawn from OpenAlex. */
+export const OPENALEX_ATTRIBUTION = "Data from OpenAlex (CC0)";
+
+const DOI_PREFIX = "https://doi.org/";
+
+function isDoi(id: string): boolean {
+  return id.startsWith("10.") || id.startsWith(DOI_PREFIX);
+}
+
+/**
+ * The short OpenAlex work id ("W2741809807") from either the bare id or the
+ * full openalex.org work URL that OpenAlex returns in `id`. Undefined when
+ * the value is not a work id.
+ */
+export function shortWorkId(id: string | undefined): string | undefined {
+  if (!id) return undefined;
+  const match = /(W\d+)$/i.exec(id.trim());
+  return match ? match[1].toUpperCase() : undefined;
+}
+
+/** ENP-008: "Authors, Journal vol(issue) year" for a citing-works row. */
+function describeWork(meta: SourceMetadata): string {
+  const volIssue =
+    meta.volume !== undefined
+      ? meta.issue
+        ? `${meta.volume}(${meta.issue})`
+        : String(meta.volume)
+      : meta.issue
+        ? `(${meta.issue})`
+        : "";
+  const where = [meta.journal, volIssue, meta.year].filter(Boolean).join(" ");
+  return [meta.authors?.join(", "), where].filter(Boolean).join(", ");
+}
 
 function mapWorkToMetadata(work: OpenAlexWork): SourceMetadata {
   let startingPage: number | undefined;
@@ -87,7 +132,7 @@ function mapWorkToMetadata(work: OpenAlexWork): SourceMetadata {
 // Adapter
 // ---------------------------------------------------------------------------
 
-export class OpenAlexAdapter implements SourceAdapter {
+export class OpenAlexAdapter implements SourceAdapter, CitatorAdapter {
   readonly descriptor: SourceAdapterDescriptor = {
     id: "openalex",
     displayName: "OpenAlex",
@@ -135,11 +180,21 @@ export class OpenAlexAdapter implements SourceAdapter {
   }
 
   async getMetadata(id: string): Promise<SourceMetadata | null> {
-    // If the id looks like a DOI, query via the DOI filter.
-    const isDoi = id.startsWith("10.") || id.startsWith("https://doi.org/");
-    const url = isDoi
+    const work = await this.fetchWork(id);
+    return work ? mapWorkToMetadata(work) : null;
+  }
+
+  /**
+   * Resolve one work by DOI (via the DOI filter), by OpenAlex work id (via
+   * the single-work endpoint) or, failing both, by a one-result search.
+   */
+  private async fetchWork(id: string): Promise<OpenAlexWork | null> {
+    const workId = isDoi(id) ? undefined : shortWorkId(id);
+    const url = isDoi(id)
       ? `${BASE_URL}/works?filter=doi:${encodeURIComponent(id)}&per_page=1`
-      : `${BASE_URL}/works?search=${encodeURIComponent(id)}&per_page=1`;
+      : workId
+        ? `${BASE_URL}/works/${workId}`
+        : `${BASE_URL}/works?search=${encodeURIComponent(id)}&per_page=1`;
 
     const response = await fetch(url, {
       headers: { Accept: "application/json" },
@@ -147,10 +202,52 @@ export class OpenAlexAdapter implements SourceAdapter {
 
     if (!response.ok) return null;
 
-    const data: OpenAlexSearchResponse = await response.json();
-    if (!data.results || data.results.length === 0) return null;
+    const data: Partial<OpenAlexSearchResponse> & OpenAlexWork = await response.json();
+    // The single-work endpoint returns the work itself; list endpoints wrap
+    // it in `results`.
+    if (Array.isArray(data.results)) {
+      return data.results.length > 0 ? data.results[0] : null;
+    }
+    return data.id ? data : null;
+  }
 
-    return mapWorkToMetadata(data.results[0]);
+  /**
+   * ENP-008: works citing the given work (by DOI or OpenAlex id), most-cited
+   * first. The count comes from the work itself (`cited_by_count`); the rows
+   * from `filter=cites:{id}`. Each row carries its mapped metadata so it can
+   * be added to the library without another request.
+   */
+  async citedBy(doiOrId: string, limit = 10): Promise<CitedByResult> {
+    const work = await this.fetchWork(doiOrId);
+    if (!work) return { count: null, works: [], attribution: OPENALEX_ATTRIBUTION };
+
+    const count = typeof work.cited_by_count === "number" ? work.cited_by_count : null;
+    const workId = shortWorkId(work.id);
+    if (!workId) return { count, works: [], attribution: OPENALEX_ATTRIBUTION };
+
+    const perPage = Math.max(1, Math.min(200, Math.floor(limit)));
+    const url = `${BASE_URL}/works?filter=cites:${workId}&per_page=${perPage}&sort=cited_by_count:desc`;
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return { count, works: [], attribution: OPENALEX_ATTRIBUTION };
+
+    const data: OpenAlexSearchResponse = await response.json();
+    const works = (data.results ?? []).map((citing, index): LookupResult => {
+      const meta = mapWorkToMetadata(citing);
+      const citingId = shortWorkId(citing.id);
+      return {
+        title: meta.title ?? "Untitled",
+        snippet: describeWork(meta),
+        sourceId: meta.doi ?? citingId ?? `openalex-cites-${index}`,
+        confidence: Math.max(0, 1 - index * 0.05),
+        sourceUrl: meta.doi ? `${DOI_PREFIX}${meta.doi}` : (citing.id ?? undefined),
+        attribution: OPENALEX_ATTRIBUTION,
+        metadata: meta,
+      };
+    });
+
+    return { count, works, attribution: OPENALEX_ATTRIBUTION };
   }
 
   async healthcheck(): Promise<AdapterHealth> {

@@ -59,7 +59,15 @@ const PORT = process.env.PORT || 3001;
 // -------------------------------------------------------
 
 app.use(cors());
-app.use(express.json());
+// ENP-012: POST /api/proxy/llm carries a passage chunk for summarising and
+// takes its own larger body limit at the route (express.json({ limit: "2mb" })
+// below). The global parser skips that one path so its default 100 KB limit
+// does not reject the body first; every other route keeps the default.
+var defaultJsonParser = express.json();
+app.use(function (req, res, next) {
+  if (req.path === "/api/proxy/llm") return next();
+  return defaultJsonParser(req, res, next);
+});
 // urlencoded bodies are needed for the POST-confirm verify pages (HTML forms).
 app.use(express.urlencoded({ extended: false }));
 
@@ -1221,53 +1229,6 @@ var proxyCors = cors({
   methods: ["GET", "POST"],
 });
 
-/** User-Agent header sent with all upstream proxy requests. */
-var PROXY_USER_AGENT = "Obiter-AGLC4-WordAddin/1.0";
-
-/** Minimum delay between consecutive requests per endpoint (milliseconds). */
-var PROXY_RATE_LIMIT_MS = 1000;
-
-/**
- * Per-endpoint timestamps for rate-limit enforcement.
- * Keys are endpoint names ("austlii", "jade", "legislation", "austlii-fetch").
- */
-var lastProxyRequestTime = {};
-
-/**
- * Enforce a minimum inter-request delay for the given endpoint.
- * Returns a promise that resolves once it is safe to proceed.
- */
-function waitForProxyRateLimit(endpoint) {
-  return new Promise(function (resolve) {
-    var now = Date.now();
-    var last = lastProxyRequestTime[endpoint] || 0;
-    var elapsed = now - last;
-    if (elapsed < PROXY_RATE_LIMIT_MS) {
-      setTimeout(function () {
-        lastProxyRequestTime[endpoint] = Date.now();
-        resolve();
-      }, PROXY_RATE_LIMIT_MS - elapsed);
-    } else {
-      lastProxyRequestTime[endpoint] = Date.now();
-      resolve();
-    }
-  });
-}
-
-/**
- * Perform a rate-limited fetch to an upstream URL.
- * Returns the Response object or null on failure.
- */
-async function proxyFetch(endpoint, url, headers) {
-  await waitForProxyRateLimit(endpoint);
-  try {
-    var response = await fetch(url, { headers: headers });
-    return response;
-  } catch (err) {
-    return null;
-  }
-}
-
 // ------- AustLII HTML parsing helpers -------
 
 /**
@@ -1317,52 +1278,6 @@ function parseAustliiSearchResults(html) {
 }
 
 /**
- * Extract citation metadata from an AustLII document page.
- */
-function parseAustliiDocumentPage(html, id) {
-  var record = {
-    sourceUrl: "https://www.austlii.edu.au" + id,
-  };
-
-  // Page title
-  var titleMatch = /<title>([\s\S]*?)<\/title>/i.exec(html);
-  if (titleMatch) {
-    record.title = titleMatch[1].trim();
-  }
-
-  // Medium neutral citation: [YYYY] CourtAbbrev Number
-  var mncPattern = /\[\d{4}]\s+[A-Z][A-Za-z]+\s+\d+/;
-  var bodyText = html.replace(/<[^>]+>/g, "");
-  var mncMatch = mncPattern.exec(bodyText);
-  if (mncMatch) {
-    record.mnc = mncMatch[0];
-  }
-
-  // Court — DC.Source meta tag
-  var courtMatch = /<meta\s+name="DC\.Source"\s+content="([^"]*)"/i.exec(html);
-  if (courtMatch && courtMatch[1]) {
-    record.court = courtMatch[1];
-  }
-
-  // Date — DC.Date or citation_date meta tag
-  var dateMatch = /<meta\s+name="DC\.Date"\s+content="([^"]*)"/i.exec(html) ||
-    /<meta\s+name="citation_date"\s+content="([^"]*)"/i.exec(html);
-  if (dateMatch && dateMatch[1]) {
-    record.date = dateMatch[1];
-  }
-
-  // Parties from page title (strip everything from "[" onwards)
-  if (record.title) {
-    var parties = record.title.replace(/\s*\[.*$/, "").trim();
-    if (parties) {
-      record.parties = parties;
-    }
-  }
-
-  return record;
-}
-
-/**
  * GET /api/proxy/austlii?q=SEARCH_TERM
  *
  * AustLII search proxy. Currently returns an unavailable message because
@@ -1375,39 +1290,6 @@ app.get("/api/proxy/austlii", proxyCors, async function (req, res) {
     results: [],
     error: "AustLII search is temporarily unavailable. AustLII uses Cloudflare bot protection that blocks automated searches. Search directly at austlii.edu.au.",
   });
-});
-
-/**
- * GET /api/proxy/austlii/fetch?id=URL_PATH
- *
- * Fetches a specific AustLII page and extracts citation metadata
- * (case name, MNC, court, date, parties).
- */
-app.get("/api/proxy/austlii/fetch", proxyCors, async function (req, res) {
-  try {
-    var id = req.query.id;
-    if (!id || !String(id).trim()) {
-      return res.status(400).json({ results: [], error: "Missing required parameter: id" });
-    }
-
-    var pageUrl = "https://www.austlii.edu.au" + String(id);
-
-    var response = await proxyFetch("austlii-fetch", pageUrl, {
-      "User-Agent": PROXY_USER_AGENT,
-    });
-
-    if (!response || !response.ok) {
-      return res.json({ results: [], error: "Upstream request failed." });
-    }
-
-    var html = await response.text();
-    var metadata = parseAustliiDocumentPage(html, String(id));
-
-    res.json(metadata);
-  } catch (err) {
-    console.error("GET /api/proxy/austlii/fetch error:", err);
-    res.json({ results: [], error: "Internal proxy error." });
-  }
 });
 
 /**
@@ -1495,7 +1377,7 @@ var LLM_RATE_ANON = { limit: 20, windowMs: 5 * 60 * 1000 };
 // proxy historically names xAI "grok", so alias it for key lookup only.
 var VAULT_PROVIDER_ALIAS = { grok: "xai" };
 
-app.post("/api/proxy/llm", proxyCors, async function (req, res) {
+app.post("/api/proxy/llm", express.json({ limit: "2mb" }), proxyCors, async function (req, res) {
   try {
     var { provider, model, apiKey, maxTokens, systemPrompt, userPrompt, endpoint } = req.body;
 

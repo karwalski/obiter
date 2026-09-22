@@ -388,6 +388,13 @@
 | BUG-008 | Validation — detect footnote superscript numbers before punctuation | FEATURE | DONE |
 | BUG-009 | Insert citation — auto-apply subsequent ref format (ibid/short) on repeat cite | FEATURE | DONE |
 
+### Field-reported defects (footnote-backlog BUG series, separate numbering from the table above)
+
+| ID | Title | Source | Type | Status |
+|----|-------|--------|------|--------|
+| BUG-007 | Signing in does not restore the AI provider or turn AI features on; settings sync (ACCT-004) has a server route but no client, vault key never selects a provider | Reported 2026-09-13, v1.16.17 | FIX | DONE (v1.17.0) |
+| BUG-008 | Paste Citation text and parsed result survive an insert; `handleInsert` hand-rolls a reset that omits the paste, classify and linking state | Reported 2026-09-13, v1.16.17 | FIX | DONE (v1.17.0) |
+
 ---
 
 ## EPIC: AUDIT — AGLC4 Chapter-by-Chapter Audit
@@ -1643,4 +1650,33 @@ reference-type table cross-referenced in footnote-backlog Epic 18.
 | INTEROP-017 | `importCitations` action in the shared catalogue and service; skill manifest regeneration BLOCKED on COPILOT resume | COPILOT | FEATURE | DONE |
 | INTEROP-018 | Docs: DECISION-038, this table, backlog epic, website docs, README | — | DOCS | DONE |
 | INTEROP-019 | Release v1.16.17 (patch, web deploy); manual download and clipboard check on Windows, Mac and web pending | — | RELEASE | DONE |
+
+## EPIC: ENP — EndNote Parity (Tags, Duplicates, Record details, Update from source, Cited by, Quote, Summarise)
+
+**Phase:** Post-backlog | **Stories:** 16 | **Completed:** 15 (ENP-015 release pending)
+
+Seeded 2026-09-13 from the EndNote 2025 parity review: of 21 EndNote features, nine Obiter already
+has, five are out of scope for a Word add-in, and seven are gaps a task pane can close. Source access
+and AI disclosure decisions are in DECISION-039. AustLII and Jade stay link-only; PDF text is
+extracted locally; AI summarisation is limited to text the user loads into the pane and sends with an
+explicit action; provenance lives in the `interchange` bag from DECISION-038.
+
+| ID | Title | Rule / Source | Type | Status |
+|----|-------|---------------|------|--------|
+| ENP-001 | Tag chips, tag editor and a tag filter in the library; tags round-trip as keywords in every export format | — | FEATURE | DONE |
+| ENP-002 | Duplicate clusters in the dedupe index; retire `findMatchingCitation` | DECISION-038 item 3 | REFACTOR | DONE |
+| ENP-003 | Find duplicates dialog with survivor choice, field-level merge, Not a duplicate, one snapshot | — | FEATURE | DONE |
+| ENP-004 | Source links from stored data (URL, DOI, AustLII, Jade, provenance) | — | REFACTOR | DONE |
+| ENP-005 | Record details panel: imported metadata, passthrough count, source links, previous versions with restore | — | FEATURE | DONE |
+| ENP-006 | Provenance stamp on typeahead selection; full `LookupResult` at the form boundary; adapter preference registration | — | REFACTOR | DONE |
+| ENP-007 | Update from source with a side-by-side field merge (reuses citationVerifier scoring) | Rules 2, 3, 4 | FEATURE | DONE |
+| ENP-008 | Cited by for journal articles via OpenAlex and Crossref (`CitatorAdapter`), add citing work to library | — | FEATURE | DONE |
+| ENP-009 | Cited by for cases as LawCite and Jade links (link-only) | DECISION-039 | FEATURE | DONE |
+| ENP-010 | Quote panel: pasted passage to block or inline quotation with citation footnote and detected pinpoint | Rules 1.1.3, 1.5.1, 1.5.3, 1.7.1 | FEATURE | DONE |
+| ENP-011 | Load a passage from a PDF in the pane (bundled pdf.js, self-origin worker, text layer only) | — | FEATURE | DONE |
+| ENP-012 | Summarise and ask about a loaded passage with the user's own key; privacy page and Settings disclosure | DECISION-039 | FEATURE | DONE |
+| ENP-013 | Harden or remove the unused `/api/proxy/austlii/fetch` relay (host takeover via `@` in id, no SSRF guard) | DECISION-003 | BUG | DONE |
+| ENP-014 | Docs: DECISION-039, this table, backlog epic, website docs per shipped story | — | DOCS | DONE |
+| ENP-015 | Release v1.17.0 (minor): all ENP stories plus BUG-007 and BUG-008; manifest XML and AppSource listing text updated; Windows, Mac and web check and sideload | — | RELEASE | IN PROGRESS |
+| ENP-016 | Website, docs page and README describe every shipped feature in user terms (no product-parity framing) | — | DOCS | DONE |
 

@@ -60,6 +60,18 @@ export interface LookupResult {
   sourceUrl?: string;
   /** Attribution string required by the source licence. */
   attribution?: string;
+  /**
+   * ENP-006: id of the adapter that produced this hit. Stamped by the
+   * unified search (adapterSearch.ts), never by adapters themselves, so the
+   * form can record provenance without knowing which adapter answered.
+   */
+  adapterId?: string;
+  /**
+   * ENP-008: the mapped metadata for this hit when the adapter already has
+   * it (a citing-works row carries the full record), so a caller can build
+   * a citation without a second request.
+   */
+  metadata?: SourceMetadata;
 }
 
 /**
@@ -146,4 +158,43 @@ export interface SourceAdapter {
 
   /** Lightweight health-check (should complete in < 2 s). */
   healthcheck(): Promise<AdapterHealth>;
+}
+
+// ---------------------------------------------------------------------------
+// ENP-008: citing works ("cited by")
+// ---------------------------------------------------------------------------
+
+/**
+ * The answer to a "who cites this?" question for one source.
+ *
+ * `count` is null when the service could not say; `works` may be empty when
+ * the service only reports a count (Crossref) or has nothing on record.
+ */
+export interface CitedByResult {
+  /** Number of works citing the source, or null when unknown. */
+  count: number | null;
+  /** Citing works, most-cited first, up to the requested limit. */
+  works: LookupResult[];
+  /** Attribution string required by the source licence. */
+  attribution?: string;
+}
+
+/**
+ * Optional capability an adapter may add to the base {@link SourceAdapter}
+ * contract: look up the works that cite a given source. The base contract is
+ * unchanged; callers test for the capability with {@link isCitatorAdapter}.
+ */
+export interface CitatorAdapter {
+  /**
+   * Works citing the source identified by `id` (a DOI or adapter-specific
+   * id, as accepted by getMetadata), at most `limit` of them.
+   */
+  citedBy(id: string, limit?: number): Promise<CitedByResult>;
+}
+
+/** Type guard: does this adapter implement {@link CitatorAdapter}? */
+export function isCitatorAdapter(
+  adapter: SourceAdapter
+): adapter is SourceAdapter & CitatorAdapter {
+  return typeof (adapter as Partial<CitatorAdapter>).citedBy === "function";
 }

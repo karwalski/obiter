@@ -17,6 +17,7 @@ import {
 } from "../../src/api/interchange";
 import type { ExportFormat, ImportSource } from "../../src/api/interchange";
 import type { Citation } from "../../src/types/citation";
+import { userTags } from "../../src/engine/tags";
 
 const FIXTURES = path.resolve(__dirname, "../fixtures/interchange");
 const read = (rel: string): string => fs.readFileSync(path.join(FIXTURES, rel), "utf-8");
@@ -353,6 +354,35 @@ describe("library round trips through every export format", () => {
           text: plain(original),
         });
       }
+    }
+  );
+
+  test.each(["ris", "bibtex", "csl-json", "endnote-xml"] as ExportFormat[])(
+    "%s: user tags round-trip as keywords and system tags never leave (ENP-001)",
+    (format) => {
+      const tagged: Citation = {
+        ...library[0],
+        id: "tagged",
+        tags: ["import", "import:ris", "contract", "remedies"],
+      };
+      const exported = exportCitations([tagged], {
+        format,
+        formatCitation,
+        dateStamp: "2026-09-12",
+      });
+      expect(exported.text).not.toContain("obiter-tag");
+      expect(exported.text).not.toContain("import:ris");
+      expect(exported.text).toContain("contract");
+      expect(exported.text).toContain("remedies");
+      const preview = prepareImport(
+        [{ text: exported.text, formatHint: format as Exclude<ExportFormat, "formatted-text"> }],
+        { ...OPTS, existing: [tagged] }
+      );
+      expect(preview.rows).toHaveLength(1);
+      const tags = preview.rows[0].citation.tags;
+      expect(userTags(tags)).toEqual(["contract", "remedies"]);
+      expect(tags).toEqual(expect.arrayContaining(["import", `import:${format}`]));
+      expect(plain(preview.rows[0].citation)).toBe(plain(tagged));
     }
   );
 

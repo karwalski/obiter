@@ -8,6 +8,7 @@
 import {
   copyTextToClipboard,
   downloadTextFile,
+  readFileAsArrayBuffer,
   readFileAsText,
   todayStamp,
 } from "../../src/ui/fileTransfer";
@@ -52,6 +53,13 @@ describe("readFileAsText and todayStamp", () => {
   test("reads a Blob as text", async () => {
     const blob = new Blob(["TY  - BOOK\n"], { type: "text/plain" });
     expect(await readFileAsText(blob)).toBe("TY  - BOOK\n");
+  });
+
+  test("reads a Blob as an ArrayBuffer (ENP-011)", async () => {
+    const blob = new Blob([new Uint8Array([0x25, 0x50, 0x44, 0x46])], { type: "application/pdf" });
+    const buffer = await readFileAsArrayBuffer(blob);
+    expect(buffer).toBeInstanceOf(ArrayBuffer);
+    expect(Array.from(new Uint8Array(buffer))).toEqual([0x25, 0x50, 0x44, 0x46]);
   });
 
   test("formats the local date", () => {

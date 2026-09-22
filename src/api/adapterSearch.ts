@@ -21,7 +21,11 @@ import {
   registerAdapter as registerRegistryAdapter,
   type AdapterTier,
 } from "./sourceRegistry";
-import { getPreferredAdapters } from "./sourcePreferences";
+import {
+  getPreferredAdapters,
+  registerAdapter as registerPreferenceAdapter,
+  type AdapterKind,
+} from "./sourcePreferences";
 import { RateLimiter } from "./rateLimiter";
 
 // Adapter class imports
@@ -139,6 +143,16 @@ export function initialiseAdapters(): void {
       fragile: d.fragile,
       health: "green",
     });
+    // ENP-006: register with the preference system too, so the default
+    // consultation order (corpus > live API > scraper > link-only) is
+    // derived from real adapter metadata instead of instantiation order.
+    // registerAdapter is a keyed set, so re-registration is harmless.
+    registerPreferenceAdapter({
+      id: d.id,
+      kind: adapterKind(adapter),
+      contentTypes: d.contentTypes,
+      jurisdictions: d.jurisdictions,
+    });
   }
 }
 
@@ -226,7 +240,9 @@ export async function searchViaAdapters(
           rateLimiter.recordResponse(id, 200);
         }
 
-        return results;
+        // ENP-006: stamp the producing adapter on every hit so the form can
+        // record provenance. Copies, never mutates, the adapter-owned objects.
+        return results.map((item) => ({ ...item, adapterId: id }));
       } catch {
         // Record failure for rate limiter
         if (rateLimitHint.requestsPerSecond > 0) {
@@ -273,6 +289,19 @@ function sortByPreference(adapters: SourceAdapter[], preferredIds: string[]): So
     const bi = idxMap.get(b.descriptor.id) ?? Number.MAX_SAFE_INTEGER;
     return ai - bi;
   });
+}
+
+/**
+ * ENP-006: derive the preference-system kind from an adapter's descriptor,
+ * matching the KIND_PRIORITY reliability hierarchy in sourcePreferences:
+ * the local corpus first, then live APIs, then scrapers (fragile HTML
+ * parsers), then adapters that only build outbound links.
+ */
+function adapterKind(adapter: SourceAdapter): AdapterKind {
+  const d = adapter.descriptor;
+  if (d.id === "corpus") return "corpus";
+  if (d.accessTier === "link-only" || d.rateLimitHint.requestsPerSecond <= 0) return "link-only";
+  return d.fragile ? "scraper" : "live-api";
 }
 
 /**

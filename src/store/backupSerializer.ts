@@ -53,7 +53,7 @@ export const SNAPSHOT_THROTTLE_MS = 30_000;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type SnapshotReason = "persist" | "pre-restore" | "manual";
+export type SnapshotReason = "persist" | "pre-restore" | "manual" | "dedupe";
 
 /** One full-store snapshot in the ring buffer. */
 export interface StoreSnapshot {
@@ -253,7 +253,7 @@ export interface ApplySnapshotResult {
  * Pure snapshot-add policy (SAFE-001):
  * - dedup: skip if the incoming store XML equals the newest stored snapshot's;
  * - throttle: max one "persist" snapshot per 30 s, EXCEPT when the incoming
- *   write shrinks the library or the reason is "pre-restore"/"manual".
+ *   write shrinks the library or the reason is "pre-restore"/"manual"/"dedupe".
  *   The reference time is the newest stored snapshot's own timestamp — kept
  *   in the backup data, not module state, so it survives reloads;
  * - ring: newest MAX_STORE_SNAPSHOTS survive;
@@ -274,7 +274,10 @@ export function applyStoreSnapshot(
   const shrinks =
     opts.incomingCitationCount != null && opts.incomingCitationCount < snapshot.citationCount;
   const throttleExempt =
-    shrinks || snapshot.reason === "pre-restore" || snapshot.reason === "manual";
+    shrinks ||
+    snapshot.reason === "pre-restore" ||
+    snapshot.reason === "manual" ||
+    snapshot.reason === "dedupe";
   if (newest && !throttleExempt) {
     const elapsed = Date.parse(snapshot.timestamp) - Date.parse(newest.timestamp);
     if (Number.isFinite(elapsed) && elapsed < SNAPSHOT_THROTTLE_MS) {
@@ -373,7 +376,9 @@ function sortNewestFirst<T extends { timestamp: string }>(items: T[]): T[] {
 }
 
 function parseReason(raw: string | null): SnapshotReason {
-  return raw === "persist" || raw === "pre-restore" || raw === "manual" ? raw : "manual";
+  return raw === "persist" || raw === "pre-restore" || raw === "manual" || raw === "dedupe"
+    ? raw
+    : "manual";
 }
 
 function parseCount(raw: string | null): number {

@@ -196,6 +196,79 @@ export class DedupeIndex {
   findRecord(record: InterchangeRecord): DedupeMatch | undefined {
     return this.find(buildDedupeKeyFromRecord(record));
   }
+
+  /** ENP-002: groups a library into duplicate clusters. See findDuplicateClusters. */
+  static clusters(citations: Citation[]): DuplicateCluster[] {
+    return findDuplicateClusters(citations);
+  }
+}
+
+// ─── Duplicate clusters (ENP-002) ────────────────────────────────────────────
+
+export interface DuplicateCluster {
+  kind: DedupeMatchKind;
+  /** The shared key value the members were grouped on. */
+  key: string;
+  /** Ordered by createdAt ascending, then id. */
+  members: Citation[];
+}
+
+/** A tag of `dedupe:ignore:<key>` on a citation suppresses every pair it forms on that key. */
+export const DEDUPE_IGNORE_TAG_PREFIX = "dedupe:ignore:";
+
+/** Strongest first. The Obiter id is unique per citation so it never clusters. */
+const CLUSTER_KEY_ORDER: ReadonlyArray<{ field: keyof DedupeKey; kind: DedupeMatchKind }> = [
+  { field: "doi", kind: "doi" },
+  { field: "isbn", kind: "isbn" },
+  { field: "citeKey", kind: "cite-key" },
+  { field: "legal", kind: "legal" },
+  { field: "loose", kind: "loose" },
+];
+
+function ignoresKey(citation: Citation, key: string): boolean {
+  const tags = Array.isArray(citation.tags) ? citation.tags : [];
+  return tags.includes(`${DEDUPE_IGNORE_TAG_PREFIX}${key}`);
+}
+
+function compareByCreated(a: Citation, b: Citation): number {
+  const byCreated = String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
+  return byCreated !== 0 ? byCreated : String(a.id ?? "").localeCompare(String(b.id ?? ""));
+}
+
+/**
+ * Groups a library into duplicate clusters. Each citation joins at most one
+ * cluster: the strongest key (doi → isbn → citeKey → legal → loose) it shares
+ * with any other citation. Singletons are dropped. A member carrying
+ * `dedupe:ignore:<key>` for the cluster's key is left out of that grouping, so
+ * every pair it would have formed on that key is skipped. Members are ordered
+ * by createdAt then id; clusters by their earliest member.
+ */
+export function findDuplicateClusters(citations: Citation[]): DuplicateCluster[] {
+  const keys = new Map<Citation, DedupeKey>();
+  for (const citation of citations) keys.set(citation, buildDedupeKeyFromCitation(citation));
+  const ordered = [...citations].sort(compareByCreated);
+  const assigned = new Set<Citation>();
+  const clusters: DuplicateCluster[] = [];
+
+  for (const { field, kind } of CLUSTER_KEY_ORDER) {
+    const groups = new Map<string, Citation[]>();
+    for (const citation of ordered) {
+      if (assigned.has(citation)) continue;
+      const value = keys.get(citation)?.[field];
+      if (!value || ignoresKey(citation, value)) continue;
+      const group = groups.get(value);
+      if (group) group.push(citation);
+      else groups.set(value, [citation]);
+    }
+    for (const [key, members] of groups) {
+      if (members.length < 2) continue;
+      clusters.push({ kind, key, members });
+      for (const member of members) assigned.add(member);
+    }
+  }
+
+  clusters.sort((a, b) => compareByCreated(a.members[0], b.members[0]));
+  return clusters;
 }
 
 /** Convenience for the older importers: is this citation already in the library? */

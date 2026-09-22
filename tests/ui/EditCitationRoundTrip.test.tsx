@@ -14,6 +14,7 @@
  */
 import * as React from "react";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import EditCitation from "../../src/ui/views/EditCitation";
 import { buildCitationFromRequest } from "../../src/actions/citationRequest";
 import { getFormattedPreview } from "../../src/engine/engine";
@@ -116,7 +117,7 @@ describe("BUG-005 (d): edit round trip is lossless", () => {
     expect(insertedText).toContain("Smith v Land & House Property Corporation");
     expect(insertedText).toContain("(1887) 28 Ch D 7");
 
-    render(<EditCitation />);
+    render(<MemoryRouter><EditCitation /></MemoryRouter>);
 
     // Both parties must populate the edit form (the original BUG-005 repro
     // showed an empty Case Name field instead).
@@ -162,7 +163,7 @@ describe("BUG-005 (d): edit round trip is lossless", () => {
     expect(insertedText).toContain("Barton v Chibber");
     expect(insertedText).toContain("Hampel J");
 
-    render(<EditCitation />);
+    render(<MemoryRouter><EditCitation /></MemoryRouter>);
 
     // Pre-fix the edit view used caseName/judgeName/date keys, so the party
     // and judge fields loaded blank and edits to them were dropped.
@@ -200,7 +201,7 @@ describe("BUG-005 (d): edit round trip is lossless", () => {
     const insertedText = toPlainText(getFormattedPreview(mockCitation, CONFIG));
     expect(insertedText).toContain("Justine Bell");
 
-    render(<EditCitation />);
+    render(<MemoryRouter><EditCitation /></MemoryRouter>);
 
     // The namelist field renders the Author[] shape as display text.
     await waitFor(() => {

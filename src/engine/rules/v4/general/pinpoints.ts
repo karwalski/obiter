@@ -84,6 +84,79 @@ export function formatPinpoint(pinpoint: Pinpoint, prefix?: string): FormattedRu
 }
 
 /**
+ * Serialises a pinpoint to the compact text form `formatPinpoint` renders
+ * (`42`, `[42]`, `s 5`, `nn 22–4`, `6 [23]`). This is the ONE encoding used
+ * for the per-occurrence pinpoint stored in a footnote content-control title
+ * (see `buildOccurrenceTitle` in src/word/footnoteManager.ts); it is the
+ * inverse of `pinpointFromTitleString`.
+ */
+export function pinpointToTitleString(pinpoint: Pinpoint): string {
+  return formatPinpoint(pinpoint)
+    .map((run) => run.text)
+    .join("");
+}
+
+/**
+ * Reverse lookup for `pinpointFromTitleString`: the abbreviated label that
+ * `formatPinpoint` emits for each labelled type, plus the plural forms that
+ * the formatter emits for footnote spans (`nn`, Rule 1.1.7) and that authors
+ * type for several sections (`ss`).
+ */
+const LABEL_TO_TYPE: ReadonlyMap<string, Pinpoint["type"]> = new Map<string, Pinpoint["type"]>([
+  ...(Object.entries(PINPOINT_PREFIX) as Array<[Pinpoint["type"], string]>).map(
+    ([type, label]): [string, Pinpoint["type"]] => [label, type]
+  ),
+  ["ss", "section"],
+  ["nn", "footnote"],
+]);
+
+/** A bare paragraph pinpoint: `[42]`, `[42]–[45]`, `[42]-[45]` (Rule 1.1.6). */
+const PARAGRAPH_VALUE = /^\[[^\]]+\](?:\s*[–-]\s*\[[^\]]+\])?$/;
+
+/**
+ * Parses the compact text form of a pinpoint back into a typed `Pinpoint`.
+ *
+ * Inverse of `pinpointToTitleString`, and tolerant of the bare strings that
+ * older documents stored in occurrence titles:
+ *
+ * - `[n]` or `[n]–[m]` → paragraph (Rule 1.1.6: paragraphs in square brackets)
+ * - `s n` / `ss n` → section; likewise every other label `formatPinpoint`
+ *   emits (`ch`, `pt`, `cl`, `sch`, `art`, `reg`, `r`, `n`/`nn`, `col`, …)
+ * - `n [m]` → page `n` with a paragraph sub-pinpoint `[m]` (Rule 1.1.6 ex
+ *   `6 [23]`)
+ * - anything else → page
+ *
+ * @returns The typed pinpoint, or `undefined` for a blank string.
+ */
+export function pinpointFromTitleString(s: string): Pinpoint | undefined {
+  const text = s.trim();
+  if (text === "") return undefined;
+
+  if (PARAGRAPH_VALUE.test(text)) {
+    return { type: "paragraph", value: text };
+  }
+
+  const labelled = text.match(/^([a-z-]+)\s+(\S.*)$/);
+  if (labelled) {
+    const type = LABEL_TO_TYPE.get(labelled[1]);
+    if (type) {
+      return { type, value: labelled[2].trim() };
+    }
+  }
+
+  const pageWithParagraph = text.match(/^(\S+)\s+(\[.+\])$/);
+  if (pageWithParagraph && PARAGRAPH_VALUE.test(pageWithParagraph[2])) {
+    return {
+      type: "page",
+      value: pageWithParagraph[1],
+      subPinpoint: { type: "paragraph", value: pageWithParagraph[2] },
+    };
+  }
+
+  return { type: "page", value: text };
+}
+
+/**
  * Format multiple pinpoint references separated by commas.
  *
  * @remarks AGLC4 Rule 1.1.6: Multiple pinpoint references within a single

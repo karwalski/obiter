@@ -15,11 +15,17 @@
 
 import { Citation, SourceData } from "../types/citation";
 import { commitImport, prepareImport } from "../api/interchange";
+import {
+  DEDUPE_IGNORE_TAG_PREFIX,
+  DedupeIndex,
+  buildDedupeKeyFromCitation,
+} from "../api/interchange/dedupe";
 import type { InterchangeFormat } from "../api/interchange";
 import { FormattedRun } from "../types/formattedRun";
 import { CitationConfig } from "../engine/standards/types";
 import { getFormattedPreview } from "../engine/engine";
 import { listMissingRequiredFields } from "../engine/validator";
+import { normaliseTags, userTags, withUserTags } from "../engine/tags";
 import { getStandardConfig, buildCourtConfig } from "../engine/standards";
 import {
   insertCitationFootnote,
@@ -54,40 +60,21 @@ async function resolveConfig(store: CitationStore): Promise<CitationConfig> {
   return buildCourtConfig(getStandardConfig(store.getStandardId()), courtToggles);
 }
 
-function asString(val: unknown): string {
-  return typeof val === "string" ? val : "";
-}
-
 /**
  * Find an already-stored citation that matches the incoming one (so a second
  * occurrence reuses the same id and is renumbered as a subsequent reference
- * rather than duplicated). Mirrors the task-pane matching rules.
+ * rather than duplicated). ENP-002: delegates to the interchange dedupe index
+ * (DOI, ISBN, cite key, legal signature, then a normalised title + year +
+ * surname match) so insert-time and import-time detection agree.
  */
 export function findMatchingCitation(
   candidate: Citation,
   existing: Citation[]
 ): Citation | undefined {
-  const st = candidate.sourceType;
-  const d: SourceData = candidate.data;
-  return existing.find((c) => {
-    if (c.sourceType !== st) return false;
-    const cd = c.data;
-    if (st.startsWith("case.")) {
-      return (
-        asString(cd.party1) === asString(d.party1) &&
-        asString(cd.party2) === asString(d.party2) &&
-        asString(cd.year) === asString(d.year)
-      );
-    }
-    if (st.startsWith("legislation.")) {
-      return (
-        asString(cd.title) === asString(d.title) &&
-        asString(cd.year) === asString(d.year) &&
-        asString(cd.jurisdiction) === asString(d.jurisdiction)
-      );
-    }
-    return asString(cd.title) === asString(d.title) && asString(cd.year) === asString(d.year);
-  });
+  if (existing.length === 0) return undefined;
+  const key = buildDedupeKeyFromCitation(candidate);
+  delete key.obiterId; // a fresh id never matches; compare on content
+  return new DedupeIndex(existing).find(key)?.citation;
 }
 
 /**
@@ -224,28 +211,85 @@ export async function deleteCitation(citationId: string, footnoteIndex: number):
 }
 
 /**
- * Merges a duplicate citation into an existing one: every occurrence of
- * `duplicateId` is re-pointed to `targetId`, the now-orphaned duplicate library
- * entry is removed, and the document is re-rendered so the moved occurrences
- * resolve as subsequent references (ibid / short / (n X)) of the target,
- * keeping their pinpoints. Resolves the "duplicate short title" warning.
+ * Merges one or more duplicate citations into a surviving one (ENP-003).
+ * Every occurrence of each removed member is re-pointed to `targetId`, the
+ * removed library entries are deleted, and the document is re-rendered so the
+ * moved occurrences resolve as subsequent references (ibid / short / (n X)) of
+ * the survivor, keeping their pinpoints. Resolves the "duplicate short title"
+ * warning.
+ *
+ * When `mergedData` or `mergedTags` is given the survivor is rewritten with
+ * those values first (its id, createdAt and firstFootnoteNumber are kept and
+ * modifiedAt is stamped). A full-store snapshot with reason "dedupe" is taken
+ * once before anything changes, because the removed members' data is
+ * discarded. The document is refreshed once at the end.
  *
  * @returns The number of occurrences moved.
  */
 export async function mergeDuplicateCitation(
-  duplicateId: string,
-  targetId: string
+  duplicateIds: string | string[],
+  targetId: string,
+  mergedData?: SourceData,
+  mergedTags?: string[]
 ): Promise<number> {
-  if (!duplicateId || !targetId || duplicateId === targetId) return 0;
+  const removeIds = Array.from(
+    new Set((Array.isArray(duplicateIds) ? duplicateIds : [duplicateIds]).filter(Boolean))
+  ).filter((id) => id !== targetId);
+  if (!targetId || removeIds.length === 0) return 0;
   const store = await getSharedStore();
-  const moved = await retagOccurrences(duplicateId, targetId);
-  try {
-    await store.remove(duplicateId);
-  } catch {
-    // The duplicate entry is already gone — nothing more to remove.
+  await store.takeSnapshot("dedupe");
+
+  const survivor = store.getAll().find((c) => c.id === targetId);
+  if (survivor && (mergedData || mergedTags)) {
+    await store.update({
+      ...survivor,
+      data: mergedData ?? survivor.data,
+      tags: mergedTags ?? survivor.tags,
+      id: survivor.id,
+      createdAt: survivor.createdAt,
+      firstFootnoteNumber: survivor.firstFootnoteNumber,
+      modifiedAt: new Date().toISOString(),
+    });
+  }
+
+  let moved = 0;
+  for (const id of removeIds) {
+    moved += await retagOccurrences(id, targetId);
+    try {
+      await store.remove(id);
+    } catch {
+      // The duplicate entry is already gone — nothing more to remove.
+    }
   }
   await refreshAllCitationsNow(store);
   return moved;
+}
+
+/**
+ * Marks a duplicate cluster as "not a duplicate" (ENP-003): each citation is
+ * tagged `dedupe:ignore:<clusterKey>` so findDuplicateClusters leaves it out
+ * of that key's grouping. One persist.
+ *
+ * @returns The number of citations tagged.
+ */
+export async function ignoreDuplicatePair(
+  clusterKey: string,
+  citationIds: string[]
+): Promise<number> {
+  if (!clusterKey || citationIds.length === 0) return 0;
+  const store = await getSharedStore();
+  const tag = `${DEDUPE_IGNORE_TAG_PREFIX}${clusterKey}`;
+  const updates: Citation[] = [];
+  const byId = new Map(store.getAll().map((c) => [c.id, c] as const));
+  for (const id of citationIds) {
+    const citation = byId.get(id);
+    if (!citation) continue;
+    const tags = Array.isArray(citation.tags) ? citation.tags : [];
+    if (tags.includes(tag)) continue;
+    updates.push({ ...citation, tags: [...tags, tag], modifiedAt: new Date().toISOString() });
+  }
+  if (updates.length === 0) return 0;
+  return store.updateMany(updates);
 }
 
 // ─── INTEROP-017: import references from interchange text ───────────────────
@@ -259,6 +303,8 @@ export interface ImportCitationsRequest {
   dryRun?: boolean;
   /** Add rows that are missing required fields (default true). */
   includeIncomplete?: boolean;
+  /** ENP-001: user tags applied (normalised) to every imported citation. */
+  tags?: string[];
 }
 
 export interface ImportCitationsResult {
@@ -290,6 +336,15 @@ export async function importCitations(
     existing: store.getAll(),
     aglcVersion: getVersionForStandard(store.getStandardId()),
   });
+  const extraTags = normaliseTags(request.tags ?? []);
+  if (extraTags.length > 0) {
+    for (const row of preview.rows) {
+      row.citation.tags = withUserTags(row.citation.tags, [
+        ...userTags(row.citation.tags),
+        ...extraTags,
+      ]);
+    }
+  }
   const records = preview.rows.map((row) => ({
     sourceType: row.sourceType,
     missingFields: row.missingFields,

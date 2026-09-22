@@ -1,4 +1,4 @@
-# Obiter v1.16.17
+# Obiter v1.17.0
 
 **AGLC4, applied automatically.**
 
@@ -22,62 +22,94 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ## Features
 
-### Citation Engine
+### Inserting citations
 
-- **Full AGLC4 coverage** -- all 26 chapters, 80+ source types across domestic, secondary, international, and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the complete rule-by-rule audit
-- **Automatic ibid and subsequent references** -- Obiter detects repeated sources and applies ibid, short titles, and cross-reference note numbers following Rules 1.4.1--1.4.6
-- **Cross-references** -- `(n X)` fields that auto-renumber when footnotes are reordered
-- **Short titles** -- assigned on first citation and used throughout subsequent references
-- **Linking phrases** -- quoting, cited in, affirmed by, and other connecting phrases (Rule 1.3)
-- **Explanatory footnotes** -- mixed citation and commentary within a single footnote
-- **Live citation preview** -- see the formatted output before inserting
-- **Click-to-edit** -- click any citation in a footnote to edit it in the task pane
+- **Every AGLC4 source type** -- all 26 chapters, 80+ source types across domestic, secondary, international and foreign materials. See [AGLC4 Feature Coverage](docs/aglc4-coverage.md) for the rule-by-rule audit
+- **Insert by source type** -- pick the source type, fill in the fields the rule requires, and Obiter inserts the footnote at the cursor. Typeahead search draws on AustLII, Jade.io and the Federal Register of Legislation
+- **Live preview** -- the formatted citation, with its italics and punctuation, is shown before you insert. The preview is editable: click into it to adjust an unusual citation, and the edited text is inserted as a manual override
+- **Parse with AI (optional)** -- paste a citation into **Paste Citation** and click **Parse** to have the fields extracted, or use **Help me choose** to identify the source type from a description. Bring your own API key
+- **Short titles, linking phrases and explanatory footnotes** -- short titles are assigned on first citation; quoting, cited in, affirmed by and the other Rule 1.3 phrases connect citations; commentary and citations mix in one footnote
+- **Click to edit** -- click any citation Obiter inserted and the Edit view opens with its data loaded
 
-### Document Tools
+### Subsequent references
 
-- **Bibliography generation** -- one-click bibliography with correct AGLC4 section ordering (Rule 1.13)
-- **Document validation** -- scan for formatting issues, broken references, and missing fields
-- **AGLC4 document template** -- margins, fonts, spacing, and five heading levels applied in one step
-- **Quotation formatting** -- auto block quote, ellipsis insertion, [sic], editorial brackets, emphasis annotation
-- **Inline body-text formatting** -- automatic italicisation of case names on subsequent mention
-- **Latin term auto-italicisation** -- automatic italicisation of common Latin legal terms
-- **Live refresh** -- ibid, short references, and cross-reference numbers recalculate when footnotes change
-- **Citation find panel** -- search and navigate to any citation in the document
+- **Ibid** -- repeated sources get *ibid* when the preceding footnote cites that single source (Rule 1.4.3), and a short form otherwise
+- **Short forms with cross-reference notes** -- `Short Title (n X)` where X is the footnote of the first full citation, held as fields so the numbers follow reordering (Rules 1.4.1--1.4.6)
+- **Refresh All** -- one action rescans the document and recalculates every ibid, short form and cross-reference number. Auto-refresh runs it after every insert if you leave it on
+- **Occurrences and locks** -- see every footnote a source appears in, change one occurrence's format or pinpoint, or lock a footnote so a refresh never overwrites a hand correction
 
-### Court Submission Mode
+### Checking the document
 
-- **12+ jurisdictional presets** -- HCA, FCA, NSW, Vic, Qld, WA, SA, Tas, ACT, NT, and more
-- **Parallel citations** -- dual MNC + authorised report formatting as required by court practice directions
-- **List of Authorities generation** -- formatted for the selected jurisdiction
-- **Ibid suppression** -- replaces ibid with explicit short references for court filings
+- **Validation** -- scans the whole document for footnote structure, missing required fields, typography (dashes, quotation marks, ellipses), date and number formatting, and abbreviations against the AGLC4 appendices; results are grouped by severity and click through to the footnote
+- **Check Reference with AI (optional)** -- verifies a citation's details against known sources and returns suggestions for you to confirm
+- **Format inline references** -- finds citation-like text in the body of a draft and offers to convert it to footnote citations
 
-### Additional Citation Standards
+### Bibliography
 
-- **OSCOLA 5** -- Oxford University Standard for Citation of Legal Authorities, 5th edition. England and Wales, Scotland, Northern Ireland, EU, and ECHR materials
-- **NZLSG 3** -- New Zealand Law Style Guide, 3rd edition. Includes Maori Land Court, Waitangi Tribunal, and general/commercial citation styles
+- **One-step bibliography** -- every citation sorted into the AGLC4 sections (Articles/Books/Reports, Cases, Legislation, Treaties, Other) and ordered within each (Rule 1.13); previewed in the pane, inserted at the end of the document, replaced on regeneration
+- **Include only cited sources** -- leave out library entries you no longer cite
 
-### International and Foreign Coverage
+### Styling and quotations
 
-- **International materials** -- treaties, UN documents, ICJ, PCIJ, ICC, international arbitration, WTO, GATT, EU, ECHR, and other supranational courts (Chapters 8--14)
-- **12 foreign jurisdictions** -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, United Kingdom, United States, and others (Chapters 15--26)
+- **AGLC4 document setup** -- margins, fonts, spacing and footnote formatting applied in one step, with a Title & Author section (Rule 1.12.1) and the five heading levels I--V (Rule 1.12.2)
+- **Quotation tools** -- **Format Quotation** sets a selection as a block quotation for three or more lines or in single quotation marks otherwise (Rule 1.5.1); **Apply Block Quote**, **Insert Ellipsis** (Rule 1.5.3), **Editorial [Brackets]** (Rule 1.5.4), **Insert [sic]** (Rule 1.5.5), the five **Insert Annotation** clauses of Rule 1.5.7, and **Add Emphasis**, which italicises the selection and appends "(emphasis added)" (Rule 1.8.1)
+- **Latin auto-italicisation** -- common Latin legal terms italicised in body text and footnotes
+- **Inline body-text formatting** -- case names italicised on subsequent mention in the body
 
-### AI-Assisted Citation (Optional)
+### Quote from a source (paste or PDF)
 
-- **Parse with AI** -- paste a raw citation string and extract fields automatically via multi-turn conversation
-- **Help Me Choose** -- describe your source and get a source type recommendation
-- **Check Reference** -- verify citation details against known legal databases
-- **Error reporting** -- AI-assisted explanation of validation errors with suggested fixes
-- BYO API key. No data is sent without explicit user action. Works fully without AI enabled.
+- **Quote panel** -- reached from **Quote from a source…** in Styling, the **Quote** button on a library card, or the command palette. Paste a passage, choose the source and its pinpoint, and Obiter inserts the quotation and a footnote carrying the pinpoint (Rule 1.7.1), placed after the quotation (Rule 1.1.3)
+- **Paragraph markers become pinpoints** -- a judgment's own `[42]` markers are detected, removed from the quotation and offered as the paragraph pinpoint, set in square brackets with an en dash for spans (Rules 1.1.6 and 1.1.7)
+- **Block or inline** -- three or more lines become an indented block quotation without quotation marks; shorter passages are set inline in single quotation marks (Rule 1.5.1)
+- **Load a PDF** -- the text of a judgment or article is extracted on your device; pick a page, select the passage, click **Use selection**, and the printed page number (PDF page plus a **Page offset**) is offered as the page pinpoint. Nothing is uploaded
 
-### Other
+### Summarise and ask (optional AI)
 
-- **Reference guide** -- searchable index of AGLC4 rules, abbreviations, and source types
-- **Import and export RIS, EndNote XML, BibTeX and CSL-JSON** -- move libraries to and from EndNote, Zotero, Mendeley and library catalogues; Word Source Manager import
-- **Typeahead search** via AustLII, Jade.io, and Federal Register of Legislation
-- **Dark mode** -- respects the Word theme
-- **WCAG 2.2 AA accessible** -- keyboard-first, screen-reader friendly, Comfort mode, reduced-motion and Windows Contrast Themes support
-- **Works offline** after initial installation
+- **Summarise** the passage or PDF pages you loaded, or **Ask** a question about them, with your own API key. Only the text you loaded and ticked is sent, and only when you press the button, which names the provider and the number of words it will send. Answers are drawn only from that text. Insert the result as a note or copy it
+
+### Citation library
+
+- **Library view** -- every citation in the document with search, source-type filter and sort; insert as Auto, Full, Short or Ibid with a pinpoint
+- **Tags** -- add tags in the Edit view (Enter or a comma adds one; system tags from imports are shown read-only). Tags appear as chips on library cards, filter the library, and travel as keywords when you export and import
+- **Find duplicates** -- a library-wide sweep groups records that share a DOI, ISBN, citation key, medium neutral or report citation, or statute title and year, or that have a similar title and year. Choose which record to keep, pick the value of every field that differs, and **Merge**: the other records' footnotes are retargeted to the survivor and a snapshot is taken first. **Not a duplicate** is remembered so the group does not return
+- **Record details** -- in the Edit view: when a record was created and modified, where it came from (import format or the online source it was found through), its identifiers (DOI, ISBN, ISSN, cite key, accession and call numbers), abstract and notes, the passthrough fields kept for export, links to the source (URL, DOI, AustLII, Jade), **Cases citing this** via LawCite and Jade, and the previous versions held in the document's backups, each restorable
+- **Update from source** -- re-query the online source a citation was found through (or any enabled source for its type) and lay the result beside the current values; fields the library has blank are pre-selected, every other difference waits for you, and **Apply selected** writes the merge. Honours the source lookup toggles in Settings
+- **Cited by** -- for a journal article with a DOI, **Look up citing works** lists the works that cite it (OpenAlex) with a count (Crossref); **Add to library** stores a citing work as a journal article linked to the article it cites with the Rule 1.3 phrase "citing"
+- **Import** -- RIS from library catalogues, EndNote XML (including libraries built with the UTS AGLC4 reference types), BibTeX, CSL-JSON and Word's Source Manager. Every record is previewed with the AGLC source type Obiter chose, the formatted citation and its status; retype or exclude rows, and tick **Update existing** to refresh a record exported from this document rather than duplicate it
+- **Export** -- the whole library, the selected citations, or the ones shown by the current search, as RIS, EndNote XML (UTS AGLC4 or generic reference types), BibTeX, CSL-JSON or a formatted AGLC list; download, copy to the clipboard or show as text
+
+### Repair and recovery
+
+- **Scan & Repair** -- a read-only deep scan of body, footnotes and endnotes that relinks Obiter citation markers, rebuilds lost library entries and adopts plain-text citations; nothing changes until you confirm the preview
+- **Recovery** -- restore the library from an in-document snapshot, put back a footnote's previous text, review footnotes a refresh skipped because you had edited them, and salvage quarantined data
+
+### Court submission mode
+
+- **12+ jurisdictional presets** -- HCA, FCA, NSW, Vic, Qld, WA, SA, Tas, ACT, NT and more
+- **Parallel citations** -- medium neutral plus authorised report, as court practice directions require
+- **List of Authorities** -- generated for the selected jurisdiction
+- **Ibid suppression** -- explicit short forms in place of ibid for filed documents
+
+### Other standards and jurisdictions
+
+- **OSCOLA 5** -- Oxford University Standard for Citation of Legal Authorities, 5th edition: England and Wales, Scotland, Northern Ireland, EU and ECHR materials
+- **NZLSG 3** -- New Zealand Law Style Guide, 3rd edition, including Maori Land Court, Waitangi Tribunal, and general and commercial styles
+- **International materials** -- treaties, UN documents, ICJ, PCIJ, ICC, international arbitration, WTO, GATT, EU, ECHR and other supranational courts (Chapters 8--14)
+- **12 foreign jurisdictions** -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, United Kingdom, United States and others (Chapters 15--26)
 - **AGLC5 ready** -- version-parameterised rule engine designed for a clean upgrade path
+
+### Reference guide
+
+- **Searchable rules** -- the rules of the active standard by keyword or rule number, with an **Abbreviations** tab for Appendices A--C and a **Source Types** tab listing the required and optional fields of every type
+
+### Accounts (optional)
+
+- **Sign in** from Settings to keep your provider API keys in an encrypted vault and to sync settings across devices. Sync carries the AI configuration (never the key), auto-refresh, template preferences and court toggles; signing in on another device restores the provider and turns the AI features back on
+- **Multi-factor authentication** with an authenticator app, **Export my data**, and **Delete account**, all from the task pane or the web portal. Obiter works fully without an account, and citation data is never synced
+
+### Everywhere
+
+- **Command palette** (Ctrl/Cmd + K) runs any action by name; **dark mode** follows the Word theme; **WCAG 2.2 AA** accessible with Comfort mode, reduced-motion and Windows Contrast Themes support; works offline after installation
 
 ## Accessibility and keyboard
 
@@ -151,7 +183,8 @@ src/
   word/               Office.js adapter layer (footnotes, content controls, styles)
   ui/                 React 18 task pane
   llm/                Optional LLM integration (OpenAI, Anthropic, Gemini, Grok, DeepSeek, custom)
-  api/                External API clients (AustLII, Jade.io, legislation.gov.au)
+  api/                External API clients (AustLII, Jade.io, legislation.gov.au) and
+                      interchange codecs (RIS, EndNote XML, BibTeX, CSL-JSON)
 tests/
   engine/             Unit tests per chapter
 ```
@@ -174,8 +207,11 @@ npm test
 
 Obiter has no remote-control channel and no server-side copy of your work: citation data lives
 in a Custom XML Part inside your own `.docx`, and document content leaves your machine only via
-optional, user-initiated LLM or source-lookup calls. Trust boundaries, threat classes,
-mitigations, and accepted risks are documented in the [threat model](docs/THREAT-MODEL.md).
+optional, user-initiated LLM or source-lookup calls. A PDF loaded into the Quote panel is read in
+the browser and its text never leaves your device; the AI summarise and ask features send only
+the text you loaded and submitted, and only when you press the button that names the provider
+and the size of the request. Trust boundaries, threat classes, mitigations, and accepted risks
+are documented in the [threat model](docs/THREAT-MODEL.md).
 
 ## Contributing
 

@@ -16,6 +16,7 @@
 import type { Author, Citation, SourceType } from "../../../types/citation";
 import { generateCitationId } from "../../../actions/citationRequest";
 import { listMissingRequiredFields } from "../../../engine/validator";
+import { normaliseTags } from "../../../engine/tags";
 import type {
   CitationInterchangeBag,
   InterchangeCreator,
@@ -883,7 +884,7 @@ function buildBag(
   const ids = { ...record.identifiers };
   delete ids.urls;
   if (Object.values(ids).some(Boolean)) bag.identifiers = ids;
-  if (record.keywords.length > 0) bag.keywords = record.keywords;
+  // Keywords become user tags on the citation (ENP-001), not bag entries.
   const abstract = truncate(record.abstract, issues, "abstract");
   if (abstract) bag.abstract = abstract;
   const notes = record.notes.filter(
@@ -1021,6 +1022,9 @@ export function mapRecordToCitation(
   const tags = ["import", `import:${record.provenance.format}`];
   if (record.provenance.format === "bibtex") tags.push("imported-from-bibtex");
   if (record.provenance.format === "word-sources-xml") tags.push("imported-from-word");
+  // ENP-001: the record's keywords become user tags (a legacy Obiter export
+  // wrote them as `obiter-tag:` keywords; strip that prefix).
+  tags.push(...normaliseTags(record.keywords.map((k) => k.replace(/^obiter-tag:/, ""))));
 
   const citation: Citation = {
     id: record.provenance.obiterId ?? generateCitationId(),

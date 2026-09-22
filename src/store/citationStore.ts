@@ -19,6 +19,7 @@ import {
   deserializeStore,
 } from "./xmlSerializer";
 import { addSnapshot } from "./backupStore";
+import type { SnapshotReason } from "./backupSerializer";
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
 import { createLogger } from "../debug/logger";
@@ -685,6 +686,32 @@ export class CitationStore {
       citations: data.citations.length,
       previousCitations: currentCount,
     });
+  }
+
+  /**
+   * Snapshot the current in-memory library into the backup ring before a
+   * destructive multi-step edit (ENP-003: a duplicate merge discards the
+   * removed members' data). Best-effort: a backup failure is logged and
+   * reported as `false`, never thrown, so it cannot block the edit itself.
+   *
+   * @returns true when a snapshot was written, false when policy skipped it
+   *   or the write failed.
+   */
+  async takeSnapshot(reason: SnapshotReason): Promise<boolean> {
+    this.ensureInitialised();
+    const xml = this.serializeCurrentStore();
+    const count = this.storeData!.citations.length;
+    try {
+      return await Word.run((context) =>
+        addSnapshot(context, { storeXml: xml, citationCount: count, reason })
+      );
+    } catch (err: unknown) {
+      log.warn("takeSnapshot: backup snapshot failed", {
+        reason,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return false;
+    }
   }
 
   /**

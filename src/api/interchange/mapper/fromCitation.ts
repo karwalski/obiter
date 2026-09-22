@@ -9,6 +9,7 @@
 
 import type { Author, Citation } from "../../../types/citation";
 import { readFieldWithAliases } from "../../../engine/fieldAliases";
+import { normaliseTags, userTags } from "../../../engine/tags";
 import { normaliseAuthorList } from "../../../engine/rules/v4/secondary/authors";
 import type { JudicialOfficerRef } from "../../../engine/rules/v4/domestic/cases-supplementary";
 import type {
@@ -90,7 +91,6 @@ export function mapCitationToRecord(
 
   if (bag) {
     if (bag.identifiers) record.identifiers = { ...bag.identifiers };
-    if (bag.keywords) record.keywords = [...bag.keywords];
     if (bag.abstract) record.abstract = bag.abstract;
     if (bag.notes) record.notes = [...bag.notes];
     if (bag.language) record.language = bag.language;
@@ -99,9 +99,15 @@ export function mapCitationToRecord(
       record.passthrough = { ...bag.passthrough };
     }
   }
-  if (citation.tags.length > 0) {
-    for (const tag of citation.tags) {
-      if (!tag.startsWith("import")) record.keywords.push(`obiter-tag:${tag}`);
+  // ENP-001: user tags travel as the record's keywords; system tags never
+  // leave the document. Keywords a pre-tags import kept in the bag are
+  // still exported when they are not already tags.
+  const tags = Array.isArray(citation.tags) ? citation.tags : [];
+  record.keywords = normaliseTags(userTags(tags));
+  if (bag?.keywords) {
+    for (const keyword of bag.keywords) {
+      const normalised = normaliseTags([keyword.replace(/^obiter-tag:/, "")])[0];
+      if (normalised && !record.keywords.includes(normalised)) record.keywords.push(keyword);
     }
   }
 

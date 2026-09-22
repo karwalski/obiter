@@ -7,6 +7,10 @@
  * Queries the Crossref REST API for journal article metadata.
  * Uses the polite pool (mailto param) when a contact email is stored
  * in the key vault, falling back to the anonymous tier at 1 RPS.
+ *
+ * ENP-008: also a CitatorAdapter — Crossref reports how many works cite a
+ * DOI (`is-referenced-by-count`) but does not list them, so `citedBy`
+ * returns the count with an empty works list.
  */
 
 import type {
@@ -16,6 +20,8 @@ import type {
   SourceMetadata,
   SearchFilters,
   AdapterHealth,
+  CitatorAdapter,
+  CitedByResult,
 } from "../sourceAdapter";
 import { getKey } from "../keyVault";
 
@@ -42,6 +48,8 @@ interface CrossrefWork {
   page?: string;
   "published-print"?: CrossrefDateParts;
   "published-online"?: CrossrefDateParts;
+  /** ENP-008: number of works in Crossref that cite this one. */
+  "is-referenced-by-count"?: number;
 }
 
 interface CrossrefSearchResponse {
@@ -70,7 +78,11 @@ const SELECT_FIELDS = [
   "page",
   "published-print",
   "published-online",
+  "is-referenced-by-count",
 ].join(",");
+
+/** ENP-008: attribution line for a Crossref citation count. */
+export const CROSSREF_COUNT_ATTRIBUTION = "Count from Crossref";
 
 function extractYear(work: CrossrefWork): number | undefined {
   const pub = work["published-print"] ?? work["published-online"];
@@ -117,7 +129,7 @@ function buildMailtoParam(): string {
 // Adapter
 // ---------------------------------------------------------------------------
 
-export class CrossrefAdapter implements SourceAdapter {
+export class CrossrefAdapter implements SourceAdapter, CitatorAdapter {
   readonly descriptor: SourceAdapterDescriptor = {
     id: "crossref",
     displayName: "Crossref",
@@ -163,6 +175,16 @@ export class CrossrefAdapter implements SourceAdapter {
   }
 
   async resolve(doi: string): Promise<SourceMetadata | null> {
+    const work = await this.fetchWork(doi);
+    return work ? mapWorkToMetadata(work) : null;
+  }
+
+  async getMetadata(doi: string): Promise<SourceMetadata | null> {
+    return this.resolve(doi);
+  }
+
+  /** GET /works/{doi}: the full work record, or null when Crossref has none. */
+  private async fetchWork(doi: string): Promise<CrossrefWork | null> {
     const mailto = buildMailtoParam();
     const encodedDoi = encodeURIComponent(doi);
     const url = `${BASE_URL}/works/${encodedDoi}${mailto ? "?" + mailto.slice(1) : ""}`;
@@ -174,11 +196,22 @@ export class CrossrefAdapter implements SourceAdapter {
     if (!response.ok) return null;
 
     const data: CrossrefSingleResponse = await response.json();
-    return mapWorkToMetadata(data.message);
+    return data.message ?? null;
   }
 
-  async getMetadata(doi: string): Promise<SourceMetadata | null> {
-    return this.resolve(doi);
+  /**
+   * ENP-008: how many works cite this DOI. Crossref does not list the citing
+   * works themselves, so `works` is always empty here; OpenAlex supplies the
+   * rows.
+   */
+  async citedBy(doi: string, _limit?: number): Promise<CitedByResult> {
+    const work = await this.fetchWork(doi);
+    const raw = work?.["is-referenced-by-count"];
+    return {
+      count: typeof raw === "number" ? raw : null,
+      works: [],
+      attribution: CROSSREF_COUNT_ATTRIBUTION,
+    };
   }
 
   async healthcheck(): Promise<AdapterHealth> {

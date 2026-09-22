@@ -463,7 +463,9 @@ describe("record to citation: golden AGLC4 renderings", () => {
     };
     expect(bag.v).toBe(1);
     expect(bag.identifiers?.doi).toBe("10.1/x");
-    expect(bag.keywords).toEqual(["tort"]);
+    // ENP-001: keywords become user tags rather than bag entries.
+    expect(bag.keywords).toBeUndefined();
+    expect(citation.tags).toContain("tort");
   });
 
   test("writes only contract keys for the mapped types", () => {

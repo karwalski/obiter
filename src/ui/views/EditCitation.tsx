@@ -4,8 +4,14 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useCitationContext } from "../context/CitationContext";
 import { getSharedStore, getSharedStoreIfReady } from "../../store/singleton";
+import { listSnapshots, getSnapshot } from "../../store/backupStore";
+import { deserializeStore } from "../../store/xmlSerializer";
+import { listCitationVersions } from "../../store/citationHistory";
+import type { CitationVersion } from "../../store/citationHistory";
+import { writeErrorMessage } from "../../word/documentAccess";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
@@ -24,6 +30,13 @@ import { getCitationLabel } from "./CitationLibrary";
 import { getFormattedPreview } from "../../engine/engine";
 import type { FormattedRun } from "../../types/formattedRun";
 import CitationPreview from "../components/CitationPreview";
+import TagEditor from "../components/TagEditor";
+import RecordDetails, { formatRecordTime } from "../components/RecordDetails";
+import UpdateFromSourceDialog from "../components/UpdateFromSourceDialog";
+import { canUpdateFromSource } from "../../api/updateFromSource";
+import type { SourceUpdateResult } from "../../api/updateFromSource";
+import { useStatus } from "../context/StatusContext";
+import { userTags } from "../../engine/tags";
 import { getFieldsForSourceType, applyFieldAliases } from "./editCitationFields";
 import { nameListToStr, parseNameList } from "../nameList";
 import {
@@ -151,7 +164,13 @@ function withParsedNameLists(sourceType: SourceType, data: SourceData): SourceDa
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function EditCitation(): JSX.Element {
-  const { selectedCitationId, setSelectedCitationId, focusField, setFocusField, refreshCounter } = useCitationContext();
+  const { selectedCitationId, setSelectedCitationId, focusField, setFocusField, refreshCounter, triggerRefresh } = useCitationContext();
+
+  // ENP-005: the library's "Details" action navigates here with
+  // `state.expandDetails` so the record details panel opens straight away.
+  const location = useLocation();
+  const expandDetails =
+    (location.state as { expandDetails?: boolean } | null | undefined)?.expandDetails === true;
 
   // Refs for scroll-to-field support
   const pinpointRef = useRef<HTMLInputElement>(null);
@@ -161,6 +180,8 @@ export default function EditCitation(): JSX.Element {
   const [allCitations, setAllCitations] = useState<Citation[]>([]);
   const [formData, setFormData] = useState<SourceData>({});
   const [shortTitle, setShortTitle] = useState("");
+  // ENP-001: the full tags array (system tags kept in place, user tags after).
+  const [tags, setTags] = useState<string[]>([]);
   const [formatPreference, setFormatPreference] = useState<FormatPreference>("auto");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -204,6 +225,11 @@ export default function EditCitation(): JSX.Element {
   const [lockedTextDraft, setLockedTextDraft] = useState("");
   const [lockedTextBusy, setLockedTextBusy] = useState(false);
 
+  // ENP-007: the Update from source dialog and the button that opened it.
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const updateButtonRef = useRef<HTMLButtonElement>(null);
+  const { announce } = useStatus();
+
   // Load the active standard on mount
   useEffect(() => {
     void (async () => {
@@ -217,6 +243,42 @@ export default function EditCitation(): JSX.Element {
   }, []);
 
   const standardConfig = getStandardConfig(standardId);
+
+  /**
+   * Load every form field from a stored citation. Shared by the initial load
+   * and ENP-005's restore, which replaces the record wholesale.
+   */
+  const populateForm = useCallback((found: Citation): void => {
+    // Populate canonical field keys from any aliases the data was stored
+    // under (e.g. a paste-parsed unreported case keeps its court in
+    // `courtId`), so those fields load their value instead of blank.
+    setFormData(applyFieldAliases(found.data, getFieldsForSourceType(found.sourceType)));
+    setShortTitle(found.shortTitle ?? "");
+    setTags(Array.isArray(found.tags) ? [...found.tags] : []);
+    setSignal(found.signal ?? "");
+    setCommentaryBefore(found.commentaryBefore ?? "");
+    setCommentaryAfter(found.commentaryAfter ?? "");
+    setOverrideText(found.overrideText ?? "");
+    // Restore format preference from data if previously saved
+    const savedPref = found.data._formatPreference;
+    if (
+      typeof savedPref === "string" &&
+      (savedPref === "auto" || savedPref === "full" || savedPref === "short" || savedPref === "ibid")
+    ) {
+      setFormatPreference(savedPref as FormatPreference);
+    } else {
+      setFormatPreference("auto");
+    }
+  }, []);
+
+  // ENP-001: every user tag in the library, offered as a completion.
+  const tagSuggestions = useMemo((): string[] => {
+    const seen = new Set<string>();
+    for (const c of allCitations) {
+      for (const tag of userTags(Array.isArray(c.tags) ? c.tags : [])) seen.add(tag);
+    }
+    return [...seen];
+  }, [allCitations]);
 
   // Preview runs — rebuilds whenever form data or citation changes
   const previewRuns = useMemo((): FormattedRun[] => {
@@ -266,6 +328,7 @@ export default function EditCitation(): JSX.Element {
       setCitation(null);
       setFormData({});
       setShortTitle("");
+      setTags([]);
       setFormatPreference("auto");
       setSignal("");
       setCommentaryBefore("");
@@ -303,25 +366,7 @@ export default function EditCitation(): JSX.Element {
 
         setLoadError(null);
         setCitation(found);
-        // Populate canonical field keys from any aliases the data was stored
-        // under (e.g. a paste-parsed unreported case keeps its court in
-        // `courtId`), so those fields load their value instead of blank.
-        setFormData(applyFieldAliases(found.data, getFieldsForSourceType(found.sourceType)));
-        setShortTitle(found.shortTitle ?? "");
-        setSignal(found.signal ?? "");
-        setCommentaryBefore(found.commentaryBefore ?? "");
-        setCommentaryAfter(found.commentaryAfter ?? "");
-        setOverrideText(found.overrideText ?? "");
-        // Restore format preference from data if previously saved
-        const savedPref = found.data._formatPreference;
-        if (
-          typeof savedPref === "string" &&
-          (savedPref === "auto" || savedPref === "full" || savedPref === "short" || savedPref === "ibid")
-        ) {
-          setFormatPreference(savedPref as FormatPreference);
-        } else {
-          setFormatPreference("auto");
-        }
+        populateForm(found);
       } catch (err) {
         if (!cancelled) {
           // UX-002: Store or content control error — surface reload option
@@ -341,7 +386,7 @@ export default function EditCitation(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [selectedCitationId]);
+  }, [selectedCitationId, populateForm]);
 
   // ─── Focus Field: scroll to pinpoint or format section on CC click ───────
 
@@ -601,6 +646,7 @@ export default function EditCitation(): JSX.Element {
     setCitation(null);
     setFormData({});
     setShortTitle("");
+    setTags([]);
     setFormatPreference("auto");
     setSignal("");
     setCommentaryBefore("");
@@ -633,6 +679,7 @@ export default function EditCitation(): JSX.Element {
         commentaryBefore: commentaryBefore || undefined,
         commentaryAfter: commentaryAfter || undefined,
         overrideText: overrideText || undefined,
+        tags,
         modifiedAt: new Date().toISOString(),
       };
 
@@ -656,7 +703,78 @@ export default function EditCitation(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [citation, formData, shortTitle, formatPreference, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
+  }, [citation, formData, shortTitle, tags, formatPreference, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
+
+  // ─── ENP-005: Record details (history, provenance, links) ────────────────
+
+  // The current formatted full citation, as plain text, for the LawCite
+  // lookup; the preview's closing full stop is not part of the citation.
+  const citationText = useMemo(
+    (): string => previewRuns.map((run) => run.text).join("").trim().replace(/\.$/, ""),
+    [previewRuns]
+  );
+
+  const loadVersions = useCallback((): Promise<CitationVersion[]> => {
+    if (!citation) return Promise.resolve([]);
+    return listCitationVersions(citation, {
+      listSnapshots,
+      getSnapshot,
+      parseStoreXml: deserializeStore,
+    });
+  }, [citation]);
+
+  const handleRestoreVersion = useCallback(
+    async (version: CitationVersion): Promise<void> => {
+      if (!citation) return;
+      setError(null);
+      setSuccessMessage(null);
+      try {
+        const store = await getSharedStore();
+        const restored: Citation = {
+          ...version.citation,
+          id: citation.id,
+          createdAt: citation.createdAt,
+          modifiedAt: new Date().toISOString(),
+        };
+        await store.update(restored);
+        setCitation(restored);
+        populateForm(restored);
+        triggerRefresh();
+        setSuccessMessage(`Restored the version from ${formatRecordTime(version.timestamp)}.`);
+      } catch (err) {
+        setError(writeErrorMessage(err, "Failed to restore the version."));
+      }
+    },
+    [citation, populateForm, triggerRefresh]
+  );
+
+  // ─── ENP-007: Update from source ─────────────────────────────────────────
+
+  const handleUpdateFromSourceApplied = useCallback(
+    async (mergedData: SourceData, applied: number, result: SourceUpdateResult): Promise<void> => {
+      if (!citation) return;
+      const store = await getSharedStore();
+      const updated: Citation = {
+        ...citation,
+        data: mergedData,
+        modifiedAt: new Date().toISOString(),
+      };
+      try {
+        await store.update(updated);
+      } catch (err) {
+        throw new Error(writeErrorMessage(err, "The citation could not be updated. Try again."));
+      }
+      setCitation(updated);
+      populateForm(updated);
+      triggerRefresh();
+      const label = result.adapterLabel ?? "the source";
+      const message = `Updated ${applied} field${applied === 1 ? "" : "s"} from ${label}.`;
+      setError(null);
+      setSuccessMessage(message);
+      announce(message, "success");
+    },
+    [citation, populateForm, triggerRefresh, announce]
+  );
 
   // ─── Delete Citation ──────────────────────────────────────────────────────
 
@@ -685,6 +803,7 @@ export default function EditCitation(): JSX.Element {
       setCitation(null);
       setFormData({});
       setShortTitle("");
+      setTags([]);
       setConfirmingDelete(false);
       setSuccessMessage("Citation removed from the document.");
     } catch (err) {
@@ -804,6 +923,7 @@ export default function EditCitation(): JSX.Element {
         <select
           className="edit-field-input"
           style={{ flex: 1, fontSize: 11 }}
+          aria-label="Switch to another citation"
           value={citation.id}
           onChange={(e) => {
             const newId = e.target.value;
@@ -841,6 +961,9 @@ export default function EditCitation(): JSX.Element {
           )}
         </div>
       )}
+
+      {/* ENP-001: user tags, saved with the citation. */}
+      <TagEditor tags={tags} onChange={setTags} suggestions={tagSuggestions} />
 
       <div aria-live="polite" role="status">
         {error && <p className="edit-error">Error: {error}</p>}
@@ -1363,6 +1486,17 @@ export default function EditCitation(): JSX.Element {
         )}
       </fieldset>
 
+      {/* ENP-005: provenance, identifiers, source links and previous versions */}
+      {citation && (
+        <RecordDetails
+          citation={citation}
+          citationText={citationText}
+          onRestore={handleRestoreVersion}
+          loadVersions={loadVersions}
+          initiallyOpen={expandDetails}
+        />
+      )}
+
       {/* Citation Preview — editable: paste/type a citation to repopulate fields */}
       <fieldset className="settings-section" style={{ marginTop: 8 }}>
         <legend className="settings-section-title">Preview</legend>
@@ -1399,6 +1533,22 @@ export default function EditCitation(): JSX.Element {
           Discard
         </button>
 
+        {/* ENP-007: refetch the record from its online source */}
+        {citation && (() => {
+          const gate = canUpdateFromSource(citation);
+          return (
+            <button
+              ref={updateButtonRef}
+              className="edit-btn edit-btn-secondary"
+              onClick={() => setUpdateOpen(true)}
+              disabled={loading || !gate.ok}
+              title={gate.ok ? "Refetch this citation from its online source" : gate.reason}
+            >
+              Update from source
+            </button>
+          );
+        })()}
+
         {!confirmingDelete ? (
           <button
             className="edit-btn edit-btn-danger"
@@ -1429,6 +1579,16 @@ export default function EditCitation(): JSX.Element {
           </div>
         )}
       </div>
+
+      {updateOpen && citation && (
+        <UpdateFromSourceDialog
+          citation={citation}
+          citationText={citationText}
+          onApply={handleUpdateFromSourceApplied}
+          onClose={() => setUpdateOpen(false)}
+          returnFocusTo={updateButtonRef.current}
+        />
+      )}
     </div>
   );
 }

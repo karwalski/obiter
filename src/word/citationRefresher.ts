@@ -54,6 +54,7 @@ import {
 } from "./footnoteManager";
 import { hashRenderedText } from "../utils/textHash";
 import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
+import { pinpointFromTitleString } from "../engine/rules/v4/general/pinpoints";
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -140,8 +141,10 @@ export type OnBeforeRebuild = (entries: RebuildCandidate[]) => Promise<void>;
 /**
  * Information about a single child citation content control within a
  * parent `obiter-fn` CC, in document order.
+ *
+ * Exported for tests (renderFootnoteCitations takes these).
  */
-interface ChildEntry {
+export interface ChildEntry {
   /** The citation ID (child content control tag — a UUID). */
   citationId: string;
   /** 1-based footnote number. */
@@ -157,8 +160,10 @@ interface ChildEntry {
 /**
  * Information about a single footnote's parent content control and its
  * child citation entries.
+ *
+ * Exported for tests (renderFootnoteCitations takes these).
  */
-interface FootnoteEntry {
+export interface FootnoteEntry {
   /** The parent content control proxy object (tag = "obiter-fn"). */
   parentCC: Word.ContentControl;
   /** 1-based footnote number. */
@@ -189,10 +194,54 @@ export interface RenderedCitation {
   renderedFormat: RenderedFormat;
   /** Per-occurrence pinpoint to preserve across rebuild cycles. */
   pinpoint?: string;
+  /**
+   * The pinpoint this occurrence actually rendered with — the title pinpoint
+   * when present, else the citation's stored pinpoint. Feeds the next
+   * footnote's `precedingPinpoint` for ibid resolution (Rule 1.4.3).
+   */
+  effectivePinpoint?: Pinpoint;
   /** User format preference to preserve across rebuild cycles. */
   formatPreference: "auto" | "full" | "short" | "ibid";
   /** Whether this is an explanatory note (uses sentence separator). */
   isNote?: boolean;
+}
+
+/**
+ * Resolves the pinpoint an occurrence renders with.
+ *
+ * The per-occurrence pinpoint from the CC title takes priority over the
+ * citation's stored pinpoint (different footnotes can cite different pages
+ * of the same source). The title text is decoded to its TYPE with
+ * `pinpointFromTitleString` — `[42]` is a paragraph, `s 5` a section, a bare
+ * `42` a page — so a first-occurrence footnote re-renders with exactly the
+ * pinpoint it was inserted with (Rules 1.1.6 / 2.2.5), not as page 42.
+ *
+ * A stored pinpoint may be a `Pinpoint` object or a plain string typed into
+ * the citation form; a plain string is a page (the engine's own coercion).
+ * An empty or partial value is dropped so it never renders as "undefined".
+ *
+ * Pure — exported for tests.
+ */
+export function resolveOccurrencePinpoint(
+  titlePinpoint: string | undefined,
+  storedPinpoint: unknown
+): Pinpoint | undefined {
+  if (typeof titlePinpoint === "string" && titlePinpoint.trim() !== "") {
+    return pinpointFromTitleString(titlePinpoint);
+  }
+  if (typeof storedPinpoint === "string") {
+    const trimmed = storedPinpoint.trim();
+    return trimmed ? { type: "page", value: trimmed } : undefined;
+  }
+  if (
+    storedPinpoint &&
+    typeof storedPinpoint === "object" &&
+    typeof (storedPinpoint as Pinpoint).value === "string" &&
+    (storedPinpoint as Pinpoint).value.trim() !== ""
+  ) {
+    return storedPinpoint as Pinpoint;
+  }
+  return undefined;
 }
 
 /**
@@ -593,9 +642,9 @@ async function renderAndRebuild(
       continue;
     }
 
-    // Track the pinpoint of the last citation in this footnote for ibid
-    const lastCitationId = rendered[rendered.length - 1].citationId;
-    prevFootnotePinpoint = store.getById(lastCitationId)?.data.pinpoint as Pinpoint | undefined;
+    // Track the pinpoint the last citation in this footnote rendered with
+    // (title pinpoint first, else the stored one) for ibid (Rule 1.4.3).
+    prevFootnotePinpoint = rendered[rendered.length - 1].effectivePinpoint;
 
     // Locked (frozen) footnote: keep ibid/numbering tracking current (rendered
     // above, pure — no Word writes) but do NOT touch the parent CC, so its text
@@ -781,7 +830,7 @@ export function isImmediatelyPrecedingInFootnote(
  *
  * @returns An array of RenderedCitation objects in document order.
  */
-function renderFootnoteCitations(
+export function renderFootnoteCitations(
   fnEntry: FootnoteEntry,
   store: CitationStore,
   config: CitationConfig,
@@ -821,26 +870,10 @@ function renderFootnoteCitations(
       prevFootnoteCitationIds.includes(child.citationId);
 
     const firstFootnoteNumber = footnoteMap.get(child.citationId) ?? fnEntry.footnoteNumber;
-    // Per-occurrence pinpoint from the CC title takes priority over
-    // the citation's stored pinpoint (different footnotes can cite
-    // different pages of the same source).
+    // Per-occurrence (typed) pinpoint — title first, else stored. Passed to
+    // formatCitation for first and subsequent occurrences alike.
     // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
-    const rawPinpoint = child.pinpoint ?? citation.data.pinpoint;
-    let currentPinpoint: Pinpoint | undefined;
-    if (typeof rawPinpoint === "string") {
-      const trimmed = rawPinpoint.trim();
-      currentPinpoint = trimmed ? { type: "page" as const, value: trimmed } : undefined;
-    } else if (
-      rawPinpoint &&
-      typeof (rawPinpoint as Pinpoint).value === "string" &&
-      (rawPinpoint as Pinpoint).value.trim() !== ""
-    ) {
-      // A Pinpoint object with a real value. An empty/partial one (value
-      // undefined) is dropped so it never renders as "undefined".
-      currentPinpoint = rawPinpoint as Pinpoint;
-    } else {
-      currentPinpoint = undefined;
-    }
+    const currentPinpoint = resolveOccurrencePinpoint(child.pinpoint, citation.data.pinpoint);
 
     const citationContext: CitationContext = {
       footnoteNumber: fnEntry.footnoteNumber,
@@ -902,6 +935,7 @@ function renderFootnoteCitations(
       signal: citation.signal,
       renderedFormat,
       pinpoint: child.pinpoint,
+      effectivePinpoint: currentPinpoint,
       formatPreference: child.formatPreference,
       // eslint-disable-next-line office-addins/call-sync-before-read, office-addins/load-object-before-read -- plain store Citation object, not an Office proxy
       isNote: citation.sourceType === "explanatory_note",

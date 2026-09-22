@@ -69,6 +69,20 @@ export function readFileAsText(file: Blob, encoding?: string): Promise<string> {
   });
 }
 
+/** Reads an uploaded file as an ArrayBuffer (ENP-011: PDF passages). */
+export function readFileAsArrayBuffer(file: Blob): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (result instanceof ArrayBuffer) resolve(result);
+      else reject(new Error("File could not be read"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("File could not be read"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 /** Local date as YYYY-MM-DD (never the UTC date, which rolls over at night in AEST). */
 export function todayStamp(now: Date = new Date()): string {
   const pad = (n: number): string => String(n).padStart(2, "0");

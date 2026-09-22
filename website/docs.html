@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Obiter Documentation — AGLC Referencing in Microsoft Word</title>
-  <meta name="description" content="Complete walkthrough of every Obiter feature. Learn how to install the add-in, insert citations, generate bibliographies, validate your document, and more.">
+  <meta name="description" content="Complete walkthrough of every Obiter feature: insert AGLC citations, quote from a PDF, tag and de-duplicate the library, import, export and validate.">
   <link rel="canonical" href="https://obiter.com.au/docs.html">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Obiter">
@@ -72,8 +72,15 @@
           <li><a href="#citation-library">Citation Library</a></li>
           <li><a href="#subsequent-references">Subsequent References</a></li>
           <li><a href="#editing-citations">Editing Citations</a></li>
+          <li><a href="#tags">Tags</a></li>
+          <li><a href="#duplicates">Find Duplicates</a></li>
+          <li><a href="#record-details">Record Details and Previous Versions</a></li>
+          <li><a href="#update-from-source">Update from Source</a></li>
+          <li><a href="#cited-by">Cited By</a></li>
+          <li><a href="#quotations">Quotations</a></li>
           <li><a href="#bibliography">Bibliography</a></li>
           <li><a href="#validation">Validation</a></li>
+          <li><a href="#scan-repair">Scan and Repair, and Recovery</a></li>
           <li><a href="#reference-guide">Reference Guide</a></li>
           <li><a href="#ai-assistant">AI Assistant (Optional)</a></li>
           <li><a href="#settings">Settings</a></li>
@@ -141,9 +148,10 @@
         <p>
           AGLC4 defines five heading levels with specific formatting. Obiter
           provides toolbar pills (labelled I through V) in the ribbon that
-          apply the correct heading style to the current paragraph. Heading I
-          is the highest level (centred, bold, uppercase), while Heading V is
-          the lowest.
+          apply the correct heading style to the current paragraph. Level I is
+          the highest (small capitals, centred, numbered I, II, III), Levels
+          II to V are italic, and each level carries its own numbering
+          (Rule 1.12.2). The same five buttons are in the Styling view.
         </p>
         <p>
           Select the text you want as a heading, then click the appropriate
@@ -253,10 +261,11 @@
 
         <h3>Parse with AI</h3>
         <p>
-          If you have AI enabled, you can paste a raw citation string and click
-          <strong>Parse with AI</strong>. Obiter will extract the individual
-          fields (case name, year, volume, etc.) and populate the form
-          automatically. This is particularly useful for bulk entry.
+          If you have AI enabled, paste a raw citation string into
+          <strong>Paste Citation</strong> and click <strong>Parse</strong>.
+          Obiter extracts the individual fields (case name, year, volume, and so
+          on) and fills in the form. Review the live preview before inserting.
+          Nothing is sent to the provider until you click Parse.
         </p>
 
         <h3>Short titles</h3>
@@ -304,7 +313,22 @@
         <p>
           Use the search field at the top of the library to filter citations by
           any text in the citation &mdash; case names, authors, titles, or
-          report series. You can also filter by source type category.
+          report series. You can also filter by source type category and, once
+          you have tagged citations, by tag (see Tags below). The toolbar also
+          offers <strong>Find duplicates</strong> and <strong>Scan &amp;
+          Repair</strong>, and <strong>Clear unused</strong> removes every
+          citation no footnote cites.
+        </p>
+
+        <h3>Library card actions</h3>
+        <p>
+          Each card has <strong>Edit</strong>, an <strong>Insert</strong> menu,
+          <strong>Details</strong> (opens the Edit view with the record details
+          expanded), <strong>Quote</strong> (opens the Quote panel with this
+          source selected), and <strong>Update from source</strong> where an
+          online source is enabled for the citation&rsquo;s type. Cards show the
+          citation&rsquo;s tags as chips and a <strong>Needs details</strong>
+          marker where required fields are missing.
         </p>
 
         <h3>Inserting references</h3>
@@ -343,23 +367,37 @@
           complete them in Edit.
         </p>
         <p>
-          Cases and legislation are the hard part for every reference manager.
-          Obiter recognises a report citation, a medium neutral citation or an
-          Act title wherever the export put it, including EndNote libraries
-          built with the UTS AGLC reference types, and keeps any metadata AGLC
-          does not cite so a later export loses nothing.
+          Cases and legislation carry their identifying details in different
+          fields depending on the export. Obiter recognises a report citation,
+          a medium neutral citation or an Act title wherever the export put
+          it, including EndNote XML built with the UTS AGLC4 reference types,
+          and keeps any metadata AGLC does not cite so a later export loses
+          nothing. Keywords on an imported record become tags.
+        </p>
+        <p>
+          A record that was exported from this document and comes back in a
+          later import is recognised as &ldquo;Already in library (exported
+          from here)&rdquo;. Tick <strong>Update existing</strong> on that row
+          to refresh the existing citation with the imported values instead of
+          adding a second record.
         </p>
 
         <h3>Exporting the library</h3>
         <p>
-          Click <strong>Export</strong> to write the whole library, the
-          citations you have selected, or the ones shown by the current search,
-          as RIS, EndNote XML, BibTeX, CSL-JSON or a plain formatted AGLC list.
-          Download the file, copy it to the clipboard, or show it as text. Each
-          exported record carries the formatted AGLC citation as a note, so
-          EndNote and Zotero users see the correct form even where their tool
-          cannot rebuild it, and a later re-import into Obiter recognises the
-          record and offers to update it instead of duplicating it.
+          Click <strong>Export</strong> and choose <strong>What to
+          export</strong>: all the citations in the library, the ones you have
+          selected, or the ones shown by the current search and filter. Choose
+          a <strong>Format</strong> &mdash; RIS, EndNote XML, BibTeX, CSL-JSON
+          or a plain formatted AGLC list &mdash; and, for EndNote XML, whether
+          to write the <strong>UTS AGLC4 reference types</strong> or the
+          <strong>EndNote generic reference types</strong>. Then pick a
+          <strong>Destination</strong>: download the file, copy it to the
+          clipboard, or show it as text. Each exported record carries the
+          formatted AGLC citation as a note, so the correct form is visible in
+          any tool that reads the file even where that tool cannot rebuild it,
+          and a later re-import into Obiter recognises the record and offers to
+          update it instead of duplicating it. Your tags are written as the
+          record&rsquo;s keywords.
         </p>
 
         <figure class="docs-figure">
@@ -438,6 +476,10 @@
           citation, pre-filled with the current values. Change any field, and
           the live preview updates to reflect your changes. Click
           <strong>Update</strong> to save the changes back to the document.
+          The view also holds the citation&rsquo;s <strong>Tags</strong> field
+          and, at the foot, the <strong>Record details</strong> panel with its
+          history, source links and previous versions (see the sections
+          below).
         </p>
 
         <h3>Format toggle</h3>
@@ -513,12 +555,424 @@
   </section>
 
   <!-- ============================================================
-       7. Bibliography
+       7. Tags
+       ============================================================ -->
+  <section class="docs-section" id="tags">
+    <div class="container">
+      <div class="docs-content">
+        <h2>7. Tags</h2>
+
+        <p>
+          Tags let you group the sources in a document your own way &mdash; by
+          chapter, by argument, by &ldquo;still to read&rdquo; &mdash; without
+          changing how anything is cited.
+        </p>
+
+        <h3>Adding tags</h3>
+        <p>
+          Open a citation in the Edit view. The <strong>Tags</strong> field sits
+          with the citation&rsquo;s other details. Type a tag and press
+          <strong>Enter</strong> or a comma to add it; <strong>Backspace</strong>
+          on an empty box removes the last tag. Tags used elsewhere in the
+          library are offered as completions, so a set of tags stays consistent
+          across the document. Tags are stored in lower case, up to 40
+          characters, and saved with the citation when you click
+          <strong>Update</strong>.
+        </p>
+        <p>
+          Tags Obiter writes for its own purposes &mdash; the origin of an
+          import, a &ldquo;not a duplicate&rdquo; marker &mdash; are shown as
+          read-only labels beside your own and are never exported.
+        </p>
+
+        <h3>Filtering the library by tag</h3>
+        <p>
+          Each library card shows its tags as chips. Click a chip, or open the
+          <strong>Tags</strong> filter next to the source-type filter and tick
+          one or more tags, to show only the citations carrying them; the
+          filter summary shows how many tags are active, and <strong>Clear
+          tags</strong> resets it. The tag filter combines with the search
+          field and the source-type filter, and an export scoped to
+          &ldquo;shown by the current search and filter&rdquo; respects it.
+        </p>
+
+        <h3>Tags travel with the record</h3>
+        <p>
+          On export, your tags are written as the keywords of each record
+          (<code>KW</code> in RIS, <code>keywords</code> in BibTeX, the keyword
+          list in EndNote XML and CSL-JSON). On import, keywords become tags, so
+          a library that moves between tools keeps its groupings.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       8. Find Duplicates
+       ============================================================ -->
+  <section class="docs-section" id="duplicates">
+    <div class="container">
+      <div class="docs-content">
+        <h2>8. Find Duplicates</h2>
+
+        <p>
+          The same source can enter a library twice &mdash; typed once and
+          imported once, or imported from two exports. Duplicates split a
+          source&rsquo;s footnotes across two records, so ibid and short forms
+          stop matching and the bibliography lists it twice.
+        </p>
+
+        <h3>Running the sweep</h3>
+        <p>
+          Click <strong>Find duplicates</strong> in the Citation Library
+          toolbar. Obiter compares every record with every other and groups
+          the matches. Each group is labelled with what its members were
+          matched on:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Same DOI</strong>, <strong>Same ISBN</strong> or <strong>Same citation key</strong> &mdash; an identifier the records share.</li>
+          <li><strong>Same medium neutral citation</strong> or <strong>Same report citation</strong> &mdash; the same case, however its parties were typed.</li>
+          <li><strong>Same statute</strong> &mdash; the same Act title and year.</li>
+          <li><strong>Similar title and year</strong> &mdash; the same title, year and first author after normalisation. Check these before merging.</li>
+        </ul>
+        <p>
+          If nothing matches, the dialog says so and lists the keys it
+          compared. A single card can also be sent to the dialog with
+          <strong>Mark as duplicate / merge</strong>, which lists the records
+          that share its short title.
+        </p>
+
+        <h3>Merging a group</h3>
+        <p>
+          The dialog walks the groups one at a time (<strong>Previous</strong>
+          and <strong>Next</strong> move between them). For each group:
+        </p>
+        <ol class="docs-list">
+          <li>
+            Under <strong>Keep which citation</strong>, choose the record to
+            survive. Each option shows the formatted citation, how many
+            footnotes cite it and when it was added. The oldest record with
+            footnotes is selected by default.
+          </li>
+          <li>
+            The table below lists every field where the records differ, one
+            column per record. Pick the value to keep for each field. The
+            survivor&rsquo;s value is pre-selected, except where it is blank and
+            another record has one.
+          </li>
+          <li>
+            Click <strong>Merge</strong>. The chosen values are written to the
+            survivor, every footnote that cited the other records is retargeted
+            to it, the other records are removed, and the tags of all members
+            are combined.
+          </li>
+        </ol>
+        <p>
+          A library snapshot is taken before each merge, labelled
+          &ldquo;saved before merging duplicates&rdquo;, so a merge can be
+          undone from the Recovery view or, for one citation, from
+          <strong>Previous versions</strong> in its record details.
+        </p>
+
+        <h3>Not a duplicate</h3>
+        <p>
+          When two records legitimately share a key &mdash; two editions of a
+          book, a decision reported twice under different names &mdash; click
+          <strong>Not a duplicate</strong>. Obiter remembers the decision on
+          the records themselves, so the group does not reappear in a later
+          sweep.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       9. Record Details and Previous Versions
+       ============================================================ -->
+  <section class="docs-section" id="record-details">
+    <div class="container">
+      <div class="docs-content">
+        <h2>9. Record Details and Previous Versions</h2>
+
+        <p>
+          Every citation carries a history: when it was added, where it came
+          from, what identifiers it holds and what it used to say. The
+          <strong>Record details</strong> panel at the foot of the Edit view
+          shows all of it. Open a citation and expand the panel, or click
+          <strong>Details</strong> on its library card to open the Edit view
+          with the panel already expanded.
+        </p>
+
+        <h3>What the panel shows</h3>
+        <ul class="docs-list">
+          <li><strong>Created</strong> and <strong>Modified</strong> &mdash; when the record was added to this document and last saved.</li>
+          <li>
+            <strong>Source</strong> &mdash; where the record came from:
+            &ldquo;Imported from RIS&rdquo; (or EndNote XML, BibTeX, CSL JSON,
+            Word Source Manager XML) with the file name and date, &ldquo;Found
+            via&rdquo; an online source such as AustLII or Crossref with the
+            date, or &ldquo;Created in Obiter; no import record&rdquo;.
+          </li>
+          <li><strong>Identifiers</strong> &mdash; DOI, ISBN, ISSN, cite key, accession number and call number, whichever the record holds.</li>
+          <li><strong>Abstract</strong> and <strong>Notes</strong> &mdash; kept from an import, shown collapsed.</li>
+          <li>
+            <strong>Passthrough fields kept for export</strong> &mdash; metadata
+            AGLC does not cite (a label, a database name, a custom field) that
+            Obiter keeps so a later export loses nothing. The panel lists the
+            field names.
+          </li>
+          <li>
+            <strong>Links</strong> &mdash; buttons that open the source: its URL,
+            its DOI, and for Australian cases the AustLII and Jade pages built
+            from the citation itself.
+          </li>
+          <li>
+            <strong>Cases citing this</strong> &mdash; for a case, opens the
+            LawCite record (and the Jade page where one exists) listing the
+            later decisions that cite it.
+          </li>
+          <li><strong>Cited by</strong> &mdash; for a journal article, see the Cited By section below.</li>
+        </ul>
+
+        <h3>Previous versions</h3>
+        <p>
+          Obiter keeps snapshots of the library inside the document (the same
+          backups the Recovery view uses). When you open the panel it reads
+          them and lists every earlier version of this citation, each with its
+          date, why the snapshot was taken (automatic backup, manual backup,
+          saved before a restore, saved before merging duplicates) and which
+          fields changed. Click <strong>Restore this version</strong> to put
+          those values back; you are asked to confirm, and the current values
+          are themselves snapshotted first so the restore can be reversed.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       10. Update from Source
+       ============================================================ -->
+  <section class="docs-section" id="update-from-source">
+    <div class="container">
+      <div class="docs-content">
+        <h2>10. Update from Source</h2>
+
+        <p>
+          A citation found through an online source can drift from that source
+          &mdash; a case is later reported, a journal issue is assigned, a
+          title was truncated in an export. <strong>Update from source</strong>
+          re-queries the source and shows you what differs before anything
+          changes.
+        </p>
+
+        <h3>Running an update</h3>
+        <p>
+          Click <strong>Update from source</strong> on the citation&rsquo;s
+          library card. Obiter asks the source the record came from first, then
+          any other enabled source for that content type, reporting
+          &ldquo;Checking AustLII&rdquo;, &ldquo;Checking Crossref&rdquo; and
+          so on as it goes. If the record is already current, the dialog says
+          &ldquo;Already up to date&rdquo; with the source it checked.
+        </p>
+        <p>
+          Otherwise the dialog lays out two columns, <strong>Current</strong>
+          and <strong>From</strong> the source, with a row for every field that
+          differs, including identifiers the source supplied that the form does
+          not show (a DOI, a Federal Register identifier, a medium neutral
+          citation). Fields the library has blank are pre-selected from the
+          source; every other difference keeps the current value until you
+          choose otherwise. A match confidence is shown, and the dialog warns
+          when key details from the source differ from the citation so you can
+          check each value before applying. Click <strong>Apply
+          selected</strong> to write the chosen values; the record&rsquo;s
+          source and retrieval date are updated in its record details.
+        </p>
+
+        <h3>What it respects</h3>
+        <p>
+          The update uses only the sources you have enabled under
+          <strong>Source Registry</strong> in Settings. If source lookup is off,
+          or no source is enabled for the citation&rsquo;s type, the button is
+          disabled and explains why. Each request runs under the same rate
+          limits and timeouts as typeahead search.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       11. Cited By
+       ============================================================ -->
+  <section class="docs-section" id="cited-by">
+    <div class="container">
+      <div class="docs-content">
+        <h2>11. Cited By</h2>
+
+        <p>
+          For a journal article with a DOI, Obiter can list the later works
+          that cite it &mdash; a starting point for finding the responses to
+          an argument.
+        </p>
+
+        <h3>Looking up citing works</h3>
+        <p>
+          Open the article in the Edit view, expand <strong>Record
+          details</strong>, then <strong>Cited by</strong>, and click
+          <strong>Look up citing works</strong>. Nothing is fetched until you
+          do. Obiter asks OpenAlex for the citing works and Crossref for a
+          count, and shows &ldquo;Cited by <em>N</em>&rdquo; with the works
+          listed beneath, each with an <strong>Open</strong> button for its
+          page. An article without a DOI, or a lookup switched off in Settings,
+          gets a plain explanation instead of a button.
+        </p>
+
+        <h3>Adding a citing work to the library</h3>
+        <p>
+          Click <strong>Add to library</strong> beside a citing work to store it
+          as a journal article, with the authors, title, journal, volume, issue,
+          starting page, year and DOI the source supplied. The new record is
+          linked to the article it cites with the Rule 1.3 linking phrase
+          &ldquo;citing&rdquo;, so a footnote citing it reads
+          &ldquo;[citing work], citing [this article]&rdquo;. Fields the source
+          did not supply are left for you to complete in Edit.
+        </p>
+
+        <div class="docs-note">
+          <p>
+            Citing-works lookups use OpenAlex and Crossref, and are gated by the
+            source lookup toggle and the per-source switches in
+            <strong>Settings &rsaquo; Source Registry</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       12. Quotations
+       ============================================================ -->
+  <section class="docs-section" id="quotations">
+    <div class="container">
+      <div class="docs-content">
+        <h2>12. Quotations</h2>
+
+        <p>
+          AGLC4 sets quotations of three or more full lines as an indented
+          block without quotation marks, and shorter ones inline in single
+          quotation marks (Rule 1.5.1); every quotation carries a pinpoint in
+          its footnote (Rule 1.7.1). Obiter offers two ways to get there: the
+          quotation tools in the Styling view for text already in the
+          document, and the Quote panel for a passage you are bringing in.
+        </p>
+
+        <h3>Quotation tools in Styling</h3>
+        <p>
+          Select text in the document, then use the <strong>Quotation
+          Tools</strong> section of the Styling view:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Format Quotation</strong> &mdash; sets the selection as a block quotation (three or more lines, or three or more paragraphs) or wraps it in single quotation marks, removing any surrounding marks (Rule 1.5.1).</li>
+          <li><strong>Apply Block Quote</strong> &mdash; formats the selected paragraphs as an indented block quotation directly.</li>
+          <li><strong>Insert Ellipsis</strong> &mdash; inserts the AGLC4 ellipsis character with a space either side (Rule 1.5.3).</li>
+          <li><strong>Editorial [Brackets]</strong> &mdash; wraps the selection in square brackets, or inserts an empty pair to type into (Rule 1.5.4).</li>
+          <li><strong>Insert [sic]</strong> &mdash; roman brackets, italic <em>sic</em> (Rule 1.5.5).</li>
+          <li><strong>Insert Annotation</strong> &mdash; one of the five parenthetical clauses of Rule 1.5.7: (emphasis in original), (emphasis added), (emphasis altered), (emphasis omitted), (citations omitted).</li>
+          <li><strong>Add Emphasis</strong> &mdash; italicises the selection and appends &ldquo;(emphasis added)&rdquo; in roman (Rule 1.8.1).</li>
+        </ul>
+
+        <h3>The Quote panel</h3>
+        <p>
+          Open it with <strong>Quote from a source&hellip;</strong> in Styling,
+          the <strong>Quote</strong> button on a library card (which
+          preselects that source), or <strong>Quote from a source</strong> in
+          the command palette. The panel has four parts:
+        </p>
+        <ol class="docs-list">
+          <li><strong>Source</strong> &mdash; search the library by title, parties or short title and choose the source being quoted.</li>
+          <li>
+            <strong>Passage</strong> &mdash; paste the text into <strong>Quoted
+            text</strong>. If the passage carries a judgment&rsquo;s paragraph
+            markers, such as <code>[42]</code>, the first is detected, removed
+            from the quotation and used as the pinpoint; the panel tells you
+            how many markers were removed.
+          </li>
+          <li>
+            <strong>Pinpoint</strong> &mdash; a <strong>Type</strong> (Paragraph,
+            Page or Section; cases default to paragraph, everything else to
+            page) and a <strong>Value</strong>. Paragraph numbers are set in
+            square brackets and a span such as <code>42-44</code> takes an en
+            dash (Rules 1.1.6 and 1.1.7). Cases, legislation, books, journal
+            articles and reports must have a pinpoint before you can insert.
+          </li>
+          <li>
+            <strong>Preview</strong> &mdash; shows whether the passage will be a
+            block or an inline quotation, the quotation as it will read, and the
+            footnote Obiter will insert: a full citation for a first mention,
+            or the ibid or short form the document&rsquo;s position calls for.
+          </li>
+        </ol>
+        <p>
+          Click <strong>Insert quotation and footnote</strong>. The quotation is
+          inserted at the cursor in the right form, and the footnote reference is
+          placed after it &mdash; after its closing punctuation or quotation
+          mark (Rule 1.1.3) &mdash; with the pinpoint in the footnote. The
+          library and every subsequent reference are updated as for any insert.
+          <strong>Clear</strong> empties the passage and pinpoint.
+        </p>
+
+        <h3>Quoting from a PDF</h3>
+        <p>
+          Instead of pasting, click <strong>Load PDF</strong> in the Passage
+          section and choose a judgment, article or report. Obiter reads the
+          PDF&rsquo;s text layer on your device &mdash; the file is never
+          uploaded &mdash; and shows a <strong>Page</strong> selector with the
+          text of the chosen page. Select the passage in the page text (or
+          select nothing to take the whole page) and click <strong>Use
+          selection</strong>: the text goes into the passage box, and a page
+          pinpoint is filled in from the page number. A <strong>Page
+          offset</strong> is added to the PDF page number to give the printed
+          page: for a report whose numbering starts on the fifth PDF page, enter
+          <code>-4</code>. Paragraph markers in the selection are detected as
+          for a pasted passage. <strong>Load another PDF</strong> replaces the
+          file; <strong>Clear PDF</strong> removes it.
+        </p>
+        <p>
+          PDFs up to 25 MB are read. A password-protected file, or a scanned
+          image with no text layer, is reported with what to do instead.
+        </p>
+
+        <h3>Summarise or ask about the passage (optional AI)</h3>
+        <p>
+          With an AI provider configured in Settings, the <strong>AI</strong>
+          section of the panel can summarise the loaded text or answer a
+          question about it. The text in scope is exactly what you loaded: the
+          passage box, or, when a PDF is loaded, the pages ticked under
+          <strong>Pages to include</strong> (with <strong>Select all</strong>
+          and <strong>Select none</strong>). Nothing is read from the document
+          or anywhere else.
+        </p>
+        <p>
+          Nothing is sent until you press a button, and the button says what
+          will happen: <strong>Summarise: send 3,200 words to Anthropic</strong>,
+          or <strong>Ask: send 3,200 words to OpenAI in 2 parts</strong> after
+          you type a question. Long texts are split into parts, each part is
+          handled on its own and the results are combined. The answer appears
+          in the panel with <strong>Insert as note</strong>, which inserts it
+          at the cursor as a plain paragraph, and <strong>Copy</strong>. Answers
+          are drawn only from the text you loaded. Text longer than 200,000
+          characters must be shortened or have pages unticked first.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       13. Bibliography
        ============================================================ -->
   <section class="docs-section" id="bibliography">
     <div class="container">
       <div class="docs-content">
-        <h2>7. Bibliography</h2>
+        <h2>13. Bibliography</h2>
 
         <h3>Generating a bibliography</h3>
         <p>
@@ -573,12 +1027,12 @@
   </section>
 
   <!-- ============================================================
-       8. Validation
+       14. Validation
        ============================================================ -->
   <section class="docs-section" id="validation">
     <div class="container">
       <div class="docs-content">
-        <h2>8. Validation</h2>
+        <h2>14. Validation</h2>
 
         <h3>Running a document scan</h3>
         <p>
@@ -635,12 +1089,65 @@
   </section>
 
   <!-- ============================================================
-       9. Reference Guide
+       15. Scan and Repair, and Recovery
+       ============================================================ -->
+  <section class="docs-section" id="scan-repair">
+    <div class="container">
+      <div class="docs-content">
+        <h2>15. Scan and Repair, and Recovery</h2>
+
+        <p>
+          Documents get pasted together, shared, and edited in other tools.
+          Two views put things right when a document&rsquo;s citations and its
+          library have come apart: <strong>Scan &amp; Repair</strong> rebuilds
+          the link between them, and <strong>Recovery</strong> undoes a change
+          you did not want. Both are reached from the Citation Library toolbar
+          or the command palette.
+        </p>
+
+        <h3>Scan &amp; Repair</h3>
+        <p>
+          Click <strong>Scan &amp; Repair</strong> in the library. Obiter reads
+          the body, footnotes and endnotes and sorts what it finds into three
+          groups:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Linked</strong> &mdash; Obiter citation markers already matching library entries. No change needed.</li>
+          <li><strong>Rebuild library entries</strong> &mdash; Obiter markers whose library entry is missing (a lost or corrupted store). Selected entries are rebuilt from the marker text.</li>
+          <li><strong>Adopt as managed citations</strong> &mdash; plain-text citations the offline parser recognises, in a document that was never managed by Obiter or in text pasted from one that was. Selected citations are added to the library and converted to managed citations, formatted by the engine.</li>
+        </ul>
+        <p>
+          The scan is read-only and works offline. Every item has a checkbox,
+          and nothing in the document changes until you confirm the preview.
+        </p>
+
+        <h3>Recovery</h3>
+        <p>
+          The <strong>Recovery</strong> view is built on the backups Obiter
+          keeps inside the document, not on Word&rsquo;s undo stack, so it works
+          after the document has been closed and reopened:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Library snapshots</strong> &mdash; restore the whole library to an earlier state. The current state is snapshotted first, so a restore is itself reversible from the same list.</li>
+          <li><strong>Footnote history</strong> &mdash; put back the previous text of a footnote that a refresh rebuilt. A restored footnote is locked so no later refresh overwrites it.</li>
+          <li><strong>User-edit review</strong> &mdash; footnotes a refresh skipped because their text had been edited by hand. Keep the edit (locking the footnote) or use Obiter&rsquo;s version for that one footnote.</li>
+          <li><strong>Quarantined data</strong> &mdash; stored data that could not be read. Preview or export the raw XML, or attempt a salvage that merges the recoverable citations into the library. The quarantined data itself is never modified or deleted.</li>
+        </ul>
+        <p>
+          For a single citation, the <strong>Previous versions</strong> list in
+          its record details restores just that record from the same snapshots.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       16. Reference Guide
        ============================================================ -->
   <section class="docs-section" id="reference-guide">
     <div class="container">
       <div class="docs-content">
-        <h2>9. Reference Guide</h2>
+        <h2>16. Reference Guide</h2>
 
         <h3>Searching rules</h3>
         <p>
@@ -675,12 +1182,12 @@
   </section>
 
   <!-- ============================================================
-       10. AI Assistant (Optional)
+       17. AI Assistant (Optional)
        ============================================================ -->
   <section class="docs-section" id="ai-assistant">
     <div class="container">
       <div class="docs-content">
-        <h2>10. AI Assistant (Optional)</h2>
+        <h2>17. AI Assistant (Optional)</h2>
 
         <p>
           Obiter includes optional AI features that require you to provide
@@ -724,10 +1231,11 @@
 
         <h3>AI features</h3>
         <ul class="docs-list">
-          <li><strong>Parse Citation</strong> &mdash; Paste formatted citation text and the AI extracts individual fields to populate the form automatically.</li>
+          <li><strong>Parse Citation</strong> &mdash; Paste formatted citation text into Paste Citation and click Parse; the AI extracts the individual fields to populate the form.</li>
           <li><strong>Help Me Choose</strong> &mdash; Describe a source in plain language and the AI classifies the correct source type.</li>
           <li><strong>Check Reference</strong> &mdash; Select text in the document and the AI verifies the citation format against AGLC4 rules and known legal databases.</li>
           <li><strong>Suggest Short Title</strong> &mdash; Automatically generates an appropriate short title based on the citation data.</li>
+          <li><strong>Summarise and Ask</strong> &mdash; In the Quote panel, summarise the passage or PDF pages you loaded, or ask a question about them. Only the loaded text is sent, and only when you press the button that names the provider and the size of the request (see Quotations).</li>
         </ul>
 
       </div>
@@ -735,12 +1243,12 @@
   </section>
 
   <!-- ============================================================
-       11. Settings
+       18. Settings
        ============================================================ -->
   <section class="docs-section" id="settings">
     <div class="container">
       <div class="docs-content">
-        <h2>11. Settings</h2>
+        <h2>18. Settings</h2>
 
         <h3>Citation standard selector</h3>
         <p>
@@ -865,17 +1373,41 @@
           never synced.
         </p>
 
+        <h3>What settings sync carries</h3>
+        <p>
+          Turn on <strong>Sync settings to my account</strong> under
+          <strong>Settings &rsaquo; Account</strong>. From then on, each save
+          on this device is also written to your account: the AI configuration
+          (provider, model, endpoint, token limit and whether AI is enabled
+          &mdash; never the API key itself), the auto-refresh setting, your
+          template preferences, and the court mode toggles. Settings changed on
+          another device are merged on the next save; if two devices save at
+          once, Obiter retries on top of the newer state and tells you if it
+          could not.
+        </p>
+        <p>
+          When you sign in on a new device with sync on, Obiter pulls the synced
+          settings, lists the keys in your vault under <strong>Stored API
+          keys</strong>, and restores the provider and the AI features
+          straight away: with a vaulted key for the synced provider there is
+          nothing further to enter. If the synced settings cannot be loaded, the
+          vault alone still turns the AI features on, and the status line
+          under the Account section says what failed. <strong>Sign out</strong>
+          clears the session, the vault mode and the synced settings from this
+          device.
+        </p>
+
       </div>
     </div>
   </section>
 
   <!-- ============================================================
-       12. Multi-Standard Support
+       19. Multi-Standard Support
        ============================================================ -->
   <section class="docs-section" id="multi-standard">
     <div class="container">
       <div class="docs-content">
-        <h2>12. Multi-Standard Support</h2>
+        <h2>19. Multi-Standard Support</h2>
 
         <p>
           Obiter is designed to support multiple citation standards. The
@@ -913,12 +1445,12 @@
   </section>
 
   <!-- ============================================================
-       13. Court Submission Mode
+       20. Court Submission Mode
        ============================================================ -->
   <section class="docs-section" id="court-mode">
     <div class="container">
       <div class="docs-content">
-        <h2>13. Court Submission Mode</h2>
+        <h2>20. Court Submission Mode</h2>
 
         <p>
           Obiter includes a Court Submission Mode designed for practitioners
@@ -1018,12 +1550,12 @@
   </section>
 
   <!-- ============================================================
-       14. Additional Standards
+       21. Additional Standards
        ============================================================ -->
   <section class="docs-section" id="additional-standards">
     <div class="container">
       <div class="docs-content">
-        <h2>14. Additional Standards</h2>
+        <h2>21. Additional Standards</h2>
 
         <p>
           In addition to AGLC4, Obiter includes support for two
@@ -1062,12 +1594,12 @@
   </section>
 
   <!-- ============================================================
-       15. Keyboard Shortcuts & Tips
+       22. Keyboard Shortcuts & Tips
        ============================================================ -->
   <section class="docs-section" id="shortcuts">
     <div class="container">
       <div class="docs-content">
-        <h2>15. Keyboard Shortcuts &amp; Tips</h2>
+        <h2>22. Keyboard Shortcuts &amp; Tips</h2>
 
         <h3>Keyboard shortcuts</h3>
         <p>
@@ -1187,10 +1719,11 @@
 
         <h3>Block Quote</h3>
         <p>
-          AGLC4 requires that quotations of 50 words or more be formatted as
-          block quotes (indented, no quotation marks). Select the text and
-          click <strong>Block Quote</strong> in the ribbon to apply the
-          correct formatting.
+          AGLC4 sets quotations of three or more full lines as block quotes
+          (indented, smaller type, no quotation marks) under Rule 1.5.1.
+          Select the text and click <strong>Block Quote</strong> in the ribbon
+          to apply the formatting, or use <strong>Format Quotation</strong> in
+          the Styling view to let Obiter decide between block and inline.
         </p>
 
         <h3>Refresh All</h3>

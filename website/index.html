@@ -35,6 +35,9 @@
       "Automatic ibid, cross-references and short titles",
       "Bibliography generation",
       "Document-wide citation validation",
+      "Quote from a pasted passage or a PDF with pinpoints",
+      "Tags, duplicate detection and merge, record history",
+      "Import and export of RIS, EndNote XML, BibTeX and CSL-JSON",
       "AGLC5 readiness, OSCOLA and NZLSG support"
     ],
     "isAccessibleForFree": true,
@@ -96,10 +99,10 @@
       },
       {
         "@type": "Question",
-        "name": "How is this different from EndNote or Zotero?",
+        "name": "How does it differ from a general reference manager?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The AGLC styles available for existing citation managers cover roughly 30% of the guide, and the official Zotero style was deliberately scoped to Australian cases and legislation only. Subsequent references generally have to be inserted and refreshed by hand. Obiter implements the AGLC directly inside Word rather than mapping it onto a general-purpose reference manager, so ibid, cross-references, and parallel citations are handled as you write."
+          "text": "A general reference manager applies AGLC4 as one citation style among many, so the parts of the guide that depend on footnote position, such as ibid, short references and cross-references, are usually inserted and refreshed by hand. Obiter implements the AGLC directly inside Word rather than mapping it onto a general-purpose reference manager, so ibid, cross-references and parallel citations are handled as you write, and libraries move in and out through RIS, EndNote XML, BibTeX and CSL-JSON."
         }
       }
     ]
@@ -298,6 +301,66 @@
             and footnotes, following AGLC4 formatting conventions.
           </p>
         </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&ldquo;&para;</div>
+          <h3>Quote from a PDF or Judgment</h3>
+          <p>
+            Paste a passage, or load a judgment PDF and select the text on your
+            device. Paragraph markers such as [42] become the pinpoint, the
+            quotation is set as a block or inline per Rule 1.5.1, and the
+            footnote follows with the pinpoint. Nothing is uploaded.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">#</div>
+          <h3>Tags and Duplicates</h3>
+          <p>
+            Tag citations, filter the library by tag, and keep tags as keywords
+            on export. A library-wide sweep finds records that share a DOI,
+            ISBN, citation, statute or title, and merges them field by field
+            with every footnote retargeted.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#x2637;</div>
+          <h3>Record Details</h3>
+          <p>
+            Where each citation came from, its identifiers, abstract and notes,
+            links to the source on AustLII, Jade or by DOI, cases citing it via
+            LawCite, and every previous version held in the document&rsquo;s
+            backups, restorable in one click.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#x21bb;</div>
+          <h3>Cited By and Update from Source</h3>
+          <p>
+            Re-query the online source a citation came from and merge what
+            changed, field by field. For a journal article with a DOI, list
+            the works that cite it via OpenAlex and Crossref and add one to the
+            library, linked to the article it cites.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&#x21c4;</div>
+          <h3>Import and Export</h3>
+          <p>
+            Read RIS files from library catalogues, EndNote XML (including the
+            UTS AGLC4 reference types), BibTeX, CSL-JSON and Word&rsquo;s Source
+            Manager, preview every record before it is added, and export the
+            library in the same formats.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card__icon" aria-hidden="true">&sum;</div>
+          <h3>AI Summaries and Questions</h3>
+          <p>
+            Summarise a loaded passage or PDF, or ask a question about it, with
+            your own API key. Only the text you loaded is sent, only when you
+            press the button that names the provider and the size of the
+            request, and the answer is drawn from that text alone.
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -310,8 +373,10 @@
       <div class="section-header">
         <h2>Why does Obiter exist?</h2>
         <p>
-          AGLC4 was drafted without any model of its software implementation.
-          The result is years of workarounds, broken tools, and unmet needs.
+          AGLC4 asks a writer to track first references, short forms, ibid,
+          parallel citations and pinpoints across hundreds of footnotes. Obiter
+          exists so that work happens inside Word, as you write, with every
+          rule traced to the guide.
         </p>
       </div>
       <div class="why__grid">
@@ -319,12 +384,13 @@
           <h3>The official AGLC4 style hasn&rsquo;t been updated since 2020</h3>
           <ul>
             <li>
-              The Zotero CSL style was deliberately scoped to Australian cases
-              and legislation only &mdash; it does not attempt to handle anything else.
+              The community citation style was deliberately scoped to Australian
+              cases and legislation only &mdash; it does not attempt to handle
+              anything else.
             </li>
             <li>
-              International materials, treaties, and Hansard have zero tool
-              support across every existing citation manager.
+              International materials, treaties and Hansard have had no automated
+              support at all.
             </li>
             <li>
               Two AI-generated community patches now circulate on GitHub because
@@ -334,21 +400,23 @@
           </ul>
         </div>
         <div class="why-card">
-          <h3>Existing tools cover about 30% of AGLC4</h3>
+          <h3>The rules that take the most time are the mechanical ones</h3>
           <ul>
             <li>
-              The UTS EndNote style requires manual cross-reference insertion
-              for every subsequent reference &mdash; every <code>(n&nbsp;X)</code>
-              must be hand-entered and refreshed with F9 before submission.
+              Every subsequent reference has to know whether the source was the
+              only one in the preceding footnote, what its short title is, and
+              which footnote first cited it. Obiter resolves that on every refresh.
             </li>
             <li>
-              Parallel citations, required by every Australian court, cannot be
-              produced by any existing tool.
+              Parallel citations, required by Australian courts, need the medium
+              neutral and authorised report forms together with the right
+              pinpoint in each. Court mode produces them per the practice
+              directions.
             </li>
             <li>
-              Universities are publishing divergent institutional workarounds:
-              Macquarie&rsquo;s LibGuide tells users to ignore an entire section
-              of the official UTS guidance.
+              General reference managers map the guide onto a citation style and
+              cover part of it; the rest is done by hand. Obiter implements the
+              guide directly, so the remainder is not left to the writer.
             </li>
           </ul>
         </div>
@@ -489,14 +557,13 @@
           </div>
         </details>
         <details class="faq__item">
-          <summary class="faq__question">How is this different from EndNote or Zotero?</summary>
+          <summary class="faq__question">How does it differ from a general reference manager?</summary>
           <div class="faq__answer">
             <p>
-              The AGLC styles available for existing citation managers cover
-              roughly 30% of the guide, and the official Zotero style was
-              deliberately scoped to Australian cases and legislation only.
-              Subsequent references generally have to be inserted and refreshed
-              by hand.
+              A general reference manager applies AGLC4 as one citation style
+              among many, so the parts of the guide that depend on footnote
+              position, such as ibid, short references and cross-references,
+              are usually inserted and refreshed by hand.
             </p>
             <p>
               Obiter implements the AGLC directly inside Word rather than mapping

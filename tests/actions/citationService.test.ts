@@ -21,9 +21,15 @@ import {
   formatCitationRuns,
   runsToPlainText,
   findMatchingCitation,
+  importCitations,
+  ignoreDuplicatePair,
+  mergeDuplicateCitation,
 } from "../../src/actions/citationService";
+import type { Citation } from "../../src/types/citation";
+import { userTags } from "../../src/engine/tags";
 
 const insertFootnote = footnoteManager.insertCitationFootnote as jest.Mock;
+const retag = footnoteManager.retagOccurrences as jest.Mock;
 const refreshNow = citationRefresher.refreshAllCitationsNow as jest.Mock;
 const getStore = getSharedStore as jest.Mock;
 
@@ -182,5 +188,125 @@ describe("findMatchingCitation", () => {
     const a = buildCitationFromRequest(caseRequest, "4");
     expect(findMatchingCitation(a, [a])).toBe(a);
     expect(findMatchingCitation(a, [])).toBeUndefined();
+  });
+});
+
+describe("importCitations tags (ENP-001)", () => {
+  it("applies normalised user tags to every imported row and keeps system tags", async () => {
+    const addMany = jest.fn(async (cs: unknown[]) => cs.length);
+    getStore.mockResolvedValue({
+      ...mockStore,
+      addMany,
+      updateMany: jest.fn(async () => 0),
+    });
+    const result = await importCitations({
+      text: "TY  - JOUR\nAU  - Bell, Justine\nTI  - Coastal Property\nPY  - 2014\nJO  - EPLJ\nVL  - 31\nSP  - 152\nER  -\n",
+      format: "ris",
+      tags: [" Contract ", "contract", "Remedies"],
+    });
+    expect(result.added).toBe(1);
+    const added = addMany.mock.calls[0][0] as Array<{ tags: string[] }>;
+    expect(userTags(added[0].tags)).toEqual(["contract", "remedies"]);
+    expect(added[0].tags).toEqual(expect.arrayContaining(["import", "import:ris"]));
+  });
+});
+
+describe("mergeDuplicateCitation and ignoreDuplicatePair (ENP-003)", () => {
+  const survivor: Citation = {
+    id: "rep",
+    aglcVersion: "4",
+    sourceType: "case.reported",
+    data: {
+      party1: "Mabo",
+      party2: "Queensland (No 2)",
+      year: "1992",
+      reportSeries: "CLR",
+      startingPage: "1",
+    },
+    tags: ["native title"],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    modifiedAt: "2026-01-01T00:00:00.000Z",
+    firstFootnoteNumber: 4,
+  };
+  const duplicate: Citation = {
+    ...survivor,
+    id: "mnc",
+    sourceType: "case.unreported.mnc",
+    data: {
+      party1: "Mabo",
+      party2: "Queensland (No 2)",
+      year: "1992",
+      court: "HCA",
+      caseNumber: "23",
+    },
+    tags: ["land"],
+    createdAt: "2026-02-01T00:00:00.000Z",
+  };
+  const third: Citation = { ...duplicate, id: "third", tags: [] };
+
+  const dedupeStore = {
+    ...mockStore,
+    getAll: jest.fn(() => [survivor, duplicate, third]),
+    takeSnapshot: jest.fn(async () => true),
+    update: jest.fn(async () => undefined),
+    updateMany: jest.fn(async (cs: Citation[]) => cs.length),
+    remove: jest.fn(async () => undefined),
+  };
+
+  beforeEach(() => {
+    getStore.mockResolvedValue(dedupeStore);
+    retag.mockResolvedValue(1);
+  });
+
+  it("two-argument form: snapshots, retags, removes and refreshes once without rewriting", async () => {
+    const moved = await mergeDuplicateCitation("mnc", "rep");
+    expect(moved).toBe(1);
+    expect(dedupeStore.takeSnapshot).toHaveBeenCalledTimes(1);
+    expect(dedupeStore.takeSnapshot).toHaveBeenCalledWith("dedupe");
+    expect(retag).toHaveBeenCalledWith("mnc", "rep");
+    expect(dedupeStore.update).not.toHaveBeenCalled();
+    expect(dedupeStore.remove).toHaveBeenCalledWith("mnc");
+    expect(refreshNow).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes merged data and tags to the survivor, keeping id, createdAt and firstFootnoteNumber", async () => {
+    const merged = { ...survivor.data, court: "HCA", caseNumber: "23" };
+    const moved = await mergeDuplicateCitation(["mnc", "third"], "rep", merged, [
+      "native title",
+      "land",
+    ]);
+    expect(moved).toBe(2);
+    expect(dedupeStore.takeSnapshot).toHaveBeenCalledTimes(1);
+    expect(dedupeStore.update).toHaveBeenCalledTimes(1);
+    const written = dedupeStore.update.mock.calls[0][0] as Citation;
+    expect(written.id).toBe("rep");
+    expect(written.createdAt).toBe(survivor.createdAt);
+    expect(written.firstFootnoteNumber).toBe(4);
+    expect(written.modifiedAt).not.toBe(survivor.modifiedAt);
+    expect(written.data).toEqual(merged);
+    expect(written.tags).toEqual(["native title", "land"]);
+    expect(retag.mock.calls).toEqual([
+      ["mnc", "rep"],
+      ["third", "rep"],
+    ]);
+    expect(dedupeStore.remove.mock.calls).toEqual([["mnc"], ["third"]]);
+    expect(refreshNow).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an empty or self-only removal list", async () => {
+    expect(await mergeDuplicateCitation([], "rep")).toBe(0);
+    expect(await mergeDuplicateCitation("rep", "rep")).toBe(0);
+    expect(dedupeStore.takeSnapshot).not.toHaveBeenCalled();
+    expect(refreshNow).not.toHaveBeenCalled();
+  });
+
+  it("ignoreDuplicatePair appends the dedupe:ignore tag to each member in one persist", async () => {
+    const tagged = await ignoreDuplicatePair("mabo|1992|", ["rep", "mnc", "missing"]);
+    expect(tagged).toBe(2);
+    expect(dedupeStore.updateMany).toHaveBeenCalledTimes(1);
+    const updates = dedupeStore.updateMany.mock.calls[0][0] as Citation[];
+    expect(updates.map((c) => c.id)).toEqual(["rep", "mnc"]);
+    expect(updates[0].tags).toEqual(["native title", "dedupe:ignore:mabo|1992|"]);
+    expect(updates[1].tags).toEqual(["land", "dedupe:ignore:mabo|1992|"]);
   });
 });

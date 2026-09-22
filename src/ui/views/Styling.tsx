@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   applyHeadingLevel,
   findExistingHeadingListId,
@@ -16,6 +17,7 @@ import { getSharedStore } from "../../store/singleton";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig } from "../../engine/standards";
 import { writeErrorMessage } from "../../word/documentAccess";
+import { applyQuotationToText, stripBoundaryQuotes } from "../../engine/quotations/format";
 
 
 interface HeadingDef {
@@ -112,6 +114,7 @@ const ANNOTATIONS = [
 ];
 
 export default function Styling(): JSX.Element {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
@@ -274,10 +277,14 @@ export default function Styling(): JSX.Element {
 
   /**
    * QUOTE-001: Auto-Format Quotation (Rule 1.5.1)
-   * Short quotations (three lines or less) are wrapped in curly single
-   * quotes; long quotations (four lines or more) take the block quote
-   * style. Multi-paragraph selections are treated as long (heuristic —
-   * paragraph count only approximates line count).
+   * AGLC4 Rule 1.5.1: short quotations (of three lines or fewer) are
+   * incorporated within single quotation marks; long quotations (of three
+   * or more full lines) are indented from the left margin, in a smaller
+   * font, without quotation marks. The block-versus-inline decision and
+   * the boundary-mark handling live in `applyQuotationToText` (shared with
+   * the Quote panel, ENP-010): a selection of three or more paragraphs is
+   * forced to the block form, otherwise the estimated line count decides.
+   * This handler keeps only the Word-selection mechanics.
    */
   const handleFormatQuotation = useCallback(async () => {
     setApplying(true);
@@ -290,11 +297,15 @@ export default function Styling(): JSX.Element {
         selection.paragraphs.load("items");
         await context.sync();
 
-        const paraCount = selection.paragraphs.items?.length ?? 0;
+        const paragraphs = selection.paragraphs.items ?? [];
+        const paraCount = paragraphs.length;
+        const decision = applyQuotationToText(selection.text ?? "", {
+          forceBlock: paraCount >= 3,
+        });
 
-        if (paraCount >= 3) {
+        if (decision.mode === "block" && paraCount > 0) {
           // Block quote: 10pt, indented, remove surrounding quotation marks
-          for (const para of (selection.paragraphs.items ?? [])) {
+          for (const para of paragraphs) {
             try {
               para.style = "AGLC4 Block Quote";
             } catch {
@@ -304,38 +315,28 @@ export default function Styling(): JSX.Element {
             }
           }
           // Remove leading/trailing quotation marks from first and last paragraphs
-          const firstPara = selection.paragraphs.items[0];
-          const lastPara = selection.paragraphs.items[paraCount - 1];
+          const firstPara = paragraphs[0];
+          const lastPara = paragraphs[paraCount - 1];
           firstPara.load("text");
           lastPara.load("text");
           await context.sync();
 
           const firstText = firstPara.text;
           const lastText = lastPara.text;
-          const openQuotes = /^[\u2018\u201C'"]/;
-          const closeQuotes = /[\u2019\u201D'"]$/;
-          if (openQuotes.test(firstText)) {
-            const range = firstPara.getRange("Start");
-            range.load("text");
-            await context.sync();
-            const startRange = firstPara.getRange("Start").expandTo(
-              firstPara.getRange("Start")
-            );
-            startRange.insertText(firstText.replace(openQuotes, ""), "Replace");
-          }
-          if (closeQuotes.test(lastText)) {
-            lastPara.insertText(lastText.replace(closeQuotes, ""), "Replace");
+          if (paraCount === 1) {
+            const stripped = stripBoundaryQuotes(firstText);
+            if (stripped !== firstText) firstPara.insertText(stripped, "Replace");
+          } else {
+            const firstStripped = stripBoundaryQuotes(firstText, { leading: true, trailing: false });
+            if (firstStripped !== firstText) firstPara.insertText(firstStripped, "Replace");
+            const lastStripped = stripBoundaryQuotes(lastText, { leading: false, trailing: true });
+            if (lastStripped !== lastText) lastPara.insertText(lastStripped, "Replace");
           }
           await context.sync();
           setStatus("Applied block quote formatting (long quotation).");
         } else {
           // Short quotation: wrap in curly single quotes
-          const text = selection.text ?? "";
-          // Remove existing straight or curly quotes at boundaries
-          const stripped = text
-            .replace(/^[\u2018\u201C'"]+/, "")
-            .replace(/[\u2019\u201D'"]+$/, "");
-          selection.insertText("\u2018" + stripped + "\u2019", "Replace");
+          selection.insertText(decision.text, "Replace");
           await context.sync();
           setStatus("Wrapped in single quotation marks (short quotation).");
         }
@@ -655,6 +656,14 @@ export default function Styling(): JSX.Element {
             disabled={applying}
           >
             Format Quotation
+          </button>
+          <button
+            className="bib-insert-btn"
+            style={{ width: "100%" }}
+            onClick={() => navigate("/quote")}
+            disabled={applying}
+          >
+            Quote from a source…
           </button>
           <button
             className="bib-insert-btn"

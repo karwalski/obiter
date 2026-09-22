@@ -11,21 +11,32 @@ import { getSharedStore } from "../../store/singleton";
 import { getWordSourcesXml } from "../../word/sourceImporter";
 import ImportDialog from "../components/ImportDialog";
 import ExportDialog from "../components/ExportDialog";
+import DuplicatesDialog from "../components/DuplicatesDialog";
+import type { DuplicatesDialogCluster } from "../components/DuplicatesDialog";
+import { buildDedupeKeyFromCitation, findDuplicateClusters } from "../../api/interchange/dedupe";
+import type { DedupeKey, DedupeMatchKind } from "../../api/interchange/dedupe";
 import { useStatus } from "../context/StatusContext";
 import { listMissingRequiredFields } from "../../engine/validator";
 import { getFieldsForSourceType } from "./editCitationFields";
 import { formatBibliographyEntry } from "../../engine/rules/v4/general/bibliography";
 import { insertCitationFootnote, getAllCitationFootnotes, deleteAllOccurrences, buildOccurrenceTitle } from "../../word/footnoteManager";
-import { mergeDuplicateCitation } from "../../actions/citationService";
+import { ignoreDuplicatePair, mergeDuplicateCitation } from "../../actions/citationService";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
-import type { Citation, SourceType } from "../../types/citation";
+import type { Citation, SourceData, SourceType } from "../../types/citation";
+import type { FormattedRun } from "../../types/formattedRun";
 import { useCitationContext } from "../context/CitationContext";
 import CitationFinder from "../components/CitationFinder";
 import type { CitationStandardId } from "../../engine/standards/types";
 import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { RECOVERY_VIEW_ENABLED } from "../featureFlags";
+import { userTags } from "../../engine/tags";
+import { pinpointFromTitleString } from "../../engine/rules/v4/general/pinpoints";
+import UpdateFromSourceDialog from "../components/UpdateFromSourceDialog";
+import { canUpdateFromSource } from "../../api/updateFromSource";
+import type { SourceUpdateResult } from "../../api/updateFromSource";
+import { writeErrorMessage } from "../../word/documentAccess";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -201,9 +212,56 @@ function getShortTitleDuplicates(citation: Citation, allCitations: Citation[]): 
     );
 }
 
+/** Strongest dedupe key first, matching findDuplicateClusters. */
+const MANUAL_CLUSTER_KEYS: ReadonlyArray<{ field: keyof DedupeKey; kind: DedupeMatchKind }> = [
+  { field: "doi", kind: "doi" },
+  { field: "isbn", kind: "isbn" },
+  { field: "citeKey", kind: "cite-key" },
+  { field: "legal", kind: "legal" },
+  { field: "loose", kind: "loose" },
+];
+
+/**
+ * ENP-003: a card-level merge reviews the citation and the others sharing its
+ * short title as one cluster. The kind is the strongest key every member
+ * shares; when they share none the cluster is a manual merge on the pair's
+ * ids.
+ */
+export function buildManualCluster(members: Citation[]): DuplicatesDialogCluster {
+  const ordered = [...members].sort(
+    (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id)
+  );
+  const keys = ordered.map(buildDedupeKeyFromCitation);
+  for (const { field, kind } of MANUAL_CLUSTER_KEYS) {
+    const value = keys[0]?.[field];
+    if (value && keys.every((k) => k[field] === value)) {
+      return { kind, key: value, members: ordered };
+    }
+  }
+  return {
+    kind: "loose",
+    key: ordered.map((c) => c.id).join("+"),
+    members: ordered,
+    label: "Manual merge",
+  };
+}
+
 /** Safely coerce an unknown value to string, returning empty string for non-strings. */
 function asString(val: unknown): string {
   return typeof val === "string" ? val : "";
+}
+
+/**
+ * A footnote ends with closing punctuation. `formatCitation` leaves it to
+ * the refresher; the preview path this replaced added it, so the inserted
+ * text is unchanged.
+ */
+function ensureClosingFullStop(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) return runs;
+  const last = runs[runs.length - 1];
+  const trimmed = last.text.trimEnd();
+  if (trimmed.endsWith(".") || trimmed.endsWith("!") || trimmed.endsWith("?")) return runs;
+  return [...runs.slice(0, -1), { ...last, text: `${last.text}.` }];
 }
 
 // ─── Sort ───────────────────────────────────────────────────────────────────
@@ -264,6 +322,8 @@ export default function CitationLibrary(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  // ENP-001: tag filter (OR semantics across the chosen tags).
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>("firstCited");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [insertingId, setInsertingId] = useState<string | null>(null);
@@ -277,6 +337,14 @@ export default function CitationLibrary(): JSX.Element {
   const [reviewIds, setReviewIds] = useState<string[]>([]);
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
+  // ENP-003: the Find duplicates dialog, its clusters and the element to refocus.
+  const duplicatesButtonRef = useRef<HTMLButtonElement>(null);
+  const [duplicateClusters, setDuplicateClusters] = useState<DuplicatesDialogCluster[] | null>(null);
+  const [occurrenceCounts, setOccurrenceCounts] = useState<Record<string, number>>({});
+  const [duplicatesReturnTo, setDuplicatesReturnTo] = useState<HTMLElement | null>(null);
+  // ENP-007: the Update from source dialog's target and the element to refocus.
+  const [updateTarget, setUpdateTarget] = useState<Citation | null>(null);
+  const [updateReturnTo, setUpdateReturnTo] = useState<HTMLElement | null>(null);
   const { announce } = useStatus();
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
 
@@ -343,6 +411,27 @@ export default function CitationLibrary(): JSX.Element {
     };
   }, [refreshCounter]);
 
+  // ENP-001: every user tag in the library with the number of citations
+  // carrying it, for the tag filter.
+  const tagCounts = useMemo((): Array<{ tag: string; count: number }> => {
+    const counts = new Map<string, number>();
+    for (const c of citations) {
+      for (const tag of userTags(Array.isArray(c.tags) ? c.tags : [])) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => a.tag.localeCompare(b.tag));
+  }, [citations]);
+
+  const toggleTagFilter = useCallback((tag: string, on: boolean) => {
+    setSelectedTags((prev) => {
+      if (on) return prev.includes(tag) ? prev : [...prev, tag];
+      return prev.filter((t) => t !== tag);
+    });
+  }, []);
+
   // Filter + sort
   const filteredCitations = useMemo(() => {
     let result = citations;
@@ -388,8 +477,15 @@ export default function CitationLibrary(): JSX.Element {
       );
     }
 
+    // Tag filter (ENP-001): any of the chosen tags
+    if (selectedTags.length > 0) {
+      result = result.filter((c) =>
+        userTags(Array.isArray(c.tags) ? c.tags : []).some((t) => selectedTags.includes(t)),
+      );
+    }
+
     return sortCitations(result, sortBy);
-  }, [citations, searchTerm, typeFilter, sortBy, needsDetailsOnly, missingFor]);
+  }, [citations, searchTerm, typeFilter, selectedTags, sortBy, needsDetailsOnly, missingFor]);
 
   // Actions
   const handleEdit = useCallback(
@@ -398,6 +494,23 @@ export default function CitationLibrary(): JSX.Element {
       navigate("/edit");
     },
     [navigate, setSelectedCitationId],
+  );
+
+  // ENP-005: open the Edit view with the record details panel expanded.
+  const handleDetails = useCallback(
+    (id: string) => {
+      setSelectedCitationId(id);
+      navigate("/edit", { state: { citationId: id, expandDetails: true } });
+    },
+    [navigate, setSelectedCitationId],
+  );
+
+  // Open the Quote view with this citation preselected.
+  const handleQuote = useCallback(
+    (id: string) => {
+      navigate("/quote", { state: { citationId: id } });
+    },
+    [navigate],
   );
 
   const [insertMenuId, setInsertMenuId] = useState<string | null>(null);
@@ -429,21 +542,34 @@ export default function CitationLibrary(): JSX.Element {
           (await getSharedStore()).getCourtToggles() ??
           (getDevicePref("courtToggles") as Record<string, string> | undefined);
         const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
+        // The typed pinpoint, parsed once: `[42]` is a paragraph, `s 5` a
+        // section, a bare `42` stays a page (Rule 1.1.6).
+        const pin = pinpointFromTitleString(pinpointInput);
         let runs;
         // Only force full if mode is "full" or ("auto" and first occurrence).
         // Explicit "short" and "ibid" should work even if no prior CC is found
         // (the user knows what format they want).
         if (mode === "full" || (mode === "auto" && isFirst)) {
-          runs = getFormattedPreview(citation, courtConfig);
+          const ctx: CitationContext = {
+            footnoteNumber: lastFootnoteNumber + 1,
+            isFirstCitation: true,
+            isSameAsPreceding: false,
+            precedingFootnoteCitationCount: precedingCitations.length,
+            currentPinpoint: pin,
+            firstFootnoteNumber: lastFootnoteNumber + 1,
+            isWithinSameFootnote: false,
+            formatPreference: mode,
+          };
+          // The full first reference honours the occurrence pinpoint; the
+          // closing full stop the preview path added is restored here.
+          runs = ensureClosingFullStop(formatCitation(citation, ctx, courtConfig));
         } else {
           const ctx: CitationContext = {
             footnoteNumber: lastFootnoteNumber + 1,
             isFirstCitation: false,
             isSameAsPreceding: mode === "ibid" ? true : isSameAsPreceding,
             precedingFootnoteCitationCount: precedingCitations.length,
-            currentPinpoint: pinpointInput
-              ? { type: "page", value: pinpointInput }
-              : undefined,
+            currentPinpoint: pin,
             firstFootnoteNumber: firstFn?.footnoteIndex ?? citation.firstFootnoteNumber ?? 1,
             isWithinSameFootnote: false,
             formatPreference: mode,
@@ -454,7 +580,7 @@ export default function CitationLibrary(): JSX.Element {
 
         // Encode the user's format preference and pinpoint in the CC title so
         // the refresher can preserve them across rebuild cycles.
-        const ccTitle = buildOccurrenceTitle(mode, pinpointInput || undefined);
+        const ccTitle = buildOccurrenceTitle(mode, pin);
         await insertCitationFootnote(citation.id, ccTitle, runs);
 
         // Update store with firstFootnoteNumber if this is the first citation
@@ -480,33 +606,87 @@ export default function CitationLibrary(): JSX.Element {
 
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Merge-duplicate UI: which card's "merge into…" chooser is open, and busy state.
-  const [mergingId, setMergingId] = useState<string | null>(null);
-  const [mergeLoading, setMergeLoading] = useState(false);
+  // ENP-003: open the duplicates dialog over the given clusters. The footnote
+  // scan is one Office.js call for the whole document (PERF: never per card).
+  const openDuplicates = useCallback(
+    async (clusters: DuplicatesDialogCluster[], opener: HTMLElement | null) => {
+      const counts: Record<string, number> = {};
+      try {
+        for (const entry of await getAllCitationFootnotes()) {
+          counts[entry.citationId] = (counts[entry.citationId] ?? 0) + 1;
+        }
+      } catch {
+        // Footnote scan unavailable — the dialog still opens; counts show as 0.
+      }
+      setOccurrenceCounts(counts);
+      setDuplicatesReturnTo(opener);
+      setDuplicateClusters(clusters);
+    },
+    []
+  );
 
-  const handleMerge = useCallback(async (duplicateId: string, targetId: string) => {
-    if (mergeLoading) return;
-    setMergeLoading(true);
-    setError(null);
-    try {
-      const moved = await mergeDuplicateCitation(duplicateId, targetId);
-      // The duplicate entry is gone and occurrences now resolve against the
-      // target; reload the library from the (refreshed) store.
-      const fresh = (await getSharedStore()).getAll();
-      setCitations(fresh);
-      setMergingId(null);
-      setRefreshStatus(
+  const handleDuplicateMerge = useCallback(
+    async (
+      survivorId: string,
+      removedIds: string[],
+      mergedData: SourceData,
+      mergedTags: string[]
+    ): Promise<number> => {
+      const moved = await mergeDuplicateCitation(removedIds, survivorId, mergedData, mergedTags);
+      // The removed entries are gone and their occurrences now resolve
+      // against the survivor; reload the library from the (refreshed) store.
+      setCitations((await getSharedStore()).getAll());
+      triggerRefresh();
+      const total = removedIds.length + 1;
+      const message =
         moved > 0
-          ? `Merged duplicate into the original — ${moved} reference${moved === 1 ? "" : "s"} updated.`
-          : "Merged duplicate into the original."
-      );
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to merge the duplicate citation.");
-      setMergingId(null);
-    } finally {
-      setMergeLoading(false);
-    }
-  }, [mergeLoading]);
+          ? `Merged ${total} citations into one. ${moved} footnote${moved === 1 ? "" : "s"} updated.`
+          : `Merged ${total} citations into one.`;
+      setRefreshStatus(message);
+      announce(message, "success");
+      return moved;
+    },
+    [triggerRefresh, announce]
+  );
+
+  const handleDuplicateIgnore = useCallback(
+    async (clusterKey: string, memberIds: string[]): Promise<void> => {
+      await ignoreDuplicatePair(clusterKey, memberIds);
+      setCitations((await getSharedStore()).getAll());
+      triggerRefresh();
+      announce("Marked as not duplicates.", "success");
+    },
+    [triggerRefresh, announce]
+  );
+
+  // ENP-007: the dialog's Apply writes the merged record; the document is
+  // re-rendered so every footnote picks up the new values.
+  const handleUpdateApplied = useCallback(
+    async (
+      citation: Citation,
+      mergedData: SourceData,
+      applied: number,
+      result: SourceUpdateResult
+    ): Promise<void> => {
+      const updated: Citation = {
+        ...citation,
+        data: mergedData,
+        modifiedAt: new Date().toISOString(),
+      };
+      try {
+        await store.update(updated);
+      } catch (err: unknown) {
+        throw new Error(writeErrorMessage(err, "The citation could not be updated. Try again."));
+      }
+      setCitations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      triggerRefresh();
+      const label = result.adapterLabel ?? "the source";
+      const message = `Updated ${applied} field${applied === 1 ? "" : "s"} from ${label}.`;
+      setRefreshStatus(message);
+      announce(message, "success");
+    },
+    [triggerRefresh, announce]
+  );
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -830,6 +1010,21 @@ export default function CitationLibrary(): JSX.Element {
           Export
         </button>
         <button
+          ref={duplicatesButtonRef}
+          className="library-btn library-btn--import"
+          onClick={() =>
+            void openDuplicates(findDuplicateClusters(citations), duplicatesButtonRef.current)
+          }
+          disabled={citations.length < 2}
+          title={
+            citations.length < 2
+              ? "Add at least two citations to the library before checking for duplicates"
+              : undefined
+          }
+        >
+          Find duplicates
+        </button>
+        <button
           className="library-btn library-btn--import"
           onClick={() => navigate("/scan-repair")}
           title="Deep scan of body, footnotes and endnotes: relink Obiter citation markers, rebuild lost library entries and adopt plain-text citations"
@@ -902,12 +1097,39 @@ export default function CitationLibrary(): JSX.Element {
           all={citations}
           selected={citations.filter((c) => selectedIds.has(c.id))}
           shown={filteredCitations}
-          hasActiveFilter={Boolean(searchTerm.trim()) || typeFilter !== "all" || needsDetailsOnly}
+          hasActiveFilter={
+            Boolean(searchTerm.trim()) ||
+            typeFilter !== "all" ||
+            selectedTags.length > 0 ||
+            needsDetailsOnly
+          }
           formatCitation={formatForExport}
           standardLabel={standardConfig.standardLabel}
           onClose={() => setExportOpen(false)}
           onExported={handleExported}
           returnFocusTo={exportButtonRef.current}
+        />
+      )}
+      {duplicateClusters !== null && (
+        <DuplicatesDialog
+          clusters={duplicateClusters}
+          formatCitation={renderCitationText}
+          occurrenceCounts={occurrenceCounts}
+          onMerge={handleDuplicateMerge}
+          onIgnore={handleDuplicateIgnore}
+          onClose={() => setDuplicateClusters(null)}
+          returnFocusTo={duplicatesReturnTo}
+        />
+      )}
+      {updateTarget !== null && (
+        <UpdateFromSourceDialog
+          citation={updateTarget}
+          citationText={renderCitationText(updateTarget).trim().replace(/\.$/, "")}
+          onApply={(mergedData, applied, result) =>
+            handleUpdateApplied(updateTarget, mergedData, applied, result)
+          }
+          onClose={() => setUpdateTarget(null)}
+          returnFocusTo={updateReturnTo}
         />
       )}
 
@@ -1015,6 +1237,35 @@ export default function CitationLibrary(): JSX.Element {
             </option>
           ))}
         </select>
+        {(tagCounts.length > 0 || selectedTags.length > 0) && (
+          <details className="library-tag-filter">
+            <summary className="library-select library-tag-filter-summary">
+              Tags{selectedTags.length > 0 ? ` (${selectedTags.length})` : ""}
+            </summary>
+            <fieldset className="library-tag-filter-panel">
+              <legend className="obiter-visually-hidden">Filter by tag</legend>
+              {tagCounts.map(({ tag, count }) => (
+                <label key={tag} className="library-tag-filter-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedTags.includes(tag)}
+                    onChange={(e) => toggleTagFilter(tag, e.target.checked)}
+                  />
+                  {tag} ({count})
+                </label>
+              ))}
+              {selectedTags.length > 0 && (
+                <button
+                  type="button"
+                  className="library-btn"
+                  onClick={() => setSelectedTags([])}
+                >
+                  Clear tags
+                </button>
+              )}
+            </fieldset>
+          </details>
+        )}
         <select
           className="library-select"
           value={sortBy}
@@ -1085,6 +1336,25 @@ export default function CitationLibrary(): JSX.Element {
                 {getCitationDetail(citation)}
               </div>
               {(() => {
+                const chips = userTags(Array.isArray(citation.tags) ? citation.tags : []);
+                return chips.length > 0 ? (
+                  <div className="library-card-tags">
+                    {chips.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        className="library-tag-chip"
+                        aria-label={`Filter by tag ${tag}`}
+                        aria-pressed={selectedTags.includes(tag)}
+                        onClick={() => setSelectedTags([tag])}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+              {(() => {
                 const missing = missingFor(citation);
                 return missing.length > 0 ? (
                   <div className="library-needs-details">Needs details: {missing.join(", ")}</div>
@@ -1099,42 +1369,17 @@ export default function CitationLibrary(): JSX.Element {
                     Duplicate short title — consider: {dup}
                     {candidates.length > 0 && (
                       <div style={{ marginTop: 3 }}>
-                        {mergingId === citation.id ? (
-                          <div>
-                            <div style={{ color: "var(--colour-text-secondary)", marginBottom: 2 }}>
-                              {mergeLoading
-                                ? "Merging…"
-                                : "Merge this into (its references become ibid / short / (n X)):"}
-                            </div>
-                            {!mergeLoading &&
-                              candidates.map((target) => (
-                                <button
-                                  key={target.id}
-                                  className="library-btn"
-                                  style={{ marginRight: 4, marginBottom: 2 }}
-                                  onClick={() => void handleMerge(citation.id, target.id)}
-                                >
-                                  {getCitationLabel(target)}
-                                  {target.firstFootnoteNumber != null
-                                    ? ` (n ${target.firstFootnoteNumber})`
-                                    : ""}
-                                </button>
-                              ))}
-                            {!mergeLoading && (
-                              <button className="library-btn" onClick={() => setMergingId(null)}>
-                                Cancel
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <button
-                            className="library-btn"
-                            onClick={() => setMergingId(citation.id)}
-                            disabled={mergeLoading}
-                          >
-                            Mark as duplicate / merge
-                          </button>
-                        )}
+                        <button
+                          className="library-btn"
+                          onClick={(e) =>
+                            void openDuplicates(
+                              [buildManualCluster([citation, ...candidates])],
+                              e.currentTarget
+                            )
+                          }
+                        >
+                          Mark as duplicate / merge
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1157,6 +1402,36 @@ export default function CitationLibrary(): JSX.Element {
                 >
                   Insert ▾
                 </button>
+                <button
+                  className="library-btn"
+                  onClick={() => handleDetails(citation.id)}
+                  title="History, provenance and source links for this citation"
+                >
+                  Details
+                </button>
+                <button
+                  className="library-btn"
+                  onClick={() => handleQuote(citation.id)}
+                  title="Insert a quotation from this source"
+                >
+                  Quote
+                </button>
+                {(() => {
+                  const gate = canUpdateFromSource(citation);
+                  return (
+                    <button
+                      className="library-btn library-btn--update-source"
+                      disabled={!gate.ok}
+                      title={gate.ok ? "Refetch this citation from its online source" : gate.reason}
+                      onClick={(e) => {
+                        setUpdateReturnTo(e.currentTarget);
+                        setUpdateTarget(citation);
+                      }}
+                    >
+                      Update from source
+                    </button>
+                  );
+                })()}
                 {deletingId === citation.id ? (
                   <span className="library-confirm">
                     {deleteLoading ? (

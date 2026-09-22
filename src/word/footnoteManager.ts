@@ -33,6 +33,11 @@
 /* global Word */
 
 import { FormattedRun } from "../types/formattedRun";
+import type { Pinpoint } from "../types/citation";
+import {
+  pinpointFromTitleString,
+  pinpointToTitleString,
+} from "../engine/rules/v4/general/pinpoints";
 import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
 import { hashRenderedText } from "../utils/textHash";
 
@@ -132,8 +137,10 @@ export interface CitationFootnoteEntry {
   title: string;
   /** User format preference for this occurrence (auto/full/short/ibid). */
   formatPreference?: "auto" | "full" | "short" | "ibid";
-  /** Per-occurrence pinpoint encoded in the CC title. */
+  /** Per-occurrence pinpoint encoded in the CC title (compact text form). */
   pinpoint?: string;
+  /** The same pinpoint decoded to its type (see `parseOccurrenceTitle`). */
+  pinpointRef?: Pinpoint;
   /** Whether this footnote is locked (frozen — the refresher skips its rebuild). */
   isLocked?: boolean;
 }
@@ -327,28 +334,49 @@ export async function getFootnoteCitations(
 /**
  * Builds the CC title encoding the user's format preference and optional pinpoint.
  * Format: `Citation:<pref>[:<pinpoint>]`.
+ *
+ * The pinpoint segment is the compact text form the engine renders
+ * (`pinpointToTitleString`): pages bare (`42`, `42–5`), paragraphs in square
+ * brackets (`[42]`, `[42]–[45]`), labelled types with their AGLC4 label
+ * (`s 5`, `ch 3`, `n 12`). A typed `Pinpoint` is encoded that way; a string is
+ * stored verbatim and must already be in that form — `parseOccurrenceTitle`
+ * decodes the type back from it, so a paragraph must be stored as `[42]`,
+ * never as a bare `42` (which reads back as page 42).
  */
 export function buildOccurrenceTitle(
   formatPreference: "auto" | "full" | "short" | "ibid",
-  pinpoint?: string
+  pinpoint?: string | Pinpoint
 ): string {
-  return pinpoint ? `Citation:${formatPreference}:${pinpoint}` : `Citation:${formatPreference}`;
+  const encoded =
+    typeof pinpoint === "string"
+      ? pinpoint.trim()
+      : pinpoint
+        ? pinpointToTitleString(pinpoint)
+        : "";
+  return encoded ? `Citation:${formatPreference}:${encoded}` : `Citation:${formatPreference}`;
 }
 
 /**
  * Parses a CC title into format preference and pinpoint.
  * Returns "auto" preference and undefined pinpoint for unrecognised titles.
+ *
+ * `pinpoint` is the stored text; `pinpointRef` is that text decoded to a typed
+ * `Pinpoint` via `pinpointFromTitleString` (bare `[n]` → paragraph, `s n` →
+ * section, otherwise page), so existing documents that stored bare strings
+ * keep reading correctly.
  */
 export function parseOccurrenceTitle(title: string | undefined): {
   formatPreference: "auto" | "full" | "short" | "ibid";
   pinpoint?: string;
+  pinpointRef?: Pinpoint;
 } {
   if (!title) return { formatPreference: "auto" };
   const match = title.match(/^Citation:(auto|full|short|ibid)(?::(.*))?$/);
   if (!match) return { formatPreference: "auto" };
   const pref = match[1] as "auto" | "full" | "short" | "ibid";
   const pinpoint = match[2] && match[2].length > 0 ? match[2] : undefined;
-  return { formatPreference: pref, pinpoint };
+  const pinpointRef = pinpoint ? pinpointFromTitleString(pinpoint) : undefined;
+  return { formatPreference: pref, pinpoint, pinpointRef };
 }
 
 /**
@@ -361,7 +389,7 @@ export async function updateOccurrenceMetadata(
   citationId: string,
   footnoteIndex: number,
   formatPreference: "auto" | "full" | "short" | "ibid",
-  pinpoint?: string
+  pinpoint?: string | Pinpoint
 ): Promise<void> {
   await Word.run(async (context) => {
     const footnotes = context.document.body.footnotes;
@@ -826,6 +854,7 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
             title: cc.title,
             formatPreference: parsed.formatPreference,
             pinpoint: parsed.pinpoint,
+            pinpointRef: parsed.pinpointRef,
             isLocked: locked,
           });
         }

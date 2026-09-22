@@ -175,7 +175,11 @@ export interface InterchangeIdentifiers {
 
 /** Where a record came from, and any Obiter identity it carries. */
 export interface InterchangeProvenance {
-  format: InterchangeFormat;
+  /**
+   * The codec the record came through, or "adapter" (ENP-006) when the
+   * citation was filled from a source-lookup hit rather than an import.
+   */
+  format: InterchangeFormat | "adapter";
   /** "Zotero", "EndNote (UTS AGLC4)", "Trove" — from database or generator tags. */
   sourceLabel?: string;
   /** The format's own type value: "CASE", "Case (Reported)", "legal_case", "jurisdiction". */
@@ -188,6 +192,12 @@ export interface InterchangeProvenance {
   obiterSourceType?: string;
   /** ISO timestamp set by the import pipeline. */
   importedAt?: string;
+  /** ENP-004: the page an adapter fetched this record from, surfaced as a source link. */
+  sourceUrl?: string;
+  /** ENP-004: the adapter that produced the record. */
+  adapterId?: string;
+  /** ENP-004: ISO timestamp of the adapter fetch. */
+  retrievedAt?: string;
 }
 
 /** The formatted output attached on export so other tools can display it. */

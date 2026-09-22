@@ -54,6 +54,7 @@ const REASON_LABELS: Record<SnapshotReason, string> = {
   persist: "Automatic backup",
   "pre-restore": "Saved before a restore",
   manual: "Manual backup",
+  dedupe: "Saved before merging duplicates",
 };
 
 /** Format an ISO timestamp for display; fall back to the raw string. */

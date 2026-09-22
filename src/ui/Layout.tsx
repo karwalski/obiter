@@ -238,6 +238,13 @@ export default function Layout(): JSX.Element {
       },
       ...navCommands,
       {
+        id: "quote-source",
+        label: "Quote from a source",
+        hint: "View",
+        keywords: "quotation block quote pinpoint passage pdf",
+        run: () => navigate("/quote"),
+      },
+      {
         id: "add-note",
         label: "Add an explanatory note",
         keywords: "discursive commentary",

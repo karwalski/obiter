@@ -68,6 +68,17 @@ module.exports = async (env, options) => {
             filename: "assets/[name][ext][query]",
           },
         },
+        {
+          // ENP-011: the pdf.js worker is emitted as a plain file on the app
+          // origin (never a CDN or blob: URL) so `worker-src 'self'` holds.
+          // The `.js` extension keeps the served MIME type a script type,
+          // which module workers require.
+          test: /pdfjs-dist[\\/].*[\\/]pdf\.worker(\.min)?\.mjs$/,
+          type: "asset/resource",
+          generator: {
+            filename: dev ? "pdf.worker.js" : "pdf.worker.[contenthash:8].js",
+          },
+        },
       ],
     },
     plugins: [

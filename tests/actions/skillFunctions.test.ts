@@ -113,6 +113,33 @@ describe("skill dispatchers", () => {
     await expect(skillRefreshFootnotes()).resolves.toEqual({ status: "refreshed" });
     expect(mocked.refreshFootnotes).toHaveBeenCalledTimes(1);
   });
+
+  it("importCitations forwards optional tags and rejects a non-string list (ENP-001)", async () => {
+    const importer = SKILL_DISPATCHERS.importCitations;
+    await expect(importer({ text: "TY  - JOUR\nER  -\n", tags: "contract" })).rejects.toThrow(
+      SkillRequestError
+    );
+    await expect(importer({ text: "TY  - JOUR\nER  -\n", tags: [1] })).rejects.toThrow(
+      SkillRequestError
+    );
+    mocked.importCitations.mockResolvedValue({
+      added: 1,
+      updated: 0,
+      skippedDuplicates: 0,
+      incomplete: 0,
+      ids: ["x"],
+      incompleteIds: [],
+      records: [],
+      messages: [],
+    });
+    await importer({ text: "TY  - JOUR\nER  -\n", tags: ["Contract", "remedies"] });
+    expect(mocked.importCitations).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: ["Contract", "remedies"] })
+    );
+    mocked.importCitations.mockClear();
+    await importer({ text: "TY  - JOUR\nER  -\n" });
+    expect(mocked.importCitations.mock.calls[0][0]).not.toHaveProperty("tags");
+  });
 });
 
 describe("SKILL_DISPATCHERS coverage", () => {

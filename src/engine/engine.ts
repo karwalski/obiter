@@ -4605,6 +4605,21 @@ export function formatCitation(
     // resolver returned null — render full citation (falls through below)
   }
 
+  // ── Per-occurrence pinpoint on a full reference ───────────────────────────
+  // AGLC4 Rule 1.1.6: a pinpoint reference may follow any citation, first or
+  // subsequent — 'Mabo v Queensland [No 2] (1992) 175 CLR 1, 42' (pages) or
+  // '… 175 CLR 1 [42]' (paragraphs, Rule 2.2.5 for cases); Rule 1.7.1 requires
+  // one for every quotation. The occurrence pinpoint in `context.currentPinpoint`
+  // therefore applies to a full (first) reference exactly as it does to the
+  // short forms above: it takes precedence over the citation's own stored
+  // `data.pinpoint`, and is rendered by the per-source-type formatter through
+  // the same `data.pinpoint` slot (pages `, 42`; paragraphs ` [42]`; sections
+  // ` s 5`). Without a current pinpoint the citation renders unchanged.
+  const occurrencePinpoint = context ? normalisePinpoint(context.currentPinpoint) : undefined;
+  const target: Citation = occurrencePinpoint
+    ? { ...citation, data: { ...citation.data, pinpoint: occurrencePinpoint } }
+    : citation;
+
   // ── Helper: append short title introduction and abbreviation definition
   //    after first citations (Rules 1.4.4 and 1.4.5). These are appended
   //    before closing punctuation so the full stop comes last.
@@ -4649,11 +4664,11 @@ export function formatCitation(
   // Falls through to the generic AGLC4 dispatch / generic formatter if
   // no OSCOLA formatter handles this source type.
   if (isOscolaStandard(standardConfig)) {
-    const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
+    const oscolaFormatter = OSCOLA_DISPATCH[target.sourceType];
     if (oscolaFormatter) {
-      let runs = oscolaFormatter(citation, standardConfig);
+      let runs = oscolaFormatter(target, standardConfig);
       runs = appendFirstCitationSuffixes(runs);
-      return applySignalAndCommentary(runs, citation);
+      return applySignalAndCommentary(runs, target);
     }
     // No OSCOLA-specific formatter — fall through to SOURCE_DISPATCH
   }
@@ -4663,19 +4678,19 @@ export function formatCitation(
   // Falls through to the generic AGLC4 dispatch / generic formatter if
   // no NZLSG formatter handles this source type.
   if (isNzlsgStandard(standardConfig.standardId)) {
-    const nzlsgRuns = dispatchNzlsg(citation);
+    const nzlsgRuns = dispatchNzlsg(target);
     if (nzlsgRuns !== null) {
       const withSuffixes = appendFirstCitationSuffixes(nzlsgRuns);
-      return applySignalAndCommentary(withSuffixes, citation);
+      return applySignalAndCommentary(withSuffixes, target);
     }
   }
 
   // Dispatch to the source-type-specific formatter, or fallback to generic.
-  const dispatcher = SOURCE_DISPATCH[citation.sourceType];
-  let runs = dispatcher ? dispatcher(citation, standardConfig) : formatGenericCitation(citation);
+  const dispatcher = SOURCE_DISPATCH[target.sourceType];
+  let runs = dispatcher ? dispatcher(target, standardConfig) : formatGenericCitation(target);
   runs = appendFirstCitationSuffixes(runs);
 
-  return applySignalAndCommentary(runs, citation);
+  return applySignalAndCommentary(runs, target);
 }
 
 // ─── Preview Helper ──────────────────────────────────────────────────────────

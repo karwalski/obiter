@@ -152,9 +152,16 @@ export async function skillImportCitations(raw: unknown): Promise<unknown> {
     format?: unknown;
     dryRun?: unknown;
     includeIncomplete?: unknown;
+    tags?: unknown;
   };
   if (typeof req.text !== "string" || !req.text.trim()) {
     throw new SkillRequestError("importCitations needs non-empty text");
+  }
+  if (
+    req.tags !== undefined &&
+    (!Array.isArray(req.tags) || !req.tags.every((t) => typeof t === "string"))
+  ) {
+    throw new SkillRequestError("importCitations tags must be an array of strings");
   }
   const formats = ["ris", "endnote-xml", "bibtex", "csl-json", "word-sources-xml"];
   if (
@@ -168,6 +175,7 @@ export async function skillImportCitations(raw: unknown): Promise<unknown> {
     format: req.format as ImportCitationsRequest["format"],
     dryRun: req.dryRun === true,
     includeIncomplete: req.includeIncomplete !== false,
+    ...(req.tags !== undefined ? { tags: req.tags as string[] } : {}),
   });
 }
 

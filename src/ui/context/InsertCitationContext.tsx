@@ -99,7 +99,18 @@ interface InsertCitationState {
   setRecentExpanded: Dispatch<SetStateAction<boolean>>;
 
   // Reset all form state (e.g. after successful insert)
-  resetForm: () => void;
+  resetForm: (options?: ResetFormOptions) => void;
+}
+
+/** BUG-008: options for resetForm. */
+export interface ResetFormOptions {
+  /** Keep the selected category and source type (manual-override insert). */
+  keepSourceType?: boolean;
+  /**
+   * Keep the court jurisdiction loaded from the document. A post-insert reset
+   * leaves it alone; the Clear button drops it (the refresh reloads it).
+   */
+  keepCourtJurisdiction?: boolean;
 }
 
 const InsertCitationContext = createContext<InsertCitationState | undefined>(undefined);
@@ -137,9 +148,11 @@ export function InsertCitationProvider({ children }: { children: React.ReactNode
 
   const [recentExpanded, setRecentExpanded] = useState(true);
 
-  const resetForm = useCallback(() => {
-    setSelectedCategory("");
-    setSelectedSourceType("");
+  const resetForm = useCallback((options: ResetFormOptions = {}) => {
+    if (!options.keepSourceType) {
+      setSelectedCategory("");
+      setSelectedSourceType("");
+    }
     setFormData({});
     setShortTitle("");
     setShortTitleTouched(false);
@@ -156,7 +169,9 @@ export function InsertCitationProvider({ children }: { children: React.ReactNode
     setPasteCitationExpanded(false);
     setPasteCitationText("");
     setPasteCitationResult(null);
-    setCourtJurisdiction(null);
+    if (!options.keepCourtJurisdiction) {
+      setCourtJurisdiction(null);
+    }
   }, []);
 
   return (
