@@ -1653,7 +1653,7 @@ reference-type table cross-referenced in footnote-backlog Epic 18.
 
 ## EPIC: ENP — EndNote Parity (Tags, Duplicates, Record details, Update from source, Cited by, Quote, Summarise)
 
-**Phase:** Post-backlog | **Stories:** 16 | **Completed:** 15 (ENP-015 release pending)
+**Phase:** Post-backlog | **Stories:** 16 | **Completed:** 16
 
 Seeded 2026-09-13 from the EndNote 2025 parity review: of 21 EndNote features, nine Obiter already
 has, five are out of scope for a Word add-in, and seven are gaps a task pane can close. Source access
@@ -1677,6 +1677,6 @@ explicit action; provenance lives in the `interchange` bag from DECISION-038.
 | ENP-012 | Summarise and ask about a loaded passage with the user's own key; privacy page and Settings disclosure | DECISION-039 | FEATURE | DONE |
 | ENP-013 | Harden or remove the unused `/api/proxy/austlii/fetch` relay (host takeover via `@` in id, no SSRF guard) | DECISION-003 | BUG | DONE |
 | ENP-014 | Docs: DECISION-039, this table, backlog epic, website docs per shipped story | — | DOCS | DONE |
-| ENP-015 | Release v1.17.0 (minor): all ENP stories plus BUG-007 and BUG-008; manifest XML and AppSource listing text updated; Windows, Mac and web check and sideload | — | RELEASE | IN PROGRESS |
+| ENP-015 | Release v1.17.0 (minor): all ENP stories plus BUG-007 and BUG-008; manifest XML and AppSource listing text updated; shipped 2026-09-22; Windows, Mac and web check, sideload and AppSource resubmission owed | — | RELEASE | DONE |
 | ENP-016 | Website, docs page and README describe every shipped feature in user terms (no product-parity framing) | — | DOCS | DONE |
 
