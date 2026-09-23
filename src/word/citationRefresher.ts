@@ -219,7 +219,10 @@ export interface RenderedCitation {
  * pinpoint it was inserted with (Rules 1.1.6 / 2.2.5), not as page 42.
  *
  * A stored pinpoint may be a `Pinpoint` object or a plain string typed into
- * the citation form; a plain string is a page (the engine's own coercion).
+ * the citation form; a plain string is decoded by type exactly as a title
+ * pinpoint is (`[42]` paragraph, `s 223` section, bare `42` page), so the
+ * refresh renders it as the insert preview did — under NZLSG a string
+ * `s 223` on a statute is `, s 223`, never a page pinpoint's `at s 223`.
  * An empty or partial value is dropped so it never renders as "undefined".
  *
  * Pure — exported for tests.
@@ -232,8 +235,7 @@ export function resolveOccurrencePinpoint(
     return pinpointFromTitleString(titlePinpoint);
   }
   if (typeof storedPinpoint === "string") {
-    const trimmed = storedPinpoint.trim();
-    return trimmed ? { type: "page", value: trimmed } : undefined;
+    return pinpointFromTitleString(storedPinpoint);
   }
   if (
     storedPinpoint &&
@@ -340,16 +342,85 @@ function getClosingPunctuation(lastCitationText: string): string {
  *   {@link OnBeforeRebuild}.
  * @returns A RefreshResult with counts of updated and unchanged citations.
  */
-export async function refreshAllCitations(
+export function refreshAllCitations(
   context: Word.RequestContext,
   store: CitationStore,
   onBeforeRebuild?: OnBeforeRebuild
 ): Promise<RefreshResult> {
   // Gate: Manual Citations Mode disables all auto-refresh
   if (getDevicePref("manualCitationMode") === true) {
-    return emptyRefreshResult();
+    return Promise.resolve(emptyRefreshResult());
   }
 
+  // Re-entrancy guard: refreshes are serialised (see `refreshChain`). Two
+  // interleaved rebuilds (the Settings auto-refresh racing the Refresh All
+  // button on Word for the web) each scanned the same footnotes before
+  // either wrote, then both replaced and re-wrapped the content — every
+  // footnote ended up with duplicate child controls (`Ibid; Ibid; …`).
+  // A caller that arrives while one refresh is running and a default-hook
+  // refresh for the same store is already waiting shares that waiting run:
+  // it starts after the running one and scans the document fresh, so it
+  // sees every change the sharing caller has made.
+  if (
+    refreshesPending > 0 &&
+    waitingRefresh !== null &&
+    waitingRefresh.store === store &&
+    onBeforeRebuild === undefined
+  ) {
+    return waitingRefresh.promise;
+  }
+
+  refreshesPending++;
+  const run: Promise<RefreshResult> = refreshChain.then(() => {
+    // Started: no longer joinable by a later caller.
+    if (waitingRefresh !== null && waitingRefresh.promise === run) waitingRefresh = null;
+    return runRefresh(context, store, onBeforeRebuild);
+  });
+  refreshChain = run.then(
+    () => {
+      refreshesPending--;
+    },
+    () => {
+      refreshesPending--;
+    }
+  );
+  if (refreshesPending > 1 && onBeforeRebuild === undefined) {
+    waitingRefresh = { store, promise: run };
+  }
+  return run;
+}
+
+// ─── Serialisation state ────────────────────────────────────────────────────
+
+/** A refresh queued behind the running one that later callers may share. */
+interface WaitingRefresh {
+  store: CitationStore;
+  promise: Promise<RefreshResult>;
+}
+
+/**
+ * The tail of the refresh queue: every refresh starts only after the
+ * previous one has settled (a rejection does not block the queue).
+ */
+let refreshChain: Promise<void> = Promise.resolve();
+/** Refreshes running or queued. */
+let refreshesPending = 0;
+/** The most recently queued default-hook refresh that has not yet started. */
+let waitingRefresh: WaitingRefresh | null = null;
+
+/** Test hook: forgets any in-flight or queued refresh. */
+export function resetRefreshSerialisationForTests(): void {
+  refreshChain = Promise.resolve();
+  refreshesPending = 0;
+  waitingRefresh = null;
+}
+
+/** One full refresh pass in `context` (the body of {@link refreshAllCitations}). */
+async function runRefresh(
+  context: Word.RequestContext,
+  store: CitationStore,
+  onBeforeRebuild?: OnBeforeRebuild
+): Promise<RefreshResult> {
   // STD-013: the document config from the store's standard and writing
   // mode, with court toggles. Court toggle overrides are DOCUMENT metadata
   // (cross-device correctness). Legacy documents customised before the

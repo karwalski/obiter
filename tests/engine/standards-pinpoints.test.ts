@@ -19,7 +19,8 @@ import {
   normaliseStringPinpoint,
   pinpointText,
 } from "../../src/engine/standards/pinpoints";
-import type { Pinpoint } from "../../src/types/citation";
+import type { Citation, Pinpoint } from "../../src/types/citation";
+import { renderFirst, type StandardKey } from "../standards/runner";
 
 const aglc4 = getStandardConfig("aglc4");
 const oscola5 = getStandardConfig("oscola5");
@@ -318,6 +319,64 @@ describe("NZLSG 3 §6.1.8: secondary-source pinpoints", () => {
         { after: "secondary" }
       )
     ).toBe(" at 189, n 92");
+  });
+});
+
+// ─── String and typed pinpoints render alike (Word for the web defect, v1.17.1) ──
+//
+// A `data.pinpoint` typed into the form as "s 223" reached the refresher's
+// occurrence resolution as a *page* pinpoint, so NZLSG rendered a statute
+// as ', at s 223' while the typed section rendered ', s 223'. Every
+// standard must render the string and the typed form identically.
+
+function statute(pinpoint: string | Pinpoint): Citation {
+  return {
+    id: "nta",
+    sourceType: "legislation.statute",
+    data: { title: "Native Title Act", year: "1993", jurisdiction: "Cth", pinpoint },
+    aglcVersion: "4",
+    tags: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+  } as unknown as Citation;
+}
+
+const STATUTE_PINPOINTS: Array<[string, Pinpoint]> = [
+  ["s 223", { type: "section", value: "223" }],
+  ["s 5(2)", { type: "section", value: "5(2)" }],
+  ["sch 1", { type: "schedule", value: "1" }],
+];
+
+describe.each<[StandardKey, string]>([
+  ["nzlsg3", ", "],
+  ["oscola5", " "],
+  ["aglc4", " "],
+])(
+  "%s: a statute pinpoint typed as a string renders like the typed pinpoint",
+  (standard, joiner) => {
+    test.each(STATUTE_PINPOINTS)("'%s'", (text, typed) => {
+      const fromString = renderFirst(statute(text), standard).text;
+      const fromTyped = renderFirst(statute(typed), standard).text;
+      expect(fromString).toBe(fromTyped);
+      expect(fromString).toBe(`Native Title Act 1993 (Cth)${joiner}${text}`);
+      expect(fromString).not.toContain(" at ");
+    });
+
+    test("formatPinpointFor decodes the same strings after a statute", () => {
+      const config = getStandardConfig(standard);
+      for (const [text, typed] of STATUTE_PINPOINTS) {
+        expect(formatPinpointFor(config, text, { after: "statute" })).toBe(
+          formatPinpointFor(config, typed, { after: "statute" })
+        );
+      }
+    });
+  }
+);
+
+describe("NZLSG 3 §4.1.1(d): the statute suffix for a string is ', s 223', never 'at'", () => {
+  test("formatPinpointFor('s 223') and the typed section agree", () => {
+    expect(formatPinpointFor(nzlsg3, "s 223", { after: "statute" })).toBe(", s 223");
+    expect(formatPinpointFor(nzlsg3, "s 5(2)", { after: "statute" })).toBe(", s 5(2)");
+    expect(formatPinpointFor(nzlsg3, "sch 1", { after: "statute" })).toBe(", sch 1");
   });
 });
 

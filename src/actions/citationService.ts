@@ -27,7 +27,9 @@ import { getFormattedPreview } from "../engine/engine";
 import { listMissingRequiredFields } from "../engine/validator";
 import { normaliseTags, userTags, withUserTags } from "../engine/tags";
 import { resolveDocumentConfig } from "../engine/standards";
+import { normaliseStringPinpoint } from "../engine/standards/pinpoints";
 import {
+  buildOccurrenceTitle,
   insertCitationFootnote,
   updateCitationContent,
   deleteCitationFootnote,
@@ -127,12 +129,23 @@ export async function insertCitation(
     }
   }
 
-  // Reuse an existing matching citation (subsequent reference).
+  // The occurrence's own pinpoint travels in the child-CC title
+  // (`Citation:auto:<pinpoint>`), which is what the refresher reads
+  // (`resolveOccurrencePinpoint`) when it renders the footnote as Ibid /
+  // short form / full. A form string is decoded by type the way the title
+  // codec does (`[42]` paragraph, `s 223` section, bare `42` page).
+  const occurrenceTitle = buildOccurrenceTitle(
+    "auto",
+    normaliseStringPinpoint(request.data.pinpoint)
+  );
+
+  // Reuse an existing matching citation (subsequent reference). The insert
+  // renders the full citation; the refresh below turns it into the
+  // subsequent form with this occurrence's pinpoint from the title.
   const existingMatch = findMatchingCitation(citation, store.getAll());
   if (existingMatch) {
     const runs = getFormattedPreview(existingMatch, cfg);
-    const title = request.shortTitle || existingMatch.shortTitle || existingMatch.sourceType;
-    await insertCitationFootnote(existingMatch.id, title, runs, appendIndex);
+    await insertCitationFootnote(existingMatch.id, occurrenceTitle, runs, appendIndex);
     await refreshAllCitationsNow(store);
     return {
       status: "inserted",
@@ -142,11 +155,12 @@ export async function insertCitation(
     };
   }
 
-  // New citation.
+  // New citation. `data.pinpoint` stays on the stored citation (the
+  // fallback for occurrences without a title pinpoint); the occurrence is
+  // tagged with it too so every occurrence resolves the same way.
   const runs = getFormattedPreview(citation, cfg);
   await store.add(citation);
-  const title = request.shortTitle || citation.sourceType;
-  await insertCitationFootnote(citation.id, title, runs, appendIndex);
+  await insertCitationFootnote(citation.id, occurrenceTitle, runs, appendIndex);
   await refreshAllCitationsNow(store);
   return {
     status: "inserted",

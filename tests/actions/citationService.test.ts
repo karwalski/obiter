@@ -7,7 +7,16 @@
  * client will drive. Word-layer + store are auto-mocked; the engine runs for real.
  */
 
-jest.mock("../../src/word/footnoteManager");
+// footnoteManager: the Word-mutating entry points are mocked; the pure
+// occurrence-title codec stays real so the titles the service builds can be
+// decoded in the assertions.
+jest.mock("../../src/word/footnoteManager", () => ({
+  ...jest.requireActual("../../src/word/footnoteManager"),
+  insertCitationFootnote: jest.fn(),
+  updateCitationContent: jest.fn(),
+  deleteCitationFootnote: jest.fn(),
+  retagOccurrences: jest.fn(),
+}));
 jest.mock("../../src/word/citationRefresher");
 jest.mock("../../src/store/singleton");
 
@@ -143,6 +152,66 @@ describe("insertCitation (COPILOT-001, three modes)", () => {
   it("append: passes the target footnote index through", async () => {
     await insertCitation({ ...caseRequest, appendToFootnoteIndex: 7 }, CONFIG);
     expect(insertFootnote.mock.calls[0][3]).toBe(7);
+  });
+});
+
+describe("insertCitation carries the form pinpoint into the occurrence title", () => {
+  /** The typed pinpoint decoded from the title passed to insertCitationFootnote. */
+  function insertedPinpoint(): ReturnType<typeof footnoteManager.parseOccurrenceTitle> {
+    expect(insertFootnote).toHaveBeenCalledTimes(1);
+    const title = insertFootnote.mock.calls[0][1] as string;
+    return footnoteManager.parseOccurrenceTitle(title);
+  }
+
+  it("reused citation: a '[42]' paragraph pinpoint is tagged on the new occurrence", async () => {
+    const existing = buildCitationFromRequest(caseRequest, "4");
+    mockStore.getAll.mockReturnValue([existing]);
+    const result = await insertCitation(
+      { ...caseRequest, data: { ...caseRequest.data, pinpoint: "[42]" } },
+      CONFIG
+    );
+    expect(result.mode).toBe("reused");
+    const parsed = insertedPinpoint();
+    expect(parsed.formatPreference).toBe("auto");
+    expect(parsed.pinpointRef).toEqual({ type: "paragraph", value: "[42]" });
+  });
+
+  it("new citation: a bare '42' page pinpoint is tagged on the occurrence and kept on the citation", async () => {
+    const result = await insertCitation(
+      { ...caseRequest, data: { ...caseRequest.data, pinpoint: "42" } },
+      CONFIG
+    );
+    expect(result.mode).toBe("new");
+    expect(insertedPinpoint().pinpointRef).toEqual({ type: "page", value: "42" });
+    const stored = mockStore.add.mock.calls[0][0] as Citation;
+    expect(stored.data.pinpoint).toBe("42");
+  });
+
+  it("a labelled 's 223' string and a typed section pinpoint encode the same occurrence title", async () => {
+    await insertCitation(
+      { ...caseRequest, data: { ...caseRequest.data, pinpoint: "s 223" } },
+      CONFIG
+    );
+    const fromString = insertFootnote.mock.calls[0][1] as string;
+    insertFootnote.mockClear();
+    await insertCitation(
+      {
+        ...caseRequest,
+        data: { ...caseRequest.data, pinpoint: { type: "section", value: "223" } },
+      },
+      CONFIG
+    );
+    const fromTyped = insertFootnote.mock.calls[0][1] as string;
+    expect(fromString).toBe(fromTyped);
+    expect(footnoteManager.parseOccurrenceTitle(fromString).pinpointRef).toEqual({
+      type: "section",
+      value: "223",
+    });
+  });
+
+  it("no pinpoint: the occurrence title is a plain 'Citation:auto'", async () => {
+    await insertCitation(caseRequest, CONFIG);
+    expect(insertFootnote.mock.calls[0][1]).toBe("Citation:auto");
   });
 });
 

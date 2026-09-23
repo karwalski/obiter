@@ -376,6 +376,21 @@ function toOptionalNumber(raw: unknown): number | undefined {
 }
 
 /**
+ * Coerces a book edition to its number. The Insert form's Edition field
+ * invites an ordinal ("e.g. 3rd"), so "4th", "2nd", " 1st " and "4" all
+ * read as their number (the suffix is case-insensitive and ignored — the
+ * formatter renders the correct ordinal itself); anything else, including
+ * an empty string, is undefined.
+ */
+function toEditionNumber(raw: unknown): number | undefined {
+  if (typeof raw === "string") {
+    const match = raw.trim().match(/^(\d+)(?:st|nd|rd|th)?$/i);
+    return match ? Number(match[1]) : undefined;
+  }
+  return toOptionalNumber(raw);
+}
+
+/**
  * Returns the first candidate that is a non-empty string, or "".
  *
  * Unlike the `??` operator, this treats an empty or whitespace-only string as
@@ -618,7 +633,7 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
     // Rule 26.4: bracketed translation of a non-English title (ex 21)
     translatedTitle: toStr(d.translatedTitle) || undefined,
     publisher: toStr(d.publisher) || undefined,
-    edition: toOptionalNumber(d.edition),
+    edition: toEditionNumber(d.edition),
     // Rule 6.3.3: revised editions render a bare 'rev ed'
     revised: toBool(d.revised),
     // Rule 6.3.4: string years admit spans (eg '1984–88', '1975–')
@@ -1247,7 +1262,7 @@ function dispatchBookTranslated(citation: Citation, config?: CitationConfig): Fo
     authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: toStr(d.publisher) || undefined,
-    edition: toOptionalNumber(d.edition),
+    edition: toEditionNumber(d.edition),
     revised: toBool(d.revised),
     year: toStr(d.year) || toNumber(d.year, 0),
     translator: (d.translator as string) ?? "",
@@ -1273,7 +1288,7 @@ function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): For
     authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? "",
-    edition: toOptionalNumber(d.edition),
+    edition: toEditionNumber(d.edition),
     year: toNumber(d.year, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
@@ -1297,7 +1312,7 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
     authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     publisher: (d.publisher as string) ?? "",
-    edition: toOptionalNumber(d.edition),
+    edition: toEditionNumber(d.edition),
     year: toNumber(d.year, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
@@ -3419,17 +3434,15 @@ function ordinalSuffixFor(n: number): string {
 
 /**
  * NZLSG rule 6.1 renders editions as ordinals ('2nd ed'): a bare numeric
- * edition from the form ('2') is ordinalised; a pre-formatted string
- * passes through; empty input is omitted (never '(2, …)').
+ * edition from the form ('2') or a typed ordinal ('2nd', '4th') is
+ * rendered as `<ordinal> ed`; any other pre-formatted string passes
+ * through; empty input is omitted (never '(2, …)').
  */
 function nzlsgEdition(edition: unknown): string | undefined {
+  const n = toEditionNumber(edition);
+  if (n !== undefined) return `${n}${ordinalSuffixFor(n)} ed`;
   const raw = toStr(edition).trim();
-  if (!raw) return undefined;
-  if (/^\d+$/.test(raw)) {
-    const n = Number(raw);
-    return `${n}${ordinalSuffixFor(n)} ed`;
-  }
-  return raw;
+  return raw || undefined;
 }
 
 /**
