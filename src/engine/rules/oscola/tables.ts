@@ -41,6 +41,12 @@ export interface LegislationEntry {
   year?: number;
   additionalInfo?: string;
   category: "primary" | "secondary" | "eu" | "treaty";
+  /**
+   * STD-018: a pre-rendered entry (the standard's own legislation form)
+   * printed verbatim instead of title/year/additionalInfo, which then serve
+   * ordering only.
+   */
+  runs?: FormattedRun[];
 }
 
 // ─── Table of Cases (OSC-012) ────────────────────────────────────────────────
@@ -165,6 +171,9 @@ export function generateTableOfLegislation(legislation: LegislationEntry[]): Bib
 
     // Format entries — all roman (not italic) per OSCOLA
     const formattedEntries: FormattedRun[][] = sorted.map((entry) => {
+      if (entry.runs) {
+        return entry.runs;
+      }
       const runs: FormattedRun[] = [];
 
       // Title — roman

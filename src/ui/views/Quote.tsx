@@ -12,8 +12,8 @@ import type { Citation, Pinpoint } from "../../types/citation";
 import type { FormattedRun } from "../../types/formattedRun";
 import { formatCitation, getFormattedPreview } from "../../engine/engine";
 import type { CitationContext } from "../../engine/engine";
-import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import type { CitationConfig, CitationStandardId } from "../../engine/standards/types";
+import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards";
 import { detectPinpointsInPassage, bracketParagraphValue } from "../../engine/quotations/pinpoint";
 import { applyQuotationToText } from "../../engine/quotations/format";
 import type { QuotationMode } from "../../engine/quotations/format";
@@ -144,10 +144,14 @@ function endsWithFullStop(runs: FormattedRun[]): boolean {
   return /[.?!]$/.test(text);
 }
 
-/** Formatted preview for the source list; an incomplete citation falls back to its label. */
-function safePreview(citation: Citation): FormattedRun[] {
+/**
+ * Formatted preview for the source list, rendered with the document config
+ * (STD-022) so the picker shows the same OSCOLA, NZLSG or court-mode text
+ * the footnote will carry; an incomplete citation falls back to its label.
+ */
+function safePreview(citation: Citation, config: CitationConfig): FormattedRun[] {
   try {
-    return getFormattedPreview(citation);
+    return getFormattedPreview(citation, config);
   } catch {
     return [{ text: getCitationLabel(citation) }];
   }
@@ -158,7 +162,7 @@ function safePreview(citation: Citation): FormattedRun[] {
  * parties — plus the rendered citation text, so authors held in structured
  * fields (an `authors` array) are searchable by name.
  */
-function matchesSearch(citation: Citation, term: string): boolean {
+function matchesSearch(citation: Citation, term: string, config: CitationConfig): boolean {
   const d = citation.data;
   const haystack = [
     getCitationLabel(citation),
@@ -167,7 +171,7 @@ function matchesSearch(citation: Citation, term: string): boolean {
     asString(d.author),
     asString(d.applicant) || asString(d.plaintiff) || asString(d.partyA) || asString(d.party1),
     asString(d.respondent) || asString(d.defendant) || asString(d.partyB) || asString(d.party2),
-    safePreview(citation)
+    safePreview(citation, config)
       .map((run) => run.text)
       .join(""),
   ];
@@ -193,8 +197,7 @@ function buildFootnoteRuns(
   citation: Citation,
   existing: CitationFootnoteEntry[],
   pinpoint: Pinpoint | undefined,
-  standardId: CitationStandardId,
-  courtToggles: Record<string, string> | undefined
+  courtConfig: CitationConfig
 ): FootnoteBuild {
   const firstFn = existing.find((e) => e.citationId === citation.id);
   const lastFootnoteNumber =
@@ -203,7 +206,6 @@ function buildFootnoteRuns(
   const isFirst = !firstFn;
   const isSameAsPreceding =
     precedingCitations.length === 1 && precedingCitations[0].citationId === citation.id;
-  const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
 
   const ctx: CitationContext = {
     footnoteNumber: lastFootnoteNumber + 1,
@@ -344,14 +346,24 @@ export default function Quote(): JSX.Element {
     if (selectedSourceType) setPinpointType(defaultPinpointType(selectedSourceType));
   }, [selectedId, selectedSourceType]);
 
+  // STD-013: the document config (writing mode and court toggles; device
+  // pref is the legacy fallback), the academic profile until the store loads.
+  const courtConfig = useMemo(
+    () =>
+      store
+        ? resolveDocumentConfig(store, getDevicePref("courtToggles") as Record<string, string> | undefined)
+        : getStandardConfig(standardId),
+    [store, standardId]
+  );
+
   const matches = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const list = term ? citations.filter((c) => matchesSearch(c, term)) : citations;
+    const list = term ? citations.filter((c) => matchesSearch(c, term, courtConfig)) : citations;
     const shown = list.slice(0, MAX_MATCHES);
     // Keep the chosen source visible even when the search no longer matches it.
     if (selected && !shown.some((c) => c.id === selected.id)) shown.unshift(selected);
     return shown;
-  }, [citations, search, selected]);
+  }, [citations, search, selected, courtConfig]);
 
   const detection = useMemo(() => detectPinpointsInPassage(passage), [passage]);
 
@@ -368,9 +380,12 @@ export default function Quote(): JSX.Element {
     [pinpointValue]
   );
 
+  // STD-016: the standard's quotation marks and block threshold (AGLC4
+  // r 1.5.1, OSCOLA 5 §1.5, NZLSG 3 §1.2.2) come from the document config.
   const decision = useMemo(
-    () => (detection.cleaned ? applyQuotationToText(detection.cleaned) : null),
-    [detection.cleaned]
+    () =>
+      detection.cleaned ? applyQuotationToText(detection.cleaned, { config: courtConfig }) : null,
+    [detection.cleaned, courtConfig]
   );
 
   const pinpoint = useMemo(
@@ -379,19 +394,12 @@ export default function Quote(): JSX.Element {
   );
   const pinpointMissing = selected !== null && requiresPinpoint(selected.sourceType) && !pinpoint;
 
-  const courtToggles = useMemo(
-    () =>
-      store?.getCourtToggles() ??
-      (getDevicePref("courtToggles") as Record<string, string> | undefined),
-    [store]
-  );
-
   const footnotePreview = useMemo(
     () =>
       selected
-        ? buildFootnoteRuns(selected, existingFootnotes, pinpoint, standardId, courtToggles)
+        ? buildFootnoteRuns(selected, existingFootnotes, pinpoint, courtConfig)
         : null,
-    [selected, existingFootnotes, pinpoint, standardId, courtToggles]
+    [selected, existingFootnotes, pinpoint, courtConfig]
   );
 
   const canInsert =
@@ -413,7 +421,7 @@ export default function Quote(): JSX.Element {
 
       // 2. The footnote, built exactly as the library's "Insert as" (auto).
       const existing = await getAllCitationFootnotes();
-      const build = buildFootnoteRuns(selected, existing, pinpoint, standardId, courtToggles);
+      const build = buildFootnoteRuns(selected, existing, pinpoint, courtConfig);
       const ccTitle = buildOccurrenceTitle("auto", pinpoint);
       await insertCitationFootnote(selected.id, ccTitle, build.runs);
 
@@ -435,8 +443,7 @@ export default function Quote(): JSX.Element {
     store,
     pinpointMissing,
     pinpoint,
-    standardId,
-    courtToggles,
+    courtConfig,
     triggerRefresh,
   ]);
 
@@ -667,7 +674,7 @@ export default function Quote(): JSX.Element {
                   <span className="quote-source-badge">
                     {getSourceTypeBadge(citation.sourceType)}
                   </span>{" "}
-                  <FormattedRuns runs={safePreview(citation)} />
+                  <FormattedRuns runs={safePreview(citation, courtConfig)} />
                 </span>
               </label>
             ))}

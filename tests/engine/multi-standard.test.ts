@@ -199,10 +199,26 @@ describe("MULTI-005: Ibid mode configuration", () => {
     expect(text).toBe("Smith (n 1) 42");
   });
 
-  it("NZLSG3: ibid disabled, uses above n format", () => {
+  it("NZLSG3: ibid disabled — the immediately preceding source takes the §2.3.1(a) rule 1 pinpoint-only form (STD-015)", () => {
     const result = resolveSubsequentReference(mockBookCitation, {
       isFirstCitation: false,
       isSameAsPreceding: true,
+      precedingFootnoteCitationCount: 1,
+      currentPinpoint: pagePinpoint,
+      precedingPinpoint: undefined,
+      firstFootnoteNumber: 1,
+      isWithinSameFootnote: false,
+      formatPreference: "auto",
+      config: NZLSG3_CONFIG,
+    });
+    const text = result!.map((r) => r.text).join("");
+    expect(text).toBe("At 42");
+  });
+
+  it("NZLSG3: ibid disabled, uses above n format when the source is not the preceding one", () => {
+    const result = resolveSubsequentReference(mockBookCitation, {
+      isFirstCitation: false,
+      isSameAsPreceding: false,
       precedingFootnoteCitationCount: 1,
       currentPinpoint: pagePinpoint,
       precedingPinpoint: undefined,

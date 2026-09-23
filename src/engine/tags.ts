@@ -12,7 +12,17 @@
 export const MAX_TAG_LENGTH = 40;
 
 const SYSTEM_TAG_PREFIXES = ["import:", "imported-from-", "dedupe:"];
-const SYSTEM_TAGS = new Set(["import", "waitangi_tribunal"]);
+const SYSTEM_TAGS = new Set(["import"]);
+
+/**
+ * STD-021: legacy classification hints. `waitangi_tribunal` once marked a
+ * report for the NZLSG bibliography's Waitangi Tribunal section; the
+ * classification is now derived from the source type or the body text
+ * (src/engine/rules/v4/general/bibliography.ts isWaitangiTribunalReport),
+ * so a stored tag is a hint only — never required, never editable, never
+ * exported, kept in place on save like a system tag.
+ */
+const DERIVED_TAGS = new Set(["waitangi_tribunal"]);
 
 /** True for tags Obiter owns: provenance, dedupe and rule markers. */
 export function isSystemTag(tag: string): boolean {
@@ -20,9 +30,14 @@ export function isSystemTag(tag: string): boolean {
   return SYSTEM_TAG_PREFIXES.some((prefix) => tag.startsWith(prefix));
 }
 
+/** True for a legacy classification hint the engine derives itself now (STD-021). */
+export function isDerivedTag(tag: string): boolean {
+  return DERIVED_TAGS.has(tag);
+}
+
 /** The user-editable tags, in their stored order. */
 export function userTags(tags: readonly string[]): string[] {
-  return tags.filter((tag) => !isSystemTag(tag));
+  return tags.filter((tag) => !isSystemTag(tag) && !isDerivedTag(tag));
 }
 
 /** The system tags, in their stored order. */
@@ -45,7 +60,7 @@ export function normaliseTag(raw: string): string | undefined {
     .replace(/\s+/g, " ")
     .slice(0, MAX_TAG_LENGTH)
     .trim();
-  if (!tag || isSystemTag(tag)) return undefined;
+  if (!tag || isSystemTag(tag) || isDerivedTag(tag)) return undefined;
   return tag;
 }
 
@@ -68,5 +83,6 @@ export function normaliseTags(raw: readonly string[]): string[] {
  * keeping every system tag in place ahead of them.
  */
 export function withUserTags(tags: readonly string[], next: readonly string[]): string[] {
-  return [...systemTags(tags), ...normaliseTags(next)];
+  const kept = tags.filter((tag) => isSystemTag(tag) || isDerivedTag(tag));
+  return [...kept, ...normaliseTags(next)];
 }

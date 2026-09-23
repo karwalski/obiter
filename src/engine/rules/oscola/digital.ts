@@ -4,11 +4,22 @@
  */
 
 /**
- * OSCOLA 5 §3.7 — Online / Digital Sources (OSC-ENH-005)
+ * OSCOLA 5 §3.7.1–3.7.2 — Online / Digital Sources (OSC-ENH-005, STD-017)
  *
  * Pure formatting functions for digital source citations per OSCOLA 5
- * Rules 3.7.1–3.7.5. All formatters return FormattedRun[] and use
- * single curly quotes (\u2018 \u2019) for titles per OSCOLA convention.
+ * §3.7.1 (websites, blogs, social media, online video) and §3.7.2
+ * (podcasts), as recorded in docs/standards-rule-notes.md. All formatters
+ * return FormattedRun[] and use single curly quotes (‘ ’) for
+ * titles (OSCOLA 5 §1.5).
+ *
+ * Access dates: §3.7.1 wants `accessed <date>` after an ordinary URL only;
+ * a persistent link (Perma.cc) or a DOI needs none. The formatters emit the
+ * access date when one is supplied and leave the choice to the caller.
+ *
+ * Pinpoints: the engine appends page and paragraph pinpoints after the
+ * whole citation (STD-014, `formatPinpointFor`); the audio/video timestamp
+ * of §3.1.3 / §3.7.1 / §3.7.2 is an element of the citation itself and sits
+ * before the link, so it is a formatter input here.
  */
 
 import { FormattedRun } from "../../../types/formattedRun";
@@ -19,7 +30,7 @@ import { FormattedRun } from "../../../types/formattedRun";
  * Wraps text in OSCOLA-style single curly quotes.
  */
 function singleQuote(text: string): string {
-  return `\u2018${text}\u2019`;
+  return `‘${text}’`;
 }
 
 /**
@@ -36,17 +47,45 @@ function accessedDate(date: string): string {
   return `accessed ${date}`;
 }
 
+/** Appends ` <URL>` and, when given, ` accessed <date>` (§3.7.1). */
+function pushLink(runs: FormattedRun[], url: string, accessed?: string): void {
+  if (url) {
+    runs.push({ text: ` ${angleUrl(url)}` });
+  }
+  if (accessed) {
+    runs.push({ text: ` ${accessedDate(accessed)}` });
+  }
+}
+
+/**
+ * Pushes ` (` + italic site name [+ `, date`] + `)` — the §3.7.1 bracket
+ * with the site name in italics — or ` (date)` when there is no site.
+ */
+function pushSiteBracket(runs: FormattedRun[], site: string, date?: string): void {
+  if (!site && !date) return;
+  runs.push({ text: " (" });
+  if (site) {
+    runs.push({ text: site, italic: true });
+    if (date) runs.push({ text: ", " });
+  }
+  if (date) runs.push({ text: date });
+  runs.push({ text: ")" });
+}
+
 // ─── Website (OSCOLA 5 §3.7.1) ──────────────────────────────────────────────
 
 /**
- * Formats a website citation per OSCOLA 5 Rule 3.7.1.
+ * Formats a website citation per OSCOLA 5 §3.7.1.
  *
  * Format:
- *   Author, 'Title' (Website Name, Date) <URL> accessed Date
+ *   Author, 'Title' (*Website Name*, Date) <URL> accessed Date
+ *
+ * With no author the citation starts with the title; the access date is
+ * omitted when none is supplied (persistent link or DOI, §3.7.1).
  *
  * @example
- *   Jane Smith, 'The Future of Legal Tech' (Law Society Gazette,
- *   15 March 2026) <https://example.com/article> accessed 20 April 2026
+ *   Cyclefree, 'Is This Really Necessary, Minister?' (Legal Feminist,
+ *   27 April 2023) <https://perma.cc/3THK-P4AX>
  */
 export function formatOscolaWebsite(data: {
   author?: string;
@@ -54,7 +93,7 @@ export function formatOscolaWebsite(data: {
   websiteName: string;
   date?: string;
   url: string;
-  accessedDate: string;
+  accessedDate?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -63,49 +102,48 @@ export function formatOscolaWebsite(data: {
   }
 
   runs.push({ text: singleQuote(data.title) });
-
-  // Parenthetical: (Website Name, Date) or (Website Name)
-  const parenthetical = data.date ? `${data.websiteName}, ${data.date}` : data.websiteName;
-  runs.push({ text: ` (${parenthetical})` });
-
-  runs.push({ text: ` ${angleUrl(data.url)}` });
-  runs.push({ text: ` ${accessedDate(data.accessedDate)}` });
+  pushSiteBracket(runs, data.websiteName, data.date);
+  pushLink(runs, data.url, data.accessedDate);
 
   return runs;
 }
 
-// ─── Blog (OSCOLA 5 §3.7.2) ─────────────────────────────────────────────────
+// ─── Blog (OSCOLA 5 §3.7.1) ─────────────────────────────────────────────────
 
 /**
- * Formats a blog post citation per OSCOLA 5 Rule 3.7.2.
+ * Formats a blog post citation per OSCOLA 5 §3.7.1 (blogs share the
+ * website form).
  *
  * Format:
- *   Author, 'Title' (Blog Name, Date) <URL> accessed Date
+ *   Author, 'Title' (*Blog Name*, Date) <URL> accessed Date
  *
  * @example
- *   Jack of Kent, 'The Importance of Section 3' (Jack of Kent Blog,
- *   15 March 2026) <https://example.com> accessed 20 April 2026
+ *   Maximilian Steinbeis, 'A European Network of Constitutional Law Blogs'
+ *   (VerfBlog, 17 March 2015) <https://verfassungsblog.de/...>
+ *   accessed 21 July 2023
  */
 export function formatOscolaBlog(data: {
-  author: string;
+  author?: string;
   title: string;
   blogName: string;
-  date: string;
+  date?: string;
   url: string;
-  accessedDate: string;
+  accessedDate?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  runs.push({ text: `${data.author}, ` });
+  if (data.author) {
+    runs.push({ text: `${data.author}, ` });
+  }
+
   runs.push({ text: singleQuote(data.title) });
-  runs.push({ text: ` (${data.blogName}, ${data.date})` });
-  runs.push({ text: ` ${angleUrl(data.url)}` });
-  runs.push({ text: ` ${accessedDate(data.accessedDate)}` });
+  pushSiteBracket(runs, data.blogName, data.date);
+  pushLink(runs, data.url, data.accessedDate);
 
   return runs;
 }
 
-// ─── Social Media (OSCOLA 5 §3.7.3) ─────────────────────────────────────────
+// ─── Social Media (OSCOLA 5 §3.7.1) ─────────────────────────────────────────
 
 /** Maximum characters for social media content excerpt before truncation. */
 const SOCIAL_MEDIA_EXCERPT_LENGTH = 50;
@@ -117,69 +155,77 @@ function truncateExcerpt(content: string): string {
   if (content.length <= SOCIAL_MEDIA_EXCERPT_LENGTH) {
     return content;
   }
-  return content.slice(0, SOCIAL_MEDIA_EXCERPT_LENGTH).trimEnd() + "\u2026";
+  return content.slice(0, SOCIAL_MEDIA_EXCERPT_LENGTH).trimEnd() + "…";
 }
 
 /**
- * Formats a social media post citation per OSCOLA 5 Rule 3.7.3.
+ * Formats a social media post citation per OSCOLA 5 §3.7.1.
  *
  * Format:
- *   Author (@handle), 'Content excerpt...' (Platform, Date) <URL> accessed Date
+ *   @handle[, 'Content excerpt…'] (Platform, Date[, Time]) <URL> [accessed Date]
  *
- * Content is truncated to ~50 characters if longer.
- *
- * @example
- *   The Law Society (@TheLawSociety), 'New guidance on remote hearings
- *   published today...' (Twitter, 15 March 2026) <https://twitter.com/...>
- *   accessed 20 April 2026
+ * §3.7.1 cites the username as the author (with `@` for X/Twitter), then
+ * the platform, date, and time with zone, then the link:
+ * `@The Criminal Bar (Twitter, 26 June 2023, 9:13pm GMT+1) <https://perma.cc/HD6K-3GZQ>`.
+ * The handle is preferred over a display name; a quoted excerpt of the
+ * post (truncated to ~50 characters) is included only when supplied.
  */
 export function formatOscolaSocialMedia(data: {
-  author: string;
+  author?: string;
   handle?: string;
-  content: string;
+  content?: string;
   platform: string;
   date: string;
+  time?: string;
   url: string;
-  accessedDate: string;
+  accessedDate?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Author with optional handle
-  let authorText = data.author;
-  if (data.handle) {
-    authorText += ` (${data.handle})`;
+  const poster = (data.handle ?? data.author ?? "").trim();
+  const excerpt = (data.content ?? "").trim();
+
+  if (poster) {
+    runs.push({ text: excerpt ? `${poster}, ` : poster });
   }
-  runs.push({ text: `${authorText}, ` });
 
-  // Content excerpt in single quotes
-  const excerpt = truncateExcerpt(data.content);
-  runs.push({ text: singleQuote(excerpt) });
+  if (excerpt) {
+    runs.push({ text: singleQuote(truncateExcerpt(excerpt)) });
+  }
 
-  runs.push({ text: ` (${data.platform}, ${data.date})` });
-  runs.push({ text: ` ${angleUrl(data.url)}` });
-  runs.push({ text: ` ${accessedDate(data.accessedDate)}` });
+  const when = [data.platform, data.date, data.time]
+    .map((p) => (p ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
+  if (when) {
+    runs.push({ text: ` (${when})` });
+  }
+
+  pushLink(runs, data.url, data.accessedDate);
 
   return runs;
 }
 
-// ─── Podcast (OSCOLA 5 §3.7.4) ──────────────────────────────────────────────
+// ─── Podcast (OSCOLA 5 §3.7.2) ──────────────────────────────────────────────
 
 /**
- * Formats a podcast citation per OSCOLA 5 Rule 3.7.4.
+ * Formats a podcast citation per OSCOLA 5 §3.7.2.
  *
  * Format:
- *   'Episode Title' (Series Name, Date) <URL> accessed Date
+ *   [Author, ]Podcast Name, 'Episode Title' (Date) [Timestamp] <URL> [accessed Date]
  *
  * @example
- *   'Law in Action: Supreme Court Review' (BBC Radio 4, 15 March 2026)
- *   <https://example.com/podcast> accessed 20 April 2026
+ *   Double Jeopardy podcast, 'Episode 27: Dr Bryn Harris – Free Speech,
+ *   Harm and the Internet' (7 April 2023) 3:40–3:56
+ *   <https://…> accessed 21 July 2023
  */
 export function formatOscolaPodcast(data: {
   episodeTitle: string;
   seriesName: string;
   date: string;
+  timestamp?: string;
   url: string;
-  accessedDate: string;
+  accessedDate?: string;
   author?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -188,33 +234,47 @@ export function formatOscolaPodcast(data: {
     runs.push({ text: `${data.author}, ` });
   }
 
+  if (data.seriesName) {
+    runs.push({ text: `${data.seriesName}, ` });
+  }
+
   runs.push({ text: singleQuote(data.episodeTitle) });
-  runs.push({ text: ` (${data.seriesName}, ${data.date})` });
-  runs.push({ text: ` ${angleUrl(data.url)}` });
-  runs.push({ text: ` ${accessedDate(data.accessedDate)}` });
+
+  if (data.date) {
+    runs.push({ text: ` (${data.date})` });
+  }
+
+  if (data.timestamp) {
+    runs.push({ text: ` ${data.timestamp}` });
+  }
+
+  pushLink(runs, data.url, data.accessedDate);
 
   return runs;
 }
 
-// ─── Video (OSCOLA 5 §3.7.5) ────────────────────────────────────────────────
+// ─── Online video (OSCOLA 5 §3.7.1) ─────────────────────────────────────────
 
 /**
- * Formats a video citation per OSCOLA 5 Rule 3.7.5.
+ * Formats an online video citation per OSCOLA 5 §3.7.1.
  *
  * Format:
- *   Author, 'Title' (Platform, Date) <URL> accessed Date
+ *   Author, 'Title' (Platform, Date) [Timestamp] <URL> [accessed Date]
+ *
+ * The timestamp pinpoint (§3.1.3) precedes the link.
  *
  * @example
- *   UK Supreme Court, 'R v Adams Judgment Summary' (YouTube, 15 March 2026)
- *   <https://youtube.com/watch?v=abc> accessed 20 April 2026
+ *   UK Supreme Court, 'Lady Hale's Valedictory Remarks – 18 December 2019'
+ *   (YouTube, 18 December 2019) 42:41–51:17 <https://perma.cc/7YZV-Y43A>
  */
 export function formatOscolaVideo(data: {
   author?: string;
   title: string;
   platform: string;
   date: string;
+  timestamp?: string;
   url: string;
-  accessedDate: string;
+  accessedDate?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -223,9 +283,20 @@ export function formatOscolaVideo(data: {
   }
 
   runs.push({ text: singleQuote(data.title) });
-  runs.push({ text: ` (${data.platform}, ${data.date})` });
-  runs.push({ text: ` ${angleUrl(data.url)}` });
-  runs.push({ text: ` ${accessedDate(data.accessedDate)}` });
+
+  const when = [data.platform, data.date]
+    .map((p) => (p ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
+  if (when) {
+    runs.push({ text: ` (${when})` });
+  }
+
+  if (data.timestamp) {
+    runs.push({ text: ` ${data.timestamp}` });
+  }
+
+  pushLink(runs, data.url, data.accessedDate);
 
   return runs;
 }

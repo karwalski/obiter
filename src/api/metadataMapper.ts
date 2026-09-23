@@ -164,9 +164,14 @@ function buildCandidates(sourceType: string, metadata: SourceMetadata): SourceDa
  * form lists (under their primary key, honouring aliases) plus the stable
  * identifiers survive; blank values are dropped and numbers become strings.
  */
-export function metadataToFields(sourceType: string, metadata: SourceMetadata): SourceData {
+export function metadataToFields(
+  sourceType: string,
+  metadata: SourceMetadata,
+  standardId?: string
+): SourceData {
   const candidates = buildCandidates(sourceType, metadata);
-  const fields = getFieldsForSourceType(sourceType as SourceType);
+  // STD-021: under OSCOLA / NZLSG the standard-specific fields are mapped too
+  const fields = getFieldsForSourceType(sourceType as SourceType, standardId);
   const out: SourceData = {};
   for (const field of fields) {
     // A bare year is not a full date (Rule 2.3.2): never let the `date` field

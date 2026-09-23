@@ -26,7 +26,7 @@ import { CitationConfig } from "../engine/standards/types";
 import { getFormattedPreview } from "../engine/engine";
 import { listMissingRequiredFields } from "../engine/validator";
 import { normaliseTags, userTags, withUserTags } from "../engine/tags";
-import { getStandardConfig, buildCourtConfig } from "../engine/standards";
+import { resolveDocumentConfig } from "../engine/standards";
 import {
   insertCitationFootnote,
   updateCitationContent,
@@ -52,12 +52,16 @@ export interface InsertResult {
   appendedToFootnote?: number;
 }
 
-/** Resolve the active AGLC/court config from the document's stored settings. */
+/**
+ * Resolve the active AGLC/court config from the document's stored settings
+ * (STD-013: the one document config resolver; the device pref is the legacy
+ * fallback for toggles).
+ */
 async function resolveConfig(store: CitationStore): Promise<CitationConfig> {
-  const courtToggles =
-    store.getCourtToggles() ??
-    (getDevicePref("courtToggles") as Record<string, string> | undefined);
-  return buildCourtConfig(getStandardConfig(store.getStandardId()), courtToggles);
+  return resolveDocumentConfig(
+    store,
+    getDevicePref("courtToggles") as Record<string, string> | undefined
+  );
 }
 
 /**

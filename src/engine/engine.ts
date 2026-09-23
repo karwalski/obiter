@@ -153,7 +153,8 @@ import * as foreignSouthAfrica from "./rules/v4/foreign/south-africa";
 import * as foreignUk from "./rules/v4/foreign/uk";
 import * as foreignUsa from "./rules/v4/foreign/usa";
 import {
-  resolveSubsequentReference,
+  declaresShortForm,
+  resolveSubsequentReferenceWithKind,
   formatShortTitleIntroduction,
   formatAbbreviationDefinition,
   type SubsequentReferenceContext,
@@ -161,6 +162,12 @@ import {
 import { shouldItaliciseTitle, shouldQuoteTitle } from "./rules/v4/general/italicisation";
 import type { CitationConfig } from "./standards/types";
 import { getStandardConfig } from "./standards";
+import {
+  endsWithClosingBracket,
+  formatPinpointFor,
+  normaliseStringPinpoint,
+} from "./standards/pinpoints";
+import type { PinpointPosition } from "./standards/pinpoints";
 import { formatLinkingPhrase } from "./rules/v4/general/signals";
 
 // ─── OSCOLA Formatter Imports (OSC-ENH-001) ─────────────────────────────────
@@ -197,17 +204,23 @@ import {
 import {
   formatEuLegislation as oscolaFormatEuLegislation,
   formatCjeuCase as oscolaFormatCjeuCase,
+  formatGeneralCourtCase as oscolaFormatGeneralCourtCase,
+  formatAssimilatedEuLaw as oscolaFormatAssimilatedEuLaw,
   formatEuTreaty as oscolaFormatEuTreaty,
 } from "./rules/oscola/eu";
 import {
   formatEcthrCase as oscolaFormatEcthrCase,
   formatEcthrDecision as oscolaFormatEcthrDecision,
+  formatEcommhrDecision as oscolaFormatEcommhrDecision,
   formatCouncilOfEuropeTreaty as oscolaFormatCouncilOfEuropeTreaty,
+  formatCouncilOfEuropeDocument as oscolaFormatCouncilOfEuropeDocument,
 } from "./rules/oscola/echr";
 import {
   formatTreaty as oscolaFormatTreaty,
   formatUnDocument as oscolaFormatUnDocument,
+  formatUnResolution as oscolaFormatUnResolution,
   formatIcjCase as oscolaFormatIcjCase,
+  formatItlosCase as oscolaFormatItlosCase,
   formatIccCase as oscolaFormatIccCase,
   formatWtoReport as oscolaFormatWtoReport,
 } from "./rules/oscola/international";
@@ -216,8 +229,18 @@ import {
   formatIrishCase as oscolaFormatIrishCase,
   formatIrishAct as oscolaFormatIrishAct,
   formatIrishStatutoryInstrument as oscolaFormatIrishStatutoryInstrument,
+  formatBunreachtNaHEireann as oscolaFormatBunreachtNaHEireann,
 } from "./rules/oscola/ireland";
 import type { IrishCourtIdentifier, IrishReportSeries } from "./rules/oscola/ireland";
+import { formatOscolaThesis } from "./rules/oscola/secondary";
+import {
+  formatOscolaWebsite,
+  formatOscolaBlog,
+  formatOscolaSocialMedia,
+  formatOscolaPodcast,
+  formatOscolaVideo,
+} from "./rules/oscola/digital";
+import { secondaryStyleFor } from "./rules/v4/secondary/style";
 
 // ─── NZLSG Formatter Imports ─────────────────────────────────────────────────
 
@@ -252,12 +275,15 @@ import {
   formatUNDocument as nzlsgFormatUNDocument,
   formatICJCase as nzlsgFormatICJCase,
 } from "./rules/nzlsg/international";
-import {
-  formatGeneralSubsequent as nzlsgFormatGeneralSubsequent,
-  formatCommercialSubsequent as nzlsgFormatCommercialSubsequent,
-} from "./rules/nzlsg/styles";
-import type { NZLSGStyle } from "./rules/nzlsg/styles";
 import { formatTreatyOfWaitangi as nzlsgFormatTreatyOfWaitangi } from "./rules/nzlsg/treaty-of-waitangi";
+import {
+  formatNZWebsite as nzlsgFormatWebsite,
+  formatNZBlog as nzlsgFormatBlog,
+  formatNZSocialMedia as nzlsgFormatSocialMedia,
+  formatNZNewspaper as nzlsgFormatNewspaper,
+  formatNZBroadcast as nzlsgFormatBroadcast,
+} from "./rules/nzlsg/digital";
+import { isFieldValuePresent, readFieldWithAliases } from "./fieldAliases";
 
 // ─── Citation Context ────────────────────────────────────────────────────────
 
@@ -552,7 +578,7 @@ function dispatchStatute(citation: Citation): FormattedRun[] {
 /**
  * Dispatches a journal article citation (Rule 5).
  */
-function dispatchJournalArticle(citation: Citation): FormattedRun[] {
+function dispatchJournalArticle(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   const core = {
     authors: normaliseAuthorList(d.authors),
@@ -568,6 +594,8 @@ function dispatchJournalArticle(citation: Citation): FormattedRun[] {
     yearOrganised: d.yearOrganised === undefined ? undefined : toBool(d.yearOrganised),
     startingPage: toNumber(d.startingPage, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
+    // STD-016: OSCOLA 5 §3.3 / NZLSG 3 §6.4 style
+    config,
   };
 
   // Rule 5.8: multi-part articles take '(Pt N)' between title and year
@@ -599,6 +627,9 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
     editors: normaliseOptionalAuthorList(d.editors),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+    // STD-016: NZLSG 3 §6.1.6 place of publication; OSCOLA 5 §3.2.1 order
+    place: toStr(d.place) || undefined,
+    config,
   };
 
   // Rule 6.8: forthcoming books — 'forthcoming' replaces the year
@@ -609,6 +640,7 @@ function dispatchBook(citation: Citation, config?: CitationConfig): FormattedRun
       publisher: base.publisher,
       edition: base.edition,
       editionAbbreviation: base.editionAbbreviation,
+      config,
     });
   }
 
@@ -1143,7 +1175,7 @@ function dispatchQuasiLegislative(citation: Citation): FormattedRun[] {
  * Dispatches an online journal article citation (Rule 5.10).
  * Delegates to formatOnlineJournalArticle which appends the URL.
  */
-function dispatchJournalOnline(citation: Citation): FormattedRun[] {
+function dispatchJournalOnline(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   return formatOnlineJournalArticle({
     authors: normaliseAuthorList(d.authors),
@@ -1157,6 +1189,7 @@ function dispatchJournalOnline(citation: Citation): FormattedRun[] {
     startingPage: toOptionalNumber(d.startingPage),
     pinpoint: normalisePinpoint(d.pinpoint),
     url: toStr(d.url) || undefined,
+    config,
   });
 }
 
@@ -1164,9 +1197,10 @@ function dispatchJournalOnline(citation: Citation): FormattedRun[] {
  * Dispatches a forthcoming journal article citation (Rule 5.11).
  * Delegates to formatForthcomingArticle which appends "(forthcoming)".
  */
-function dispatchJournalForthcoming(citation: Citation): FormattedRun[] {
+function dispatchJournalForthcoming(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   return formatForthcomingArticle({
+    config,
     authors: normaliseAuthorList(d.authors),
     title: (d.title as string) ?? "",
     journal: (d.journal as string) ?? "",
@@ -1186,7 +1220,7 @@ function dispatchJournalForthcoming(citation: Citation): FormattedRun[] {
  * Dispatches a book chapter citation (Rule 6.6.1).
  * Delegates to formatBookChapter.
  */
-function dispatchBookChapter(citation: Citation): FormattedRun[] {
+function dispatchBookChapter(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   return formatBookChapter({
     chapterAuthors: normaliseAuthorList(d.chapterAuthors ?? d.authors),
@@ -1197,6 +1231,9 @@ function dispatchBookChapter(citation: Citation): FormattedRun[] {
     year: toNumber(d.year, 0),
     startingPage: toNumber(d.startingPage, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
+    // STD-016: NZLSG 3 §6.2 place; OSCOLA 5 §3.2.4 no start page
+    place: toStr(d.place) || undefined,
+    config,
   });
 }
 
@@ -1220,6 +1257,8 @@ function dispatchBookTranslated(citation: Citation, config?: CitationConfig): Fo
     originalYear: toStr(d.originalYear) || undefined,
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+    place: toStr(d.place) || undefined,
+    config,
   });
 }
 
@@ -1238,6 +1277,7 @@ function dispatchBookAudiobook(citation: Citation, config?: CitationConfig): For
     year: toNumber(d.year, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+    config,
   });
 }
 
@@ -1261,6 +1301,8 @@ function dispatchBookEbook(citation: Citation, config?: CitationConfig): Formatt
     year: toNumber(d.year, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     editionAbbreviation: config?.editionAbbreviation as "ed" | "edn" | undefined,
+    place: toStr(d.place) || undefined,
+    config,
   });
 
   // Append the URL where provided (matching other secondary types)
@@ -1439,7 +1481,7 @@ function dispatchConferencePaper(citation: Citation): FormattedRun[] {
  * Dispatches a thesis citation (Rule 7.2.5).
  * Delegates to formatThesis.
  */
-function dispatchThesis(citation: Citation): FormattedRun[] {
+function dispatchThesis(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   // formatThesis expects a single Author, not Author[]
   const authors = normaliseOptionalAuthorList(d.authors);
@@ -1455,6 +1497,10 @@ function dispatchThesis(citation: Citation): FormattedRun[] {
     // Full date preferred over the bare year (Rule 7.2.5)
     date: toStr(d.date) || undefined,
     year: toNumber(d.year, 0),
+    // STD-016: OSCOLA 5 §3.7.6 / NZLSG 3 §6.7.1 style; the pinpoint is
+    // rendered under those standards only (AGLC output unchanged)
+    pinpoint: normalisePinpoint(d.pinpoint),
+    config,
   });
 }
 
@@ -1686,7 +1732,7 @@ function dispatchFilmTvMedia(citation: Citation): FormattedRun[] {
  * Dispatches an internet material citation (Rule 7.15).
  * Delegates to formatInternetMaterial.
  */
-function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
+function dispatchInternetMaterial(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   // Author: may be a plain string (form) or authors array (AI parser)
   let authors: Author[] | undefined;
@@ -1714,6 +1760,8 @@ function dispatchInternetMaterial(citation: Citation): FormattedRun[] {
     archiveService: toStr(d.archiveService) || undefined,
     archivedUrl: toStr(d.archivedUrl) || undefined,
     archiveDate: toStr(d.archiveDate) || undefined,
+    // STD-016: OSCOLA 5 §3.7.1 / NZLSG 3 §7.1.1 forms
+    config,
   });
 }
 
@@ -3351,16 +3399,6 @@ const SOURCE_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
 // ─── NZLSG Dispatch (NZLSG-ENH-001) ─────────────────────────────────────────
 
 /**
- * Helper to extract a string-based pinpoint from Citation.data for NZLSG
- * formatters, which accept `string | undefined` rather than a Pinpoint object.
- */
-function extractNzlsgPinpoint(data: Record<string, unknown>): string | undefined {
-  const pin = data.pinpoint as Pinpoint | undefined;
-  if (!pin) return undefined;
-  return pin.value;
-}
-
-/**
  * Ordinal suffix for a positive integer ('1st', '2nd', '3rd', '4th', …,
  * '11th'–'13th').
  */
@@ -3411,6 +3449,252 @@ function formatNzlsgAuthorString(authors: Author[] | undefined): string {
     .join(authors.length === 2 ? " and " : ", ");
 }
 
+// ─── STD-021: AGLC form fields read by the OSCOLA and NZLSG adapters ────────
+//
+// The Insert and Edit forms write the AGLC key for each fact (`courtId`,
+// `mnc`, `reportSeries`/`volume`/`startingPage`, `caseNumber`); the OSCOLA and
+// NZLSG formatters take their own shapes. The helpers below read a fact from
+// whichever key holds it (src/engine/fieldAliases.ts FIELD_ALIASES) so a case
+// entered on the AGLC form renders under every standard. The AGLC dispatchers
+// are untouched.
+
+/** Reads `key` from the citation data, falling back through its FIELD_ALIASES. */
+function readAliased(d: Record<string, unknown>, key: string): unknown {
+  return readFieldWithAliases(d, key);
+}
+
+/** A neutral (medium neutral) citation in the parts the OSCOLA and NZLSG formatters take. */
+interface NeutralCitationParts {
+  year: number;
+  court: string;
+  number: number;
+  /** EWHC division in the trailing bracket (`[2009] EWHC 254 (Comm)`). */
+  ewhcDivision?: string;
+}
+
+/**
+ * Parses a neutral citation written as one string (`[2008] UKHL 13`,
+ * `2008 UKHL 13`, `[2009] EWHC 254 (Comm)`), as the AGLC reported-case form
+ * stores it under `mnc`. Undefined for anything else.
+ */
+function parseNeutralCitationString(raw: unknown): NeutralCitationParts | undefined {
+  if (typeof raw !== "string") return undefined;
+  const m = /^\s*\[?(\d{4})\]?\s+([A-Za-z]+)\s+(\d+)(?:\s*\(([A-Za-z ]+)\))?\s*$/.exec(raw);
+  if (!m) return undefined;
+  return {
+    year: Number(m[1]),
+    court: m[2],
+    number: Number(m[3]),
+    ewhcDivision: m[4]?.trim() || undefined,
+  };
+}
+
+/**
+ * The neutral citation of a case from whichever keys hold it, in order: the
+ * OSCOLA flat `neutralCitationYear/Court/Number`, the structured
+ * `neutralCitation` object, the AGLC reported-case form's `mnc` string, an
+ * MNC string under a number key, then the unreported-MNC form's number
+ * (`caseNumber`, NZLSG `decisionNumber`, `judgmentNumber`) with the court
+ * (`court`, `courtIdentifier`, `courtId`) and `year`. Undefined when no
+ * complete neutral citation is stored.
+ */
+function readNeutralCitation(d: Record<string, unknown>): NeutralCitationParts | undefined {
+  const flatYear = toOptionalNumber(d.neutralCitationYear);
+  const flatCourt = toStr(d.neutralCitationCourt).trim();
+  const flatNumber = toOptionalNumber(d.neutralCitationNumber);
+  if (flatYear !== undefined && flatCourt && flatNumber !== undefined) {
+    return {
+      year: flatYear,
+      court: flatCourt,
+      number: flatNumber,
+      ewhcDivision: toStr(d.ewhcDivision).trim() || undefined,
+    };
+  }
+  const structured = d.neutralCitation;
+  if (structured && typeof structured === "object" && !Array.isArray(structured)) {
+    const nc = structured as Record<string, unknown>;
+    const year = toOptionalNumber(nc.year);
+    const court = toStr(nc.court).trim();
+    const number = toOptionalNumber(nc.number);
+    if (year !== undefined && court && number !== undefined) {
+      return { year, court, number, ewhcDivision: toStr(nc.ewhcDivision).trim() || undefined };
+    }
+  }
+  const fromMnc = parseNeutralCitationString(d.mnc);
+  if (fromMnc) return fromMnc;
+  // Native NZLSG keys first, then the AGLC form keys through the aliases
+  const numberRaw = isFieldValuePresent(d.decisionNumber)
+    ? d.decisionNumber
+    : readAliased(d, "decisionNumber");
+  const fromNumberKey = parseNeutralCitationString(numberRaw);
+  if (fromNumberKey) return fromNumberKey;
+  const number = toOptionalNumber(numberRaw);
+  const court = toStr(
+    isFieldValuePresent(d.courtIdentifier) ? d.courtIdentifier : readAliased(d, "courtIdentifier")
+  ).trim();
+  const year = toOptionalNumber(d.year);
+  if (number !== undefined && court && year !== undefined) return { year, court, number };
+  return undefined;
+}
+
+/**
+ * Australian jurisdiction values the forms store (`jurisdiction` select and
+ * free text), lower-cased.
+ */
+const AUSTRALIAN_JURISDICTIONS: ReadonlySet<string> = new Set([
+  "cth",
+  "commonwealth",
+  "australia",
+  "au",
+  "nsw",
+  "new south wales",
+  "vic",
+  "victoria",
+  "qld",
+  "queensland",
+  "wa",
+  "western australia",
+  "sa",
+  "south australia",
+  "tas",
+  "tasmania",
+  "act",
+  "australian capital territory",
+  "nt",
+  "northern territory",
+]);
+
+/**
+ * The first year an Australian court issued medium neutral citations (the
+ * High Court, 1998). An earlier `[year] HCA n` on a reported case is the
+ * AustLII retrospective number, which neither NZLSG 3 §8.2.3 nor OSCOLA
+ * (`bailiiRetrospective`) cites. Per-court start years are not modelled
+ * (DECISION-040).
+ */
+const FIRST_AUSTRALIAN_MNC_YEAR = 1998;
+
+/** True when the stored neutral citation was assigned retrospectively by a database, never by the court. */
+function isRetrospectiveNeutralCitation(
+  d: Record<string, unknown>,
+  nc: NeutralCitationParts
+): boolean {
+  if (toBool(d.bailiiRetrospective) || toBool(d.retrospectiveMnc)) return true;
+  const jurisdiction = toStr(d.jurisdiction).trim().toLowerCase();
+  return AUSTRALIAN_JURISDICTIONS.has(jurisdiction) && nc.year < FIRST_AUSTRALIAN_MNC_YEAR;
+}
+
+/** A law report citation in the parts the NZLSG parallel-report and OSCOLA report forms take. */
+interface ReportCitationParts {
+  year: number;
+  yearType: "round" | "square";
+  volume?: number;
+  reportSeries: string;
+  startPage: number | string;
+}
+
+/** `round` / `square` from the form's `yearType`, else undefined. */
+function readYearType(raw: unknown): "round" | "square" | undefined {
+  return raw === "round" || raw === "square" ? raw : undefined;
+}
+
+/**
+ * The law report of a case: the NZLSG structured `parallelReport` object when
+ * stored, else the AGLC form's `reportSeries` / `volume` / `startingPage`
+ * with `reportYear` (falling back to `year`) and `yearType`. Undefined
+ * without a report series.
+ */
+function readParallelReport(d: Record<string, unknown>): ReportCitationParts | undefined {
+  const structured = d.parallelReport;
+  if (structured && typeof structured === "object" && !Array.isArray(structured)) {
+    const r = structured as Record<string, unknown>;
+    const series = pickString(r.reportSeries, r.series).trim();
+    if (series) {
+      return {
+        year: toNumber(r.year, toNumber(d.year, 0)),
+        yearType: readYearType(r.yearType) ?? "square",
+        volume: toOptionalNumber(r.volume),
+        reportSeries: series,
+        startPage: toNumber(r.startPage ?? r.startingPage, 0),
+      };
+    }
+  }
+  const series = toStr(d.reportSeries).trim();
+  if (!series) return undefined;
+  return {
+    year: toNumber(d.reportYear, toNumber(d.year, 0)),
+    yearType: readYearType(d.yearType) ?? "square",
+    volume: toOptionalNumber(d.volume),
+    reportSeries: series,
+    startPage: toNumber(readAliased(d, "startingPage"), 0),
+  };
+}
+
+/** True for a Scottish case (jurisdiction `Scot`, or a Scottish court in the neutral citation or court identifier). */
+function isScottishCase(d: Record<string, unknown>, nc: NeutralCitationParts | undefined): boolean {
+  const jurisdiction = toStr(d.jurisdiction).trim().toLowerCase();
+  if (jurisdiction === "scot" || jurisdiction === "scotland") return true;
+  const courtId = pickString(d.courtId, d.courtIdentifier).trim();
+  return SCOTTISH_COURT_SET.has(nc?.court ?? "") || SCOTTISH_COURT_SET.has(courtId);
+}
+
+/**
+ * NZLSG 3 §3.2.3–3.2.4 report citation text: square-bracket year for a
+ * series organised by year, round for one organised by volume; Scottish
+ * reports take no brackets round a locating year (§8.5, `2011 SC 158`).
+ */
+function nzlsgReportText(report: ReportCitationParts, scottish: boolean): string {
+  const year = scottish
+    ? `${report.year}`
+    : report.yearType === "round"
+      ? `(${report.year})`
+      : `[${report.year}]`;
+  const volume = report.volume !== undefined ? ` ${report.volume}` : "";
+  return `${year}${volume} ${report.reportSeries} ${report.startPage}`;
+}
+
+/** Report series of a single court, after which NZLSG 3 §3.2.7 omits the court identifier. */
+const NZLSG_SINGLE_COURT_SERIES: ReadonlySet<string> = new Set(["CLR", "US", "SCR"]);
+
+/** The case name for the NZLSG case formatters: `caseName`, else the parties joined by the form's separator. */
+function nzlsgCaseName(d: Record<string, unknown>): string {
+  const caseName = toStr(d.caseName).trim();
+  if (caseName) return caseName;
+  const party1 = toStr(d.party1);
+  const party2 = toStr(d.party2);
+  const sep = toStr(d.separator).trim() || "v";
+  if (!party1 && !party2) return pickString(d.caseTitle, d.title);
+  if (!party2) return party1;
+  return `${party1} ${sep} ${party2}`;
+}
+
+/** New Zealand jurisdiction values the forms store, lower-cased. */
+function isNzJurisdiction(raw: unknown): boolean {
+  const jurisdiction = toStr(raw).trim().toLowerCase();
+  return jurisdiction === "nz" || jurisdiction === "new zealand";
+}
+
+/** United Kingdom jurisdiction values the forms store, lower-cased. */
+function isUkJurisdiction(raw: unknown): boolean {
+  const jurisdiction = toStr(raw).trim().toLowerCase();
+  return ["uk", "gb", "united kingdom", "great britain", "england", "england and wales"].includes(
+    jurisdiction
+  );
+}
+
+/**
+ * Renders the NZ Parliamentary Debates from the AGLC Hansard form fields
+ * (NZLSG 3 §5.1.1); shared by the NZLSG and OSCOLA (§2.6.1, foreign source
+ * as at home) Hansard adapters.
+ */
+function dispatchNzlsgNzpd(d: Record<string, unknown>): FormattedRun[] {
+  return nzlsgFormatNZPD({
+    date: toStr(d.date),
+    volume: toNumber(d.volume, 0),
+    page: toNumber(readAliased(d, "page"), 0),
+    speaker: toStr(d.speaker).trim() || undefined,
+  });
+}
+
 /**
  * Dispatches a citation to the appropriate NZLSG formatter based on source type.
  *
@@ -3429,41 +3713,64 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
   // ── Cases ──────────────────────────────────────────────────────────────────
 
   if (st === "case.reported" || st === "case.unreported.mnc") {
-    // Determine if this is a pre-neutral citation based on data shape
-    const isPreNeutral = Boolean(d.fileNumber);
-    if (isPreNeutral) {
+    const caseName = nzlsgCaseName(d);
+
+    // NZLSG 3 §3.4: an unreported pre-neutral decision (file number stored)
+    if (toStr(d.fileNumber).trim()) {
       return nzlsgFormatPreNeutralCase({
-        caseName:
-          (d.caseName as string) ?? `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`,
-        court: (d.court as string) ?? "",
-        registry: d.registry as string | undefined,
-        fileNumber: (d.fileNumber as string) ?? "",
-        date: (d.date as string) ?? "",
-        pinpoint: extractNzlsgPinpoint(d),
+        caseName,
+        court: toStr(readAliased(d, "court")),
+        registry: toStr(d.registry).trim() || undefined,
+        fileNumber: toStr(d.fileNumber).trim(),
+        date: pickString(d.date, d.fullDate),
       });
     }
 
-    // Neutral citation format
-    const caseName =
-      (d.caseName as string) ?? `${(d.party1 as string) ?? ""} v ${(d.party2 as string) ?? ""}`;
+    // STD-021: the neutral citation and the report from whichever keys the
+    // form wrote (AGLC `mnc`/`courtId`/`reportSeries`… or the NZLSG
+    // `courtIdentifier`/`decisionNumber`/`parallelReport`).
+    const nc = readNeutralCitation(d);
+    const report = readParallelReport(d);
+    const scottish = isScottishCase(d, nc);
+    // §3.2.2: only a neutral citation the court issued is cited; a
+    // database's retrospective number on a reported case is not (§8.2.3).
+    const useNeutral =
+      nc !== undefined &&
+      !(st === "case.reported" && report !== undefined && isRetrospectiveNeutralCitation(d, nc));
 
-    // Build parallel report from data if present
-    const parallelReport = d.parallelReport as
-      | {
-          year: number;
-          volume?: number;
-          reportSeries: string;
-          startPage: number;
-        }
-      | undefined;
+    if (nc && useNeutral) {
+      const runs = nzlsgFormatNeutralCitation({
+        caseName,
+        year: nc.year,
+        courtIdentifier: nc.court,
+        decisionNumber: nc.number,
+      });
+      // §3.2.2: comma between the neutral citation and the best report
+      if (report) runs.push({ text: `, ${nzlsgReportText(report, scottish)}` });
+      return runs;
+    }
 
+    if (report) {
+      // §3.2 / §3.2.7: report citation with the court identifier in round
+      // brackets when there is no neutral citation, omitted for a
+      // single-court series.
+      const runs: FormattedRun[] = [
+        { text: caseName, italic: true },
+        { text: ` ${nzlsgReportText(report, scottish)}` },
+      ];
+      const courtId = pickString(d.courtId, d.courtIdentifier).trim();
+      if (courtId && !NZLSG_SINGLE_COURT_SERIES.has(report.reportSeries)) {
+        runs.push({ text: ` (${courtId})` });
+      }
+      return runs;
+    }
+
+    // Incomplete data: the neutral form with whatever is present (as before)
     return nzlsgFormatNeutralCitation({
       caseName,
       year: toNumber(d.year, 0),
-      courtIdentifier: (d.courtIdentifier as string) ?? (d.court as string) ?? "",
-      decisionNumber: toNumber(d.decisionNumber, toNumber(d.caseNumber, 0)),
-      parallelReport: parallelReport ?? undefined,
-      pinpoint: extractNzlsgPinpoint(d),
+      courtIdentifier: pickString(d.courtIdentifier, toStr(readAliased(d, "courtIdentifier"))),
+      decisionNumber: toNumber(d.decisionNumber ?? readAliased(d, "decisionNumber"), 0),
     });
   }
 
@@ -3473,27 +3780,28 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatMaoriLandCourt({
       caseName: (d.caseName as string) ?? "",
       year: toNumber(d.year, 0),
-      blockNumber: toNumber(d.blockNumber, 0),
+      blockNumber: toNumber(readAliased(d, "blockNumber"), 0),
       minuteBookDistrict: (d.minuteBookDistrict as string) ?? "",
       minuteBookAbbrev: (d.minuteBookAbbrev as string) ?? "",
       page: toNumber(d.page, 0),
       shortBlockNumber: toOptionalNumber(d.shortBlockNumber),
       shortCourtAbbrev: d.shortCourtAbbrev as string | undefined,
       shortPage: toOptionalNumber(d.shortPage),
-      pinpoint: extractNzlsgPinpoint(d),
       isAppellateCourt: toBool(d.isAppellateCourt) || undefined,
     });
   }
 
   // ── Waitangi Tribunal Reports ──────────────────────────────────────────────
 
-  if (st === "report.waitangi_tribunal" || (st === "report" && d.waiNumber !== undefined)) {
+  if (
+    st === "report.waitangi_tribunal" ||
+    (st === "report" && readAliased(d, "waiNumber") !== undefined)
+  ) {
     return nzlsgFormatWaitangiTribunalReport({
       title: (d.title as string) ?? "",
       // Omit the Wai element when no claim number is stored (never 'Wai 0')
-      waiNumber: toOptionalNumber(d.waiNumber),
+      waiNumber: toOptionalNumber(readAliased(d, "waiNumber")),
       year: toNumber(d.year, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3518,7 +3826,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
       jurisdiction: isDomestic ? undefined : statuteJurisdiction,
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3526,28 +3833,32 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
     return nzlsgFormatDelegatedLegislation({
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
   if (st === "legislation.bill") {
     return nzlsgFormatBill({
       title: (d.title as string) ?? "",
-      billNumber: (d.billNumber as string) ?? "",
-      pinpoint: extractNzlsgPinpoint(d),
+      billNumber: toStr(readAliased(d, "billNumber")),
     });
   }
 
   // ── Parliamentary Materials ────────────────────────────────────────────────
 
-  if (st === "hansard" && d.nzpd) {
-    return nzlsgFormatNZPD({
-      date: (d.date as string) ?? "",
-      volume: toNumber(d.volume, 0),
-      page: toNumber(d.page, 0),
-      speaker: d.speaker as string | undefined,
-      pinpoint: extractNzlsgPinpoint(d),
-    });
+  if (st === "hansard" && (toBool(d.nzpd) || isNzJurisdiction(d.jurisdiction))) {
+    return dispatchNzlsgNzpd(d);
+  }
+
+  // NZLSG 3 §5.1.1: the UK Hansard as '(date) volume GBPD HC column'
+  // ('(1 November 1990) 178 GBPD HC 1088') from the AGLC Hansard fields.
+  if (st === "hansard" && isUkJurisdiction(d.jurisdiction)) {
+    const chamber = toStr(d.chamber).trim().toUpperCase() || "HC";
+    const column = pickString(toStr(d.column), toStr(readAliased(d, "page"))).trim();
+    return [
+      {
+        text: `(${toStr(d.date)}) ${toNumber(d.volume, 0)} GBPD ${chamber}${column ? ` ${column}` : ""}`,
+      },
+    ];
   }
 
   if (st === "submission.government" && d.committee) {
@@ -3556,7 +3867,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       committee: (d.committee as string) ?? "",
       inquiryTitle: (d.inquiryTitle as string) ?? "",
       date: d.date as string | undefined,
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3565,7 +3875,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       reference: (d.reference as string) ?? "",
       date: (d.date as string) ?? "",
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3574,7 +3883,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
       page: toNumber(d.page, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3583,7 +3891,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       author: d.author as string | undefined,
       title: (d.title as string) ?? "",
       reference: (d.reference as string) ?? "",
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3596,9 +3903,8 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       edition: nzlsgEdition(d.edition),
       publisher: (d.publisher as string) ?? "",
-      place: (d.place as string) ?? "",
+      place: toStr(readAliased(d, "place")),
       year: toNumber(d.year, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3611,7 +3917,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       volume: toOptionalNumber(d.volume),
       journal: (d.journal as string) ?? "",
       startPage: toNumber(d.startingPage, toNumber(d.startPage, 0)),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3621,7 +3926,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       reportType: (d.reportType as "R" | "SP" | "IP" | "PP") ?? "R",
       reportNumber: toNumber(d.reportNumber, 0),
       year: toNumber(d.year, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3630,10 +3934,9 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       author:
         (d.author as string) ?? formatNzlsgAuthorString(normaliseOptionalAuthorList(d.authors)),
       title: (d.title as string) ?? "",
-      degree: (d.degree as string) ?? "",
+      degree: toStr(readAliased(d, "degree")),
       university: (d.university as string) ?? "",
       year: toNumber(d.year, 0),
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3643,20 +3946,42 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       title: (d.title as string) ?? "",
       publisher: (d.publisher as string) ?? "",
       accessDate: d.accessDate as string | undefined,
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
   // ── International Materials ────────────────────────────────────────────────
 
   if (st === "treaty") {
+    // STD-021: the AGLC treaty form's `openedDate`/`signedDate`,
+    // `seriesVolume` + `treatySeries` + `startingPage` and
+    // `entryIntoForceDate` mapped onto the NZLSG elements (§10.1.1).
+    const openedDate = toStr(d.openedDate).trim();
+    const signedDate = toStr(d.signedDate).trim();
+    const signingEvent =
+      toStr(d.signingEvent).trim() ||
+      (openedDate
+        ? `opened for signature ${openedDate}`
+        : signedDate
+          ? `signed ${signedDate}`
+          : "");
+    const entryRaw = pickString(d.entryIntoForceDate, d.entryIntoForce).trim();
+    const entryIntoForce = !entryRaw
+      ? undefined
+      : /^entered/i.test(entryRaw)
+        ? entryRaw
+        : `entered into force ${entryRaw}`;
+    const series = toStr(d.treatySeries).trim();
+    const seriesText = series
+      ? [toStr(d.seriesVolume).trim(), series, toStr(readAliased(d, "startingPage")).trim()]
+          .filter(Boolean)
+          .join(" ")
+      : undefined;
     return nzlsgFormatTreaty({
       title: (d.title as string) ?? "",
       parties: d.parties as string | undefined,
-      signingEvent: d.signingEvent as string | undefined,
-      treatySeries: d.treatySeries as string | undefined,
-      entryIntoForce: (d.entryIntoForceDate as string) ?? (d.entryIntoForce as string) ?? undefined,
-      pinpoint: extractNzlsgPinpoint(d),
+      signingEvent: signingEvent || undefined,
+      treatySeries: seriesText,
+      entryIntoForce,
     });
   }
 
@@ -3667,7 +3992,6 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       documentSymbol: d.documentSymbol as string | undefined,
       session: d.session as string | undefined,
       date: d.date as string | undefined,
-      pinpoint: extractNzlsgPinpoint(d),
     });
   }
 
@@ -3677,7 +4001,77 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
       phase: d.phase as string | undefined,
       year: toNumber(d.year, 0),
       icjReportsPage: toOptionalNumber(d.icjReportsPage),
-      pinpoint: extractNzlsgPinpoint(d),
+    });
+  }
+
+  // ── Internet, social media, newspapers and broadcasts (STD-017) ───────────
+  //
+  // The AGLC form field names are mapped onto the NZLSG digital formatters
+  // (rules/nzlsg/digital.ts). Pinpoints are appended by the caller from the
+  // typed pinpoint (STD-014, NZLSG 3 §6.1.8 'at'), so none is passed here.
+
+  if (st === "internet_material") {
+    const author = digitalAuthorString(d);
+    const site = pickString(d.websiteName, d.website, d.siteName, d.blogName).trim();
+    const date = toStr(d.date).trim();
+    // NZLSG 3 §7.1.1 treats blogs as internet materials in the same form;
+    // the blog formatter is used when the AGLC document type (or a blog
+    // flag) says so and the author and date it requires are stored.
+    if (isBlogPost(d) && author && date) {
+      return nzlsgFormatBlog({
+        author,
+        title: toStr(d.title),
+        date,
+        blogName: site,
+        url: toStr(d.url) || undefined,
+      });
+    }
+    return nzlsgFormatWebsite({
+      author: author || undefined,
+      title: toStr(d.title),
+      date: date || undefined,
+      year: date ? undefined : toOptionalNumber(d.year),
+      // §7.1.1: the site name is given only when it differs from the author
+      website: site && site.toLowerCase() !== author.toLowerCase() ? site : undefined,
+      url: toStr(d.url) || undefined,
+    });
+  }
+
+  if (st === "social_media") {
+    const author = toStr(d.author).trim();
+    const handle = toStr(d.handle).trim();
+    return nzlsgFormatSocialMedia({
+      author: author || handle,
+      handle: author && handle && handle !== author ? handle : undefined,
+      content: toStr(d.title) || toStr(d.content),
+      platform: toStr(d.platform),
+      date: toStr(d.date),
+      url: toStr(d.url) || undefined,
+    });
+  }
+
+  if (st === "newspaper") {
+    // NZLSG 3 §7.2: 'Editorial' stands as the author of an unsigned editorial
+    const author = toBool(d.isEditorial) ? "Editorial" : digitalAuthorString(d);
+    return nzlsgFormatNewspaper({
+      author: author || undefined,
+      title: toStr(d.title),
+      newspaper: pickString(d.newspaper, d.newspaperName, d.publication),
+      place: pickString(d.place, d.location, d.city) || undefined,
+      date: toStr(d.date),
+      onlineEdition: toBool(d.isElectronic) || undefined,
+      // §7.2: the article's page is cited with 'at'
+      pinpoint: pickString(d.page, d.startingPage) || undefined,
+    });
+  }
+
+  if (st === "film_tv_media") {
+    return nzlsgFormatBroadcast({
+      title: pickString(d.episodeTitle, d.title, d.seriesTitle),
+      director: toStr(d.director) || undefined,
+      presenter: pickString(d.presenter, d.host) || undefined,
+      broadcaster: pickString(d.broadcaster, d.network, d.productionCompany, d.studio) || undefined,
+      date: pickString(d.date, d.year) || undefined,
     });
   }
 
@@ -3686,48 +4080,24 @@ function dispatchNzlsg(citation: Citation): FormattedRun[] | null {
 }
 
 /**
- * Resolves NZLSG subsequent references using general or commercial style.
- *
- * NZLSG Rule 2.3: Two subsequent reference styles exist:
- * - General: "Author, above n X, at pinpoint" (no ibid)
- * - Commercial: "Author at pinpoint" (no cross-reference, no ibid)
- *
- * The style is determined by `citation.data.nzlsgStyle` or defaults to
- * "general". Returns `null` if a full citation should be rendered instead.
+ * STD-017: the author element of a digital or newspaper citation from the
+ * AGLC form data — the flat `author` string, else the `authors` list joined
+ * in the NZLSG manner (two authors 'and', more comma-separated).
  */
-function resolveNzlsgSubsequent(
-  citation: Citation,
-  context: CitationContext
-): FormattedRun[] | null {
-  if (context.isFirstCitation) return null;
+function digitalAuthorString(d: Record<string, unknown>): string {
+  const flat = toStr(d.author).trim();
+  if (flat) return flat;
+  return formatNzlsgAuthorString(normaliseOptionalAuthorList(d.authors)).trim();
+}
 
-  const nzlsgStyle: NZLSGStyle = (citation.data.nzlsgStyle as NZLSGStyle) ?? "general";
-
-  // Determine the author/title string for the subsequent reference
-  const authorOrTitle =
-    citation.shortTitle ??
-    (citation.data.shortTitle as string | undefined) ??
-    (citation.data.author as string | undefined) ??
-    formatNzlsgAuthorString(normaliseOptionalAuthorList(citation.data.authors)) ??
-    (citation.data.title as string | undefined) ??
-    "";
-
-  const pinpointStr = context.currentPinpoint ? extractNzlsgPinpoint(citation.data) : undefined;
-
-  if (nzlsgStyle === "commercial") {
-    return nzlsgFormatCommercialSubsequent({
-      authorOrTitle,
-      shortTitle: citation.shortTitle ?? (citation.data.shortTitle as string | undefined),
-      pinpoint: pinpointStr,
-    });
-  }
-
-  // General style: "above n X, at pinpoint"
-  return nzlsgFormatGeneralSubsequent({
-    authorOrTitle,
-    footnoteNumber: context.firstFootnoteNumber,
-    pinpoint: pinpointStr,
-  });
+/**
+ * STD-017: true when internet material is a blog post — the AGLC 7.15
+ * document type ('Blog Post'), a `blogName`, or an explicit `isBlog` flag.
+ */
+function isBlogPost(d: Record<string, unknown>): boolean {
+  if (toBool(d.isBlog)) return true;
+  if (toStr(d.blogName).trim()) return true;
+  return /\bblog\b/i.test(toStr(d.documentType));
 }
 
 /**
@@ -3761,24 +4131,20 @@ function buildOscolaCaseName(d: Record<string, unknown>): string {
   const party1 = (d.party1 as string) ?? "";
   const party2 = (d.party2 as string) ?? "";
   const sep = (d.separator as string) ?? "v";
-  if (!party1 && !party2) return "";
+  // STD-021: the AGLC international forms store one `caseTitle` line
+  if (!party1 && !party2) return toStr(d.caseTitle);
   if (!party2) return party1;
   return `${party1} ${sep} ${party2}`;
 }
 
 /**
- * Extracts a pinpoint string from Citation.data for OSCOLA formatters.
- * OSCOLA formatters accept a plain string pinpoint, while Citation.data
- * may store either a Pinpoint object or a string.
+ * STD-021: the OSCOLA-shaped neutral citation from whichever keys the form
+ * wrote (see readNeutralCitation), or undefined.
  */
-function extractOscolaPinpoint(d: Record<string, unknown>): string | undefined {
-  const pin = d.pinpoint;
-  if (!pin) return undefined;
-  if (typeof pin === "string") return pin;
-  if (typeof pin === "object" && pin !== null && "value" in pin) {
-    return (pin as Pinpoint).value;
-  }
-  return undefined;
+function oscolaNeutralCitationFrom(d: Record<string, unknown>): OscolaNeutralCitation | undefined {
+  const nc = readNeutralCitation(d);
+  if (!nc) return undefined;
+  return { year: nc.year, court: nc.court, number: nc.number, ewhcDivision: nc.ewhcDivision };
 }
 
 /**
@@ -3789,45 +4155,39 @@ function dispatchOscolaCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const data: OscolaCaseData = {
     caseName: buildOscolaCaseName(d),
-    pinpoint: extractOscolaPinpoint(d),
-    courtId: d.courtId as string | undefined,
+    courtId: toStr(d.courtId).trim() || undefined,
     bailiiRetrospective: toBool(d.bailiiRetrospective) || undefined,
   };
 
-  // Neutral citation
-  const neutralCitation = d.neutralCitation as OscolaNeutralCitation | undefined;
-  if (neutralCitation) {
-    data.neutralCitation = neutralCitation;
-  } else {
-    const ncYear = toOptionalNumber(d.neutralCitationYear);
-    const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
-    if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
-      data.neutralCitation = {
-        year: ncYear,
-        court: ncCourt,
-        number: ncNumber,
-        ewhcDivision: d.ewhcDivision as string | undefined,
-      };
-    }
-  }
+  // Neutral citation (STD-021: also from the AGLC form's `mnc` or `court` + `caseNumber`)
+  data.neutralCitation = oscolaNeutralCitationFrom(d);
 
   // Report citation
   const reportCitation = d.reportCitation as OscolaReportCitation | undefined;
   if (reportCitation) {
     data.reportCitation = reportCitation;
-  } else if (d.reportSeries || d.year) {
-    const year = toNumber(d.year, 0);
-    const series = (d.reportSeries as string) ?? "";
-    if (series) {
+  } else {
+    const report = readParallelReport(d);
+    if (report) {
       data.reportCitation = {
-        year,
-        yearType: (d.yearType as "round" | "square") ?? "square",
-        volume: toOptionalNumber(d.volume),
-        series,
-        startPage: toNumber(d.startingPage, 0),
+        year: report.year,
+        yearType: report.yearType,
+        volume: report.volume,
+        series: report.reportSeries,
+        startPage: report.startPage,
       };
     }
+  }
+
+  // A database's retrospective number on a reported case is not a neutral
+  // citation the court issued (OSCOLA 5 §2.1.1; Mabo keeps '(1992) 175 CLR 1 (HCA)').
+  if (
+    citation.sourceType === "case.reported" &&
+    data.neutralCitation &&
+    data.reportCitation &&
+    isRetrospectiveNeutralCitation(d, data.neutralCitation)
+  ) {
+    data.bailiiRetrospective = true;
   }
 
   return formatOscolaCase(data);
@@ -3845,22 +4205,19 @@ function dispatchOscolaScottishCase(citation: Citation): FormattedRun[] {
     volume: toOptionalNumber(d.volume),
     reportSeries: (d.reportSeries as string) ?? "",
     startPage: toNumber(d.startingPage, 0),
-    courtId: d.courtId as string | undefined,
-    pinpoint: extractOscolaPinpoint(d),
+    courtId: toStr(d.courtId).trim() || undefined,
     historicalSeries: toBool(d.historicalSeries) || undefined,
   };
 
-  // Neutral citation
-  const neutralCitation = d.neutralCitation as ScottishNeutralCitation | undefined;
-  if (neutralCitation) {
+  // Neutral citation (STD-021: also from the AGLC form's `mnc`)
+  const nc = readNeutralCitation(d);
+  if (nc) {
+    const neutralCitation: ScottishNeutralCitation = {
+      year: nc.year,
+      court: nc.court,
+      number: nc.number,
+    };
     data.neutralCitation = neutralCitation;
-  } else {
-    const ncYear = toOptionalNumber(d.neutralCitationYear);
-    const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
-    if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
-      data.neutralCitation = { year: ncYear, court: ncCourt, number: ncNumber };
-    }
   }
 
   return formatOscolaScottishCase(data);
@@ -3873,35 +4230,35 @@ function dispatchOscolaNICase(citation: Citation): FormattedRun[] {
   const d = citation.data;
   const data: OscolaNICaseData = {
     caseName: buildOscolaCaseName(d),
-    courtId: d.courtId as string | undefined,
-    pinpoint: extractOscolaPinpoint(d),
+    courtId: toStr(d.courtId).trim() || undefined,
   };
 
-  // Neutral citation
-  const neutralCitation = d.neutralCitation as NINeutralCitation | undefined;
-  if (neutralCitation) {
+  // Neutral citation (STD-021: also from the AGLC form's `mnc`)
+  const nc = readNeutralCitation(d);
+  if (nc) {
+    const neutralCitation: NINeutralCitation = {
+      year: nc.year,
+      court: nc.court,
+      number: nc.number,
+    };
     data.neutralCitation = neutralCitation;
-  } else {
-    const ncYear = toOptionalNumber(d.neutralCitationYear);
-    const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
-    if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
-      data.neutralCitation = { year: ncYear, court: ncCourt, number: ncNumber };
-    }
   }
 
   // Report citation
   const reportCitation = d.reportCitation as NIReportCitation | undefined;
   if (reportCitation) {
     data.reportCitation = reportCitation;
-  } else if (d.reportSeries) {
-    data.reportCitation = {
-      year: toNumber(d.year, 0),
-      yearType: (d.yearType as "round" | "square") ?? "square",
-      volume: toOptionalNumber(d.volume),
-      series: (d.reportSeries as string) ?? "",
-      startPage: toNumber(d.startingPage, 0),
-    };
+  } else {
+    const report = readParallelReport(d);
+    if (report) {
+      data.reportCitation = {
+        year: report.year,
+        yearType: report.yearType,
+        volume: report.volume,
+        series: report.reportSeries,
+        startPage: toNumber(report.startPage, 0),
+      };
+    }
   }
 
   return formatOscolaNICase(data);
@@ -3923,15 +4280,10 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
 
   let nc = neutralCitation;
   if (!nc) {
-    const ncYear = toOptionalNumber(d.neutralCitationYear);
-    const ncCourt = d.neutralCitationCourt as string | undefined;
-    const ncNumber = toOptionalNumber(d.neutralCitationNumber);
-    if (ncYear !== undefined && ncCourt && ncNumber !== undefined) {
-      nc = {
-        year: ncYear,
-        court: ncCourt as IrishCourtIdentifier,
-        number: ncNumber,
-      };
+    // STD-021: also from the AGLC form's `mnc` or `court` + `caseNumber`
+    const parts = readNeutralCitation(d);
+    if (parts) {
+      nc = { year: parts.year, court: parts.court as IrishCourtIdentifier, number: parts.number };
     }
   }
 
@@ -3945,12 +4297,13 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
     | undefined;
 
   let rc = reportCitation;
-  if (!rc && d.reportSeries) {
+  const report = rc ? undefined : readParallelReport(d);
+  if (report) {
     rc = {
-      year: toNumber(d.year, 0),
-      volume: toOptionalNumber(d.volume),
-      series: d.reportSeries as string as IrishReportSeries,
-      page: toNumber(d.startingPage, 0),
+      year: report.year,
+      volume: report.volume,
+      series: report.reportSeries as IrishReportSeries,
+      page: toNumber(report.startPage, 0),
     };
   }
 
@@ -3958,7 +4311,6 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
     caseName: buildOscolaCaseName(d),
     neutralCitation: nc,
     reportCitation: rc,
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -3974,11 +4326,14 @@ function dispatchOscolaIrishCase(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaReportedCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  const courtId =
-    (d.courtId as string) ??
-    (d.neutralCitationCourt as string) ??
-    (d.neutralCitation as { court?: string } | undefined)?.court ??
-    "";
+  // STD-021: the court from any key the forms write, the MNC string included
+  const courtId = pickString(
+    d.courtId,
+    d.neutralCitationCourt,
+    readNeutralCitation(d)?.court,
+    d.court,
+    d.courtIdentifier
+  ).trim();
   const jurisdiction = (d.jurisdiction as string) ?? "";
 
   if (SCOTTISH_COURT_SET.has(courtId) || jurisdiction === "Scot") {
@@ -4013,7 +4368,6 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
       year: toNumber(d.year, 0),
       type: (d.instrumentType as "si" | "ssi" | "wsi" | "sr") ?? "si",
       number: toNumber(d.number, 0),
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
@@ -4024,25 +4378,60 @@ function dispatchOscolaStatute(citation: Citation): FormattedRun[] {
         shortTitle: (d.title as string) ?? "",
         year: toNumber(d.year, 0),
         siNumber: toNumber(d.siNumber, 0),
-        pinpoint: extractOscolaPinpoint(d),
       });
     }
     return oscolaFormatIrishAct({
       shortTitle: (d.title as string) ?? "",
       year: toNumber(d.year, 0),
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
-  return formatOscolaPrimaryLegislation({
+  const runs = formatOscolaPrimaryLegislation({
     title: (d.title as string) ?? "",
     year: toNumber(d.year, 0),
-    type: (d.ukLegislationType as "uk" | "asp" | "anaw" | "asc" | "ni") ?? "uk",
+    type: oscolaLegislationType(d.ukLegislationType),
     number: toOptionalNumber(d.number),
-    pinpoint: extractOscolaPinpoint(d),
     regnalYear: d.regnalYear as string | undefined,
     chapter: d.chapter as string | undefined,
   });
+  return withOscolaForeignJurisdiction(runs, jurisdiction);
+}
+
+/** The UK legislation type the OSCOLA formatter takes, `uk` unless a known value is stored. */
+function oscolaLegislationType(raw: unknown): "uk" | "asp" | "anaw" | "asc" | "ni" {
+  const value = toStr(raw).trim().toLowerCase();
+  return value === "asp" || value === "anaw" || value === "asc" || value === "ni" ? value : "uk";
+}
+
+/** Jurisdiction values OSCOLA treats as home (no jurisdiction bracket after legislation), lower-cased. */
+const OSCOLA_HOME_JURISDICTIONS: ReadonlySet<string> = new Set([
+  "uk",
+  "gb",
+  "united kingdom",
+  "great britain",
+  "england",
+  "england and wales",
+  "ew",
+  "e&w",
+  "wales",
+  "scotland",
+  "scot",
+  "ni",
+  "northern ireland",
+  "ie",
+  "ireland",
+  "eu",
+]);
+
+/**
+ * OSCOLA 5 §2.6.2: foreign legislation is cited as at home with the
+ * jurisdiction in brackets after the year ('Climate Change Act 2022 (Cth)');
+ * UK and Irish legislation carries none.
+ */
+function withOscolaForeignJurisdiction(runs: FormattedRun[], jurisdiction: string): FormattedRun[] {
+  const value = jurisdiction.trim();
+  if (!value || OSCOLA_HOME_JURISDICTIONS.has(value.toLowerCase())) return runs;
+  return [...runs, { text: ` (${value})` }];
 }
 
 /**
@@ -4053,13 +4442,14 @@ function dispatchOscolaDelegatedLegislation(citation: Citation): FormattedRun[] 
   // OSCOLA 2.2.6: omit the 'SI Year/Number' element when no instrument
   // number is stored, rather than rendering a placeholder 'SI 1998/0'.
   const siNumber = toStr(d.number).trim() || toStr(d.siNumber).trim();
-  return formatOscolaSecondaryLegislation({
+  const runs = formatOscolaSecondaryLegislation({
     title: (d.title as string) ?? "",
     year: toNumber(d.year, 0),
     type: (d.instrumentType as "si" | "ssi" | "wsi" | "sr") ?? "si",
     number: siNumber || undefined,
-    pinpoint: extractOscolaPinpoint(d),
   });
+  // §2.6.2: foreign delegated legislation as at home with the jurisdiction
+  return withOscolaForeignJurisdiction(runs, toStr(d.jurisdiction));
 }
 
 /**
@@ -4067,11 +4457,28 @@ function dispatchOscolaDelegatedLegislation(citation: Citation): FormattedRun[] 
  */
 function dispatchOscolaHansard(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // STD-021 / OSCOLA 5 §2.6.1 and §1.4: a foreign parliamentary debate is
+  // cited as in its home jurisdiction — the NZ Parliamentary Debates in the
+  // NZLSG form, an Australian Hansard in the AGLC form.
+  if (toBool(d.nzpd) || isNzJurisdiction(d.jurisdiction)) {
+    return dispatchNzlsgNzpd(d);
+  }
+  if (AUSTRALIAN_JURISDICTIONS.has(toStr(d.jurisdiction).trim().toLowerCase())) {
+    return dispatchHansard(citation);
+  }
+  // STD-014 / OSCOLA 5 §3.7.8: the column is the pinpoint of a Hansard
+  // citation ('col 973', 'cols 973–76'), so a column (or bare) occurrence
+  // pinpoint names the column cited, replacing the stored one.
+  const pinpoint = normaliseStringPinpoint(d.pinpoint);
+  const column =
+    pinpoint && oscolaHansardColumnPinpoint(pinpoint)
+      ? pinpoint.value.trim().replace(/(\d)-(\d)/g, "$1–$2")
+      : toNumber(d.column, 0);
   return formatOscolaHansard({
     chamber: (d.chamber as "HC" | "HL") ?? "HC",
     date: (d.date as string) ?? "",
     volume: toNumber(d.volume, 0),
-    column: toNumber(d.column, 0),
+    column,
     speaker: d.speaker as string | undefined,
   });
 }
@@ -4090,7 +4497,6 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
       seriesPrefix: (d.seriesPrefix as "C" | "Cd" | "Cmd" | "Cmnd" | "Cm") ?? "Cm",
       paperNumber: (d.paperNumber as string | number) ?? "",
       year: toNumber(d.year, 0),
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
@@ -4099,7 +4505,6 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
       title: (d.title as string) ?? "",
       reportNumber: toNumber(d.reportNumber, 0),
       year: toNumber(d.year, 0),
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
@@ -4109,7 +4514,6 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
     session: d.session as string | undefined,
     paperNumber: d.paperNumber as string | undefined,
     year: toNumber(d.year, 0),
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4118,6 +4522,20 @@ function dispatchOscolaParliamentaryReport(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaEuOfficialJournal(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // STD-017 / OSCOLA 5 §2.4.9: assimilated (formerly retained) EU law is
+  // flagged `assimilated` and cites the amending SI instead of the OJ.
+  if (toBool(d.assimilated)) {
+    const siYear = toStr(d.siYear).trim();
+    const siNumber = toStr(d.siNumber).trim();
+    return oscolaFormatAssimilatedEuLaw({
+      instrumentType: toStr(d.instrumentType),
+      number: toStr(d.number),
+      title: toStr(d.title) || undefined,
+      amendingSi:
+        toStr(d.amendingSi).trim() || (siYear && siNumber ? `${siYear}/${siNumber}` : undefined),
+      amendingProvision: toStr(d.amendingProvision).trim() || undefined,
+    });
+  }
   return oscolaFormatEuLegislation({
     instrumentType: (d.instrumentType as string) ?? "",
     number: (d.number as string) ?? "",
@@ -4133,15 +4551,27 @@ function dispatchOscolaEuOfficialJournal(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaEuCourt(citation: Citation): FormattedRun[] {
   const d = citation.data;
-  return oscolaFormatCjeuCase({
-    caseNumber: (d.caseNumber as string) ?? "",
+  const caseNumber = toStr(d.caseNumber).trim();
+  const data = {
+    caseNumber,
     caseName: buildOscolaCaseName(d),
     ecli: d.ecli as string | undefined,
     year: toOptionalNumber(d.year),
     reportSeries: d.reportSeries as string | undefined,
     page: d.page as string | undefined,
-    pinpoint: extractOscolaPinpoint(d),
-  });
+  };
+  // STD-017 / OSCOLA 5 §4.4.2: a General Court case ('Case T-…', or the
+  // court named as the General Court / Court of First Instance).
+  if (isGeneralCourtCase(caseNumber, toStr(d.court))) {
+    return oscolaFormatGeneralCourtCase(data);
+  }
+  return oscolaFormatCjeuCase(data);
+}
+
+/** True for a General Court (formerly Court of First Instance) case number or court name. */
+function isGeneralCourtCase(caseNumber: string, court: string): boolean {
+  if (/^T[-‐-–]/i.test(caseNumber)) return true;
+  return /^(general court|gc|cfi|court of first instance)$/i.test(court.trim());
 }
 
 /**
@@ -4149,6 +4579,16 @@ function dispatchOscolaEuCourt(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaEchrDecision(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // STD-017 / OSCOLA 5 §4.4.5: a decision of the (former) European
+  // Commission of Human Rights — `commission: true` or the body named.
+  if (isEcommhrDecision(d)) {
+    return oscolaFormatEcommhrDecision({
+      caseName: buildOscolaCaseName(d),
+      respondentState: (d.respondentState as string) ?? "",
+      applicationNumber: pickString(d.applicationNumber, d.caseNumber),
+      date: (d.date as string) ?? "",
+    });
+  }
   const isAdmissibilityDecision = toBool(d.isDecision) || undefined;
   if (isAdmissibilityDecision) {
     return oscolaFormatEcthrDecision({
@@ -4157,17 +4597,15 @@ function dispatchOscolaEchrDecision(citation: Citation): FormattedRun[] {
       applicationNumber: (d.applicationNumber as string) ?? "",
       date: (d.date as string) ?? "",
       chamber: d.chamber as "Grand Chamber" | string | undefined,
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
   return oscolaFormatEcthrCase({
     caseName: buildOscolaCaseName(d),
-    respondentState: (d.respondentState as string) ?? "",
+    respondentState: toStr(readAliased(d, "respondentState")),
     applicationNumber: (d.applicationNumber as string) ?? "",
     chamber: d.chamber as "Grand Chamber" | "Section" | string | undefined,
     date: (d.date as string) ?? "",
     reportReference: d.reportReference as string | undefined,
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4182,7 +4620,6 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
       title: (d.title as string) ?? "",
       year: toOptionalNumber(d.year),
       ojReference: d.ojReference as string | undefined,
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
@@ -4192,7 +4629,6 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
       shortTitle: d.shortTitle as string | undefined,
       adoptedDate: d.adoptedDate as string | undefined,
       etsNumber: d.etsNumber as string | undefined,
-      pinpoint: extractOscolaPinpoint(d),
     });
   }
 
@@ -4204,7 +4640,6 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
     treatySeries: d.treatySeries as string | undefined,
     seriesVolume: toOptionalNumber(d.seriesVolume),
     startingPage: toOptionalNumber(d.startingPage),
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4213,6 +4648,25 @@ function dispatchOscolaTreaty(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaUnDocument(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // STD-017 / OSCOLA 5 §4.2.2: a numbered resolution without a title takes
+  // the short resolution form ('UNSC Res 1373 (28 September 2001) UN Doc
+  // S/RES/1373'); `documentType: "resolution"` selects it explicitly.
+  const resolutionNumber = pickString(
+    d.resolutionNumber,
+    d.resolutionOrDocumentNumber,
+    d.resolutionOrDecisionNumber
+  ).trim();
+  const isResolution =
+    toStr(d.documentType).trim().toLowerCase() === "resolution" ||
+    (resolutionNumber !== "" && toStr(d.title).trim() === "");
+  if (isResolution && resolutionNumber) {
+    return oscolaFormatUnResolution({
+      body: (d.body as string) ?? "",
+      resolutionNumber,
+      date: (d.date as string) ?? "",
+      documentSymbol: pickString(d.documentSymbol, d.documentNumber) || undefined,
+    });
+  }
   return oscolaFormatUnDocument({
     body: (d.body as string) ?? "",
     title: d.title as string | undefined,
@@ -4220,7 +4674,6 @@ function dispatchOscolaUnDocument(citation: Citation): FormattedRun[] {
     sessionInfo: d.sessionInfo as string | undefined,
     date: (d.date as string) ?? "",
     documentSymbol: (d.documentSymbol as string) ?? "",
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4229,13 +4682,23 @@ function dispatchOscolaUnDocument(citation: Citation): FormattedRun[] {
  */
 function dispatchOscolaIcjCase(citation: Citation): FormattedRun[] {
   const d = citation.data;
+  // STD-017 / OSCOLA 5 §4.4: an ITLOS case is an `icj.decision` whose
+  // tribunal (or court) is ITLOS — '(year) ITLOS Reports page'.
+  if (/\bITLOS\b|tribunal for the law of the sea/i.test(pickString(d.tribunal, d.court))) {
+    return oscolaFormatItlosCase({
+      caseName: buildOscolaCaseName(d),
+      phase: d.phase as string | undefined,
+      year: toNumber(d.year, 0),
+      caseNumber: toStr(d.caseNumber) || undefined,
+      page: toOptionalNumber(d.page) ?? toOptionalNumber(d.icjReportsPage),
+    });
+  }
   return oscolaFormatIcjCase({
     caseName: buildOscolaCaseName(d),
     phase: d.phase as string | undefined,
     year: toNumber(d.year, 0),
     reportSeries: d.reportSeries as string | undefined,
     page: toOptionalNumber(d.page),
-    pinpoint: extractOscolaPinpoint(d),
     judge: d.judge as string | undefined,
   });
 }
@@ -4252,7 +4715,6 @@ function dispatchOscolaIccCase(citation: Citation): FormattedRun[] {
     chamber: (d.chamber as string) ?? "",
     caseNumber: (d.caseNumber as string) ?? "",
     date: (d.date as string) ?? "",
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4266,7 +4728,6 @@ function dispatchOscolaWtoDocument(citation: Citation): FormattedRun[] {
     title: (d.title as string) ?? "",
     documentNumber: (d.documentNumber as string) ?? "",
     date: (d.date as string) ?? "",
-    pinpoint: extractOscolaPinpoint(d),
   });
 }
 
@@ -4290,6 +4751,201 @@ function dispatchOscolaGenAi(citation: Citation): FormattedRun[] {
   });
 }
 
+// ─── STD-017: adapters for the formerly orphaned OSCOLA formatters ──────────
+//
+// Each maps the AGLC form field names of a source type onto the OSCOLA
+// formatter's data shape. Where an OSCOLA form applies only to a subset of
+// the type (a flag, a body, a jurisdiction), the adapter falls back to the
+// shared AGLC dispatcher, so the rest of the type renders as before.
+// Pinpoints are appended by `formatOscolaFullCitation` (STD-014); only the
+// audio/video timestamp of §3.7.1–3.7.2 is passed, being an element of the
+// citation that precedes the link.
+
+/**
+ * The author element of an OSCOLA secondary-source citation (OSCOLA 5
+ * §3.1.1): the flat `author` string as stored, else the `authors` list —
+ * two or three joined with 'and' ('K Zweigert and H Kötz', 'A, B and C'),
+ * more than three as the first name 'and others'.
+ */
+function oscolaAuthorString(d: Record<string, unknown>): string {
+  const flat = toStr(d.author).trim();
+  if (flat) return flat;
+  const authors = normaliseOptionalAuthorList(d.authors);
+  if (!authors || authors.length === 0) return "";
+  const names = authors
+    .map((a) => [a.givenNames?.trim(), a.surname?.trim()].filter(Boolean).join(" "))
+    .filter(Boolean);
+  if (names.length === 0) return "";
+  if (names.length > 3) return `${names[0]} and others`;
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * Dispatches a thesis to formatOscolaThesis (OSCOLA 5 §3.7.6; OSCOLA 4
+ * §3.4.7 through the profile's `thesisTitleStyle`). This is the single
+ * OSCOLA thesis path: the shared AGLC formatter's OSCOLA branch (STD-016,
+ * rules/v4/secondary/other.ts `formatThesis`) is no longer reached under
+ * OSCOLA and is kept for its unit coverage only.
+ */
+function dispatchOscolaThesis(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const d = citation.data;
+  return formatOscolaThesis({
+    author: oscolaAuthorString(d),
+    title: toStr(d.title),
+    thesisType: pickString(d.thesisType, d.degree),
+    university: pickString(d.university, d.institution),
+    year: toNumber(d.year, 0),
+    titleStyle: secondaryStyleFor(config).thesisTitleStyle,
+  });
+}
+
+/**
+ * Dispatches internet material to formatOscolaBlog (AGLC document type
+ * 'Blog Post', a `blogName` or `isBlog`) or formatOscolaWebsite (OSCOLA 5
+ * §3.7.1). The author is omitted where it is the site name (as AGLC4 7.15);
+ * the access date is emitted only when one is stored (a persistent link or
+ * DOI needs none).
+ */
+function dispatchOscolaInternetMaterial(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const author = oscolaAuthorString(d);
+  const site = pickString(d.websiteName, d.website, d.siteName, d.blogName).trim();
+  const shownAuthor = author && author.toLowerCase() !== site.toLowerCase() ? author : undefined;
+  const common = {
+    author: shownAuthor,
+    title: toStr(d.title),
+    date: toStr(d.date).trim() || undefined,
+    url: toStr(d.url),
+    accessedDate: pickString(d.accessDate, d.accessedDate).trim() || undefined,
+  };
+  if (isBlogPost(d)) {
+    return formatOscolaBlog({ ...common, blogName: site });
+  }
+  return formatOscolaWebsite({ ...common, websiteName: site });
+}
+
+/**
+ * Dispatches a social media post to formatOscolaSocialMedia (OSCOLA 5
+ * §3.7.1: username, (platform, date, time), link). The AGLC form stores the
+ * post text in `title`.
+ */
+function dispatchOscolaSocialMedia(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  return formatOscolaSocialMedia({
+    author: toStr(d.author).trim() || undefined,
+    handle: toStr(d.handle).trim() || undefined,
+    content: pickString(d.title, d.content).trim() || undefined,
+    platform: toStr(d.platform),
+    date: toStr(d.date),
+    time: toStr(d.time).trim() || undefined,
+    url: toStr(d.url),
+    accessedDate: pickString(d.accessDate, d.accessedDate).trim() || undefined,
+  });
+}
+
+/**
+ * Dispatches film/TV/media by medium: podcasts and radio to
+ * formatOscolaPodcast (OSCOLA 5 §3.7.2), online video to formatOscolaVideo
+ * (§3.7.1); films and television keep the AGLC 7.14 form (no OSCOLA rule
+ * recorded in docs/standards-rule-notes.md).
+ */
+function dispatchOscolaFilmTvMedia(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const medium = pickString(d.medium, d.mediaType).trim().toLowerCase();
+  const accessedDate = pickString(d.accessDate, d.accessedDate).trim() || undefined;
+  const timestamp = toStr(d.timePinpoint).trim() || undefined;
+  if (medium === "podcast" || medium === "radio") {
+    return formatOscolaPodcast({
+      episodeTitle: pickString(d.episodeTitle, d.title),
+      seriesName: pickString(d.seriesTitle, d.program, d.series),
+      date: pickString(d.date, d.year),
+      timestamp,
+      url: toStr(d.url),
+      accessedDate,
+    });
+  }
+  if (/video/.test(medium)) {
+    return formatOscolaVideo({
+      author: pickString(d.author, d.productionCompany, d.channel).trim() || undefined,
+      title: pickString(d.episodeTitle, d.title),
+      platform: pickString(d.platform, d.network, d.website),
+      date: pickString(d.date, d.year),
+      timestamp,
+      url: toStr(d.url),
+      accessedDate,
+    });
+  }
+  return dispatchFilmTvMedia(citation);
+}
+
+/**
+ * Dispatches a constitution: Bunreacht na hÉireann (jurisdiction IE, or the
+ * title itself) to formatBunreachtNaHEireann; any other constitution keeps
+ * the AGLC 3.6 form.
+ */
+function dispatchOscolaConstitution(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const jurisdiction = toStr(d.jurisdiction).trim();
+  const isIrish = /^(IE|IRL|Ireland)$/i.test(jurisdiction) || /bunreacht/i.test(toStr(d.title));
+  if (isIrish) {
+    return oscolaFormatBunreachtNaHEireann({
+      article: toStr(d.article).trim() || undefined,
+      subsection: toStr(d.subsection).trim() || undefined,
+    });
+  }
+  return dispatchConstitution(citation);
+}
+
+/** True when the body, court or `commission` flag names the European Commission of Human Rights. */
+function isEcommhrDecision(d: Record<string, unknown>): boolean {
+  if (toBool(d.commission)) return true;
+  return /^(ECommHR|EComHR|European Commission of Human Rights)$/i.test(
+    pickString(d.body, d.court, d.tribunal).trim()
+  );
+}
+
+/**
+ * Dispatches a supranational decision: a European Commission of Human
+ * Rights decision (body ECommHR) to formatEcommhrDecision (OSCOLA 5
+ * §4.4.5); every other body keeps the AGLC 14.4 form.
+ */
+function dispatchOscolaSupranationalDecision(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  if (isEcommhrDecision(d)) {
+    return oscolaFormatEcommhrDecision({
+      caseName: pickString(d.caseName, d.caseTitle, d.title) || buildOscolaCaseName(d),
+      respondentState: pickString(d.respondentState, d.respondent),
+      applicationNumber: pickString(d.applicationNumber, d.caseNumber, d.number),
+      date: toStr(d.date),
+    });
+  }
+  return dispatchSupranationalDecision(citation);
+}
+
+/**
+ * Dispatches a supranational document: a Council of Europe document (body
+ * the Council of Europe, its Committee of Ministers or Parliamentary
+ * Assembly, or `councilOfEurope`) to formatCouncilOfEuropeDocument; every
+ * other body keeps the AGLC 14.5 form.
+ */
+function dispatchOscolaSupranationalDocument(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const body = toStr(d.body).trim();
+  const isCouncilOfEurope =
+    toBool(d.councilOfEurope) ||
+    /council of europe|committee of ministers|parliamentary assembly|\bPACE\b|\bCoE\b/i.test(body);
+  if (isCouncilOfEurope) {
+    return oscolaFormatCouncilOfEuropeDocument({
+      body,
+      title: toStr(d.title),
+      documentNumber: toStr(d.documentNumber).trim() || undefined,
+      date: toStr(d.date),
+    });
+  }
+  return dispatchSupranationalDocument(citation);
+}
+
 /**
  * OSC-ENH-001: Registry mapping SourceType to OSCOLA-specific dispatch
  * functions. When standardId starts with "oscola", this map is checked
@@ -4302,9 +4958,14 @@ const OSCOLA_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "case.unreported.mnc": dispatchOscolaCase,
   "legislation.statute": dispatchOscolaStatute,
   "legislation.delegated": dispatchOscolaDelegatedLegislation,
+  "legislation.constitution": dispatchOscolaConstitution,
   hansard: dispatchOscolaHansard,
   "report.parliamentary": dispatchOscolaParliamentaryReport,
   "report.law_reform": dispatchOscolaParliamentaryReport,
+  thesis: dispatchOscolaThesis,
+  internet_material: dispatchOscolaInternetMaterial,
+  social_media: dispatchOscolaSocialMedia,
+  film_tv_media: dispatchOscolaFilmTvMedia,
   treaty: dispatchOscolaTreaty,
   "un.document": dispatchOscolaUnDocument,
   "icj.decision": dispatchOscolaIcjCase,
@@ -4314,6 +4975,8 @@ const OSCOLA_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
   "eu.official_journal": dispatchOscolaEuOfficialJournal,
   "eu.court": dispatchOscolaEuCourt,
   "echr.decision": dispatchOscolaEchrDecision,
+  "supranational.decision": dispatchOscolaSupranationalDecision,
+  "supranational.document": dispatchOscolaSupranationalDocument,
   genai_output: dispatchOscolaGenAi,
 };
 
@@ -4323,6 +4986,150 @@ const OSCOLA_DISPATCH: Partial<Record<SourceType, SourceFormatter>> = {
  */
 function isOscolaStandard(config: CitationConfig): boolean {
   return config.standardId.startsWith("oscola");
+}
+
+// ─── STD-014: Standard-aware pinpoints on the OSCOLA and NZLSG paths ────────
+//
+// Under OSCOLA and NZLSG the pinpoint is not rendered by the per-source
+// formatter: it is detached from `data.pinpoint`, the citation is rendered
+// without it, and `formatPinpointFor` (src/engine/standards/pinpoints.ts)
+// appends the standard's own suffix — label vocabulary, paragraph form,
+// comma rule, NZLSG 'at' — from the typed pinpoint. The AGLC path is
+// untouched.
+
+/**
+ * Source types whose pinpoint is a provision after a title (OSCOLA 5
+ * §2.4.2 ', s 6', §2.5.2 ', reg 7(2)', §4.1.1 ', art 1', §4.4.1 'Rome I,
+ * art 6'; NZLSG 3 §4.1.1(d) ', s 59', §4.3.1 ', reg 3', §10.1.1 ', art 5').
+ */
+function isLegislativeSourceType(sourceType: SourceType): boolean {
+  return (
+    sourceType.startsWith("legislation.") ||
+    sourceType === "treaty" ||
+    sourceType === "treaty.mou" ||
+    sourceType === "un.charter" ||
+    sourceType === "eu.official_journal"
+  );
+}
+
+/** Source types cited by paragraph number (OSCOLA 5 §4.3–4.4 '[42]'; OSCOLA 4 §2.7.1 ', para 42'). */
+const PARAGRAPH_SOURCE_TYPES: ReadonlySet<SourceType> = new Set<SourceType>([
+  "echr.decision",
+  "eu.court",
+  "icj.decision",
+  "icj.pleading",
+  "icc_tribunal.case",
+  "wto.document",
+  "wto.decision",
+  "supranational.decision",
+]);
+
+/** Sources whose citation ends with a starting page or column (OSCOLA 5 §3.3 '554, 42'). */
+const STARTING_PAGE_SOURCE_TYPES: ReadonlySet<SourceType> = new Set<SourceType>([
+  "journal.article",
+  "book.chapter",
+  "hansard",
+]);
+
+/** The position `formatPinpointFor` renders a full citation's pinpoint in. */
+function pinpointPositionFor(sourceType: SourceType): PinpointPosition {
+  if (isLegislativeSourceType(sourceType)) return "statute";
+  if (PARAGRAPH_SOURCE_TYPES.has(sourceType)) return "paragraph-source";
+  if (sourceType === "case.unreported.mnc") return "neutral";
+  if (sourceType.startsWith("case.") || STARTING_PAGE_SOURCE_TYPES.has(sourceType)) {
+    return "report";
+  }
+  return "secondary";
+}
+
+/** True when a Hansard pinpoint names the column cited (OSCOLA 5 §3.7.8), consumed by the dispatcher. */
+function oscolaHansardColumnPinpoint(pinpoint: Pinpoint): boolean {
+  return pinpoint.type === "column" || pinpoint.type === "page";
+}
+
+/** The citation with `data.pinpoint` removed (unchanged when it carries none). */
+function withoutPinpoint(citation: Citation): Citation {
+  if (citation.data.pinpoint === undefined) return citation;
+  const data: Record<string, unknown> = { ...citation.data };
+  delete data.pinpoint;
+  return { ...citation, data };
+}
+
+/** Appends the standard's pinpoint suffix for `pinpoint` to `runs` (no-op without one). */
+function appendPinpointSuffix(
+  runs: FormattedRun[],
+  config: CitationConfig,
+  pinpoint: Pinpoint | undefined,
+  after: PinpointPosition
+): FormattedRun[] {
+  if (!pinpoint) return runs;
+  const text = runs.map((run) => run.text).join("");
+  const suffix = formatPinpointFor(config, pinpoint, {
+    after,
+    afterBracket: endsWithClosingBracket(text),
+  });
+  return suffix ? [...runs, { text: suffix }] : runs;
+}
+
+/**
+ * Renders a full OSCOLA citation (native OSCOLA formatter, else the shared
+ * source formatter) with the pinpoint appended last by `formatPinpointFor`:
+ * the comma rule of §2.1.6 / §4.1.1 / §1.2.1 is decided from what the
+ * rendered citation ends with. Legislation, treaties and OJ instruments
+ * take the pinpoint after the declared short form (`Act 2015 (‘SARAH’) s 1`,
+ * `(‘ICCPR’) art 6`); every other source before any first-citation suffix.
+ * A Hansard column pinpoint replaces the column (§3.7.8) and is consumed
+ * by the dispatcher instead.
+ */
+function formatOscolaFullCitation(
+  citation: Citation,
+  config: CitationConfig,
+  appendSuffixes: (runs: FormattedRun[]) => FormattedRun[]
+): FormattedRun[] {
+  const pinpoint = normaliseStringPinpoint(citation.data.pinpoint);
+  const consumed =
+    pinpoint !== undefined &&
+    citation.sourceType === "hansard" &&
+    oscolaHansardColumnPinpoint(pinpoint);
+  const subject = consumed ? citation : withoutPinpoint(citation);
+  const formatter = OSCOLA_DISPATCH[subject.sourceType] ?? SOURCE_DISPATCH[subject.sourceType];
+  let runs = formatter ? formatter(subject, config) : formatGenericCitation(subject);
+  const appended = consumed ? undefined : pinpoint;
+  const after = pinpointPositionFor(subject.sourceType);
+  if (isLegislativeSourceType(subject.sourceType)) {
+    runs = appendSuffixes(runs);
+    runs = appendPinpointSuffix(runs, config, appended, after);
+  } else {
+    runs = appendPinpointSuffix(runs, config, appended, after);
+    runs = appendSuffixes(runs);
+  }
+  return runs;
+}
+
+/**
+ * Renders a full NZLSG citation (native NZLSG formatter, else the shared
+ * source formatter) with the pinpoint appended by `formatPinpointFor`:
+ * ' at 42' / ' at [42]' after cases and secondary sources (§3.2.8, §6.1.8),
+ * ', s 6' / ', reg 3' / ', art 7' after legislation and treaties (§4.1.1(d),
+ * §4.3.1, §10.1.1).
+ */
+function formatNzlsgFullCitation(
+  citation: Citation,
+  config: CitationConfig,
+  appendSuffixes: (runs: FormattedRun[]) => FormattedRun[]
+): FormattedRun[] {
+  const pinpoint = normaliseStringPinpoint(citation.data.pinpoint);
+  const bare = withoutPinpoint(citation);
+  const native = dispatchNzlsg(bare);
+  const dispatcher = SOURCE_DISPATCH[bare.sourceType];
+  let runs = native ?? (dispatcher ? dispatcher(bare, config) : formatGenericCitation(bare));
+  runs = appendPinpointSuffix(
+    runs,
+    config,
+    pinpoint,
+    isLegislativeSourceType(bare.sourceType) ? "statute" : "report"
+  );
+  return appendSuffixes(runs);
 }
 
 // ─── Generic Fallback Formatter ──────────────────────────────────────────────
@@ -4528,6 +5335,75 @@ export function applyLinkingPhrase(
 
 // ─── Main Entry Point ────────────────────────────────────────────────────────
 
+/** How an occurrence was rendered: the full citation, a short form, or ibid. */
+export type RenderedCitationFormat = "full" | "short" | "ibid";
+
+/** A formatted citation together with the form it took (STD-015). */
+export interface FormattedCitation {
+  runs: FormattedRun[];
+  renderedFormat: RenderedCitationFormat;
+}
+
+/**
+ * STD-015: the suffixes a standard appends to a first citation, before
+ * closing punctuation — the AGLC4 Rule 1.4.4 short title introduction and
+ * the Rule 1.4.5 abbreviation definition — gated per standard by
+ * `declaresShortForm` (`config.shortTitleIntroduction`): every source under
+ * AGLC; under OSCOLA only legislation, treaties, OJ instruments and UN
+ * resolutions, which declare their short form (§1.2.1, §4.1.1, §4.2.2,
+ * §4.4.1 — roman, and unquoted under OSCOLA 4) while cases and secondary
+ * sources declare nothing (§2.1.2, §3.1.5); never under NZLSG (§2.3.2).
+ * Returns the identity for a subsequent occurrence. The footnote
+ * (`formatCitation`) and the preview (`getFormattedPreview`) share it so
+ * both show the same first citation.
+ */
+function firstCitationSuffixes(
+  citation: Citation,
+  config: CitationConfig,
+  isFirstCitation: boolean
+): (runs: FormattedRun[]) => FormattedRun[] {
+  if (!isFirstCitation || !declaresShortForm(citation.sourceType, config)) {
+    return (runs) => runs;
+  }
+  return (runs: FormattedRun[]): FormattedRun[] => {
+    let result = runs;
+
+    // AUDIT2-015: Short title introduction (Rule 1.4.4)
+    // The introduction is redundant only when the short title IS the whole
+    // rendered citation ("Watt v R" cited as 'Watt v R'). Mere containment
+    // never excuses it: the rule 2.1.14 default short title is the
+    // first-named party (guide ex 40/81 introduce ('McGinty')/('Pape')
+    // although both are substrings), and ch 3 exs 29/45/47 introduce
+    // contained legislation short titles.
+    if (citation.shortTitle) {
+      const fullText = result
+        .map((r) => r.text)
+        .join("")
+        .toLowerCase()
+        .trim();
+      const shortLower = citation.shortTitle.toLowerCase().trim();
+      const isRedundant = fullText === shortLower;
+      if (!isRedundant) {
+        const intro = formatShortTitleIntroduction(
+          citation.shortTitle,
+          citation.sourceType,
+          config
+        );
+        result = [...result, { text: " " }, ...intro];
+      }
+    }
+
+    // AUDIT2-016: Abbreviation definition (Rule 1.4.5)
+    const abbreviation = citation.data.abbreviation as string | undefined;
+    if (abbreviation && abbreviation !== citation.shortTitle) {
+      const abbrevRuns = formatAbbreviationDefinition(abbreviation);
+      result = [...result, { text: " " }, ...abbrevRuns];
+    }
+
+    return result;
+  };
+}
+
 /**
  * Formats a citation, applying subsequent reference resolution when context
  * is provided, and ensuring closing punctuation per AGLC4 Rule 1.1.1.
@@ -4547,29 +5423,35 @@ export function formatCitation(
   context?: CitationContext,
   config?: CitationConfig
 ): FormattedRun[] {
+  return formatCitationWithFormat(citation, context, config).runs;
+}
+
+/**
+ * `formatCitation` together with the form the occurrence took — `full`,
+ * `short` or `ibid` — taken from the same resolution that produced the
+ * runs, so a caller labelling the occurrence (the refresher) cannot
+ * disagree with the text (STD-015).
+ */
+export function formatCitationWithFormat(
+  citation: Citation,
+  context?: CitationContext,
+  config?: CitationConfig
+): FormattedCitation {
   // Manual override: when the user chose "Use as-is" in the Preview editor,
   // the override text is rendered verbatim and structured formatting is
   // bypassed. Subsequent references still get auto-resolved unless the
   // override path was applied at insert time.
   if (citation.overrideText) {
-    return [{ text: citation.overrideText }];
+    return { runs: [{ text: citation.overrideText }], renderedFormat: "full" };
   }
 
   // Resolve standard config — default to AGLC4 for backward compatibility
   const standardConfig = config ?? getStandardConfig("aglc4");
 
-  // ── NZLSG subsequent reference handling (NZLSG-ENH-001) ───────────────────
-  // NZLSG uses its own subsequent reference styles (general / commercial)
-  // that differ from the shared AGLC4/OSCOLA resolver, so we check here first.
-  if (isNzlsgStandard(standardConfig.standardId) && context && !context.isFirstCitation) {
-    const nzlsgSubsequentRuns = resolveNzlsgSubsequent(citation, context);
-    if (nzlsgSubsequentRuns !== null) {
-      return nzlsgSubsequentRuns;
-    }
-    // null means render full citation — falls through below
-  }
-
   // If context indicates a subsequent reference, delegate to the resolver.
+  // STD-015: one resolver serves every standard (AGLC4 1.4, OSCOLA §1.2,
+  // NZLSG §2.3 general and commercial styles), so `formatPreference`,
+  // explanatory notes and the occurrence pinpoint are honoured alike.
   if (context && !context.isFirstCitation) {
     const resolverContext: SubsequentReferenceContext = {
       isFirstCitation: context.isFirstCitation,
@@ -4583,9 +5465,9 @@ export function formatCitation(
       config: standardConfig,
     };
 
-    const subsequentRuns = resolveSubsequentReference(citation, resolverContext);
+    const resolved = resolveSubsequentReferenceWithKind(citation, resolverContext);
 
-    if (subsequentRuns !== null) {
+    if (resolved !== null) {
       // Rules 1.4.3/1.2: introductory signals may accompany 'ibid' and
       // short-form references (guide ex 69: 'See ibid'). 'Ibid' keeps its
       // capital only when it opens the footnote — lowercase it when a
@@ -4593,14 +5475,17 @@ export function formatCitation(
       const precededByText = Boolean(
         citation.signal || (citation.commentaryBefore && citation.commentaryBefore.trim())
       );
-      let adjusted = subsequentRuns;
+      let adjusted = resolved.runs;
       if (precededByText && adjusted.length > 0 && adjusted[0].text.startsWith("Ibid")) {
         adjusted = [
           { ...adjusted[0], text: `ibid${adjusted[0].text.slice(4)}` },
           ...adjusted.slice(1),
         ];
       }
-      return applySignalAndCommentary(adjusted, citation);
+      return {
+        runs: applySignalAndCommentary(adjusted, citation),
+        renderedFormat: resolved.kind,
+      };
     }
     // resolver returned null — render full citation (falls through below)
   }
@@ -4620,69 +5505,33 @@ export function formatCitation(
     ? { ...citation, data: { ...citation.data, pinpoint: occurrencePinpoint } }
     : citation;
 
-  // ── Helper: append short title introduction and abbreviation definition
-  //    after first citations (Rules 1.4.4 and 1.4.5). These are appended
-  //    before closing punctuation so the full stop comes last.
+  // ── Short title introduction and abbreviation definition after first
+  //    citations (Rules 1.4.4 and 1.4.5), gated per standard (STD-015).
+  //    These are appended before closing punctuation so the full stop
+  //    comes last.
   const isFirstCitation = !context || context.isFirstCitation;
-  const appendFirstCitationSuffixes = (runs: FormattedRun[]): FormattedRun[] => {
-    if (!isFirstCitation) return runs;
-    let result = runs;
-
-    // AUDIT2-015: Short title introduction (Rule 1.4.4)
-    // The introduction is redundant only when the short title IS the whole
-    // rendered citation ("Watt v R" cited as 'Watt v R'). Mere containment
-    // never excuses it: the rule 2.1.14 default short title is the
-    // first-named party (guide ex 40/81 introduce ('McGinty')/('Pape')
-    // although both are substrings), and ch 3 exs 29/45/47 introduce
-    // contained legislation short titles.
-    if (citation.shortTitle) {
-      const fullText = result
-        .map((r) => r.text)
-        .join("")
-        .toLowerCase()
-        .trim();
-      const shortLower = citation.shortTitle.toLowerCase().trim();
-      const isRedundant = fullText === shortLower;
-      if (!isRedundant) {
-        const intro = formatShortTitleIntroduction(citation.shortTitle, citation.sourceType);
-        result = [...result, { text: " " }, ...intro];
-      }
-    }
-
-    // AUDIT2-016: Abbreviation definition (Rule 1.4.5)
-    const abbreviation = citation.data.abbreviation as string | undefined;
-    if (abbreviation && abbreviation !== citation.shortTitle) {
-      const abbrevRuns = formatAbbreviationDefinition(abbreviation);
-      result = [...result, { text: " " }, ...abbrevRuns];
-    }
-
-    return result;
-  };
+  const appendFirstCitationSuffixes = firstCitationSuffixes(
+    citation,
+    standardConfig,
+    isFirstCitation
+  );
 
   // ── OSCOLA full citation dispatch (OSC-ENH-001) ─────────────────────────
   // When the standard is OSCOLA, try OSCOLA-specific formatters first.
   // Falls through to the generic AGLC4 dispatch / generic formatter if
   // no OSCOLA formatter handles this source type.
+  // STD-014: the OSCOLA and NZLSG paths render the pinpoint themselves
+  // (formatOscolaFullCitation / formatNzlsgFullCitation), for native and
+  // fall-through source types alike.
   if (isOscolaStandard(standardConfig)) {
-    const oscolaFormatter = OSCOLA_DISPATCH[target.sourceType];
-    if (oscolaFormatter) {
-      let runs = oscolaFormatter(target, standardConfig);
-      runs = appendFirstCitationSuffixes(runs);
-      return applySignalAndCommentary(runs, target);
-    }
-    // No OSCOLA-specific formatter — fall through to SOURCE_DISPATCH
+    const runs = formatOscolaFullCitation(target, standardConfig, appendFirstCitationSuffixes);
+    return { runs: applySignalAndCommentary(runs, target), renderedFormat: "full" };
   }
 
   // ── NZLSG full citation dispatch (NZLSG-ENH-001) ─────────────────────────
-  // When the standard is NZLSG, try NZLSG-specific formatters first.
-  // Falls through to the generic AGLC4 dispatch / generic formatter if
-  // no NZLSG formatter handles this source type.
   if (isNzlsgStandard(standardConfig.standardId)) {
-    const nzlsgRuns = dispatchNzlsg(target);
-    if (nzlsgRuns !== null) {
-      const withSuffixes = appendFirstCitationSuffixes(nzlsgRuns);
-      return applySignalAndCommentary(withSuffixes, target);
-    }
+    const runs = formatNzlsgFullCitation(target, standardConfig, appendFirstCitationSuffixes);
+    return { runs: applySignalAndCommentary(runs, target), renderedFormat: "full" };
   }
 
   // Dispatch to the source-type-specific formatter, or fallback to generic.
@@ -4690,18 +5539,11 @@ export function formatCitation(
   let runs = dispatcher ? dispatcher(target, standardConfig) : formatGenericCitation(target);
   runs = appendFirstCitationSuffixes(runs);
 
-  return applySignalAndCommentary(runs, target);
+  return { runs: applySignalAndCommentary(runs, target), renderedFormat: "full" };
 }
 
 // ─── Preview Helper ──────────────────────────────────────────────────────────
 
-/**
- * Formats a citation in "full first citation" mode for the Insert Citation
- * preview panel. No subsequent reference resolution is applied.
- *
- * @param citation - The citation to preview.
- * @returns An array of FormattedRun objects representing the formatted citation.
- */
 /**
  * Ensures the last run in the array ends with closing punctuation (. ! ?).
  * Used by getFormattedPreview for UI display — the refresher handles this
@@ -4717,6 +5559,19 @@ function ensurePreviewClosingPunctuation(runs: FormattedRun[]): FormattedRun[] {
   return [...runs.slice(0, -1), { ...last, text: last.text + "." }];
 }
 
+/**
+ * Formats a citation in "full first citation" mode for the Insert Citation
+ * preview panel. No subsequent reference resolution is applied.
+ *
+ * STD-015: under OSCOLA and NZLSG the preview is the first citation exactly
+ * as `formatCitation` writes it into the footnote — the standard's own
+ * pinpoint form and, under OSCOLA, the declared short form of legislation
+ * and treaties (`Human Rights Act 1998 (‘HRA 1998’)`). The AGLC preview is
+ * unchanged: the Rule 1.4.4/1.4.5 suffixes are appended by the refresher.
+ *
+ * @param citation - The citation to preview.
+ * @returns An array of FormattedRun objects representing the formatted citation.
+ */
 export function getFormattedPreview(
   citation: Citation,
   config?: CitationConfig,
@@ -4731,25 +5586,30 @@ export function getFormattedPreview(
 
   const standardConfig = config ?? getStandardConfig("aglc4");
 
-  // OSC-ENH-001: Try OSCOLA-specific formatters first when standard is OSCOLA
+  // OSC-ENH-001 / STD-014: the OSCOLA path renders the stored pinpoint in
+  // the OSCOLA vocabulary; STD-015: with the same first-citation suffixes
+  // as the footnote.
   if (isOscolaStandard(standardConfig)) {
-    const oscolaFormatter = OSCOLA_DISPATCH[citation.sourceType];
-    if (oscolaFormatter) {
-      let runs = oscolaFormatter(citation, standardConfig);
-      runs = applySignalAndCommentary(runs, citation);
-      runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
-      return ensurePreviewClosingPunctuation(runs);
-    }
+    let runs = formatOscolaFullCitation(
+      citation,
+      standardConfig,
+      firstCitationSuffixes(citation, standardConfig, true)
+    );
+    runs = applySignalAndCommentary(runs, citation);
+    runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
+    return ensurePreviewClosingPunctuation(runs);
   }
 
-  // NZLSG-ENH-001: Try NZLSG-specific formatters first when standard is NZLSG
+  // NZLSG-ENH-001 / STD-014: likewise for NZLSG ('at' pinpoints).
   if (isNzlsgStandard(standardConfig.standardId)) {
-    const nzlsgRuns = dispatchNzlsg(citation);
-    if (nzlsgRuns !== null) {
-      let runs = applySignalAndCommentary(nzlsgRuns, citation);
-      runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
-      return ensurePreviewClosingPunctuation(runs);
-    }
+    let runs = formatNzlsgFullCitation(
+      citation,
+      standardConfig,
+      firstCitationSuffixes(citation, standardConfig, true)
+    );
+    runs = applySignalAndCommentary(runs, citation);
+    runs = applyLinkingPhrase(runs, citation.linkingPhrase, linkedCitationRuns ?? []);
+    return ensurePreviewClosingPunctuation(runs);
   }
 
   const dispatcher = SOURCE_DISPATCH[citation.sourceType];

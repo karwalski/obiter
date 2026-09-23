@@ -1680,3 +1680,43 @@ explicit action; provenance lives in the `interchange` bag from DECISION-038.
 | ENP-015 | Release v1.17.0 (minor): all ENP stories plus BUG-007 and BUG-008; manifest XML and AppSource listing text updated; shipped 2026-09-22; Windows, Mac and web check, sideload and AppSource resubmission owed | — | RELEASE | DONE |
 | ENP-016 | Website, docs page and README describe every shipped feature in user terms (no product-parity framing) | — | DOCS | DONE |
 
+## EPIC: STD — Standards and Court Mode Review (OSCOLA 5/4, NZLSG 3, Court Submission Mode)
+
+**Phase:** Post-backlog | **Stories:** 25 | **Completed:** 24 (STD-024 release in progress)
+
+Seeded 2026-09-22. Three surveys found the OSCOLA and NZLSG tests were almost all pure-formatter unit
+tests and court mode had one end-to-end suite, with defects behind the gaps (court previews rendering
+academic, NZLSG cases from the form rendering as empty neutral citations, pinpoints flattened under
+both standards, 18 formatters never wired, validators untested). Waves 0 and 1 write the suite as the
+specification; waves 2 and 3 fix what it catches; rule authority is the OSCOLA 5 PDF (Oxford), the
+NZLSG 3 online text (Law Foundation) and the repo's rule quotes, with unverifiable points in
+DECISION-040. Ships as a patch.
+
+| ID | Title | Rule / Source | Type | Status |
+|----|-------|---------------|------|--------|
+| STD-001 | Fake footnote harness and standard runner (`tests/store/fakeFootnoteHarness.ts`, `tests/standards/runner.ts`) | — | INFRA | DONE |
+| STD-002 | Fixture library and per-standard expectation tables with rule, source and pending flags | OSCOLA 5 PDF; NZLSG 3 online; multi-standard backlog | INFRA | DONE |
+| STD-003 | Coverage contract: every source type classified per standard; every OSCOLA and NZLSG formatter reachable or declared unwired | — | INFRA | DONE |
+| STD-004 | First and subsequent references per standard (ibid, (n X), above n, formatPreference, party fallback, roman v, court short form) | AGLC 1.4; OSCOLA 1.3; NZLSG 2.3 | TEST | DONE |
+| STD-005 | Pinpoints per standard incl. typed round trip through occurrence titles | AGLC 1.1.6, 1.7; OSCOLA 1.1; NZLSG 2.2 | TEST | DONE |
+| STD-006 | Quotations and the Quote panel per standard (marks, block threshold, picker preview) | AGLC 1.5; OSCOLA 1.5; NZLSG 1.1.2 | TEST | DONE |
+| STD-007 | Bibliography, tables of cases and legislation, LOA variants per standard | AGLC 1.13; OSCOLA 1.4; NZLSG 1.5 | TEST | DONE |
+| STD-008 | Validator rule sets per standard and court preset | — | TEST | DONE |
+| STD-009 | Library features per standard (cards, insert, duplicates, record details, update from source) | — | TEST | DONE |
+| STD-010 | Interchange round trip per standard preserving UK and NZ fields | DECISION-038 | TEST | DONE |
+| STD-011 | Settings, switching and sync per standard; new style and order controls | — | TEST | DONE |
+| STD-012 | Refresher end to end per standard and preset on the fake footnote harness | — | TEST | DONE |
+| STD-013 | One document config resolver; writing mode never dropped; hierarchy mapped; AGLC-only court invariant | COURT-CURRENCY lineage | FIX | DONE |
+| STD-014 | Standard-aware pinpoints (types, labels, sub-pinpoints, comma rule, Hansard and OJ) | OSCOLA 1.1; NZLSG 2.2 | FIX | DONE |
+| STD-015 | Standard-aware subsequent references (OSCOLA resolver branch, NZLSG unified above n, suffix gating) | OSCOLA 1.3; NZLSG 2.3 | FIX | DONE |
+| STD-016 | Secondary sources and quotation marks from config (books, chapters, articles, theses, websites) | OSCOLA 3; NZLSG 6 | FIX | DONE |
+| STD-017 | Wire the 13 OSCOLA and 5 NZLSG orphaned formatters into dispatch | OSC-ENH-005/006; NZLSG-ENH-004/005 | FIX | DONE |
+| STD-018 | Bibliography entries rendered in the active standard (`formatBibliographyEntry(citation, config)`) | OSCOLA 1.4; NZLSG 1.5 | FIX | DONE |
+| STD-019 | Validator check set per standard; OSCOLA parallel inversion; OSCOLA 4 ibid; NZLSG 4.1 conditional | — | FIX | DONE |
+| STD-020 | Dedupe legal keys with parallel citations and MNC equivalence; BAILII and NZLII links | — | FIX | DONE |
+| STD-021 | UK and NZ field mapping in forms and dispatchers; Waitangi Tribunal selectable; tag derived | — | FIX | DONE |
+| STD-022 | NZLSG style and court parallel-order controls in Settings, synced; Quote picker preview per standard | — | FIX | DONE |
+| STD-023 | Docs: standards coverage table, website court and standards sections, DECISION-040 | — | DOCS | DONE |
+| STD-024 | Release 1.17.1 (patch, web deploy) | — | RELEASE | IN PROGRESS |
+| STD-025 | Interchange round trip per standard: standard label in the footnote note, no derived keys on an Obiter round trip | DECISION-038 item 3 | FIX | DONE |
+

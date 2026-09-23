@@ -11,8 +11,9 @@ import {
   generateBibliographyForStandard,
   BibliographySection,
 } from "../../engine/rules/v4/general/bibliography";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { resolveDocumentConfig } from "../../engine/standards";
 import type { LoaType } from "../../engine/standards";
+import type { CitationConfig } from "../../engine/standards/types";
 import { getDevicePref } from "../../store/devicePreferences";
 import { runsToHtml } from "../../word/formattedRunsHtml";
 import { isNotAllowedError, writeErrorMessage } from "../../word/documentAccess";
@@ -179,6 +180,9 @@ export default function Bibliography(): JSX.Element {
   const [bibStructure, setBibStructure] = useState<"aglc" | "oscola" | "nzlsg">("aglc");
   const [writingMode, setWritingMode] = useState<"academic" | "court">("academic");
   const [loaType, setLoaType] = useState<LoaType>("simple");
+  // STD-018: the document config, so OSCOLA and NZLSG entries render in
+  // their own standard.
+  const [documentConfig, setDocumentConfig] = useState<CitationConfig | undefined>(undefined);
 
   // Load citations from the store on mount
   useEffect(() => {
@@ -190,21 +194,18 @@ export default function Bibliography(): JSX.Element {
         const all = store.getAll();
         if (!cancelled) {
           setCitations(all);
-          const baseConfig = getStandardConfig(store.getStandardId());
-          const mode = store.getWritingMode();
-          setBibStructure(baseConfig.bibliographyStructure);
-          setWritingMode(mode);
+          // STD-013: the document config (standard, writing mode, court toggles).
+          const config = resolveDocumentConfig(
+            store,
+            getDevicePref("courtToggles") as Record<string, string> | undefined
+          );
+          setDocumentConfig(config);
+          setBibStructure(config.bibliographyStructure);
+          setWritingMode(config.writingMode);
 
-          // COURT-FIX-005: Load court toggles and build config to get loaType
-          if (mode === "court") {
-            const courtToggles =
-              store.getCourtToggles() ??
-              (getDevicePref("courtToggles") as Record<string, string> | undefined);
-            const courtConfig = buildCourtConfig(
-              { ...baseConfig, writingMode: mode },
-              courtToggles,
-            );
-            setLoaType(courtConfig.loaType);
+          // COURT-FIX-005: the court toggles decide the loaType
+          if (config.writingMode === "court") {
+            setLoaType(config.loaType);
           }
         }
       } catch (err) {
@@ -241,8 +242,15 @@ export default function Bibliography(): JSX.Element {
   // Generate bibliography or List of Authorities from filtered citations
   // COURT-FIX-005: Pass loaType to control LoA format in court mode
   const sections = useMemo(
-    () => generateBibliographyForStandard(filteredCitations, bibStructure, writingMode, loaType),
-    [filteredCitations, bibStructure, writingMode, loaType]
+    () =>
+      generateBibliographyForStandard(
+        filteredCitations,
+        bibStructure,
+        writingMode,
+        loaType,
+        documentConfig
+      ),
+    [filteredCitations, bibStructure, writingMode, loaType, documentConfig]
   );
 
   const handleInsert = useCallback(async () => {

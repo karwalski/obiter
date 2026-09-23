@@ -107,3 +107,58 @@ describe("pinpointToTitleString", () => {
     expect(pinpointFromTitleString(pinpointToTitleString(pin))).toEqual(pin);
   });
 });
+
+describe("STD-014: the type-tagged title form for pinpoints the compact form cannot carry", () => {
+  const PAGE_WITH_FOOTNOTE: Pinpoint = {
+    type: "page",
+    value: "9",
+    subPinpoint: { type: "footnote", value: "6" },
+  };
+
+  test("a page with a footnote sub-pinpoint ('9 n 6' would read back as page \"9 n 6\") is stored tagged", () => {
+    expect(pinpointToTitleString(PAGE_WITH_FOOTNOTE)).toBe("@page:9|footnote:6");
+    expect(pinpointFromTitleString("@page:9|footnote:6")).toEqual(PAGE_WITH_FOOTNOTE);
+  });
+
+  test("the compact form is kept whenever it is lossless", () => {
+    expect(pinpointToTitleString({ type: "page", value: "42" })).toBe("42");
+    expect(pinpointToTitleString({ type: "paragraph", value: "[42]" })).toBe("[42]");
+    expect(pinpointToTitleString({ type: "section", value: "6" })).toBe("s 6");
+    expect(
+      pinpointToTitleString({
+        type: "page",
+        value: "6",
+        subPinpoint: { type: "paragraph", value: "[23]" },
+      })
+    ).toBe("6 [23]");
+  });
+
+  test.each<Pinpoint>([
+    { type: "page", value: "9", subPinpoint: { type: "footnote", value: "6" } },
+    { type: "schedule", value: "3", subPinpoint: { type: "clause", value: "4" } },
+    { type: "page", value: "189", subPinpoint: { type: "footnote", value: "92" } },
+    { type: "paragraph", value: "[42]", subPinpoint: { type: "footnote", value: "3" } },
+    {
+      type: "page",
+      value: "6",
+      subPinpoint: { type: "paragraph", value: "[23]", subPinpoint: { type: "line", value: "4" } },
+    },
+    // A value with a colon (OSCOLA 5 §3.1.3 audio timestamps) keeps its text.
+    { type: "page", value: "14:14–18:30", subPinpoint: { type: "footnote", value: "1" } },
+  ])("round-trips %j through the tagged form", (pin) => {
+    const title = pinpointToTitleString(pin);
+    expect(title.startsWith("@")).toBe(true);
+    expect(pinpointFromTitleString(title)).toEqual(pin);
+  });
+
+  test("a malformed tagged string falls back to the legacy page reading", () => {
+    expect(pinpointFromTitleString("@nonsense:1")).toEqual({ type: "page", value: "@nonsense:1" });
+    expect(pinpointFromTitleString("@page")).toEqual({ type: "page", value: "@page" });
+    expect(pinpointFromTitleString("@page:")).toEqual({ type: "page", value: "@page:" });
+  });
+
+  test("legacy bare titles still decode as before", () => {
+    expect(pinpointFromTitleString("9 n 6")).toEqual({ type: "page", value: "9 n 6" });
+    expect(pinpointFromTitleString("n 6")).toEqual({ type: "footnote", value: "6" });
+  });
+});

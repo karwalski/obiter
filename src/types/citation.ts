@@ -333,6 +333,12 @@ export interface StoreMetadata {
    * Absent means "use the jurisdiction preset defaults".
    */
   courtToggles?: Record<string, string>;
+  /**
+   * STD-022: NZLSG subsequent-reference style (NZLSG 3 r 2.3). Document
+   * metadata so the same document renders identically on every device.
+   * Absent means "general".
+   */
+  nzlsgStyle?: "general" | "commercial";
   headingListId?: number; // Persisted Word multilevel list ID for heading numbering
   ccModel?: "flat" | "parent-child"; // FN-005: content control model version (defaults to "flat" for backward compat)
 }

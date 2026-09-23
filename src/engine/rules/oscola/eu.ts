@@ -129,47 +129,54 @@ export function formatGeneralCourtCase(data: {
 // ─── Assimilated EU Law post-Brexit (OSCOLA 5 §2.4.9) ───────────────────────
 
 /**
- * Formats assimilated (retained) EU law as UK domestic law with note of EU origin.
+ * Formats assimilated (formerly retained) EU law per OSCOLA 5 §2.4.9.
  *
- * OSCOLA 5 §2.4.9: After the end of the transition period (31 December 2020),
- * EU legislation retained in UK law is cited as UK domestic legislation with
- * a note indicating EU origin.
+ * OSCOLA 5 §2.4.9 (docs/standards-rule-notes.md): prefix `Assimilated`,
+ * and replace the OJ reference with the amending SI:
  *
- * Format:
- *   Short Title, SI Year/Number (as amended)
- *   [note: originally EU Instrument Type Number]
+ *   Assimilated Instrument Number Title, as amended by SI Year/Number, provision
  *
  * @example
- *   General Food Regulations 2004, SI 2004/3279 (originally Council
- *   Regulation (EC) 178/2002)
+ *   Assimilated Regulation (EC) No 593/2008 on the law applicable to
+ *   contractual obligations, as amended by SI 2019/834, reg 10
  */
 export function formatAssimilatedEuLaw(data: {
-  shortTitle: string;
-  siYear: number;
-  siNumber: number;
-  originalInstrument: string;
-  amended?: boolean;
+  /** Instrument designation as printed ('Regulation (EC)', 'Directive'). */
+  instrumentType: string;
+  /** Instrument number ('No 593/2008', '2008/50/EC'). */
+  number: string;
+  /** Title (or its abridged form) following the number. */
+  title?: string;
+  /** The amending SI as 'Year/Number' ('2019/834'). */
+  amendingSi?: string;
+  /** Provision of the amending SI ('reg 10'). */
+  amendingProvision?: string;
   pinpoint?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Short title — roman (UK domestic legislation)
-  runs.push({ text: data.shortTitle });
+  // 'Assimilated' prefix, instrument and number — roman
+  const head = ["Assimilated", data.instrumentType.trim(), data.number.trim()]
+    .filter(Boolean)
+    .join(" ");
+  runs.push({ text: head });
 
-  // SI reference
-  runs.push({ text: `, SI ${data.siYear}/${data.siNumber}` });
-
-  // Amendment note
-  if (data.amended) {
-    runs.push({ text: " (as amended)" });
+  // Title
+  if (data.title) {
+    runs.push({ text: ` ${data.title}` });
   }
 
-  // EU origin note
-  runs.push({ text: ` (originally ${data.originalInstrument})` });
+  // Amending SI replaces the OJ reference
+  if (data.amendingSi) {
+    runs.push({ text: `, as amended by SI ${data.amendingSi}` });
+    if (data.amendingProvision) {
+      runs.push({ text: `, ${data.amendingProvision}` });
+    }
+  }
 
   // Pinpoint
   if (data.pinpoint) {
-    runs.push({ text: ` ${data.pinpoint}` });
+    runs.push({ text: `, ${data.pinpoint}` });
   }
 
   return runs;

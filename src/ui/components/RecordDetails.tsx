@@ -18,7 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Citation } from "../../types/citation";
 import type { CitationInterchangeBag, InterchangeFormat } from "../../api/interchange/model";
 import { INTERCHANGE_DATA_KEY } from "../../api/interchange/model";
-import { lawCiteUrl, linksForCitation } from "../../api/sourceLinks";
+import { casesCitingLookup, linksForCitation } from "../../api/sourceLinks";
 import { addCitingWorkToLibrary } from "../../api/citedBy";
 import type { LookupResult } from "../../api/sourceAdapter";
 import type { SnapshotReason } from "../../store/backupSerializer";
@@ -141,9 +141,11 @@ export default function RecordDetails({
   const bag = useMemo(() => readBag(citation), [citation]);
   const links = useMemo(() => linksForCitation(citation), [citation]);
   const identifiers = useMemo(() => identifierRows(citation, bag), [citation, bag]);
-  const isCase = citation.sourceType.startsWith("case.");
   const isJournal = citation.sourceType.startsWith("journal.");
   const jadeLink = useMemo(() => links.find((l) => hostOf(l.url) === "jade.io"), [links]);
+  // STD-020: the citator follows the case's jurisdiction (LawCite for AU,
+  // BAILII search for UK, NZLII search for NZ); none for other jurisdictions.
+  const citing = useMemo(() => casesCitingLookup(citation, citationText), [citation, citationText]);
 
   // ENP-008: the Edit view does not pass a handler, so the default writes a
   // linked journal article straight to the shared store.
@@ -305,16 +307,16 @@ export default function RecordDetails({
           </div>
         )}
 
-        {isCase && (
+        {citing && (
           <div className="record-details-row">
             <span className="record-details-key">Cases citing this</span>
             <div className="record-details-buttons">
               <button
                 type="button"
                 className="edit-btn edit-btn-secondary edit-btn-small"
-                onClick={() => openLink(lawCiteUrl(citationText))}
+                onClick={() => openLink(citing.url)}
               >
-                LawCite
+                {citing.label}
               </button>
               {jadeLink && (
                 <button

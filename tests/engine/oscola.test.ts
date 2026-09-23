@@ -984,39 +984,37 @@ describe("OSC-008: formatGeneralCourtCase", () => {
   });
 });
 
-describe("OSC-008: formatAssimilatedEuLaw", () => {
-  it("formats assimilated EU law (JSDoc: General Food Regulations)", () => {
+describe("OSC-008: formatAssimilatedEuLaw (OSCOLA 5 §2.4.9, STD-017)", () => {
+  it("formats the notes example: 'Assimilated' prefix, amending SI in place of the OJ reference", () => {
     const runs = formatAssimilatedEuLaw({
-      shortTitle: "General Food Regulations 2004",
-      siYear: 2004,
-      siNumber: 3279,
-      originalInstrument: "Council Regulation (EC) 178/2002",
+      instrumentType: "Regulation (EC)",
+      number: "No 593/2008",
+      title: "on the law applicable to contractual obligations",
+      amendingSi: "2019/834",
+      amendingProvision: "reg 10",
     });
     expect(joinText(runs)).toBe(
-      "General Food Regulations 2004, SI 2004/3279 (originally Council Regulation (EC) 178/2002)"
+      "Assimilated Regulation (EC) No 593/2008 on the law applicable to contractual obligations, as amended by SI 2019/834, reg 10"
     );
+    expect(runs.some((r) => r.italic)).toBe(false);
   });
 
-  it("includes 'as amended' note", () => {
+  it("omits the amending SI and its provision when none is stored", () => {
     const runs = formatAssimilatedEuLaw({
-      shortTitle: "Test Regs",
-      siYear: 2020,
-      siNumber: 100,
-      originalInstrument: "Directive 2008/50/EC",
-      amended: true,
+      instrumentType: "Directive",
+      number: "2008/50/EC",
     });
-    expect(joinText(runs)).toContain("(as amended)");
+    expect(joinText(runs)).toBe("Assimilated Directive 2008/50/EC");
   });
 
-  it("includes pinpoint", () => {
+  it("includes pinpoint after a comma", () => {
     const runs = formatAssimilatedEuLaw({
-      shortTitle: "Test Regs",
-      siYear: 2020,
-      siNumber: 100,
-      originalInstrument: "Directive 2008/50/EC",
-      pinpoint: "reg 5",
+      instrumentType: "Regulation (EU)",
+      number: "2016/679",
+      amendingSi: "2019/419",
+      pinpoint: "art 5",
     });
-    expect(joinText(runs)).toContain("reg 5");
+    expect(joinText(runs)).toBe("Assimilated Regulation (EU) 2016/679, as amended by SI 2019/419, art 5");
   });
 });
 
@@ -1178,16 +1176,14 @@ describe("OSC-009: formatEcthrDecision", () => {
 });
 
 describe("OSC-009: formatEcommhrDecision", () => {
-  it("formats Commission decision (JSDoc: X v UK)", () => {
+  it("formats a Commission decision per OSCOLA 5 §4.4.5 (notes: P v UK)", () => {
     const runs = formatEcommhrDecision({
-      caseName: "X",
-      respondentState: "United Kingdom",
-      applicationNumber: "7215/75",
-      date: "12 July 1978",
+      caseName: "P",
+      respondentState: "UK",
+      applicationNumber: "13473/87",
+      date: "11 July 1988",
     });
-    expect(joinText(runs)).toBe(
-      "X v United Kingdom App no 7215/75 (Commission decision, 12 July 1978)"
-    );
+    expect(joinText(runs)).toBe("P v UK App No 13473/87 (Commission Decision, 11 July 1988)");
   });
 
   it("case name is italic", () => {
@@ -1925,6 +1921,11 @@ describe("OSC-014: formatBunreachtNaHEireann", () => {
     const runs = formatBunreachtNaHEireann({ article: "1" });
     expect(runs[0].italic).toBe(true);
   });
+
+  it("renders the title alone when no article is stored (the engine appends the pinpoint)", () => {
+    const runs = formatBunreachtNaHEireann({});
+    expect(joinText(runs)).toBe("Bunreacht na h\u00C9ireann");
+  });
 });
 
 // =============================================================================
@@ -2194,8 +2195,24 @@ describe("Data: EU Case Prefixes", () => {
 // 16. OSCOLA THESIS/DISSERTATION (secondary.ts)
 // =============================================================================
 
-describe("OSC-ENH-006: formatOscolaThesis", () => {
-  it("formats DPhil thesis (JSDoc example)", () => {
+describe("OSC-ENH-006: formatOscolaThesis (OSCOLA 5 §3.7.6, STD-017)", () => {
+  it("formats the notes example: italic title, (type, university year)", () => {
+    const runs = formatOscolaThesis({
+      author: "Javan Herberg",
+      title: "Injunctive Relief for Wrongful Termination of Employment",
+      thesisType: "DPhil thesis",
+      university: "University of Oxford",
+      year: 1989,
+    });
+    expect(joinText(runs)).toBe(
+      "Javan Herberg, Injunctive Relief for Wrongful Termination of Employment (DPhil thesis, University of Oxford 1989)"
+    );
+    expect(runs.filter((r) => r.italic).map((r) => r.text)).toEqual([
+      "Injunctive Relief for Wrongful Termination of Employment",
+    ]);
+  });
+
+  it("pinpoint follows the bracket directly, without 'at'", () => {
     const runs = formatOscolaThesis({
       author: "John Smith",
       title: "The Doctrine of Legitimate Expectations in EU Law",
@@ -2205,69 +2222,23 @@ describe("OSC-ENH-006: formatOscolaThesis", () => {
       pinpoint: "45",
     });
     expect(joinText(runs)).toBe(
-      "John Smith, \u2018The Doctrine of Legitimate Expectations in EU Law\u2019 (DPhil thesis, University of Oxford 2020) 45"
+      "John Smith, The Doctrine of Legitimate Expectations in EU Law (DPhil thesis, University of Oxford 2020) 45"
     );
+    expect(joinText(runs)).not.toContain(" at ");
   });
 
-  it("formats PhD thesis", () => {
-    const runs = formatOscolaThesis({
-      author: "Jane Doe",
-      title: "Comparative Constitutional Review",
-      thesisType: "PhD thesis",
-      university: "University of Cambridge",
-      year: 2018,
-      pinpoint: "112",
-    });
-    expect(joinText(runs)).toBe(
-      "Jane Doe, \u2018Comparative Constitutional Review\u2019 (PhD thesis, University of Cambridge 2018) 112"
-    );
-  });
-
-  it("formats LLM thesis", () => {
+  it("OSCOLA 4 §3.4.7: titleStyle 'quoted' sets the title in single quotes, roman", () => {
     const runs = formatOscolaThesis({
       author: "Alice Brown",
       title: "The Regulation of FinTech in the UK",
       thesisType: "LLM thesis",
       university: "London School of Economics",
       year: 2022,
+      titleStyle: "quoted",
     });
     expect(joinText(runs)).toBe(
       "Alice Brown, \u2018The Regulation of FinTech in the UK\u2019 (LLM thesis, London School of Economics 2022)"
     );
-  });
-
-  it("omits pinpoint when not provided", () => {
-    const runs = formatOscolaThesis({
-      author: "Bob White",
-      title: "International Humanitarian Law",
-      thesisType: "MPhil thesis",
-      university: "University of Edinburgh",
-      year: 2019,
-    });
-    const text = joinText(runs);
-    expect(text).toBe(
-      "Bob White, \u2018International Humanitarian Law\u2019 (MPhil thesis, University of Edinburgh 2019)"
-    );
-    // Ensure no trailing space or 'at'
-    expect(text).not.toContain(" at ");
-    expect(text.endsWith(")")).toBe(true);
-  });
-
-  it("title is NOT italic (single curly quotes instead)", () => {
-    const runs = formatOscolaThesis({
-      author: "Test Author",
-      title: "Test Title",
-      thesisType: "PhD thesis",
-      university: "Test University",
-      year: 2021,
-    });
-    // The title run should contain single curly quotes and NOT be italic
-    const titleRun = runs.find((r) => r.text.includes("Test Title"));
-    expect(titleRun).toBeDefined();
-    expect(titleRun!.italic).toBeUndefined();
-    expect(titleRun!.text).toContain("\u2018");
-    expect(titleRun!.text).toContain("\u2019");
-    // No run should be italic
     runs.forEach((r) => {
       expect(r.italic).toBeUndefined();
     });
@@ -2439,10 +2410,26 @@ describe("OSC-ENH-007: OSCOLA 4 profile config", () => {
     expect(oscola4.config.standardLabel).toBe("OSCOLA 4");
   });
 
-  it("ibidEnabled is the only config difference between OSCOLA 4 and 5", () => {
-    // Every config field should match except standardId, standardLabel, and ibidEnabled
-    const { standardId: _id4, standardLabel: _label4, ibidEnabled: _ibid4, ...rest4 } = oscola4.config;
-    const { standardId: _id5, standardLabel: _label5, ibidEnabled: _ibid5, ...rest5 } = oscola5.config;
+  it("ibidEnabled and thesisTitleStyle are the only config differences between OSCOLA 4 and 5", () => {
+    // Every config field should match except standardId, standardLabel,
+    // ibidEnabled and (STD-016) thesisTitleStyle: OSCOLA 4 §3.4.7 put the
+    // thesis title in single quotes, OSCOLA 5 §3.7.6 sets it italic.
+    const {
+      standardId: _id4,
+      standardLabel: _label4,
+      ibidEnabled: _ibid4,
+      thesisTitleStyle: thesis4,
+      ...rest4
+    } = oscola4.config;
+    const {
+      standardId: _id5,
+      standardLabel: _label5,
+      ibidEnabled: _ibid5,
+      thesisTitleStyle: thesis5,
+      ...rest5
+    } = oscola5.config;
     expect(rest4).toEqual(rest5);
+    expect(thesis4).toBe("quoted");
+    expect(thesis5).toBe("italic");
   });
 });

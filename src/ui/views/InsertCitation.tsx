@@ -6,7 +6,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Citation, SourceType, SourceData, AustralianJurisdiction, ParallelCitation, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import type { CitationStandardId } from "../../engine/standards";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
@@ -46,6 +46,7 @@ import {
 import { buildAiLayerMarker } from "../../engine/rules/v4/secondary/aiMarker";
 import { personToStr, parseNameList, nameListToStr } from "../nameList";
 import { listMissingRequiredFields } from "../../engine/validator";
+import { standardExtraFields } from "./editCitationFields";
 import { writeErrorMessage } from "../../word/documentAccess";
 import {
   type CourtJurisdiction,
@@ -295,6 +296,30 @@ function getJurisdictionsForStandard(
 }
 
 /**
+ * STD-021: source types that exist only under one standard, keyed by the
+ * SOURCE_TYPE_CATEGORIES group label they are offered in. NZLSG 3 r 3.6:
+ * Waitangi Tribunal reports.
+ */
+const STANDARD_ONLY_TYPES: Record<string, Array<{ value: SourceType; label: string; standard: string }>> = {
+  Reports: [{ value: "report.waitangi_tribunal", label: "Waitangi Tribunal Report", standard: "nzlsg" }],
+};
+
+/**
+ * Keys the AGLC insert form (or the generic form) already renders for a
+ * source type, so the standard-specific inputs (STD-021) never duplicate an
+ * input for the same key. `pinpoint` has its own input for every type.
+ */
+const INSERT_FORM_KEYS: Partial<Record<SourceType, readonly string[]>> = {
+  "legislation.delegated": ["number"],
+  "echr.decision": ["applicationNumber", "chamber", "date"],
+  hansard: ["date", "speaker"],
+  "report.law_reform": ["title", "reportNumber", "year"],
+  "case.quasi_judicial": ["year"],
+  "report.waitangi_tribunal": ["title", "year"],
+  "case.reported": ["date"],
+};
+
+/**
  * SWITCH-004: Filters SOURCE_TYPE_CATEGORIES to hide foreign jurisdiction
  * types irrelevant to the active standard.
  *
@@ -319,10 +344,14 @@ function filterCategoriesForStandard(
       const filteredGroups = cat.groups
         .map((group) => ({
           ...group,
-          types: group.types.filter((t) => {
-            if (!t.value.startsWith("foreign.")) return true;
-            return keepForeign !== null && t.value === keepForeign;
-          }),
+          types: [
+            ...group.types.filter((t) => {
+              if (!t.value.startsWith("foreign.")) return true;
+              return keepForeign !== null && t.value === keepForeign;
+            }),
+            // STD-021: NZLSG-only source types join their group
+            ...(STANDARD_ONLY_TYPES[group.label] ?? []).filter((t) => standardId.startsWith(t.standard)),
+          ],
         }))
         .filter((group) => group.types.length > 0);
       return { ...cat, groups: filteredGroups };
@@ -794,16 +823,16 @@ export default function InsertCitation(): JSX.Element {
   );
 
   // ─── Derived court mode flags ──────────────────────────────────────────
-  // COURT-FIX-006: Build court config from the document's stored toggles
-  // (device pref is the legacy fallback) so the unreported gate reads the
-  // toggle value (which may be user-overridden) instead of the hardcoded
-  // jurisdiction set.
+  // COURT-FIX-006 / STD-013: the document config (standard, writing mode
+  // and stored court toggles; device pref is the legacy fallback) so the
+  // preview, insert and the unreported gate all see the court values.
+  // Recomputed once the store has loaded (courtJurisdiction) and on refresh.
   const courtConfig = useMemo(() => {
-    const courtToggles =
-      getSharedStoreIfReady()?.getCourtToggles() ??
-      (getDevicePref("courtToggles") as Record<string, string> | undefined);
-    return buildCourtConfig(getStandardConfig(standardId), courtToggles);
-  }, [standardId]);
+    const store = getSharedStoreIfReady();
+    return store
+      ? resolveDocumentConfig(store, getDevicePref("courtToggles") as Record<string, string> | undefined)
+      : getStandardConfig(standardId);
+  }, [standardId, courtJurisdiction, refreshCounter]);
 
   const isUnreportedGateActive = courtJurisdiction !== null &&
     courtConfig.unreportedGateMode === "warn";
@@ -1735,6 +1764,8 @@ export default function InsertCitation(): JSX.Element {
       {selectedSourceType === "explanatory_note" && renderExplanatoryNoteForm(formData, updateField)}
       {selectedSourceType?.startsWith("foreign.") && renderForeignForm(formData, updateField, selectedSourceType === "foreign.other" ? "Other Foreign" : selectedSourceType.split(".")[1].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()), selectedSourceType === "foreign.canada" ? "15" : selectedSourceType === "foreign.china" ? "16" : selectedSourceType === "foreign.france" ? "17" : selectedSourceType === "foreign.germany" ? "18" : selectedSourceType === "foreign.hong_kong" ? "19" : selectedSourceType === "foreign.malaysia" ? "20" : selectedSourceType === "foreign.new_zealand" ? "21" : selectedSourceType === "foreign.singapore" ? "22" : selectedSourceType === "foreign.south_africa" ? "23" : selectedSourceType === "foreign.uk" ? "24" : selectedSourceType === "foreign.usa" ? "25" : "26", isAglcStandard, selectedSourceType)}
       {selectedSourceType && !isCoreType && renderGenericForm(formData, updateField)}
+      {/* STD-021: the OSCOLA / NZLSG fields the AGLC form lacks */}
+      {selectedSourceType && renderStandardSpecificFields(selectedSourceType as SourceType, standardId, formData, updateField)}
 
       {/* COURT-007: Unreported-judgment gate notification (AGLC only) */}
       {isAglcStandard && unreportedGateVisible && courtJurisdiction && (
@@ -13725,6 +13756,61 @@ function renderCustomForm(
           onChange={(e) => updateField("shortTitle", e.target.value)}
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * STD-021: renders the standard-specific inputs (editCitationFields
+ * STANDARD_FIELDS_BY_SOURCE_TYPE) after the AGLC form when the document is
+ * on OSCOLA or NZLSG — text inputs and checkboxes only, in the form's own
+ * field layout. Null under AGLC or when the type has none.
+ */
+function renderStandardSpecificFields(
+  sourceType: SourceType,
+  standardId: CitationStandardId,
+  data: SourceData,
+  updateField: (key: string, value: unknown) => void,
+): JSX.Element | null {
+  const rendered = new Set<string>(["pinpoint", ...(INSERT_FORM_KEYS[sourceType] ?? [])]);
+  const fields = standardExtraFields(sourceType, standardId).filter((f) => !rendered.has(f.key));
+  if (fields.length === 0) return null;
+  const standardLabel = standardId.startsWith("oscola") ? "OSCOLA" : "NZLSG";
+  return (
+    <div className="ic-form-fields" data-testid="ic-standard-fields">
+      {fields.map((field) => {
+        const id = `ic-std-${field.key}`;
+        if (field.type === "checkbox") {
+          return (
+            <div className="ic-field" key={field.key}>
+              <label className="ic-label" htmlFor={id}>
+                <input
+                  id={id}
+                  type="checkbox"
+                  checked={!!data[field.key]}
+                  onChange={(e) => updateField(field.key, e.target.checked)}
+                />{" "}
+                {field.label} ({standardLabel})
+              </label>
+            </div>
+          );
+        }
+        return (
+          <div className="ic-field" key={field.key}>
+            <label className="ic-label" htmlFor={id}>
+              {field.label} ({standardLabel})
+            </label>
+            <input
+              id={id}
+              className="ic-input"
+              type="text"
+              value={typeof data[field.key] === "string" || typeof data[field.key] === "number" ? String(data[field.key]) : ""}
+              placeholder={field.placeholder ?? ""}
+              onChange={(e) => updateField(field.key, e.target.value)}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

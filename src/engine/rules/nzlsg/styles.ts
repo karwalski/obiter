@@ -24,6 +24,12 @@ export interface GeneralSubsequentData {
   footnoteNumber: number;
   /** Pinpoint reference (used with 'at' prefix). */
   pinpoint?: string;
+  /**
+   * STD-014: the fully punctuated pinpoint suffix rendered by the
+   * standard-aware formatter (`, at 42`, `, at [42]–[45]`, `, art 7`);
+   * written verbatim and preferred over `pinpoint` when set.
+   */
+  pinpointSuffix?: string;
 }
 
 export interface CommercialSubsequentData {
@@ -33,6 +39,8 @@ export interface CommercialSubsequentData {
   shortTitle?: string;
   /** Pinpoint reference (used with 'at' prefix). */
   pinpoint?: string;
+  /** STD-014: pre-rendered pinpoint suffix (` at 42`), written verbatim when set. */
+  pinpointSuffix?: string;
 }
 
 // ─── NZLSG-008: General Style Subsequent Reference ─────────────────────────
@@ -57,8 +65,10 @@ export function formatGeneralSubsequent(data: GeneralSubsequentData): FormattedR
   // Author/title, above n X
   runs.push({ text: `${data.authorOrTitle}, above n ${data.footnoteNumber}` });
 
-  // Pinpoint with 'at' prefix
-  if (data.pinpoint) {
+  // Pinpoint with 'at' prefix (or the standard-aware suffix, STD-014)
+  if (data.pinpointSuffix) {
+    runs.push({ text: data.pinpointSuffix });
+  } else if (data.pinpoint) {
     runs.push({ text: `, at ${data.pinpoint}` });
   }
 
@@ -91,8 +101,10 @@ export function formatCommercialSubsequent(data: CommercialSubsequentData): Form
   }
   runs.push({ text });
 
-  // Pinpoint with 'at' prefix
-  if (data.pinpoint) {
+  // Pinpoint with 'at' prefix (or the standard-aware suffix, STD-014)
+  if (data.pinpointSuffix) {
+    runs.push({ text: data.pinpointSuffix });
+  } else if (data.pinpoint) {
     runs.push({ text: ` at ${data.pinpoint}` });
   }
 

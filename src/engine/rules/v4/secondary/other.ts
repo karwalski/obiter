@@ -10,6 +10,8 @@ import { formatSecondaryTitle, formatSecondaryTitleText } from "./general";
 import { formatPinpoint } from "../general/pinpoints";
 import { parseTitleMarkup, quoteTitleRuns } from "../general/titleMarkup";
 import { toText } from "../general/coerce";
+import type { CitationConfig } from "../../../standards/types";
+import { pushSecondaryPinpoint, secondaryStyleFor } from "./style";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -165,6 +167,14 @@ export interface ThesisData {
   /** Full date; preferred over `year`. */
   date?: string;
   year?: number | string;
+  /**
+   * STD-016: pinpoint after the bracket (OSCOLA 5 §3.1.3 bare page; NZLSG 3
+   * §6.7.1 'at'). Not emitted under AGLC4, whose thesis formatter never
+   * rendered one (the captured AGLC output is the guard).
+   */
+  pinpoint?: Pinpoint;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }
 
 export interface SpeechData {
@@ -569,19 +579,35 @@ export function formatConferencePaper(data: ConferencePaperData): FormattedRun[]
  */
 export function formatThesis(data: ThesisData): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors([data.author]));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
-  // Title in single quotation marks (Rule 7.2.1 via 7.2.5)
-  runs.push(...formatQuotedTitle(data.title));
+  // Title in single quotation marks (Rule 7.2.1 via 7.2.5); italic under
+  // OSCOLA 5 §3.7.6, double quotes under NZLSG 3 §6.7.1
+  if (style.family === "aglc") {
+    runs.push(...formatQuotedTitle(data.title));
+  } else {
+    runs.push(...formatSecondaryTitle(data.title, "thesis", data.config));
+  }
 
   // Parenthetical: (Thesis Type, University, Date) — omitted entirely
-  // when empty (WEB-007b)
-  const paren = parenthetical([data.thesisType, data.university, dateOrYear(data.date, data.year)]);
+  // when empty (WEB-007b). OSCOLA 5 §3.7.6: '(DPhil thesis, University of
+  // Oxford 1989)' — a space, not a comma, before the year.
+  const when = dateOrYear(data.date, data.year);
+  const paren =
+    style.family === "oscola"
+      ? parenthetical([data.thesisType, [data.university, when].filter(Boolean).join(" ")])
+      : parenthetical([data.thesisType, data.university, when]);
   if (paren) {
     runs.push({ text: ` ${paren}` });
+  }
+
+  // Pinpoint (OSCOLA 5 §3.1.3 '… 1989) 42'; NZLSG 3 §6.1.8 'at 42')
+  if (data.pinpoint && style.family !== "aglc") {
+    pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
   }
 
   return runs;

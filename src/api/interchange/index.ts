@@ -50,7 +50,7 @@ export { prepareImport, retypeRow, recount, commitImport } from "./importPipelin
 export type { ExportFormat, ExportOptions, ExportResult } from "./exportPipeline";
 export { exportCitations, citationsToRecords } from "./exportPipeline";
 
-export type { DedupeKey, DedupeMatch, DedupeMatchKind } from "./dedupe";
+export type { DedupeKey, DedupeKeys, DedupeMatch, DedupeMatchKind } from "./dedupe";
 export {
   DedupeIndex,
   isDuplicateCitation,

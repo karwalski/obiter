@@ -67,6 +67,13 @@ const IGNORED_HOSTS: ReadonlySet<string> = new Set([
   "https://scholar.google.com", // Google Scholar links (link-only)
   "https://books.google.com", // Google Books links (link-only)
   "https://www.google.com", // generic search links (link-only)
+  // STD-020: BAILII and NZLII case pages and citation searches built by
+  // sourceLinks.ts for UK and NZ cases — opened by the user, never fetched
+  "https://www.bailii.org",
+  "https://www.nzlii.org",
+  // Worked examples in the OSCOLA digital-source JSDoc (rules/oscola/digital.ts); never fetched.
+  "https://perma.cc",
+  "https://verfassungsblog.de",
 
   // -- Court / tribunal / government websites referenced in UI data and
   //    practice-direction guides (src/ui/data/*, src/engine/court/*) —

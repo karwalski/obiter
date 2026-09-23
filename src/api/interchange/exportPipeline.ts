@@ -3,12 +3,16 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  *
  * exportPipeline.ts — turns library citations into a file in any export
- * format, with the AGLC-formatted citation attached as a note so other
- * tools can display it. "formatted-text" writes the plain numbered list.
+ * format, with the formatted citation attached as a note so other tools
+ * can display it. The note is labelled with the document's standard
+ * (`standardLabel`: "AGLC4", "OSCOLA 5", "NZLSG 3"; STD-025) and every
+ * codec writes it through that label. "formatted-text" writes the plain
+ * numbered list.
  */
 
 import type { Citation } from "../../types/citation";
 import { getCodec, hasCodec } from "./codec";
+import { DEFAULT_STANDARD_LABEL } from "./mapper/formattedNote";
 import { mapCitationToRecord } from "./mapper/fromCitation";
 import type { InterchangeFormat, InterchangeIssue, InterchangeRecord } from "./model";
 import { issue } from "./model";
@@ -26,7 +30,7 @@ export interface ExportOptions {
   endnoteStyle?: "uts-aglc4" | "generic";
   /** Injected by the UI so the pipeline stays free of document config. */
   formatCitation?: (citation: Citation) => { footnote: string; bibliography?: string };
-  /** Label for the formatted note, eg "AGLC4". */
+  /** The document standard's label for the formatted note: "AGLC4", "OSCOLA 5", "NZLSG 3". */
   standardLabel?: string;
   /** Used in the file name: "library" or "selection". */
   scopeLabel?: string;
@@ -68,7 +72,7 @@ export function citationsToRecords(
       try {
         const out = options.formatCitation(citation);
         formatted = {
-          standard: options.standardLabel ?? "AGLC4",
+          standard: options.standardLabel?.trim() || DEFAULT_STANDARD_LABEL,
           footnote: out.footnote,
           bibliography: out.bibliography,
         };

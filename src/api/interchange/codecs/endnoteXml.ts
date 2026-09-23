@@ -30,6 +30,7 @@ import type {
   InterchangeRecord,
 } from "../model";
 import { parseFreeTextDate, toAglcDateString } from "../mapper/dates";
+import { formattedNoteLine, parseFormattedNoteLine } from "../mapper/formattedNote";
 import {
   endnoteTypeToKind,
   KIND_TO_GENERIC_ENDNOTE,
@@ -291,9 +292,10 @@ function liftNoteLine(ctx: MapContext, line: string): boolean {
     record.provenance.obiterSourceType = m[1].trim();
     return true;
   }
-  m = /^[A-Za-z][A-Za-z0-9]* (footnote|bibliography):\s*(.+)$/.exec(line);
-  if (m) {
-    addPassthrough(record, `formatted-${m[1]}`, m[2].trim());
+  // "<standard> footnote: …" under any label (AGLC4, OSCOLA 5, NZLSG 3). STD-025.
+  const formatted = parseFormattedNoteLine(line);
+  if (formatted) {
+    addPassthrough(record, `formatted-${formatted.key}`, formatted.text);
     return true;
   }
   return false;
@@ -726,11 +728,10 @@ function notesLines(ctx: ExportContext): string[] {
   const { record, options } = ctx;
   const lines = [...record.notes];
   const formatted = options.includeFormatted !== false ? record.formatted : undefined;
-  const label = record.formatted?.standard || "AGLC4";
   for (const key of ["footnote", "bibliography"] as const) {
     const own = formatted?.[key];
     const values = own ? [own] : (many(record.passthrough[`formatted-${key}`]) ?? []);
-    for (const v of values) lines.push(`${label} ${key}: ${v}`);
+    for (const v of values) lines.push(formattedNoteLine(record.formatted?.standard, key, v));
   }
   return lines;
 }

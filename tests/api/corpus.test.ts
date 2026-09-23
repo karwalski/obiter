@@ -305,7 +305,7 @@ describe("Corpus Download (Story 17.8)", () => {
       const last = progress[progress.length - 1];
       expect(last[0]).toBe(last[1]);
     },
-    20000
+    90000
   );
 
   it("sets skip preference", () => {

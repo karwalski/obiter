@@ -34,15 +34,17 @@
  */
 
 import { CitationStore } from "../store/citationStore";
-import { formatCitation, applyLinkingPhrase, getFormattedPreview } from "../engine/engine";
+import {
+  formatCitationWithFormat,
+  applyLinkingPhrase,
+  getFormattedPreview,
+} from "../engine/engine";
 import type { CitationContext } from "../engine/engine";
-import { resolveSubsequentReference } from "../engine/resolver";
-import type { SubsequentReferenceContext } from "../engine/resolver";
 import { buildFootnoteMap, updateFirstFootnoteNumbers } from "./footnoteTracker";
 import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint, IntroductorySignal } from "../types/citation";
-import { getStandardConfig, buildCourtConfig } from "../engine/standards";
+import { resolveDocumentConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
 import {
@@ -348,18 +350,16 @@ export async function refreshAllCitations(
     return emptyRefreshResult();
   }
 
-  // Build config from the store's standard and writing mode, with court toggles
-  const standardId = store.getStandardId();
-  const baseConfig = getStandardConfig(standardId);
-  const writingMode = store.getWritingMode();
-  // Court toggle overrides are DOCUMENT metadata (cross-device correctness).
-  // Legacy documents customised before the migration have them only in the
-  // device prefs, so fall back to that for one release of reads; Settings
-  // adopts the device value into the store on its next court-mode save.
-  const courtToggles =
-    store.getCourtToggles() ??
-    (getDevicePref("courtToggles") as Record<string, string> | undefined);
-  const config: CitationConfig = buildCourtConfig({ ...baseConfig, writingMode }, courtToggles);
+  // STD-013: the document config from the store's standard and writing
+  // mode, with court toggles. Court toggle overrides are DOCUMENT metadata
+  // (cross-device correctness). Legacy documents customised before the
+  // migration have them only in the device prefs, so fall back to that for
+  // one release of reads; Settings adopts the device value into the store
+  // on its next court-mode save.
+  const config: CitationConfig = resolveDocumentConfig(
+    store,
+    getDevicePref("courtToggles") as Record<string, string> | undefined
+  );
 
   // Step 1: Rebuild footnote map and update store
   const footnoteMap = await buildFootnoteMap(context);
@@ -887,31 +887,13 @@ export function renderFootnoteCitations(
       formatPreference: child.formatPreference,
     };
 
-    // Determine the rendered format by checking what the resolver returns.
-    // null → full citation; non-null → check for ibid vs short.
-    let renderedFormat: RenderedFormat = "full";
-    if (!isFirstCitation) {
-      const resolverCtx: SubsequentReferenceContext = {
-        isFirstCitation,
-        isSameAsPreceding,
-        precedingFootnoteCitationCount: prevFootnoteCitationIds.length,
-        precedingPinpoint: prevFootnotePinpoint,
-        currentPinpoint,
-        firstFootnoteNumber,
-        isWithinSameFootnote,
-        formatPreference: child.formatPreference,
-        config,
-      };
-      const subRuns = resolveSubsequentReference(citation, resolverCtx);
-      if (subRuns !== null) {
-        // Check if the text starts with "Ibid" to distinguish ibid from short
-        const subText = subRuns.map((r) => r.text).join("");
-        renderedFormat = subText.startsWith("Ibid") ? "ibid" : "short";
-      }
-    }
-
-    // formatCitation returns runs WITHOUT closing punctuation
-    let runs = formatCitation(citation, citationContext, config);
+    // STD-015: the rendered text and the `renderedFormat` label come from
+    // one engine call, so they cannot disagree (a lower-case OSCOLA 4
+    // 'ibid', an NZLSG forced full citation, a pinpoint-only 'At [42]').
+    // The runs come WITHOUT closing punctuation.
+    const formatted = formatCitationWithFormat(citation, citationContext, config);
+    const renderedFormat: RenderedFormat = formatted.renderedFormat;
+    let runs = formatted.runs;
 
     // Signal and commentary are already applied by formatCitation() — do not re-apply
 

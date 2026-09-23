@@ -413,7 +413,12 @@ function inferReport(record: InterchangeRecord, reasons: string[]): SourceType {
     reasons.push("Australian Bureau of Statistics");
     return "report.abs";
   }
-  if (/waitangi tribunal/i.test(haystack)) {
+  // STD-021: the Tribunal named in English or in te reo, or a Wai claim
+  // number in the record's number field, classifies the report.
+  if (
+    /waitangi tribunal|te r[oō]p[uū] whakamana i te tiriti o waitangi/i.test(haystack) ||
+    /^\s*wai\s*\d+/i.test(record.number ?? "")
+  ) {
     reasons.push("Waitangi Tribunal");
     return "report.waitangi_tribunal";
   }

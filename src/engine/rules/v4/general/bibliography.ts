@@ -6,7 +6,14 @@
 import { Citation, SourceType } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { parseTitleMarkup, quoteTitleRuns } from "./titleMarkup";
-import { formatAuthorName, invertAuthorName, parseFreeTextAuthors } from "../secondary/authors";
+import {
+  formatAuthorName,
+  formatAuthorSurname,
+  invertAuthorName,
+  joinAuthorNames,
+  parseFreeTextAuthors,
+} from "../secondary/authors";
+import { formatCitation } from "../../../engine";
 import type { Author } from "../../../../types/citation";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
@@ -357,10 +364,276 @@ export function compareBibliographyOrder(a: Citation, b: Citation): number {
  * full per-source-type formatting will be built out as each rule module is
  * completed; this function provides the structural framework.
  *
+ * STD-018: with an OSCOLA or NZLSG `config` the entry is rendered per that
+ * standard instead — OSCOLA §1.6.2/§1.6.3/§1.7 (tables roman, bibliography
+ * authors `Surname Initials`, no terminal full stop) or NZLSG 3 Appendix 7
+ * (footnote form, names not inverted, full stop). Without a config, or with
+ * an AGLC config, the AGLC4 entry is unchanged.
+ *
  * @param citation - The citation to format.
+ * @param config - The document's citation config; AGLC4 when omitted.
  * @returns An array of FormattedRun representing the bibliography entry.
  */
-export function formatBibliographyEntry(citation: Citation): FormattedRun[] {
+export function formatBibliographyEntry(
+  citation: Citation,
+  config?: CitationConfig
+): FormattedRun[] {
+  switch (standardFamily(config)) {
+    case "oscola":
+      return formatOscolaBibliographyEntry(citation, config as CitationConfig);
+    case "nzlsg":
+      return formatNzlsgBibliographyEntry(citation, config as CitationConfig);
+    default:
+      return formatAglcBibliographyEntry(citation);
+  }
+}
+
+// ─── STD-018: entries per standard ───────────────────────────────────────────
+
+/** Which standard family a bibliography config belongs to; AGLC when absent. */
+function standardFamily(config?: CitationConfig): "aglc" | "oscola" | "nzlsg" {
+  if (!config) return "aglc";
+  if (config.standardId.startsWith("oscola")) return "oscola";
+  if (config.standardId.startsWith("nzlsg")) return "nzlsg";
+  return "aglc";
+}
+
+/**
+ * The citation as a bibliography or table entry cites it: the full
+ * first-citation form with no pinpoint, signal, commentary or manual
+ * override, and without the AGLC rule 1.4.4/1.4.5 short-title and
+ * abbreviation suffixes that `formatCitation` appends to first citations
+ * (`data.abbreviation` is read nowhere else, so clearing it only removes
+ * the suffix).
+ */
+function bibliographyTarget(citation: Citation): Citation {
+  const data: Record<string, unknown> = { ...citation.data };
+  delete data["pinpoint"];
+  delete data["abbreviation"];
+  return {
+    ...citation,
+    data,
+    shortTitle: undefined,
+    signal: undefined,
+    commentaryBefore: undefined,
+    commentaryAfter: undefined,
+    overrideText: undefined,
+  };
+}
+
+/** The standard's full first-citation form of `citation` under `config`. */
+function renderFullCitation(citation: Citation, config: CitationConfig): FormattedRun[] {
+  return formatCitation(bibliographyTarget(citation), undefined, config).filter(
+    (run) => run.text.length > 0
+  );
+}
+
+function runsText(runs: FormattedRun[]): string {
+  return runs.map((r) => r.text).join("");
+}
+
+/** Removes trailing whitespace and a terminal full stop from the last run. */
+function stripTerminalFullStop(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) return runs;
+  const last = runs[runs.length - 1];
+  const trimmed = last.text.trimEnd().replace(/\.$/, "");
+  if (trimmed === last.text) return runs;
+  if (trimmed.length === 0) return stripTerminalFullStop(runs.slice(0, -1));
+  return [...runs.slice(0, -1), { ...last, text: trimmed }];
+}
+
+/** Appends a full stop unless the entry already ends in closing punctuation. */
+function ensureFullStop(runs: FormattedRun[]): FormattedRun[] {
+  if (runs.length === 0) return runs;
+  const last = runs[runs.length - 1];
+  const trimmed = last.text.trimEnd();
+  if (/[.!?]$/.test(trimmed)) {
+    return trimmed === last.text ? runs : [...runs.slice(0, -1), { ...last, text: trimmed }];
+  }
+  return [...runs.slice(0, -1), { ...last, text: `${trimmed}.` }];
+}
+
+/** Every run roman: OSCOLA §1.6.2/§1.6.3 table entries carry no italics. */
+function deItalicise(runs: FormattedRun[]): FormattedRun[] {
+  return runs.map((run) => {
+    if (!run.italic) return run;
+    const roman: FormattedRun = { ...run };
+    delete roman.italic;
+    return roman;
+  });
+}
+
+/**
+ * Replaces the leading `lead` of the entry's text with `replacement`,
+ * preserving the formatting of whatever follows. Returns the runs unchanged
+ * when the text does not start with `lead`.
+ */
+function replaceLeadingText(
+  runs: FormattedRun[],
+  lead: string,
+  replacement: string
+): FormattedRun[] {
+  if (!lead || !runsText(runs).startsWith(lead)) return runs;
+  const out: FormattedRun[] = [];
+  let remaining = lead.length;
+  let index = 0;
+  while (index < runs.length && remaining > 0) {
+    const run = runs[index];
+    if (run.text.length <= remaining) {
+      remaining -= run.text.length;
+    } else {
+      out.push({ ...run, text: run.text.slice(remaining) });
+      remaining = 0;
+    }
+    index += 1;
+  }
+  const first = runs[0];
+  const leadRun: FormattedRun = { ...first, text: replacement };
+  delete leadRun.italic;
+  return [leadRun, ...out, ...runs.slice(index)];
+}
+
+/** Names that AGLC rule 4.1.1 retains before given names; not initialled. */
+const RETAINED_TITLE_WORDS = new Set([
+  "Sir",
+  "Dame",
+  "Lord",
+  "Lady",
+  "Viscount",
+  "Baron",
+  "Baroness",
+]);
+
+/**
+ * OSCOLA §1.7: `Surname Initials` — surname first, initials (not forenames)
+ * with no comma between and no full stops ('Fisher E', 'Hart HLA').
+ */
+function oscolaInvertedName(author: Author): string {
+  const surname = formatAuthorSurname(author);
+  const full = formatAuthorName(author);
+  const given =
+    surname && full.endsWith(surname) ? full.slice(0, full.length - surname.length).trim() : "";
+  const initials = given
+    .split(/\s+/)
+    .filter((token) => token.length > 0 && !RETAINED_TITLE_WORDS.has(token))
+    .map((token) =>
+      /^[A-Z]+$/.test(token)
+        ? token
+        : token
+            .split("-")
+            .map((part) => part.charAt(0).toUpperCase())
+            .join("-")
+    )
+    .join("");
+  return initials ? `${surname} ${initials}` : surname;
+}
+
+/** The authors a secondary-source entry leads with, as the footnote formatters read them. */
+function bibliographyAuthors(data: Record<string, unknown>): Author[] {
+  const structured = (
+    Array.isArray(data["authors"]) && data["authors"].length > 0
+      ? data["authors"]
+      : Array.isArray(data["chapterAuthors"])
+        ? data["chapterAuthors"]
+        : []
+  ) as Author[];
+  const authors = structured.filter((a) => a && (a.surname || a.givenNames));
+  if (authors.length > 0) return authors;
+  const freeText = data["author"];
+  if (typeof freeText === "string" && freeText.trim()) {
+    return parseFreeTextAuthors(freeText) ?? [];
+  }
+  return [];
+}
+
+/**
+ * OSCOLA §1.7: the footnote form with the author names inverted to
+ * `Surname Initials`. The footnote lead (`Alison L Young`, `A and B`,
+ * `A et al` / `A and others`) is located at the start of the entry and
+ * replaced; an entry that does not open with the authors (body authors,
+ * judicial titles) is left as the footnote renders it.
+ */
+function invertOscolaAuthors(runs: FormattedRun[], citation: Citation): FormattedRun[] {
+  const authors = bibliographyAuthors(citation.data);
+  if (authors.length === 0) return runs;
+  const withSuffix = (name: string, author: Author): string =>
+    author.suffix ? `${name} ${author.suffix}` : name;
+  const footnoteNames = authors.map((a) => withSuffix(formatAuthorName(a), a));
+  const invertedNames = authors.map((a) => withSuffix(oscolaInvertedName(a), a));
+  const candidates: Array<[string, string]> = [
+    [joinAuthorNames(footnoteNames), joinAuthorNames(invertedNames)],
+  ];
+  if (authors.length > 3) {
+    candidates.push([`${footnoteNames[0]} and others`, `${invertedNames[0]} and others`]);
+  }
+  const text = runsText(runs);
+  for (const [lead, replacement] of candidates) {
+    if (lead && text.startsWith(lead)) {
+      return replaceLeadingText(runs, lead, replacement);
+    }
+  }
+  return runs;
+}
+
+/**
+ * OSCOLA §1.6.2: an EU case is tabled by name with the case number in round
+ * brackets and then the ECLI (`Schempp v Finanzamt (Case C-403/03)
+ * EU:C:2005:446`). Rearranges the footnote form (`Case C-403/03 Schempp v
+ * Finanzamt …`); returns null when the footnote form is not of that shape.
+ */
+function oscolaEuTableEntry(citation: Citation, runs: FormattedRun[]): FormattedRun[] | null {
+  const d = citation.data;
+  const caseNumber = d["caseNumber"];
+  const caseName = d["caseName"] ?? d["parties"] ?? d["title"];
+  if (typeof caseNumber !== "string" || typeof caseName !== "string") return null;
+  const lead = `Case ${caseNumber} ${caseName}`;
+  const text = runsText(runs);
+  if (!text.startsWith(lead)) return null;
+  const rest = text.slice(lead.length).replace(/^ ECLI:/, " ");
+  return [{ text: `${caseName} (Case ${caseNumber})${rest}` }];
+}
+
+/** Source types that OSCOLA tables as cases (§1.6.2). */
+function isOscolaCase(citation: Citation): boolean {
+  return getBibliographyCategory(citation.sourceType, citation.data) === "B";
+}
+
+/** Source types that OSCOLA tables as legislation, treaties included (§1.6.3). */
+function isOscolaLegislation(citation: Citation): boolean {
+  const category = getBibliographyCategory(citation.sourceType, citation.data);
+  return category === "C" || category === "D";
+}
+
+/**
+ * OSCOLA §1.6.2, §1.6.3, §1.7: the entry as the Table of Cases, the Table of
+ * Legislation or the Bibliography prints it — the standard's full citation
+ * with no terminal full stop; tables roman (names not italicised); the
+ * bibliography with `Surname Initials` authors.
+ */
+function formatOscolaBibliographyEntry(citation: Citation, config: CitationConfig): FormattedRun[] {
+  const runs = stripTerminalFullStop(renderFullCitation(citation, config));
+  if (citation.sourceType === "eu.court") {
+    const tabled = oscolaEuTableEntry(citation, runs);
+    if (tabled) return tabled;
+  }
+  if (isOscolaCase(citation) || isOscolaLegislation(citation)) {
+    return deItalicise(runs);
+  }
+  return invertOscolaAuthors(runs, citation);
+}
+
+/**
+ * NZLSG 3 Appendix 7: the footnote form minus pinpoints, names not
+ * inverted, ending with a full stop.
+ */
+function formatNzlsgBibliographyEntry(citation: Citation, config: CitationConfig): FormattedRun[] {
+  return ensureFullStop(renderFullCitation(citation, config));
+}
+
+/**
+ * AGLC4 Rule 1.13 entry (the no-config path of {@link formatBibliographyEntry}).
+ */
+function formatAglcBibliographyEntry(citation: Citation): FormattedRun[] {
   const runs: FormattedRun[] = [];
   const data = citation.data;
 
@@ -682,10 +955,14 @@ export function generateBibliography(citations: Citation[]): BibliographySection
  * - Bibliography (secondary sources, subdivided)
  */
 function getOscolaBibliographySection(
-  sourceType: SourceType
+  sourceType: SourceType,
+  data?: Record<string, unknown>
 ): "cases" | "legislation" | "secondary" {
-  if (sourceType.startsWith("case.")) return "cases";
-  if (sourceType.startsWith("legislation.")) return "legislation";
+  // §1.6.2 tables every decision (domestic, EU, ECtHR, international);
+  // §1.6.3 tables legislation and treaties. Everything else is secondary.
+  const category = getBibliographyCategory(sourceType, data);
+  if (category === "B") return "cases";
+  if (category === "C" || category === "D") return "legislation";
   return "secondary";
 }
 
@@ -700,7 +977,7 @@ function getOscolaBibliographySection(
  * jurisdiction grouping. This avoids duplicating the sorting, grouping, and
  * de-italicisation logic that already exists in tables.ts.
  */
-function citationToCaseEntry(citation: Citation): CaseEntry {
+function citationToCaseEntry(citation: Citation, config?: CitationConfig): CaseEntry {
   const d = citation.data;
   const party1 = d["party1"] as string | undefined;
   const party2 = d["party2"] as string | undefined;
@@ -709,11 +986,13 @@ function citationToCaseEntry(citation: Citation): CaseEntry {
       ? `${party1} v ${party2}`
       : (party1 ??
         (d["caseTitle"] as string | undefined) ??
+        (d["caseName"] as string | undefined) ??
         (d["title"] as string | undefined) ??
         "");
 
   // Build citation text from the formatted entry, stripping the case name prefix.
-  const fullEntry = formatBibliographyEntry(citation);
+  // STD-018: under an OSCOLA config the entry is already the §1.6.2 form.
+  const fullEntry = formatBibliographyEntry(citation, config);
   const fullText = fullEntry.map((r) => r.text).join("");
   const citationText = fullText.startsWith(caseName)
     ? fullText.slice(caseName.length).replace(/^,?\s*/, "")
@@ -750,7 +1029,7 @@ function citationToCaseEntry(citation: Citation): CaseEntry {
  * Converts a Citation with a legislation source type to a LegislationEntry
  * suitable for the canonical generateTableOfLegislation() in tables.ts.
  */
-function citationToLegislationEntry(citation: Citation): LegislationEntry {
+function citationToLegislationEntry(citation: Citation, config?: CitationConfig): LegislationEntry {
   const d = citation.data;
   const title = (d["title"] as string | undefined) ?? "";
   const year = d["year"] as number | undefined;
@@ -768,6 +1047,16 @@ function citationToLegislationEntry(citation: Citation): LegislationEntry {
     category = "treaty";
   }
 
+  // STD-018: under an OSCOLA config the entry is the standard's own
+  // legislation form (§1.6.3), rendered verbatim and sorted by its text.
+  if (config && standardFamily(config) === "oscola") {
+    const runs = formatBibliographyEntry(citation, config);
+    const text = runs.map((r) => r.text).join("");
+    if (text.length > 0) {
+      return { title: text, category, runs };
+    }
+  }
+
   return { title, year, category };
 }
 
@@ -782,12 +1071,20 @@ function citationToLegislationEntry(citation: Citation): LegislationEntry {
  * OSC-ENH-003: Consolidates duplicate Table of Cases / Table of Legislation
  * logic by reusing the canonical implementations in tables.ts.
  *
+ * STD-018: with `config` (an OSCOLA profile) every entry is the standard's
+ * own form through {@link formatBibliographyEntry}; without it the entries
+ * are the AGLC ones, as before.
+ *
  * @param citations - All citations referenced in the document.
+ * @param config - The document's citation config.
  * @returns An array of BibliographySection objects for OSCOLA.
  *
  * @see OSCOLA, Rule 1.4.
  */
-export function generateOscolaBibliography(citations: Citation[]): BibliographySection[] {
+export function generateOscolaBibliography(
+  citations: Citation[],
+  config?: CitationConfig
+): BibliographySection[] {
   const groups: Record<"cases" | "legislation" | "secondary", Citation[]> = {
     cases: [],
     legislation: [],
@@ -795,7 +1092,7 @@ export function generateOscolaBibliography(citations: Citation[]): BibliographyS
   };
 
   for (const citation of citations) {
-    const section = getOscolaBibliographySection(citation.sourceType);
+    const section = getOscolaBibliographySection(citation.sourceType, citation.data);
     groups[section].push(citation);
   }
 
@@ -804,7 +1101,7 @@ export function generateOscolaBibliography(citations: Citation[]): BibliographyS
   // Table of Cases — delegate to tables.ts (OSC-ENH-003)
   if (groups.cases.length > 0) {
     const deduplicated = deduplicateById(groups.cases);
-    const caseEntries = deduplicated.map(citationToCaseEntry);
+    const caseEntries = deduplicated.map((c) => citationToCaseEntry(c, config));
     const caseSections = generateTableOfCases(caseEntries);
     // Single jurisdiction: use unified "Table of Cases" heading.
     // Multiple jurisdictions: preserve the sub-headings from tables.ts.
@@ -823,7 +1120,7 @@ export function generateOscolaBibliography(citations: Citation[]): BibliographyS
   // Table of Legislation — delegate to tables.ts (OSC-ENH-003)
   if (groups.legislation.length > 0) {
     const deduplicated = deduplicateById(groups.legislation);
-    const legEntries = deduplicated.map(citationToLegislationEntry);
+    const legEntries = deduplicated.map((c) => citationToLegislationEntry(c, config));
     const legSections = generateTableOfLegislation(legEntries);
     if (legSections.length === 1) {
       sections.push({
@@ -841,7 +1138,7 @@ export function generateOscolaBibliography(citations: Citation[]): BibliographyS
   if (groups.secondary.length > 0) {
     const deduplicated = deduplicateById(groups.secondary);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c, config));
     sections.push({ heading: "Bibliography", entries });
   }
 
@@ -865,16 +1162,62 @@ function getNzlsgBibliographySection(
   return "secondary";
 }
 
+/** Text fields a Waitangi Tribunal report may name its author or claim in. */
+const WAITANGI_TEXT_KEYS = [
+  "body",
+  "institutionalAuthor",
+  "author",
+  "commissionName",
+  "title",
+] as const;
+
+/**
+ * STD-021: whether a citation is a Waitangi Tribunal report, derived from
+ * the record itself so the classification survives export and re-import:
+ * the `report.waitangi_tribunal` source type, a stored Wai claim number, a
+ * `Wai n` report number, or the Tribunal named (in English or as Te Rōpū
+ * Whakamana i te Tiriti o Waitangi) in the body, author or title text. A
+ * legacy `waitangi_tribunal` tag is honoured as a hint but never required
+ * (it is not exported, src/engine/tags.ts).
+ *
+ * @see NZLSG, Rule 1.5 and Rule 3.6.
+ */
+export function isWaitangiTribunalReport(citation: Citation): boolean {
+  if (citation.sourceType === "report.waitangi_tribunal") return true;
+  if (Array.isArray(citation.tags) && citation.tags.includes("waitangi_tribunal")) return true;
+  if (!citation.sourceType.startsWith("report")) return false;
+  const data = citation.data;
+  const wai = data["waiNumber"];
+  if (typeof wai === "number" || (typeof wai === "string" && wai.trim() !== "")) return true;
+  const reportNumber = data["reportNumber"] ?? data["number"];
+  if (typeof reportNumber === "string" && /^\s*wai\s*\d+/i.test(reportNumber)) return true;
+  return WAITANGI_TEXT_KEYS.some((key) => {
+    const value = data[key];
+    return (
+      typeof value === "string" &&
+      /waitangi tribunal|te r[oō]p[uū] whakamana i te tiriti o waitangi/i.test(value)
+    );
+  });
+}
+
 /**
  * Generates an NZLSG bibliography with primary sources (subdivided,
  * including a dedicated Waitangi Tribunal section) and secondary sources.
  *
+ * STD-018: with `config` (an NZLSG profile) every entry is the Appendix 7
+ * form through {@link formatBibliographyEntry}; without it the entries are
+ * the AGLC ones, as before.
+ *
  * @param citations - All citations referenced in the document.
+ * @param config - The document's citation config.
  * @returns An array of BibliographySection objects for NZLSG.
  *
  * @see NZLSG, Rule 1.5.
  */
-export function generateNzlsgBibliography(citations: Citation[]): BibliographySection[] {
+export function generateNzlsgBibliography(
+  citations: Citation[],
+  config?: CitationConfig
+): BibliographySection[] {
   const groups: Record<"cases" | "legislation" | "waitangi" | "secondary", Citation[]> = {
     cases: [],
     legislation: [],
@@ -883,12 +1226,7 @@ export function generateNzlsgBibliography(citations: Citation[]): BibliographySe
   };
 
   for (const citation of citations) {
-    // Check for Waitangi Tribunal reports (identified by tag or data field)
-    const isWaitangi =
-      citation.tags.includes("waitangi_tribunal") ||
-      (citation.data["body"] as string | undefined)?.toLowerCase().includes("waitangi tribunal");
-
-    if (isWaitangi) {
+    if (isWaitangiTribunalReport(citation)) {
       groups.waitangi.push(citation);
     } else {
       const section = getNzlsgBibliographySection(citation.sourceType);
@@ -902,7 +1240,7 @@ export function generateNzlsgBibliography(citations: Citation[]): BibliographySe
   if (groups.cases.length > 0) {
     const deduplicated = deduplicateById(groups.cases);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c, config));
     sections.push({ heading: "Cases", entries });
   }
 
@@ -910,7 +1248,7 @@ export function generateNzlsgBibliography(citations: Citation[]): BibliographySe
   if (groups.legislation.length > 0) {
     const deduplicated = deduplicateById(groups.legislation);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c, config));
     sections.push({ heading: "Legislation", entries });
   }
 
@@ -918,7 +1256,7 @@ export function generateNzlsgBibliography(citations: Citation[]): BibliographySe
   if (groups.waitangi.length > 0) {
     const deduplicated = deduplicateById(groups.waitangi);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c, config));
     sections.push({ heading: "Waitangi Tribunal", entries });
   }
 
@@ -926,7 +1264,7 @@ export function generateNzlsgBibliography(citations: Citation[]): BibliographySe
   if (groups.secondary.length > 0) {
     const deduplicated = deduplicateById(groups.secondary);
     deduplicated.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-    const entries = deduplicated.map((c) => formatBibliographyEntry(c));
+    const entries = deduplicated.map((c) => formatBibliographyEntry(c, config));
     sections.push({ heading: "Secondary Sources", entries });
   }
 
@@ -1870,13 +2208,16 @@ export function generateLoaWithOptions(
  *   (flat list), "part-ab" (Part A / Part B split), "part-abc" (Vic SC PN CA 3),
  *   "two-part-read" (SA UCR 2020 r 217.8 / FCFCOA FAM-APPEALS) or
  *   "three-part-tas" (Tas SC PD 3 of 2022). Defaults to "simple".
+ * @param config - STD-018: the document's citation config, passed to the
+ *   OSCOLA and NZLSG generators so entries render in that standard.
  * @returns An array of BibliographySection objects appropriate to the standard/mode.
  */
 export function generateBibliographyForStandard(
   citations: Citation[],
   structure: CitationConfig["bibliographyStructure"],
   writingMode?: WritingMode,
-  loaType?: LoaType
+  loaType?: LoaType,
+  config?: CitationConfig
 ): BibliographySection[] {
   // MULTI-014 + COURT-FIX-005: Court mode generates List of Authorities
   // controlled by the loaType toggle.
@@ -1902,9 +2243,9 @@ export function generateBibliographyForStandard(
 
   switch (structure) {
     case "oscola":
-      return generateOscolaBibliography(citations);
+      return generateOscolaBibliography(citations, config);
     case "nzlsg":
-      return generateNzlsgBibliography(citations);
+      return generateNzlsgBibliography(citations, config);
     case "aglc":
     default:
       return generateBibliography(citations);

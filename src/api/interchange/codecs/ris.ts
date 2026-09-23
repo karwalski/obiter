@@ -28,6 +28,7 @@ import type {
 } from "../model";
 import { parseRisDate, toRisDate } from "../mapper/dates";
 import { KIND_TO_RIS_TYPE, risTypeToKind } from "../mapper/kinds";
+import { formattedNoteLine } from "../mapper/formattedNote";
 import { creatorsWithRole, formatCommaName, parseCommaName } from "../mapper/names";
 
 // ─── Tag vocabulary ─────────────────────────────────────────────────────────
@@ -819,11 +820,19 @@ function serialiseRecord(record: InterchangeRecord, eol: string): string {
   w.tag("M3", record.genre);
   w.tag("LA", record.language);
 
+  // The formatted citation, labelled with the standard it was rendered in
+  // ("AGLC4 footnote: …", "OSCOLA 5 footnote: …"). STD-025.
   if (record.formatted?.footnote) {
-    w.tag("N1", `AGLC4 footnote: ${record.formatted.footnote}`);
+    w.tag(
+      "N1",
+      formattedNoteLine(record.formatted.standard, "footnote", record.formatted.footnote)
+    );
   }
   if (record.formatted?.bibliography) {
-    w.tag("N1", `AGLC4 bibliography: ${record.formatted.bibliography}`);
+    w.tag(
+      "N1",
+      formattedNoteLine(record.formatted.standard, "bibliography", record.formatted.bibliography)
+    );
   }
 
   if (record.provenance.obiterId) {

@@ -14,7 +14,13 @@
 import type { Author, Citation, Pinpoint, SourceType } from "../types/citation";
 import type { FormattedRun } from "../types/formattedRun";
 import type { CitationConfig } from "./standards/types";
+import { formatPinpointFor, pinpointText } from "./standards/pinpoints";
 import { formatLegislationPinpoint } from "./rules/v4/domestic/legislation";
+import {
+  formatCommercialSubsequent as nzlsgFormatCommercialSubsequent,
+  formatGeneralSubsequent as nzlsgFormatGeneralSubsequent,
+} from "./rules/nzlsg/styles";
+import type { NZLSGStyle } from "./rules/nzlsg/styles";
 import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
 import { parseTitleMarkup, quoteTitleRuns } from "./rules/v4/general/titleMarkup";
 import {
@@ -52,6 +58,81 @@ function isLegislation(sourceType: SourceType): boolean {
  */
 function isSecondarySource(sourceType: SourceType): boolean {
   return !isCase(sourceType) && !isLegislation(sourceType);
+}
+
+// ─── STD-015: Standard Families ──────────────────────────────────────────────
+
+/** The rule family a config belongs to; no config means AGLC (the default). */
+type StandardFamily = "aglc" | "oscola" | "nzlsg";
+
+function familyOf(config?: CitationConfig): StandardFamily {
+  if (!config) return "aglc";
+  if (config.standardId.startsWith("oscola")) return "oscola";
+  if (config.standardId.startsWith("nzlsg")) return "nzlsg";
+  return "aglc";
+}
+
+/**
+ * Source types OSCOLA declares a short form for at the end of the first
+ * citation and then cites by that short form alone, without `(n X)`:
+ * legislation (§1.2.1 `… Act 2015 (‘SARAH’) s 1.` then `SARAH, s 2.`),
+ * treaties (§4.1.1 `(‘ICCPR’)` then `UNCLOS, art 101.`), the UN Charter
+ * (§4.2.1 `UN Charter, art 33.`), UN resolutions (§4.2.2 `(‘Friendly
+ * Relations Declaration’)`) and OJ instruments (§4.4.1 `(‘Maastricht
+ * Treaty’)`, `Rome I, art 6.`). Cases (§2.1.2) and secondary sources
+ * (§3.1.5) are short-formed by party name or surname with `(n X)` and
+ * declare nothing.
+ */
+function isOscolaDeclaredType(sourceType: SourceType): boolean {
+  return (
+    isLegislation(sourceType) ||
+    sourceType === "treaty" ||
+    sourceType === "treaty.mou" ||
+    sourceType === "un.charter" ||
+    sourceType === "un.document" ||
+    sourceType === "eu.official_journal"
+  );
+}
+
+/** The `shortTitleIntroduction` a family implies when a config omits it. */
+function defaultShortTitleIntroduction(
+  family: StandardFamily
+): NonNullable<CitationConfig["shortTitleIntroduction"]> {
+  switch (family) {
+    case "oscola":
+      return "declared";
+    case "nzlsg":
+      return "none";
+    default:
+      return "aglc";
+  }
+}
+
+/**
+ * STD-015: whether the first citation of `sourceType` is followed by a
+ * short-form declaration under `config` (`config.shortTitleIntroduction`,
+ * derived from the standard family when absent): every source under AGLC4
+ * 1.4.4/1.4.5, only the declared types under OSCOLA, none under NZLSG.
+ */
+export function declaresShortForm(sourceType: SourceType, config?: CitationConfig): boolean {
+  const mode = config?.shortTitleIntroduction ?? defaultShortTitleIntroduction(familyOf(config));
+  switch (mode) {
+    case "none":
+      return false;
+    case "declared":
+      return isOscolaDeclaredType(sourceType);
+    default:
+      return true;
+  }
+}
+
+/** The declared short form of a citation (the user's short title), or "". */
+function declaredShortForm(citation: Citation): string {
+  if (typeof citation.shortTitle === "string" && citation.shortTitle.trim()) {
+    return citation.shortTitle.trim();
+  }
+  const stored = citation.data.shortTitle;
+  return typeof stored === "string" ? stored.trim() : "";
 }
 
 // ─── Pinpoint Formatting ─────────────────────────────────────────────────────
@@ -283,7 +364,7 @@ function formatExchangeLead(citation: Citation): FormattedRun[] | null {
  * Extracts a title or short title from the citation, for disambiguation or
  * use in short references.
  */
-function getTitle(citation: Citation): string {
+function getTitle(citation: Citation, config?: CitationConfig): string {
   if (citation.shortTitle) return citation.shortTitle;
   if (typeof citation.data.shortTitle === "string") return citation.data.shortTitle;
   // Document-led sources (ICJ pleadings, rule 10.5 ex 42) shorten to the
@@ -296,6 +377,17 @@ function getTitle(citation: Citation): string {
   if (typeof citation.data.title === "string") return citation.data.title;
   if (typeof citation.data.name === "string") return citation.data.name;
   if (typeof citation.data.parties === "string") return citation.data.parties;
+  // STD-015: a form-entered case stores its parties as party1/party2 and
+  // may carry no short title. OSCOLA 5 §2.1.2 short-forms a case by its
+  // first-named party ('Phelps (n 14)'); NZLSG 3 §2.3.1(a)(i) repeats the
+  // case name ('Rainy Sky SA v Kookmin Bank, above n 10'). The AGLC path is
+  // unchanged (rule 2.1.14 short titles are entered by the user).
+  const family = familyOf(config);
+  if (family !== "aglc") {
+    const party1 = typeof citation.data.party1 === "string" ? citation.data.party1.trim() : "";
+    const party2 = typeof citation.data.party2 === "string" ? citation.data.party2.trim() : "";
+    if (party1) return family === "oscola" || !party2 ? party1 : `${party1} v ${party2}`;
+  }
   return "";
 }
 
@@ -372,15 +464,21 @@ export function formatShortReference(
     return formatCourtShortReference(citation, pinpoint, disambiguate);
   }
 
-  // NZLSG "above n" format: Author, above n X, at pinpoint
-  if (format === "above n") {
-    return formatAboveNReference(
+  // STD-015: OSCOLA 5 §1.2.1 / OSCOLA 4 §1.2.1 short forms
+  if (config && familyOf(config) === "oscola") {
+    return formatOscolaShortReference(
       citation,
       firstFootnoteNumber,
       pinpoint,
       disambiguate,
-      pinpointPrefix
+      config
     );
+  }
+
+  // NZLSG "above n" format: Author, above n X, at pinpoint (STD-015:
+  // legislation by short title alone, NZLSG 3 §2.3.1(a)(ii))
+  if (format === "above n" && config) {
+    return formatNzlsgShortReference(citation, firstFootnoteNumber, pinpoint, disambiguate, config);
   }
 
   // AGLC4 / OSCOLA "n" format: Author (n X) pinpoint
@@ -449,23 +547,21 @@ export function formatShortReference(
 }
 
 /**
- * Formats a short reference in NZLSG "above n" style.
- *
- * NZLSG Rule 2.3: `Author, above n X, at pinpoint` — note comma after
- * author/title, `above` keyword before footnote number, `at` before pinpoint.
+ * The identifier that leads a short reference: the styled Part IV short
+ * title, the author surname (or the styled short title of a body-authored
+ * secondary source, with the disambiguating title when asked), the italic
+ * case name or reference tag, or the roman legislation short title.
  */
-function formatAboveNReference(
+function shortReferenceLead(
   citation: Citation,
-  firstFootnoteNumber: number,
-  pinpoint?: Pinpoint,
-  disambiguate?: boolean,
-  pinpointPrefix: string = ""
+  disambiguate: boolean | undefined,
+  config?: CitationConfig
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   if (internationalLeadsWithShortTitle(citation)) {
     // Part IV materials lead with the styled short title (Rules 8.8–14.6)
-    const title = getTitle(citation);
+    const title = getTitle(citation, config);
     if (title) {
       runs.push(...formatStyledShortTitle(title, citation.sourceType));
     }
@@ -474,33 +570,221 @@ function formatAboveNReference(
     runs.push(...formatSecondaryLead(citation));
 
     if (disambiguate && surname) {
-      const title = getTitle(citation);
+      const title = getTitle(citation, config);
       if (title) {
         runs.push({ text: ", " });
         runs.push(...formatStyledShortTitle(title, citation.sourceType));
       }
     }
   } else if (isCase(citation.sourceType)) {
-    const title = getTitle(citation);
+    // NZLSG 3 §2.3.1(a)(i): case names and reference tags keep their italics
+    const title = getTitle(citation, config);
     if (title) {
-      runs.push({ text: title, italic: true });
+      runs.push(...parseTitleMarkup(title, true));
     }
   } else if (isLegislation(citation.sourceType)) {
-    // Rules 3.2/3.5: italic for Acts/delegated legislation, roman for Bills.
-    const title = getTitle(citation);
+    // NZLSG 3 §4.1.1(a): legislation is roman
+    const title = getTitle(citation, config);
     if (title) {
-      runs.push(...formatStyledShortTitle(title, citation.sourceType));
+      runs.push(...parseTitleMarkup(title, false));
     }
   }
 
-  runs.push({ text: `, above n ${firstFootnoteNumber}` });
+  return runs;
+}
+
+/**
+ * Prepends the styled `lead` to a styles formatter's output produced with
+ * an empty identifier (`authorOrTitle: ""`), dropping that empty run. The
+ * formatter supplies the cross-reference and pinpoint text; the identifier
+ * is styled here so italic case tags survive (§2.3.1(a)(i)).
+ */
+function withLead(lead: FormattedRun[], runs: FormattedRun[]): FormattedRun[] {
+  const rest = runs.length > 0 && runs[0].text === "" ? runs.slice(1) : runs;
+  return [...lead, ...rest];
+}
+
+/**
+ * Formats a short reference in NZLSG "above n" style.
+ *
+ * NZLSG 3 §2.3.1(a)(i)/(iii)/(iv): identifier, comma, `above n X`, then
+ * the pinpoint after a comma with `at` (`R v Wang, above n 49, at 533`;
+ * `Spiller, above n 21, at 70`; `Mullan, above n 40, at 152`). Labelled
+ * provisions keep their label without `at` (`, art 7`).
+ */
+function formatAboveNReference(
+  citation: Citation,
+  firstFootnoteNumber: number,
+  pinpoint: Pinpoint | undefined,
+  disambiguate: boolean | undefined,
+  config: CitationConfig
+): FormattedRun[] {
+  const lead = shortReferenceLead(citation, disambiguate, config);
+  const pinpointSuffix = pinpoint
+    ? formatPinpointFor(config, pinpoint, { after: "cross-reference" })
+    : undefined;
+  return withLead(
+    lead,
+    nzlsgFormatGeneralSubsequent({
+      authorOrTitle: "",
+      footnoteNumber: firstFootnoteNumber,
+      pinpointSuffix,
+    })
+  );
+}
+
+/**
+ * NZLSG 3 §2.3.1(a)(ii): the legislation identifier is the short title
+ * without the year (`Securities Act`), so a stored title `Crimes Act 1961`
+ * loses its year; the year is kept only by the citation's own full form.
+ */
+function nzlsgLegislationTitle(citation: Citation, config: CitationConfig): string {
+  const stored = citation.data.title;
+  const title =
+    typeof stored === "string" && stored.trim() ? stored.trim() : getTitle(citation, config);
+  return title.replace(/\s+(1[5-9]\d\d|20\d\d)$/, "");
+}
+
+/**
+ * NZLSG 3 §2.3.1(a)(ii): legislation is never cross-referenced with
+ * `above n` — the short title (no year or jurisdiction), a comma and the
+ * provision: `Securities Act, s 63.`; roman per §4.1.1(a).
+ */
+function formatNzlsgLegislationReference(
+  citation: Citation,
+  pinpoint: Pinpoint | undefined,
+  config: CitationConfig
+): FormattedRun[] {
+  const runs: FormattedRun[] = [{ text: nzlsgLegislationTitle(citation, config) }];
+  if (pinpoint) {
+    runs.push({ text: formatPinpointFor(config, pinpoint, { after: "short-form" }) });
+  }
+  return runs;
+}
+
+/** NZLSG 3 §2.3.1(a) rule 2: the general-style short reference. */
+function formatNzlsgShortReference(
+  citation: Citation,
+  firstFootnoteNumber: number,
+  pinpoint: Pinpoint | undefined,
+  disambiguate: boolean | undefined,
+  config: CitationConfig
+): FormattedRun[] {
+  if (isLegislation(citation.sourceType)) {
+    return formatNzlsgLegislationReference(citation, pinpoint, config);
+  }
+  return formatAboveNReference(citation, firstFootnoteNumber, pinpoint, disambiguate, config);
+}
+
+/**
+ * NZLSG commercial style (NZLSG-008; `config.nzlsgStyle`, else
+ * `data.nzlsgStyle`): identifier and pinpoint only — no `above n`, no ibid
+ * (`Butler and Butler at 134`; legislation `Securities Act, s 63`).
+ *
+ * DECISION-040: NZLSG 3 §2.3.1(b) as read online describes the commercial
+ * style as the full citation on every reference for cases and legislation,
+ * with other sources in the general style. The shipped short form is kept
+ * until that reading is confirmed; no expectation row covers it.
+ */
+function formatNzlsgCommercialReference(
+  citation: Citation,
+  pinpoint: Pinpoint | undefined,
+  config: CitationConfig
+): FormattedRun[] {
+  const legislation = isLegislation(citation.sourceType);
+  const lead: FormattedRun[] = legislation
+    ? [{ text: nzlsgLegislationTitle(citation, config) }]
+    : shortReferenceLead(citation, undefined, config);
+  const pinpointSuffix = pinpoint
+    ? formatPinpointFor(config, pinpoint, { after: legislation ? "short-form" : "report" })
+    : undefined;
+  return withLead(lead, nzlsgFormatCommercialSubsequent({ authorOrTitle: "", pinpointSuffix }));
+}
+
+/**
+ * NZLSG 3 §2.3.1(a) rule 1: when the source is obvious from the immediately
+ * preceding footnote, only the pinpoint is given, capitalised as a footnote
+ * (`At 535.`, `At [52] per Tipping J.`; legislation `Section 8.`). Returns
+ * null where the rule gives no form (a legislation pinpoint that is not a
+ * section), so that rule 2 applies instead.
+ */
+function formatNzlsgPinpointOnly(
+  citation: Citation,
+  pinpoint: Pinpoint,
+  config: CitationConfig
+): FormattedRun[] | null {
+  if (isLegislation(citation.sourceType)) {
+    const value = pinpoint.value.trim();
+    return pinpoint.type === "section" && value ? [{ text: `Section ${value}` }] : null;
+  }
+  const text = pinpointText(config, pinpoint, { after: "cross-reference" });
+  return text ? [{ text: `At ${text}` }] : null;
+}
+
+/**
+ * OSCOLA 5 §1.2.1 (OSCOLA 4 §1.2.1) short reference: brief identifier,
+ * `(n X)`, then the pinpoint with no comma (`Austin (n 1) [34]`, `Stevens
+ * (n 1) 110`). Cases lead with the first-named party or reference name in
+ * italics, `v` included (§2.1.2 `Phelps (n 14)`, `Ninja Turtles case (n
+ * 12)`); international decisions likewise; secondary sources with the
+ * surname (§3.1.5) and, when disambiguating, the styled title (`Ashworth,
+ * ‘Testing Fidelity to Legal Values’ (n 27) 635–37`). Declared short forms
+ * are used alone, roman, then a comma and the provision (`SARAH, s 2`,
+ * `UNCLOS, art 101`, `Rome I, art 6`).
+ */
+function formatOscolaShortReference(
+  citation: Citation,
+  firstFootnoteNumber: number,
+  pinpoint: Pinpoint | undefined,
+  disambiguate: boolean | undefined,
+  config: CitationConfig
+): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+
+  if (isOscolaDeclaredType(citation.sourceType)) {
+    const declared = declaredShortForm(citation);
+    if (declared) {
+      runs.push(...parseTitleMarkup(declared, false));
+      if (pinpoint) {
+        runs.push({ text: formatPinpointFor(config, pinpoint, { after: "short-form" }) });
+      }
+      return runs;
+    }
+    // No declared short form (DECISION-040: §1.2.1 shows only the declared
+    // route). The resolver repeats the full citation in that case; a direct
+    // caller gets the roman title with the cross-reference.
+    const title = getTitle(citation, config);
+    if (title) {
+      runs.push(...parseTitleMarkup(title, false));
+    }
+    runs.push({ text: ` (n ${firstFootnoteNumber})` });
+  } else if (
+    isCase(citation.sourceType) ||
+    internationalShortTitleStyle(citation.sourceType) === "italic"
+  ) {
+    const title = getTitle(citation, config);
+    if (title) {
+      runs.push(...parseTitleMarkup(title, true));
+    }
+    runs.push({ text: ` (n ${firstFootnoteNumber})` });
+  } else {
+    const surname = getAuthorSurname(citation);
+    runs.push(...formatSecondaryLead(citation));
+    if (disambiguate && surname) {
+      const title = getTitle(citation, config);
+      if (title) {
+        runs.push({ text: ", " });
+        runs.push(...formatStyledShortTitle(title, citation.sourceType));
+      }
+    }
+    runs.push({ text: ` (n ${firstFootnoteNumber})` });
+  }
 
   if (pinpoint) {
-    runs.push({ text: ", " });
-    if (pinpointPrefix) {
-      runs.push({ text: pinpointPrefix });
+    const text = pinpointText(config, pinpoint, { after: "cross-reference" });
+    if (text) {
+      runs.push({ text: ` ${text}` });
     }
-    runs.push(...formatPinpoint(pinpoint));
   }
 
   return runs;
@@ -569,19 +853,30 @@ function formatCourtShortReference(
  */
 export function resolveIbid(
   currentPinpoint?: Pinpoint,
-  precedingPinpoint?: Pinpoint
+  precedingPinpoint?: Pinpoint,
+  config?: CitationConfig
 ): FormattedRun[] {
+  // STD-015: OSCOLA 4 §1.2.3 'ibid' is lower case and never capitalised;
+  // AGLC4 1.4.3 opens the footnote with 'Ibid'.
+  const word = config?.ibidStyle === "lowercase" ? "ibid" : "Ibid";
+
   if (pinpointsEqual(currentPinpoint, precedingPinpoint)) {
-    return [{ text: "Ibid" }];
+    return [{ text: word }];
   }
 
   if (currentPinpoint) {
-    return [{ text: "Ibid " }, ...formatPinpoint(currentPinpoint)];
+    if (config && familyOf(config) !== "aglc") {
+      // OSCOLA 4 §1.2.1 'ibid 271–78', 'ibid [34]': the pinpoint in the
+      // standard's own vocabulary after a space.
+      const text = pinpointText(config, currentPinpoint, { after: "cross-reference" });
+      return [{ text: text ? `${word} ${text}` : word }];
+    }
+    return [{ text: `${word} ` }, ...formatPinpoint(currentPinpoint)];
   }
 
   // Current has no pinpoint but preceding did — should not reach here
   // if caller enforces ibid eligibility correctly, but handle defensively.
-  return [{ text: "Ibid" }];
+  return [{ text: word }];
 }
 
 /**
@@ -629,8 +924,21 @@ function wrapRunsInParens(runs: FormattedRun[]): FormattedRun[] {
  */
 export function formatShortTitleIntroduction(
   shortTitle: string,
-  sourceType: SourceType
+  sourceType: SourceType,
+  config?: CitationConfig
 ): FormattedRun[] {
+  // STD-015: OSCOLA declares short forms roman — OSCOLA 5 §1.2.1 in single
+  // quotation marks ('… Act 2015 (‘SARAH’)'), OSCOLA 4 §1.2.1 without them
+  // ('(Working Time Directive)'). Which types declare is decided by the
+  // caller through `declaresShortForm`.
+  if (config && familyOf(config) === "oscola") {
+    const runs = parseTitleMarkup(shortTitle, false);
+    if (config.standardId === "oscola4") {
+      return wrapRunsInParens(runs);
+    }
+    return [{ text: "(‘" }, ...runs, { text: "’)" }];
+  }
+
   // Part IV international materials: the introduced short title carries the
   // styling its chapter's subsequent-reference rule prescribes — italic for
   // treaties/UN docs/decisions (rule 8.8 ex 20: ('Timor Gap Treaty') with
@@ -785,6 +1093,37 @@ export interface SubsequentReferenceContext {
 
 // ─── Main Resolver ───────────────────────────────────────────────────────────
 
+/** The kind of subsequent reference a resolution produced. */
+export type SubsequentReferenceKind = "ibid" | "short";
+
+/**
+ * A resolved subsequent reference: the runs and what they are, so that a
+ * caller labelling the occurrence (the refresher's `renderedFormat`) takes
+ * the label from the same resolution that produced the text (STD-015).
+ */
+export interface ResolvedSubsequentReference {
+  runs: FormattedRun[];
+  /** `ibid` for an ibid reference; `short` for every other subsequent form. */
+  kind: SubsequentReferenceKind;
+}
+
+const asShort = (runs: FormattedRun[]): ResolvedSubsequentReference => ({ runs, kind: "short" });
+const asIbid = (runs: FormattedRun[]): ResolvedSubsequentReference => ({ runs, kind: "ibid" });
+
+/**
+ * AGLC4 Rule 1.4.3 ibid eligibility (shared by OSCOLA 4 §1.2.3): the same
+ * source as the immediately preceding footnote, which cited exactly one
+ * source; not when the preceding reference had a pinpoint and this one has
+ * none.
+ */
+function isIbidEligible(context: SubsequentReferenceContext): boolean {
+  return (
+    context.isSameAsPreceding &&
+    context.precedingFootnoteCitationCount === 1 &&
+    !(context.precedingPinpoint !== undefined && context.currentPinpoint === undefined)
+  );
+}
+
 /**
  * Resolves how a subsequent reference should be formatted.
  *
@@ -798,6 +1137,9 @@ export interface SubsequentReferenceContext {
  * directly, bypassing the priority logic (except for first citations, which
  * always return `null`).
  *
+ * STD-015: under an OSCOLA or NZLSG config the standard's own rules apply
+ * instead (`resolveSubsequentReferenceWithKind`); the AGLC path is unchanged.
+ *
  * @param citation - The citation being referenced
  * @param context - Resolution context with document-level state
  * @returns Formatted runs for the subsequent reference, or `null` if this is
@@ -807,6 +1149,31 @@ export function resolveSubsequentReference(
   citation: Citation,
   context: SubsequentReferenceContext
 ): FormattedRun[] | null {
+  const resolved = resolveSubsequentReferenceWithKind(citation, context);
+  return resolved === null ? null : resolved.runs;
+}
+
+/**
+ * `resolveSubsequentReference` with the kind of reference produced, for
+ * callers that label the occurrence as well as render it.
+ *
+ * - AGLC4 1.4.1–1.4.6 (any AGLC config, or none).
+ * - OSCOLA 5 §1.2.1/§1.2.3: brief identifier + `(n X)` + pinpoint, never
+ *   ibid, no within-footnote `at` and no above/below constructs; OSCOLA 4
+ *   §1.2.3 adds lower-case `ibid` for the immediately preceding footnote.
+ * - NZLSG 3 §2.3.1: rule 1 pinpoint-only form when the source is obvious
+ *   from the immediately preceding footnote, else rule 2 `, above n X, at`
+ *   (legislation by short title alone); commercial style (NZLSG-008) from
+ *   `config.nzlsgStyle` or `data.nzlsgStyle`; never ibid.
+ *
+ * `formatPreference` is honoured under every standard: `full` renders the
+ * full citation (`null`), `short` the standard's short form, `ibid` an ibid
+ * where the standard allows one and its short form otherwise.
+ */
+export function resolveSubsequentReferenceWithKind(
+  citation: Citation,
+  context: SubsequentReferenceContext
+): ResolvedSubsequentReference | null {
   // Explanatory notes always render in full — no ibid or short ref
   if (citation.sourceType === "explanatory_note") {
     return null;
@@ -817,6 +1184,21 @@ export function resolveSubsequentReference(
     return null;
   }
 
+  const config = context.config;
+  if (config && familyOf(config) === "oscola") {
+    return resolveOscolaSubsequent(citation, context, config);
+  }
+  if (config && familyOf(config) === "nzlsg") {
+    return resolveNzlsgSubsequent(citation, context, config);
+  }
+  return resolveAglcSubsequent(citation, context);
+}
+
+/** AGLC4 Rules 1.4.1–1.4.6 (see `resolveSubsequentReference`). */
+function resolveAglcSubsequent(
+  citation: Citation,
+  context: SubsequentReferenceContext
+): ResolvedSubsequentReference | null {
   const config = context.config;
   // COURT-FIX-004: ibidSuppressionMode toggle controls ibid instead of hardcoded court check
   const ibidEnabled = config?.ibidSuppressionMode === "on" ? false : (config?.ibidEnabled ?? true);
@@ -829,22 +1211,26 @@ export function resolveSubsequentReference(
       case "ibid":
         // If ibid is disabled by config, fall through to short reference
         if (!ibidEnabled) {
-          return formatShortReference(
+          return asShort(
+            formatShortReference(
+              citation,
+              context.firstFootnoteNumber,
+              context.currentPinpoint,
+              context.disambiguate,
+              config
+            )
+          );
+        }
+        return asIbid(resolveIbid(context.currentPinpoint, context.precedingPinpoint));
+      case "short":
+        return asShort(
+          formatShortReference(
             citation,
             context.firstFootnoteNumber,
             context.currentPinpoint,
             context.disambiguate,
             config
-          );
-        }
-        return resolveIbid(context.currentPinpoint, context.precedingPinpoint);
-      case "short":
-        return formatShortReference(
-          citation,
-          context.firstFootnoteNumber,
-          context.currentPinpoint,
-          context.disambiguate,
-          config
+          )
         );
     }
   }
@@ -857,7 +1243,7 @@ export function resolveSubsequentReference(
   //    Repeating `at` for an identical consecutive pinpoint is permitted:
   //    Rule 1.4.6 says the repetition "is not necessary", not prohibited.
   if (context.isWithinSameFootnote && context.currentPinpoint) {
-    return formatWithinFootnoteReference(context.currentPinpoint);
+    return asShort(formatWithinFootnoteReference(context.currentPinpoint));
   }
 
   // 3. Ibid eligible (Rule 1.4.3)
@@ -865,14 +1251,8 @@ export function resolveSubsequentReference(
   //    - Preceding footnote had exactly 1 citation
   //    - If preceding had a pinpoint but current doesn't, ibid is not used
   //    - Ibid must be enabled by config (MULTI-005)
-  const ibidEligible =
-    ibidEnabled &&
-    context.isSameAsPreceding &&
-    context.precedingFootnoteCitationCount === 1 &&
-    !(context.precedingPinpoint !== undefined && context.currentPinpoint === undefined);
-
-  if (ibidEligible) {
-    return resolveIbid(context.currentPinpoint, context.precedingPinpoint);
+  if (ibidEnabled && isIbidEligible(context)) {
+    return asIbid(resolveIbid(context.currentPinpoint, context.precedingPinpoint));
   }
 
   // 4. Cross-reference direction (Rule 1.4.2)
@@ -881,27 +1261,137 @@ export function resolveSubsequentReference(
   //    instead of the standard short reference.
   const direction = context.crossReferenceDirection;
   if (direction === "above") {
-    return formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint);
+    return asShort(formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint));
   }
   if (direction === "below") {
-    return formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint);
+    return asShort(formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint));
   }
   if (direction === "auto" && context.footnoteNumber !== undefined) {
     if (context.firstFootnoteNumber < context.footnoteNumber) {
-      return formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint);
+      return asShort(formatAboveReference(context.firstFootnoteNumber, context.currentPinpoint));
     }
     if (context.firstFootnoteNumber > context.footnoteNumber) {
-      return formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint);
+      return asShort(formatBelowReference(context.firstFootnoteNumber, context.currentPinpoint));
     }
     // firstFootnoteNumber === footnoteNumber: same footnote, fall through to short reference
   }
 
   // 5. Short reference (Rule 1.4.1)
-  return formatShortReference(
-    citation,
-    context.firstFootnoteNumber,
-    context.currentPinpoint,
-    context.disambiguate,
-    config
+  return asShort(
+    formatShortReference(
+      citation,
+      context.firstFootnoteNumber,
+      context.currentPinpoint,
+      context.disambiguate,
+      config
+    )
+  );
+}
+
+/**
+ * OSCOLA 5 §1.2.1/§1.2.3 and OSCOLA 4 §1.2.1/§1.2.3.
+ *
+ * Every later reference is the short form with `(n X)` and the pinpoint
+ * (`Austin (n 1) [34]`); a second reference to the same source within one
+ * footnote takes the same form (OSCOLA has no `at`, `above` or `below`
+ * gadgets — §1.2.3 avoids Latin and directional cross-references, §1.2.2
+ * names the footnote instead). Under OSCOLA 4 the immediately preceding
+ * footnote may be cited as `ibid` (`ibid 6`, `ibid [34]`), which OSCOLA 5
+ * removed (`ibidEnabled`). Legislation, treaties and OJ instruments without
+ * a declared short form repeat the full citation (OSCOLA 4 §1.2.1; the 5th
+ * edition shows only the declared route — DECISION-040).
+ */
+function resolveOscolaSubsequent(
+  citation: Citation,
+  context: SubsequentReferenceContext,
+  config: CitationConfig
+): ResolvedSubsequentReference | null {
+  const shortForm = (): ResolvedSubsequentReference | null => {
+    if (isOscolaDeclaredType(citation.sourceType) && !declaredShortForm(citation)) {
+      return null;
+    }
+    return asShort(
+      formatOscolaShortReference(
+        citation,
+        context.firstFootnoteNumber,
+        context.currentPinpoint,
+        context.disambiguate,
+        config
+      )
+    );
+  };
+  const ibid = (): ResolvedSubsequentReference =>
+    asIbid(resolveIbid(context.currentPinpoint, context.precedingPinpoint, config));
+
+  switch (context.formatPreference) {
+    case "full":
+      return null;
+    case "short":
+      return shortForm();
+    case "ibid":
+      return config.ibidEnabled ? ibid() : shortForm();
+    default:
+      break;
+  }
+
+  if (config.ibidEnabled && isIbidEligible(context)) {
+    return ibid();
+  }
+  return shortForm();
+}
+
+/**
+ * NZLSG 3 §2.3.1 (general style) and NZLSG-008 (commercial style).
+ *
+ * General: rule 1 gives only the pinpoint when the source is obvious from
+ * the immediately preceding footnote (`At [42].`, `Section 8.`); rule 2
+ * otherwise repeats the identifier with `, above n X,` and the pinpoint
+ * (`Brooker, above n 1, at [42]`), legislation by short title alone
+ * (`Privacy Act, s 6`). A `short` preference always takes rule 2; an `ibid`
+ * preference is treated as `auto` (ibid is never used, §2.3.1). A second
+ * reference within one footnote takes rule 2 (no AGLC `at` gadget; whether
+ * rule 1 applies there is a DECISION-040 point). Commercial style renders
+ * the identifier and pinpoint only.
+ */
+function resolveNzlsgSubsequent(
+  citation: Citation,
+  context: SubsequentReferenceContext,
+  config: CitationConfig
+): ResolvedSubsequentReference | null {
+  if (context.formatPreference === "full") {
+    return null;
+  }
+
+  const pinpoint = context.currentPinpoint;
+  const stored = citation.data.nzlsgStyle;
+  const style: NZLSGStyle =
+    config.nzlsgStyle ?? (stored === "commercial" || stored === "general" ? stored : "general");
+
+  if (style === "commercial") {
+    return asShort(formatNzlsgCommercialReference(citation, pinpoint, config));
+  }
+
+  // §2.3.1(a) rule 1: the source is obvious from the immediately preceding
+  // footnote, which cited this one source.
+  const obvious =
+    context.formatPreference !== "short" &&
+    context.isSameAsPreceding &&
+    context.precedingFootnoteCitationCount === 1;
+  if (obvious && pinpoint) {
+    const only = formatNzlsgPinpointOnly(citation, pinpoint, config);
+    if (only !== null) {
+      return asShort(only);
+    }
+  }
+
+  // §2.3.1(a) rule 2
+  return asShort(
+    formatNzlsgShortReference(
+      citation,
+      context.firstFootnoteNumber,
+      pinpoint,
+      context.disambiguate,
+      config
+    )
   );
 }

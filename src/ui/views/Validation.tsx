@@ -210,15 +210,23 @@ export default function Validation(): JSX.Element {
         store.getCourtToggles() ??
         (getDevicePref("courtToggles") as Record<string, string> | undefined);
       const currentConfig = buildCourtConfig({ ...baseConfig, writingMode: currentWritingMode }, courtToggles);
-      const validationResult = validateDocument(
-        footnoteTexts, citations, bodyText, currentWritingMode,
-        store.getCourtJurisdiction(), currentConfig.parallelCitationMode,
-        currentConfig.ibidSuppressionMode,
-      );
+      // STD-019: the validator selects its check set from the standard and
+      // runs the court checks (parallel enforcement, ibid suppression and the
+      // unreported-judgment gate) from the same config the refresher renders with.
+      const validationResult = validateDocument(footnoteTexts, citations, bodyText, {
+        standardId: currentStandardId,
+        writingMode: currentWritingMode,
+        courtJurisdiction: store.getCourtJurisdiction(),
+        parallelCitationMode: currentConfig.parallelCitationMode,
+        ibidSuppressionMode: currentConfig.ibidSuppressionMode,
+        unreportedGateMode: currentConfig.unreportedGateMode,
+      });
 
       // Run standard-specific validation rules
       if (currentStandardId.startsWith("oscola")) {
-        const oscolaIssues = checkOscolaRules(citations, footnoteTexts);
+        const oscolaIssues = checkOscolaRules(citations, footnoteTexts, {
+          standardId: currentStandardId,
+        });
         for (const issue of oscolaIssues) {
           switch (issue.severity) {
             case "error":

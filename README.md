@@ -1,4 +1,4 @@
-# Obiter v1.17.0
+# Obiter v1.17.1
 
 **AGLC4, applied automatically.**
 
@@ -85,15 +85,18 @@ Automatic updates are handled by AppSource. No manual steps required after insta
 
 ### Court submission mode
 
-- **12+ jurisdictional presets** -- HCA, FCA, NSW, Vic, Qld, WA, SA, Tas, ACT, NT and more
-- **Parallel citations** -- medium neutral plus authorised report, as court practice directions require
-- **List of Authorities** -- generated for the selected jurisdiction
+- **AGLC4 only** -- court mode is a writing mode of the AGLC4 standard; the court toggles are ignored under OSCOLA and NZLSG
+- **20 jurisdictional presets** -- High Court, Federal Court, Federal Circuit and Family Court; the Courts of Appeal, Supreme Courts and lower courts of NSW, Victoria and Queensland; the WA, SA, Tas, ACT and NT Supreme Courts; the Administrative Review Tribunal, the Fair Work Commission and the state and territory tribunals
+- **Six toggles plus order** -- parallel citations, pinpoint style, authorised-report hierarchy (read-only, from the preset), unreported-judgment gate, ibid and (n X) suppression, List of Authorities type, and the parallel citation order (WA puts the medium neutral citation first)
+- **Parallel citations** -- medium neutral plus authorised report, composed in the preset's order, and the previews match the footnote
+- **List of Authorities** -- simple, Part A / Part B, Part A / B / C (Vic Court of Appeal), two parts (SA and family appeals) or three parts (Tas), generated for the selected jurisdiction
 - **Ibid suppression** -- explicit short forms in place of ibid for filed documents
 
 ### Other standards and jurisdictions
 
-- **OSCOLA 5** -- Oxford University Standard for Citation of Legal Authorities, 5th edition: England and Wales, Scotland, Northern Ireland, EU and ECHR materials
-- **NZLSG 3** -- New Zealand Law Style Guide, 3rd edition, including Maori Land Court, Waitangi Tribunal, and general and commercial styles
+- **OSCOLA 5 and OSCOLA 4** -- Oxford University Standard for Citation of Legal Authorities: England and Wales, Scotland, Northern Ireland and Ireland cases, UK legislation and statutory instruments, secondary sources, Hansard and official papers, EU, ECHR and international materials; no ibid under OSCOLA 5, (n X) short forms, single quotation marks, Table of Cases, Table of Legislation and a surname-first bibliography; BAILII links from Record details
+- **NZLSG 3** -- New Zealand Law Style Guide, 3rd edition: neutral citations with the best report, pre-neutral file-number cases, Maori Land Court, Waitangi Tribunal, NZ legislation and bills, secondary and parliamentary sources, "above n" subsequent references with the general and commercial styles, double quotation marks and an Appendix 7 bibliography; NZLII links from Record details
+- **Standard-specific forms** -- the Insert and Edit forms show the fields each standard reads; source types the guides do not cover fall through to the AGLC4 form and are listed in [Standards coverage](docs/standards-coverage.md)
 - **International materials** -- treaties, UN documents, ICJ, PCIJ, ICC, international arbitration, WTO, GATT, EU, ECHR and other supranational courts (Chapters 8--14)
 - **12 foreign jurisdictions** -- Canada, China, France, Germany, Hong Kong, Malaysia, New Zealand, Singapore, South Africa, United Kingdom, United States and others (Chapters 15--26)
 - **AGLC5 ready** -- version-parameterised rule engine designed for a clean upgrade path

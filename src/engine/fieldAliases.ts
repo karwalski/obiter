@@ -61,6 +61,41 @@ export const FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
   startingPage: ["page"],
   issuingBody: ["body"],
   documentTitle: ["title"],
+  // ─── STD-021: OSCOLA and NZLSG dispatcher keys read from the AGLC form ───
+  // The Insert/Edit forms write the AGLC key for a fact (`courtId`, `mnc`,
+  // `reportSeries`/`volume`/`startingPage`); the OSCOLA and NZLSG adapters in
+  // engine.ts read their native keys through readFieldWithAliases so a case
+  // entered on the AGLC form renders under every standard. A full MNC string
+  // (`[2008] UKHL 13`) under a number key is parsed by the adapter.
+  courtIdentifier: ["court", "courtId"],
+  // No `courtId` alias: `courtId` is an AGLC edit-form key, and an alias to
+  // `court` would fold an MNC record's court into the reported-case row of
+  // the duplicates and update-from-source merge tables.
+  decisionNumber: ["caseNumber", "judgmentNumber", "neutralCitationNumber"],
+  neutralCitationNumber: ["decisionNumber", "caseNumber", "judgmentNumber"],
+  // No alias for neutralCitationYear / neutralCitationCourt / reportYear: a
+  // report's `year` and `courtId` are different facts from the neutral
+  // citation's (Wilson [2009] NICA 30, [2010] NI 48); the adapters fall back
+  // to `year` themselves, and the `mnc` string is parsed, not aliased.
+  // NZLSG parallel report (rule 3.2): built from the AGLC report triple when
+  // the structured object is absent (engine `readParallelReport`).
+  parallelReport: ["reportSeries"],
+  ukLegislationType: ["legislationType"],
+  legislationType: ["ukLegislationType", "instrumentType"],
+  historicalSeries: ["historical"],
+  // OSCOLA ECtHR: the respondent State is the second party of the case name
+  respondentState: ["party2", "respondent"],
+  waiNumber: ["claimNumber", "wai"],
+  minuteBookAbbrev: ["minuteBook"],
+  blockNumber: ["volume"],
+  nzpd: ["isNzpd"],
+  billNumber: ["number"],
+  reportType: ["documentType"],
+  treatyOfWaitangi: ["isTreatyOfWaitangi"],
+  fileNumber: ["proceedingNumber", "caseNumber"],
+  place: ["placeOfPublication", "location", "city"],
+  degree: ["thesisType"],
+  decisionType: ["phase"],
 };
 
 /** The alternative keys accepted for `field` (empty when it has none). */

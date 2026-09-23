@@ -101,8 +101,12 @@ export interface OscolaParliamentaryReportData {
 export function formatOscolaHansard(data: OscolaHansardData): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  // Chamber abbreviation + Deb
-  let text = `${data.chamber} Deb ${data.date}, vol ${data.volume}, col ${data.column}`;
+  // Chamber abbreviation + Deb. OSCOLA 5 §3.7.8: an en-dash column span or
+  // a list takes the plural label ('cols 973–76'); a single column 'col
+  // 973'. A verbatim string is otherwise rendered as given.
+  const column = String(data.column).trim();
+  const columnLabel = /[–,]/.test(column) ? "cols" : "col";
+  let text = `${data.chamber} Deb ${data.date}, vol ${data.volume}, ${columnLabel} ${column}`;
 
   // Speaker in parentheses
   if (data.speaker) {

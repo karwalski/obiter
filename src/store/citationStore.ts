@@ -587,6 +587,27 @@ export class CitationStore {
   }
 
   /**
+   * STD-022: Return the NZLSG subsequent-reference style stored in the
+   * DOCUMENT (NZLSG 3 r 2.3). Defaults to "general" when unset, so documents
+   * saved before the field existed read as general style.
+   */
+  getNzlsgStyle(): "general" | "commercial" {
+    this.ensureInitialised();
+    return this.storeData!.metadata.nzlsgStyle ?? "general";
+  }
+
+  /**
+   * STD-022: Update the NZLSG subsequent-reference style and persist it
+   * into the document, so the same document renders identically on every
+   * device. The engine reads it through the document config.
+   */
+  async setNzlsgStyle(style: "general" | "commercial"): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.nzlsgStyle = style;
+    await this.persist();
+  }
+
+  /**
    * Return the persisted heading list ID, or undefined if not set.
    */
   getHeadingListId(): number | undefined {
@@ -804,7 +825,8 @@ export class CitationStore {
       this.storeData!.metadata.headingListId,
       APP_VERSION,
       this.storeData!.metadata.ccModel,
-      this.storeData!.metadata.courtToggles
+      this.storeData!.metadata.courtToggles,
+      this.storeData!.metadata.nzlsgStyle
     );
   }
 

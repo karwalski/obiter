@@ -34,6 +34,12 @@ export interface SyncedSettings {
   autoRefresh?: boolean;
   templatePrefs?: Partial<TemplatePreferences>;
   courtToggles?: Record<string, string>;
+  /** STD-022: the document's citation standard id (e.g. "oscola5"). */
+  standardId?: string;
+  /** STD-022: the court jurisdiction id; "" when the document has none. */
+  courtJurisdiction?: string;
+  /** STD-022: the NZLSG subsequent-reference style ("general" | "commercial"). */
+  nzlsgStyle?: string;
   [namespace: string]: unknown;
 }
 

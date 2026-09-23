@@ -394,7 +394,7 @@ function bookRecord(): InterchangeRecord {
   record.keywords = ["restitution", "unjust enrichment"];
   record.notes = ["Ch 3 & 4"];
   record.formatted = {
-    standard: "James Edelman and Elise Bant, Unjust Enrichment (Hart Publishing, 2nd ed, 2016)",
+    standard: "AGLC4",
     footnote: "James Edelman and Elise Bant, Unjust Enrichment (Hart Publishing, 2nd ed, 2016)",
     bibliography:
       "Edelman, James and Elise Bant, Unjust Enrichment (Hart Publishing, 2nd ed, 2016)",

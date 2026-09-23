@@ -13,8 +13,9 @@ import { Author, Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors } from "./authors";
 import { formatSecondaryTitle } from "./general";
-import { formatPinpoint } from "../general/pinpoints";
 import { formatUrl } from "./general";
+import type { CitationConfig } from "../../../standards/types";
+import { pushSecondaryPinpoint, secondaryStyleFor } from "./style";
 
 // ─── Shared data shape ──────────────────────────────────────────────────────
 
@@ -35,6 +36,14 @@ interface JournalCore {
    * square brackets. Explicit value overrides the derived default.
    */
   yearOrganised?: boolean;
+  /**
+   * STD-016: the document config; absent means AGLC4. OSCOLA 5 §3.3 and
+   * NZLSG 3 §6.4 share the AGLC element order (author, quoted title, year,
+   * volume, journal, first page) but set the journal abbreviation roman,
+   * NZLSG drops the author comma and uses double marks, and the pinpoint
+   * follows a comma (OSCOLA) or `at` (NZLSG).
+   */
+  config?: CitationConfig;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -100,8 +109,9 @@ function formatVolumeAndIssue(volume?: number, issue?: string): string {
  * ('as it appears on the title page') — see DECISION-014; the contrary
  * example 10 ('&' → 'and') is not encoded.
  */
-function journalTitleRun(journal: string): FormattedRun {
-  return { text: journal.trim().replace(/^The\s+/i, ""), italic: true };
+function journalTitleRun(journal: string, italic = true): FormattedRun {
+  const text = journal.trim().replace(/^The\s+/i, "");
+  return italic ? { text, italic: true } : { text };
 }
 
 /**
@@ -110,12 +120,14 @@ function journalTitleRun(journal: string): FormattedRun {
  * italic journal (Rules 5.1–5.5).
  */
 function pushCoreElements(runs: FormattedRun[], data: JournalCore): void {
-  // Author (Rule 5.1 via 4.1)
+  const style = secondaryStyleFor(data.config);
+
+  // Author (Rule 5.1 via 4.1; NZLSG 3 §6.4 no comma)
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title — quoted, not italicised (Rule 5.2 / 4.2)
-  runs.push(...formatSecondaryTitle(data.title, "journal.article"));
+  runs.push(...formatSecondaryTitle(data.title, "journal.article", data.config));
 
   // Year (Rule 5.3)
   runs.push({ text: ` ${formatJournalYear(data.year, isYearOrganised(data))}` });
@@ -123,8 +135,8 @@ function pushCoreElements(runs: FormattedRun[], data: JournalCore): void {
   // Volume and issue (Rule 5.4)
   runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
 
-  // Journal title — italicised (Rule 5.5)
-  runs.push(journalTitleRun(data.journal));
+  // Journal title — italicised (Rule 5.5); roman under OSCOLA 5 §3.3 and NZLSG 3 §6.4
+  runs.push(journalTitleRun(data.journal, style.journalTitleItalic));
 }
 
 /**
@@ -186,10 +198,9 @@ export function formatJournalArticle(
   // Starting page (Rule 5.6)
   runs.push({ text: ` ${data.startingPage}` });
 
-  // Pinpoint (Rule 5.7)
+  // Pinpoint (Rule 5.7; OSCOLA 5 §3.3 after a comma; NZLSG 3 §6.4 'at')
   if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, secondaryStyleFor(data.config), ", ");
   }
 
   return runs;
@@ -217,13 +228,16 @@ export function formatJournalArticlePart(
   }
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (quoted), with any in-title part reference stripped (Rule 5.8)
-  runs.push(...formatSecondaryTitle(stripPartFromTitle(data.title), "journal.article"));
+  runs.push(
+    ...formatSecondaryTitle(stripPartFromTitle(data.title), "journal.article", data.config)
+  );
 
   // Part indicator between title and year (Rule 5.8)
   runs.push({ text: ` (Pt ${data.partNumber})` });
@@ -235,15 +249,14 @@ export function formatJournalArticlePart(
   runs.push({ text: formatVolumeAndIssue(data.volume, data.issue) });
 
   // Journal title — italicised (Rule 5.5)
-  runs.push(journalTitleRun(data.journal));
+  runs.push(journalTitleRun(data.journal, style.journalTitleItalic));
 
   // Starting page
   runs.push({ text: ` ${data.startingPage}` });
 
   // Pinpoint
   if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, ", ");
   }
 
   return runs;
@@ -292,8 +305,7 @@ export function formatOnlineJournalArticle(
 
   // Pinpoint after the identifier, preceded by a comma (Rule 5.10)
   if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, secondaryStyleFor(data.config), ", ");
   }
 
   // Optional URL in angle brackets (Rule 4.4)
@@ -330,15 +342,18 @@ export function formatForthcomingArticle(data: {
   yearOrganised?: boolean;
   /** Emits '(advance)' instead of '(forthcoming)'. */
   advance?: boolean;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (quoted)
-  runs.push(...formatSecondaryTitle(data.title, "journal.forthcoming"));
+  runs.push(...formatSecondaryTitle(data.title, "journal.forthcoming", data.config));
 
   // Year (Rule 5.3), where known
   if (data.year !== undefined && data.year !== "") {
@@ -350,7 +365,7 @@ export function formatForthcomingArticle(data: {
   }
 
   // Journal title — italicised (Rule 5.5)
-  runs.push(journalTitleRun(data.journal));
+  runs.push(journalTitleRun(data.journal, style.journalTitleItalic));
 
   // Status marker in place of the starting page (Rule 5.11)
   runs.push({ text: data.advance ? " (advance)" : " (forthcoming)" });

@@ -1453,98 +1453,97 @@
         <h2>20. Court Submission Mode</h2>
 
         <p>
-          Obiter includes a Court Submission Mode designed for practitioners
-          preparing documents for filing. Toggle it on in
-          <strong>Settings</strong> to switch from academic writing mode to a
-          court-focused workflow.
+          Obiter includes a Court Submission Mode for practitioners preparing
+          documents for filing in Australian courts and tribunals. It is a
+          writing mode of the AGLC4 standard: the <strong>Writing mode</strong>
+          control appears in <strong>Settings</strong> only while the document
+          uses AGLC4, and a document switched to OSCOLA or NZLSG returns to
+          academic mode. OSCOLA and NZLSG have no court-submission variant.
         </p>
 
-        <h3>Writing mode toggle</h3>
+        <h3>Writing mode</h3>
         <p>
-          The mode toggle in Settings switches between Academic and Court
-          modes. Academic mode is the default and follows standard AGLC4
-          conventions for essays and research papers. Court mode adjusts
-          citation behaviour to match the expectations of Australian courts.
+          The control switches between Academic and Court Submission. Academic
+          mode is the default and follows the AGLC4 conventions for essays and
+          research papers. Court mode drops ibid, uses short case names without
+          (n X), composes parallel citations by default and generates a List of
+          Authorities in place of the bibliography. The Insert form, the
+          library previews, the Quote panel and the footnotes all render the
+          court form, so what you see before inserting is what the document
+          gets.
         </p>
 
         <h3>Jurisdictional presets</h3>
         <p>
-          Court mode provides presets for different Australian jurisdictions.
-          Selecting a jurisdiction configures citation preferences, court
-          hierarchy, and report series preferences to match local practice.
-          Supported jurisdictions:
+          Choosing a jurisdiction loads a preset drawn from that court&rsquo;s
+          practice direction or rules (the sources are listed in the Reference
+          Guide). Twenty presets are available, grouped as in the drop-down:
         </p>
         <ul class="docs-list">
-          <li>High Court of Australia</li>
-          <li>Federal Court of Australia</li>
-          <li>NSW Supreme Court</li>
-          <li>Victoria Supreme Court</li>
-          <li>Queensland Supreme Court</li>
-          <li>South Australia Supreme Court</li>
-          <li>Western Australia Supreme Court</li>
-          <li>Tasmania Supreme Court</li>
-          <li>ACT Supreme Court</li>
-          <li>NT Supreme Court</li>
-          <li>Family Court of Australia</li>
-          <li>Federal Circuit and Family Court</li>
+          <li><strong>Federal</strong> &mdash; High Court of Australia; Federal Court of Australia; Federal Circuit and Family Court</li>
+          <li><strong>New South Wales</strong> &mdash; NSW Court of Appeal; NSW Supreme Court; NSW District / Local Court</li>
+          <li><strong>Victoria</strong> &mdash; Vic Court of Appeal; Vic Supreme Court; Vic County / Magistrates&rsquo; Court</li>
+          <li><strong>Queensland</strong> &mdash; Qld Court of Appeal; Qld Supreme Court; Qld District / Magistrates Court</li>
+          <li><strong>Other States/Territories</strong> &mdash; WA Supreme Court; SA Supreme Court; Tas Supreme Court; ACT Supreme Court; NT Supreme Court</li>
+          <li><strong>Tribunals</strong> &mdash; Administrative Review Tribunal; Fair Work Commission; State/Territory Tribunal (NCAT, VCAT, QCAT, SAT and others)</li>
         </ul>
+
+        <h3>Court toggles</h3>
+        <p>
+          A preset sets six toggles. Each can be overridden for the document
+          under <strong>Court toggles</strong> in Settings, and the overrides
+          travel with settings sync when it is on.
+        </p>
+        <ul class="docs-list">
+          <li><strong>Parallel citations</strong> &mdash; Off, Preferred or Mandatory. Preferred and Mandatory emit the authorised report together with the medium neutral citation for a reported case.</li>
+          <li><strong>Pinpoint style</strong> &mdash; Page only, Paragraph only, or Paragraph and page (for example <em>(2023) 72 VR 394, 410 [60]</em>).</li>
+          <li><strong>Authorised-report hierarchy</strong> &mdash; read-only. It shows the preset&rsquo;s preferred report series in order (CLR for the High Court; NSWLR, then CLR, then ALR for the NSW courts) and is used to rank a case&rsquo;s reports. The tribunal presets have no authorised series and the field is empty.</li>
+          <li><strong>Unreported-judgment gate</strong> &mdash; Off or Warn. Warn flags a medium neutral citation for a case that has an authorised report, in the Insert form and in Validation.</li>
+          <li><strong>Ibid / (n X) suppression</strong> &mdash; replaces ibid and (n X) cross-references with an explicit short form in every footnote.</li>
+          <li><strong>List of Authorities</strong> &mdash; the format the Bibliography view generates (below).</li>
+        </ul>
+        <p>
+          A seventh control, <strong>Parallel citation order</strong>, chooses
+          whether the authorised report or the medium neutral citation comes
+          first. Most courts take the report first; the WA Supreme Court preset
+          puts the medium neutral citation first, as its consolidated practice
+          directions require.
+        </p>
 
         <h3>Parallel citations</h3>
         <p>
-          Australian courts typically require parallel citations &mdash;
-          references to both the authorised and unofficial reports of a
-          case. Court mode enables parallel citation formatting, inserting
-          both report series references in the required order.
+          Australian courts generally expect a reported case to be cited by its
+          authorised report and, where one exists, its medium neutral citation.
+          Store both on the record (the Insert form takes the report series,
+          volume and starting page alongside the medium neutral citation) and
+          court mode composes them in the preset&rsquo;s order. Find Duplicates
+          recognises a case stored once by report and once by medium neutral
+          citation as the same authority.
         </p>
 
         <h3>List of Authorities</h3>
         <p>
           Court filings require a List of Authorities rather than a
-          bibliography. Court mode generates one from your citations, formatted
-          according to court requirements. Open the <strong>Bibliography</strong>
-          view in court mode, choose the List of Authorities format, then insert
-          it at the cursor. Three formats are available:
+          bibliography. In court mode the <strong>Bibliography</strong> view
+          generates one from the cited authorities in the format the
+          <strong>List of Authorities</strong> toggle selects, and inserts it at
+          the cursor:
         </p>
         <ul class="docs-list">
-          <li>
-            <strong>Simple</strong> &mdash; a single alphabetised list of all
-            authorities.
-          </li>
-          <li>
-            <strong>Part A / Part B</strong> &mdash; authorities split into a key
-            authorities part and the remainder, with the key authorities marked
-            (as several appellate courts require).
-          </li>
-          <li>
-            <strong>HCA Joint Book format</strong> &mdash; the grouping used for a
-            High Court joint book of authorities.
-          </li>
+          <li><strong>Simple</strong> &mdash; cases and legislation in one alphabetised list.</li>
+          <li><strong>Part A / Part B</strong> &mdash; authorities read from at the hearing and authorities referred to, with the key authorities marked (High Court, Federal Court and the NSW and Qld Courts of Appeal).</li>
+          <li><strong>Part A / B / C</strong> &mdash; the Vic Court of Appeal civil form, with a third part for textbooks, articles and extrinsic materials and &ldquo;None&rdquo; stated under an unused part.</li>
+          <li><strong>Two parts (read / not read)</strong> &mdash; authorities expected to be read and those not expected to be read (SA Supreme Court; Federal Circuit and Family Court appeals).</li>
+          <li><strong>Three parts (Tas)</strong> &mdash; authorities to be cited, authorities that might be referred to, and legislation with sections listed separately.</li>
         </ul>
-        <p>
-          The active format is set by the <strong>List of Authorities type</strong>
-          toggle (below).
-        </p>
 
         <h3>Ibid suppression</h3>
         <p>
-          Some courts discourage or prohibit the use of <em>ibid</em> in
-          filed documents. Court mode can suppress ibid references and
-          replace them with short references throughout, ensuring every
-          footnote identifies its source explicitly.
+          Every preset turns ibid suppression on: courts expect each footnote
+          to identify its source. Subsequent references render as the short
+          case name (or short title) with the pinpoint, and Refresh All
+          rewrites any existing ibid.
         </p>
-
-        <h3>Configurable toggles</h3>
-        <p>
-          Court mode exposes five configurable toggles to fine-tune citation
-          behaviour for your jurisdiction:
-        </p>
-        <ul class="docs-list">
-          <li><strong>Parallel citation mode</strong> &mdash; include both authorised and unofficial report series references.</li>
-          <li><strong>Pinpoint style</strong> &mdash; select paragraph or page-based pinpoint conventions.</li>
-          <li><strong>Unreported judgment gate</strong> &mdash; control when medium-neutral citations are required.</li>
-          <li><strong>Ibid suppression</strong> &mdash; replace all ibid references with explicit short references.</li>
-          <li><strong>List of Authorities type</strong> &mdash; choose the format and grouping style for the List of Authorities.</li>
-        </ul>
       </div>
     </div>
   </section>
@@ -1558,34 +1557,73 @@
         <h2>21. Additional Standards</h2>
 
         <p>
-          In addition to AGLC4, Obiter includes support for two
-          international citation standards as bonus features for
-          practitioners and international users.
+          In addition to AGLC4, Obiter implements OSCOLA (5th and 4th
+          editions) and the New Zealand Law Style Guide (3rd edition). Choose
+          the standard from the <strong>Citation standard</strong> control in
+          Settings; the whole document is re-rendered on the next refresh. The
+          Insert and Edit forms show the fields the chosen standard reads (a UK
+          case takes its neutral citation year, court and number; an NZ case
+          its court identifier and decision number, or a file number for a
+          pre-neutral case), and Record details links UK cases to BAILII and NZ
+          cases to NZLII. Court Submission Mode is not available under these
+          standards.
         </p>
 
         <h3>OSCOLA 5</h3>
         <p>
-          The Oxford University Standard for Citation of Legal Authorities,
-          5th edition, is the dominant citation style in the United Kingdom.
-          Obiter implements OSCOLA 5 rules for cases, legislation, secondary
-          sources, and international materials. Select OSCOLA 5 from the
-          citation standard dropdown in Settings to use it.
+          The Oxford University Standard for Citation of Legal Authorities is
+          the citation style of the United Kingdom. Under OSCOLA 5 Obiter
+          renders:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Cases</strong> &mdash; the case name in italics including the <em>v</em>, the neutral citation, a comma and the best report (rule 2.1.1, 2.1.3); a court identifier only where there is no neutral citation (2.1.5); Scottish, Northern Irish and Irish forms (2.2, 2.3, 2.6.1). Paragraph pinpoints follow the citation in square brackets with no comma, <em>[2008] 1 AC 884 [42]</em>; page pinpoints follow a bracketed court identifier without a comma (2.1.6).</li>
+          <li><strong>Legislation</strong> &mdash; roman short title and year, provision after a comma, <em>Human Rights Act 1998, s 2</em> (2.4.1, 2.4.2); statutory instruments with their SI number (2.5.1); Welsh, Scottish and Northern Irish measures and assimilated EU law (2.4.6 to 2.4.9). A short form declared on the first citation, <em>(&lsquo;SARAH&rsquo;)</em>, is used alone thereafter (1.2.1).</li>
+          <li><strong>Subsequent references</strong> &mdash; OSCOLA 5 does not use ibid (1.2.1, 1.2.3). A later reference is the short identifier with the footnote of the full citation and the pinpoint: <em>Austin (n 1) [34]</em>, <em>Stevens (n 1) 110</em>. A case entered without a short title falls back to the first party.</li>
+          <li><strong>Quotations</strong> &mdash; single quotation marks with double marks inside; quotations longer than three lines set as an indented block without marks (1.5). The Quote panel applies these when the document is under OSCOLA.</li>
+          <li><strong>Secondary sources</strong> &mdash; books as <em>author, Title (edition, publisher year)</em> (3.2.1); chapters (3.2.4); articles with the title in single quotes and a roman journal abbreviation (3.3); theses with an italic title (3.7.6); websites, blogs, social media, podcasts and online video (3.7.1, 3.7.2); newspapers (3.7.7); Hansard (3.7.8); command papers (3.7.9); Law Commission reports (3.7.11); generative AI (3.7.13).</li>
+          <li><strong>International and European materials</strong> &mdash; treaties (4.1.1); UN documents and resolutions (4.2); ICJ and ITLOS (4.3); EU legislation and assimilated EU law (4.4.1); Court of Justice and General Court cases by ECLI (4.4.2); European Court of Human Rights and Commission decisions (4.4.4, 4.4.5); Council of Europe treaties and documents.</li>
+          <li><strong>Tables and bibliography</strong> &mdash; the Bibliography view generates a Table of Cases (names roman, 1.6.2), a Table of Legislation (1.6.3) and a Bibliography of secondary sources with the surname first and no closing full stop (1.7).</li>
+          <li><strong>Validation</strong> &mdash; the OSCOLA checks (ibid, missing neutral citations, table structure) run and the AGLC-only typography checks stay silent. A reported case is expected to carry both its neutral citation and its best report, so the AGLC parallel-citation warning is not raised.</li>
+        </ul>
+        <p>
+          <strong>OSCOLA 4</strong> differs where the 4th edition did: ibid
+          for the immediately preceding footnote (1.2.1 of that edition),
+          declared short forms without quotation marks, thesis titles in single
+          quotes (3.4.7) and an access date after a URL (3.4.8). Choose OSCOLA
+          4 when a publisher still requires it.
         </p>
 
         <h3>NZLSG 3</h3>
         <p>
-          The New Zealand Law Style Guide, 3rd edition, is the standard
-          citation guide for New Zealand legal writing. Obiter implements
-          NZLSG 3 rules for New Zealand cases, legislation, and secondary
-          sources. Select NZLSG 3 from the citation standard dropdown in
-          Settings to use it.
+          The New Zealand Law Style Guide, 3rd edition, is the citation guide
+          for New Zealand courts, universities and publishers. Under NZLSG 3
+          Obiter renders:
+        </p>
+        <ul class="docs-list">
+          <li><strong>Cases</strong> &mdash; the neutral citation whenever one exists, then a comma and the best report (rule 3.1 to 3.3); the court identifier only for cases without a neutral citation (3.2.7); pre-neutral cases by court, file number and date (3.4); Maori Land Court decisions by minute book (3.5); Waitangi Tribunal reports by Wai number (3.6). Pinpoints take <em>at</em>: <em>at [29]</em>, <em>at 398</em> (3.2.8).</li>
+          <li><strong>Legislation</strong> &mdash; roman short title and year, provision after a comma, <em>Crimes Act 1961, s 59</em> (4.1.1); bills with their bill number (4.2.1); regulations, rules and orders (4.3.1); Te Tiriti o Waitangi and the Treaty of Waitangi by article (4.1.1(e)).</li>
+          <li><strong>Subsequent references</strong> &mdash; NZLSG does not use ibid (2.3.1). In the general style a footnote gives the pinpoint alone where the source is obvious, <em>At 535.</em>, and otherwise the identifier with an <em>above n</em> cross-reference, <em>R v Wang, above n 49, at 533</em>; legislation repeats the short title without the year, <em>Securities Act, s 63</em>. The <strong>Citation style</strong> control in Settings switches the document to the commercial style, which drops the cross-reference and gives the identifier and pinpoint only; the choice is stored in the document.</li>
+          <li><strong>Quotations</strong> &mdash; double quotation marks with single marks inside; quotations of 30 words or more set as an indented block without marks (1.2.2).</li>
+          <li><strong>Secondary sources</strong> &mdash; texts with the place of publication, <em>(5th ed, LexisNexis, Wellington, 2015)</em> (6.1.1); chapters (6.2); articles with the title in double quotes (6.4); theses (6.7.1); internet materials without an access date (7.1.1); podcasts (7.1.8); Twitter posts (7.1.10); newspapers (7.2); NZPD (5.1.1); cabinet papers, the Gazette and the AJHR (5.1, 5.2); Law Commission reports (5.2.3); treaties, UN documents and ICJ cases (10.1, 10.2, 10.4).</li>
+          <li><strong>Bibliography</strong> &mdash; grouped by source type with cases and legislation first, names as written rather than inverted, and every entry closed with a full stop (Appendix 7).</li>
+          <li><strong>Validation</strong> &mdash; the NZLSG checks (ibid, cross-reference style, italicised legislation, macrons) run and the AGLC-only checks stay silent.</li>
+        </ul>
+
+        <h3>What falls through to AGLC4</h3>
+        <p>
+          Source types the guides do not cover, such as Australian-only forms
+          and the foreign jurisdictions of AGLC4 Part V, render in their AGLC4
+          form under either standard. The per-standard table is in
+          <code>docs/standards-coverage.md</code> in the repository, and the
+          points the guides leave open are recorded in the project&rsquo;s
+          decision record (DECISION-040) for researchers rather than guessed.
         </p>
 
         <div class="docs-note">
           <p>
-            Court Mode, OSCOLA 5, and NZLSG 3 support is included as a bonus
-            for practitioners and international users. These features have not
-            undergone the same level of testing as the core AGLC4 engine.
+            Court Submission Mode, OSCOLA and NZLSG were reviewed against the
+            published guides in September 2026 and are covered by a
+            feature-matrix test suite alongside the core AGLC4 engine.
             Community feedback and contributions are welcome.
           </p>
         </div>

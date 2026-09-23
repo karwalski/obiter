@@ -128,12 +128,11 @@ export function formatEcthrDecision(data: {
 /**
  * Formats a European Commission of Human Rights decision (historical).
  *
- * Format:
- *   *Case Name v State* App no XXXXX/YY (Commission decision, Date)
+ * OSCOLA 5 §4.4.5 (docs/standards-rule-notes.md):
+ *   *Case Name v State* App No XXXXX/YY (Commission Decision, Date)
  *
  * @example
- *   *X v United Kingdom* App no 7215/75 (Commission decision,
- *   12 July 1978)
+ *   *P v UK* App No 13473/87 (Commission Decision, 11 July 1988)
  */
 export function formatEcommhrDecision(data: {
   caseName: string;
@@ -149,8 +148,8 @@ export function formatEcommhrDecision(data: {
     : `${data.caseName} v ${data.respondentState}`;
   runs.push({ text: fullName, italic: true });
 
-  runs.push({ text: ` App no ${data.applicationNumber}` });
-  runs.push({ text: ` (Commission decision, ${data.date})` });
+  runs.push({ text: ` App No ${data.applicationNumber}` });
+  runs.push({ text: ` (Commission Decision, ${data.date})` });
 
   if (data.pinpoint) {
     runs.push({ text: ` ${data.pinpoint}` });

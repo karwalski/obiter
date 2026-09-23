@@ -14,6 +14,8 @@ Legend:
 
 Open researcher questions are tracked as DECISION-013..029 in `docs/decisions.md`; data rows only verifiable against the missing Appendices A–C stay provisional (DECISION-015, DATA-004).
 
+OSCOLA 5 and NZLSG 3 are audited separately in `docs/standards-coverage.md` (per-standard source-type table generated from the STD-003 coverage contract; open rule questions in DECISION-040).
+
 ---
 
 ## Chapter 1: General Rules

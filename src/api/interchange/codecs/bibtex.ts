@@ -32,9 +32,11 @@
  * (except in the verbatim fields url, doi and file), Unicode is left
  * as-is, entries are two-space indented and separated by a blank line.
  *
- * The AGLC-formatted citation, when the record carries one, is written as
- * `AGLC4 footnote: ...` / `AGLC4 bibliography: ...` lines inside the single
- * `note` field so other tools can display it. The cite key is the record's
+ * The formatted citation, when the record carries one, is written as
+ * `<standard> footnote: ...` / `<standard> bibliography: ...` lines
+ * ("AGLC4", "OSCOLA 5", "NZLSG 3") inside the single `note` field so other
+ * tools can display it; on import those lines are lifted into the
+ * passthrough bag, whatever the label. The cite key is the record's
  * own when it has one, otherwise `familyYearFirstword` (ASCII, lower-case)
  * with a, b, c suffixes to keep keys unique across a batch.
  */
@@ -51,6 +53,8 @@ import type {
   InterchangeLegal,
   InterchangeRecord,
 } from "../model";
+import { formattedNoteLine, parseFormattedNoteLine } from "../mapper/formattedNote";
+import type { FormattedNoteLine } from "../mapper/formattedNote";
 import { bibtexTypeToKind, KIND_TO_BIBTEX_TYPE } from "../mapper/kinds";
 import {
   creatorsWithRole,
@@ -719,21 +723,33 @@ function splitPages(text: string): { first?: string; last?: string; range: strin
   return { first: parts[0], range };
 }
 
-/** Pulls `obiter-id:` / `obiter-type:` lines out of a note. */
-function extractObiterLines(note: string): { text: string; id?: string; type?: string } {
+/**
+ * Pulls `obiter-id:` / `obiter-type:` lines and the formatted-citation
+ * lines ("<standard> footnote: …") out of a note.
+ */
+function extractObiterLines(note: string): {
+  text: string;
+  id?: string;
+  type?: string;
+  formatted: FormattedNoteLine[];
+} {
   let id: string | undefined;
   let type: string | undefined;
   const kept: string[] = [];
+  const formatted: FormattedNoteLine[] = [];
   for (const line of note.split(/\s*(?:\n|;\s)\s*/)) {
     const m = /^obiter-(id|type):\s*(.+)$/i.exec(line.trim());
+    const formattedLine = m ? undefined : parseFormattedNoteLine(line);
     if (m) {
       if (m[1].toLowerCase() === "id") id = m[2].trim();
       else type = m[2].trim();
+    } else if (formattedLine) {
+      formatted.push(formattedLine);
     } else if (line.trim()) {
       kept.push(line.trim());
     }
   }
-  return { text: kept.join("; "), id, type };
+  return { text: kept.join("; "), id, type, formatted };
 }
 
 function attachmentPaths(fileField: string): string[] {
@@ -969,6 +985,9 @@ function entryToRecord(
     const scanned = extractObiterLines(note);
     if (scanned.id) record.provenance.obiterId = scanned.id;
     if (scanned.type) record.provenance.obiterSourceType = scanned.type;
+    for (const line of scanned.formatted) {
+      addPassthrough(record, `formatted-${line.key}`, line.text);
+    }
     if (scanned.text) record.notes.push(scanned.text);
   }
   const keywords = take("keywords");
@@ -1085,12 +1104,26 @@ function pagesValue(record: InterchangeRecord): string | undefined {
   return range?.replace(/\u2013/g, "--");
 }
 
+/** Passthrough keys the note field writes itself and must not re-emit as fields. */
+const FORMATTED_PASSTHROUGH = new Set(["formatted-footnote", "formatted-bibliography"]);
+
+/**
+ * Notes plus the formatted citation lines, labelled with the standard they
+ * were rendered in (STD-025). A record's own `formatted` wins; lines that
+ * arrived through an earlier import are re-emitted otherwise.
+ */
 function noteValue(record: InterchangeRecord, includeFormatted: boolean): string | undefined {
   const lines = [...record.notes];
-  if (includeFormatted && record.formatted) {
-    if (record.formatted.footnote) lines.push(`AGLC4 footnote: ${record.formatted.footnote}`);
-    if (record.formatted.bibliography) {
-      lines.push(`AGLC4 bibliography: ${record.formatted.bibliography}`);
+  if (includeFormatted) {
+    const { formatted, passthrough } = record;
+    for (const key of ["footnote", "bibliography"] as const) {
+      const own = formatted?.[key];
+      const values = own
+        ? [own]
+        : formatted
+          ? []
+          : ([] as string[]).concat(passthrough[`formatted-${key}`] ?? []);
+      for (const v of values) lines.push(formattedNoteLine(formatted?.standard, key, v));
     }
   }
   return lines.length ? lines.join("; ") : undefined;
@@ -1159,7 +1192,8 @@ function recordFields(
     seen.add(name);
   }
   for (const [key, value] of Object.entries(record.passthrough)) {
-    if (key === "etal" || seen.has(key) || !/^[A-Za-z][A-Za-z0-9_-]*$/.test(key)) continue;
+    if (key === "etal" || FORMATTED_PASSTHROUGH.has(key)) continue;
+    if (seen.has(key) || !/^[A-Za-z][A-Za-z0-9_-]*$/.test(key)) continue;
     const text = Array.isArray(value) ? value.join("; ") : value;
     if (text) fields.push([key.toLowerCase(), text]);
   }

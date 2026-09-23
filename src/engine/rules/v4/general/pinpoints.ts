@@ -84,16 +84,77 @@ export function formatPinpoint(pinpoint: Pinpoint, prefix?: string): FormattedRu
 }
 
 /**
- * Serialises a pinpoint to the compact text form `formatPinpoint` renders
- * (`42`, `[42]`, `s 5`, `nn 22–4`, `6 [23]`). This is the ONE encoding used
- * for the per-occurrence pinpoint stored in a footnote content-control title
- * (see `buildOccurrenceTitle` in src/word/footnoteManager.ts); it is the
- * inverse of `pinpointFromTitleString`.
+ * Marker that opens the type-tagged title form (`@page:9|footnote:6`). A
+ * legacy compact title never starts with it.
+ */
+const TAGGED_PREFIX = "@";
+
+/** The known pinpoint types, for validating a tagged title. */
+const PINPOINT_TYPES: ReadonlySet<string> = new Set<string>([
+  "page",
+  "paragraph",
+  ...Object.keys(PINPOINT_PREFIX),
+]);
+
+function isPinpointType(value: string): value is Pinpoint["type"] {
+  return PINPOINT_TYPES.has(value);
+}
+
+/** Structural equality of two pinpoints (type, value, sub-pinpoint chain). */
+function samePinpoint(a: Pinpoint | undefined, b: Pinpoint | undefined): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  if (a.type !== b.type || a.value !== b.value) return false;
+  return samePinpoint(a.subPinpoint, b.subPinpoint);
+}
+
+/**
+ * The type-tagged title form: `@<type>:<value>` segments joined with `|`,
+ * one per level of the sub-pinpoint chain (`@page:9|footnote:6`). Values
+ * keep their text (a `:` in a value is safe — only the first colon of a
+ * segment separates the type); `|` never occurs in a pinpoint value.
+ */
+function pinpointToTaggedString(pinpoint: Pinpoint): string {
+  const segments: string[] = [];
+  for (let level: Pinpoint | undefined = pinpoint; level; level = level.subPinpoint) {
+    segments.push(`${level.type}:${level.value}`);
+  }
+  return `${TAGGED_PREFIX}${segments.join("|")}`;
+}
+
+/** Inverse of `pinpointToTaggedString`; `undefined` when the text is not a valid tagged form. */
+function pinpointFromTaggedString(text: string): Pinpoint | undefined {
+  const segments = text.slice(TAGGED_PREFIX.length).split("|");
+  let result: Pinpoint | undefined;
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const colon = segments[i].indexOf(":");
+    if (colon <= 0) return undefined;
+    const type = segments[i].slice(0, colon);
+    const value = segments[i].slice(colon + 1).trim();
+    if (!isPinpointType(type) || value === "") return undefined;
+    result = result ? { type, value, subPinpoint: result } : { type, value };
+  }
+  return result;
+}
+
+/**
+ * Serialises a pinpoint to the text form stored in a footnote content-control
+ * title (see `buildOccurrenceTitle` in src/word/footnoteManager.ts); it is
+ * the inverse of `pinpointFromTitleString`.
+ *
+ * The compact form `formatPinpoint` renders (`42`, `[42]`, `s 5`, `nn 22–4`,
+ * `6 [23]`) is used whenever it decodes back to the same typed pinpoint.
+ * When it would not (STD-014: a page with a footnote sub-pinpoint, `9 n 6`,
+ * reads back as page "9 n 6"), the type-tagged form `@page:9|footnote:6`
+ * is stored instead, so the type, value and sub-pinpoint chain survive
+ * whatever label vocabulary the document's standard renders them with.
  */
 export function pinpointToTitleString(pinpoint: Pinpoint): string {
-  return formatPinpoint(pinpoint)
+  const compact = formatPinpoint(pinpoint)
     .map((run) => run.text)
     .join("");
+  return samePinpoint(pinpointFromTitleString(compact), pinpoint)
+    ? compact
+    : pinpointToTaggedString(pinpoint);
 }
 
 /**
@@ -124,6 +185,8 @@ const PARAGRAPH_VALUE = /^\[[^\]]+\](?:\s*[–-]\s*\[[^\]]+\])?$/;
  *   emits (`ch`, `pt`, `cl`, `sch`, `art`, `reg`, `r`, `n`/`nn`, `col`, …)
  * - `n [m]` → page `n` with a paragraph sub-pinpoint `[m]` (Rule 1.1.6 ex
  *   `6 [23]`)
+ * - `@type:value|type:value` → the type-tagged form (STD-014), decoded
+ *   exactly; a malformed tagged string falls through to the page fallback
  * - anything else → page
  *
  * @returns The typed pinpoint, or `undefined` for a blank string.
@@ -131,6 +194,11 @@ const PARAGRAPH_VALUE = /^\[[^\]]+\](?:\s*[–-]\s*\[[^\]]+\])?$/;
 export function pinpointFromTitleString(s: string): Pinpoint | undefined {
   const text = s.trim();
   if (text === "") return undefined;
+
+  if (text.startsWith(TAGGED_PREFIX)) {
+    const tagged = pinpointFromTaggedString(text);
+    if (tagged) return tagged;
+  }
 
   if (PARAGRAPH_VALUE.test(text)) {
     return { type: "paragraph", value: text };

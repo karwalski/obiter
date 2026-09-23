@@ -7,8 +7,10 @@ import { Author, Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors, normaliseBodyName } from "./authors";
 import { formatSecondaryTitle } from "./general";
-import { formatPinpoint } from "../general/pinpoints";
 import { parseTitleMarkup } from "../general/titleMarkup";
+import type { CitationConfig } from "../../../standards/types";
+import { pushSecondaryPinpoint, secondaryStyleFor } from "./style";
+import type { SecondaryStyle } from "./style";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -140,9 +142,13 @@ function pushPublicationDetails(runs: FormattedRun[], parts: PubPart[]): boolean
  * where absent or the same as the author (ex 12). Geographic designations
  * and subdivisions are left to data entry.
  */
-function resolvePublisher(publisher: string | undefined, authors: Author[]): string {
+function resolvePublisher(
+  publisher: string | undefined,
+  authors: Author[],
+  style?: SecondaryStyle
+): string {
   if (!publisher || !publisher.trim()) return "";
-  const normalised = normaliseBodyName(publisher);
+  const normalised = normalisePublisherName(publisher, style);
   const authorText = formatAuthors(authors)
     .map((r) => r.text)
     .join("")
@@ -156,6 +162,20 @@ function resolvePublisher(publisher: string | undefined, authors: Author[]): str
     return "";
   }
   return normalised;
+}
+
+/**
+ * STD-016: the publisher name per standard. AGLC4 6.3.1 drops a leading
+ * 'The' and corporate-status abbreviations; OSCOLA 5 §3.2.1 shows the name
+ * as printed ('Methuen & Co', 'Sweet & Maxwell'); NZLSG 3 §6.1.5 drops
+ * 'Ltd' only.
+ */
+function normalisePublisherName(publisher: string, style?: SecondaryStyle): string {
+  const family = style?.family ?? "aglc";
+  if (family === "aglc") return normaliseBodyName(publisher);
+  const trimmed = publisher.trim();
+  if (family === "nzlsg") return trimmed.replace(/\s+Ltd$/i, "");
+  return trimmed;
 }
 
 /** Formats the year element: skipped when absent/zero (Rule 6.3.4). */
@@ -173,6 +193,87 @@ function pushEditedBy(runs: FormattedRun[], editors: Author[] | undefined): void
   if (!editors || editors.length === 0) return;
   runs.push({ text: ", ed " });
   runs.push(...formatAuthors(editors));
+}
+
+// ─── STD-016: standard-aware publication details ─────────────────────────────
+
+/**
+ * The edition element for the style: AGLC4 6.3.2 superscript ordinal runs;
+ * OSCOLA 5 §3.2.1 and NZLSG 3 §6.1.4 show the ordinal plain (`2nd edn`,
+ * `5th ed`).
+ */
+function editionPart(
+  edition: number | undefined,
+  revised: boolean | undefined,
+  style: SecondaryStyle,
+  abbreviation: "ed" | "edn"
+): PubPart {
+  if (style.superscriptOrdinal) {
+    return formatEditionRuns(edition ?? 1, revised, { abbreviation });
+  }
+  return formatEdition(edition ?? 1, revised, { abbreviation });
+}
+
+/** `«Publisher» «year»` with a space only (OSCOLA 5 §3.2.1); either half may be absent. */
+function publisherYear(publisher: string, year: string): string {
+  return [publisher, year].filter((p) => p.length > 0).join(" ");
+}
+
+/**
+ * Pushes the book publication details in the standard's order:
+ * - AGLC4 6.3 `(Publisher, edn, year)`;
+ * - OSCOLA 5 §3.2.1 `(edn, Publisher year)`, with an editor or translator
+ *   of an authored book opening the bracket (§3.2.3: `Tony Weir tr`,
+ *   `John Gardner ed`) — `leading` carries that element;
+ * - NZLSG 3 §6.1.1 `(edn, Publisher, Place, year)`.
+ *
+ * Under AGLC `leading` and `place` are ignored (the editor goes after the
+ * title per 6.6.2 and AGLC has no place element), so the AGLC output is
+ * unchanged.
+ */
+function pushStyledPublicationDetails(
+  runs: FormattedRun[],
+  style: SecondaryStyle,
+  parts: {
+    publisher: string;
+    edition: PubPart;
+    year: string;
+    place?: string;
+    leading?: string;
+  }
+): boolean {
+  switch (style.bookParenthesisOrder) {
+    case "edition-publisher-year":
+      return pushPublicationDetails(runs, [
+        parts.leading ?? "",
+        parts.edition,
+        publisherYear(parts.publisher, parts.year),
+      ]);
+    case "edition-publisher-place-year":
+      return pushPublicationDetails(runs, [
+        parts.leading ?? "",
+        parts.edition,
+        parts.publisher,
+        style.includePlaceOfPublication ? (parts.place ?? "") : "",
+        parts.year,
+      ]);
+    default:
+      return pushPublicationDetails(runs, [parts.publisher, parts.edition, parts.year]);
+  }
+}
+
+/**
+ * OSCOLA 5 §3.2.3: an editor of an authored book opens the publication
+ * bracket as `«Editor» ed` (`eds` for several editors — the guide
+ * exemplifies one editor only). Returns "" under the other standards, where
+ * `pushEditedBy` places the editor after the title (AGLC4 6.6.2).
+ */
+function editorsOpeningBracket(editors: Author[] | undefined, style: SecondaryStyle): string {
+  if (style.family !== "oscola" || !editors || editors.length === 0) return "";
+  const names = formatAuthors(editors)
+    .map((r) => r.text)
+    .join("");
+  return `${names} ${editors.length === 1 ? "ed" : "eds"}`;
 }
 
 // ─── BOOK-001 ─────────────────────────────────────────────────────────────────
@@ -208,12 +309,17 @@ export function formatBook(data: {
   editors?: Author[];
   pinpoint?: Pinpoint;
   editionAbbreviation?: "ed" | "edn";
+  /** Place of publication (NZLSG 3 §6.1.6); ignored under AGLC4 and OSCOLA. */
+  place?: string;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (italic, via formatSecondaryTitle which handles "book" source type).
   // Rule 26.4: a stored translation signals a non-English title, which is
@@ -226,25 +332,31 @@ export function formatBook(data: {
     // title (rule 26.1.1: translated titles are never italicised)
     runs.push({ text: ` [${data.translatedTitle}]` });
   } else {
-    runs.push(...formatSecondaryTitle(data.title, "book"));
+    runs.push(...formatSecondaryTitle(data.title, "book", data.config));
   }
 
-  // Editor of an authored book (Rule 6.6.2)
-  pushEditedBy(runs, data.editors);
+  // Editor of an authored book (Rule 6.6.2); OSCOLA 5 §3.2.3 puts the
+  // editor inside the bracket instead
+  const leading = editorsOpeningBracket(data.editors, style);
+  if (!leading) pushEditedBy(runs, data.editors);
 
-  // Publication details (Rule 6.3)
-  pushPublicationDetails(runs, [
-    resolvePublisher(data.publisher, data.authors),
-    formatEditionRuns(data.edition ?? 1, data.revised, {
-      abbreviation: data.editionAbbreviation ?? "ed",
-    }),
-    yearPart(data.year),
-  ]);
+  // Publication details (Rule 6.3; OSCOLA 5 §3.2.1; NZLSG 3 §6.1.1)
+  pushStyledPublicationDetails(runs, style, {
+    leading,
+    publisher: resolvePublisher(data.publisher, data.authors, style),
+    edition: editionPart(
+      data.edition,
+      data.revised,
+      style,
+      data.editionAbbreviation ?? style.editionAbbreviation
+    ),
+    year: yearPart(data.year),
+    place: data.place,
+  });
 
-  // Pinpoint (Rule 6.4: no comma after the parenthesis)
+  // Pinpoint (Rule 6.4: no comma after the parenthesis; NZLSG 3 §6.1.8 `at`)
   if (data.pinpoint) {
-    runs.push({ text: " " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
   }
 
   return runs;
@@ -279,35 +391,47 @@ export function formatMultiVolumeBook(data: {
   editors?: Author[];
   pinpoint?: Pinpoint;
   editionAbbreviation?: "ed" | "edn";
+  /** Place of publication (NZLSG 3 §6.1.6); ignored under AGLC4 and OSCOLA. */
+  place?: string;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (italic)
-  runs.push(...formatSecondaryTitle(data.title, "book"));
+  runs.push(...formatSecondaryTitle(data.title, "book", data.config));
 
-  // Editor of an authored book (Rule 6.6.2)
-  pushEditedBy(runs, data.editors);
+  // Editor of an authored book (Rule 6.6.2; OSCOLA 5 §3.2.3 inside the bracket)
+  const leading = editorsOpeningBracket(data.editors, style);
+  if (!leading) pushEditedBy(runs, data.editors);
 
   // Publication details
-  pushPublicationDetails(runs, [
-    resolvePublisher(data.publisher, data.authors),
-    formatEditionRuns(data.edition ?? 1, data.revised, {
-      abbreviation: data.editionAbbreviation ?? "ed",
-    }),
-    yearPart(data.year),
-  ]);
+  pushStyledPublicationDetails(runs, style, {
+    leading,
+    publisher: resolvePublisher(data.publisher, data.authors, style),
+    edition: editionPart(
+      data.edition,
+      data.revised,
+      style,
+      data.editionAbbreviation ?? style.editionAbbreviation
+    ),
+    year: yearPart(data.year),
+    place: data.place,
+  });
 
-  // Volume ('vol' or 'bk', Arabic numerals)
+  // Volume ('vol' or 'bk', Arabic numerals; OSCOLA 5 §3.2.1 and NZLSG 3
+  // §6.1.8 likewise place the volume after the details)
   runs.push({ text: ` ${data.volumeLabel ?? "vol"} ${data.volume}` });
 
-  // Pinpoint (after volume, separated by comma — Rule 6.4 exception)
+  // Pinpoint (after volume, separated by comma — Rule 6.4 exception;
+  // OSCOLA 5 §3.2.1 'vol XV, 300'; NZLSG 3 §6.1.8 'vol 2 at [38–033]')
   if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, ", ");
   }
 
   return runs;
@@ -336,39 +460,53 @@ export function formatBookChapter(data: {
   year?: number | string;
   startingPage: number;
   pinpoint?: Pinpoint;
+  /** Place of publication (NZLSG 3 §6.2); ignored under AGLC4 and OSCOLA. */
+  place?: string;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Chapter author
   runs.push(...formatAuthors(data.chapterAuthors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Chapter title (quoted, not italic — use "book.chapter" source type)
-  runs.push(...formatSecondaryTitle(data.chapterTitle, "book.chapter"));
+  runs.push(...formatSecondaryTitle(data.chapterTitle, "book.chapter", data.config));
 
   // ' in '
   runs.push({ text: " in " });
 
-  // Editor(s) with (ed)/(eds) suffix
-  runs.push(...formatAuthors(data.editors, true));
-  runs.push({ text: ", " });
+  // Editor(s) with (ed)/(eds) suffix; NZLSG 3 §6.2 has no comma after
+  // '(eds)', AGLC4 6.6.1 and OSCOLA 5 §3.2.4 do. A same-author collection
+  // (no editors, NZLSG 3 §6.2) goes straight to the book title.
+  if (data.editors.length > 0 || style.family === "aglc") {
+    runs.push(...formatAuthors(data.editors, true));
+    runs.push({ text: style.editorsTitleSeparator });
+  }
 
   // Book title (italic)
-  runs.push(...formatSecondaryTitle(data.bookTitle, "book"));
+  runs.push(...formatSecondaryTitle(data.bookTitle, "book", data.config));
 
-  // Publication details
-  pushPublicationDetails(runs, [
-    resolvePublisher(data.publisher, data.editors),
-    yearPart(data.year),
-  ]);
+  // Publication details (AGLC4 6.6.1 (Publisher, year); OSCOLA 5 §3.2.4
+  // (Publisher year); NZLSG 3 §6.2 (Publisher, Place, year))
+  pushStyledPublicationDetails(runs, style, {
+    publisher: resolvePublisher(data.publisher, data.editors, style),
+    edition: "",
+    year: yearPart(data.year),
+    place: data.place,
+  });
 
-  // Starting page
-  runs.push({ text: ` ${data.startingPage}` });
+  // Starting page (AGLC4 6.6.1, NZLSG 3 §6.2; OSCOLA 5 §3.2.4 gives none)
+  if (style.chapterStartPage) {
+    runs.push({ text: ` ${data.startingPage}` });
+  }
 
-  // Pinpoint
+  // Pinpoint (after a comma under AGLC4 6.6.1; after the bracket under
+  // OSCOLA 5 §3.2.4; 'at' under NZLSG 3 §6.2)
   if (data.pinpoint) {
-    runs.push({ text: ", " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, style.chapterStartPage ? ", " : " ");
   }
 
   return runs;
@@ -406,35 +544,56 @@ export function formatTranslatedBook(data: {
   originalYear?: number | string;
   pinpoint?: Pinpoint;
   editionAbbreviation?: "ed" | "edn";
+  /** Place of publication (NZLSG 3 §6.1.6); ignored under AGLC4 and OSCOLA. */
+  place?: string;
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Translated title (italic)
-  runs.push(...formatSecondaryTitle(data.title, "book.translated"));
+  runs.push(...formatSecondaryTitle(data.title, "book.translated", data.config));
 
-  // Editor of an authored book (Rule 6.6.2), before the translator (ex 35)
-  pushEditedBy(runs, data.editors);
+  // OSCOLA 5 §3.2.3: translator (and editor) open the bracket —
+  // '(Tony Weir tr, 3rd edn, OUP 1998)'; 'trs' for several translators
+  // is not exemplified with an author and is not emitted.
+  const oscolaLeading =
+    style.family === "oscola"
+      ? [editorsOpeningBracket(data.editors, style), `${data.translator} tr`]
+          .filter((p) => p.length > 0)
+          .join(", ")
+      : "";
 
-  // Translator after the title, outside the parenthetical (Rule 6.7)
-  runs.push({ text: `, tr ${data.translator}` });
+  if (!oscolaLeading) {
+    // Editor of an authored book (Rule 6.6.2), before the translator (ex 35)
+    pushEditedBy(runs, data.editors);
+
+    // Translator after the title, outside the parenthetical (Rule 6.7)
+    runs.push({ text: `, tr ${data.translator}` });
+  }
 
   // Publication details (no translator inside — Rule 6.7 template)
-  pushPublicationDetails(runs, [
-    resolvePublisher(data.publisher, data.authors),
-    formatEditionRuns(data.edition ?? 1, data.revised, {
-      abbreviation: data.editionAbbreviation ?? "ed",
-    }),
-    yearPart(data.year),
-  ]);
+  pushStyledPublicationDetails(runs, style, {
+    leading: oscolaLeading,
+    publisher: resolvePublisher(data.publisher, data.authors, style),
+    edition: editionPart(
+      data.edition,
+      data.revised,
+      style,
+      data.editionAbbreviation ?? style.editionAbbreviation
+    ),
+    year: yearPart(data.year),
+    place: data.place,
+  });
 
   // Pinpoint
   if (data.pinpoint) {
-    runs.push({ text: " " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
   }
 
   // Optional '[trans of: «Original Title» («Year»)]' after any pinpoint
@@ -469,24 +628,32 @@ export function formatForthcomingBook(data: {
   publisher?: string;
   edition?: number;
   editionAbbreviation?: "ed" | "edn";
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (italic)
-  runs.push(...formatSecondaryTitle(data.title, "book"));
+  runs.push(...formatSecondaryTitle(data.title, "book", data.config));
 
-  // Publication details with 'forthcoming' instead of the year
-  pushPublicationDetails(runs, [
-    resolvePublisher(data.publisher, data.authors),
-    formatEditionRuns(data.edition ?? 1, false, {
-      abbreviation: data.editionAbbreviation ?? "ed",
-    }),
-    "forthcoming",
-  ]);
+  // Publication details with 'forthcoming' instead of the year (OSCOLA 5
+  // §3.3 likewise appends '(forthcoming)' for articles; the book form
+  // follows the standard's bracket order)
+  pushStyledPublicationDetails(runs, style, {
+    publisher: resolvePublisher(data.publisher, data.authors, style),
+    edition: editionPart(
+      data.edition,
+      false,
+      style,
+      data.editionAbbreviation ?? style.editionAbbreviation
+    ),
+    year: "forthcoming",
+  });
 
   return runs;
 }
@@ -515,36 +682,38 @@ export function formatAudiobook(data: {
   narrator?: string;
   pinpoint?: Pinpoint;
   editionAbbreviation?: "ed" | "edn";
+  /** STD-016: the document config; absent means AGLC4. */
+  config?: CitationConfig;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
 
   // Author
   runs.push(...formatAuthors(data.authors));
-  runs.push({ text: ", " });
+  runs.push({ text: style.authorTitleSeparator });
 
   // Title (italic)
-  runs.push(...formatSecondaryTitle(data.title, "book.audiobook"));
+  runs.push(...formatSecondaryTitle(data.title, "book.audiobook", data.config));
 
   // Publisher of the audiobook, minus any 'audiobook(s)' in its name
-  const publisher = resolvePublisher(data.publisher, data.authors)
+  const publisher = resolvePublisher(data.publisher, data.authors, style)
     .split(/\s+/)
     .filter((token) => !/^audiobooks?$/i.test(token))
     .join(" ");
 
-  // Single parenthetical opened by 'Audiobook' (Rule 6.9)
+  // Single parenthetical opened by 'Audiobook' (Rule 6.9). OSCOLA and
+  // NZLSG have no audiobook rule; the AGLC order is kept with the
+  // standard's edition abbreviation.
   pushPublicationDetails(runs, [
     "Audiobook",
     publisher,
-    formatEditionRuns(data.edition ?? 1, false, {
-      abbreviation: data.editionAbbreviation ?? "ed",
-    }),
+    editionPart(data.edition, false, style, data.editionAbbreviation ?? style.editionAbbreviation),
     yearPart(data.year),
   ]);
 
   // Time pinpoint (Rules 1.11.3–1.11.4)
   if (data.pinpoint) {
-    runs.push({ text: " " });
-    runs.push(...formatPinpoint(data.pinpoint));
+    pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
   }
 
   return runs;

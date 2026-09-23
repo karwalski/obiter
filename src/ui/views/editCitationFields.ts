@@ -320,12 +320,185 @@ const DEFAULT_FIELDS: FieldDefinition[] = [
   { key: "pinpoint", label: "Pinpoint" },
 ];
 
+// ─── STD-021: standard-specific fields ──────────────────────────────────────
+
+/** The standard families whose dispatchers read fields the AGLC forms lack. */
+export type StandardFieldFamily = "oscola" | "nzlsg";
+
+/**
+ * Fields the OSCOLA and NZLSG dispatchers (src/engine/engine.ts
+ * `dispatchOscola*`, `dispatchNzlsg`) read that the AGLC form for the
+ * source type never writes. Under those standards the Edit view appends
+ * them to the AGLC list (or, for a type with no explicit AGLC list, puts
+ * them before the generic fallback) and the Insert view renders them as
+ * extra inputs after the AGLC form. Every key here MUST be read by the
+ * standard's dispatcher for that type (tests/ui/editCitationFieldContract
+ * standards block).
+ */
+export const STANDARD_FIELDS_BY_SOURCE_TYPE: Record<
+  StandardFieldFamily,
+  Partial<Record<SourceType, FieldDefinition[]>>
+> = {
+  oscola: {
+    // OSCOLA 5 rr 2.1.1–2.1.3: neutral citation before the law report
+    "case.reported": [
+      { key: "neutralCitationYear", label: "Neutral Citation Year", placeholder: "2008" },
+      {
+        key: "neutralCitationCourt",
+        label: "Neutral Citation Court",
+        placeholder: "UKHL, EWCA Civ",
+      },
+      { key: "neutralCitationNumber", label: "Neutral Citation Number", placeholder: "15" },
+      { key: "jurisdiction", label: "Jurisdiction", placeholder: "UK, Scot, NI, IE" },
+      // OSCOLA 5 r 2.2.1: a historical Scottish series
+      { key: "historicalSeries", label: "Historical Series (Scottish)", type: "checkbox" },
+    ],
+    // The report the same case is also reported in (rr 2.1.2–2.1.3)
+    "case.unreported.mnc": [
+      { key: "reportSeries", label: "Report Series", placeholder: "AC" },
+      { key: "reportYear", label: "Report Year", placeholder: "2008" },
+      { key: "yearType", label: "Report Year Brackets", placeholder: "round or square" },
+      { key: "volume", label: "Report Volume", placeholder: "1" },
+      { key: "startingPage", label: "Report Starting Page", placeholder: "884" },
+    ],
+    // OSCOLA 5 r 2.4.1: Acts of the Scottish Parliament, Senedd and NI Assembly
+    "legislation.statute": [
+      {
+        key: "ukLegislationType",
+        label: "Legislation Type",
+        placeholder: "uk, asp, anaw, asc or ni",
+      },
+    ],
+    // OSCOLA 5 r 2.5.1: SI type and number
+    "legislation.delegated": [
+      { key: "instrumentType", label: "Instrument Type", placeholder: "si, ssi, wsi or sr" },
+      { key: "number", label: "Instrument Number", placeholder: "855" },
+    ],
+    // OSCOLA 5 r 4.4.4
+    "echr.decision": [
+      { key: "respondentState", label: "Respondent State", placeholder: "Hungary" },
+      { key: "applicationNumber", label: "Application Number", placeholder: "47940/99" },
+      { key: "chamber", label: "Chamber", placeholder: "Grand Chamber" },
+      { key: "date", label: "Date", placeholder: "20 July 2004" },
+    ],
+  },
+  nzlsg: {
+    // NZLSG 3 r 3.2: the report after a neutral citation (parallel report)
+    "case.unreported.mnc": [
+      { key: "reportSeries", label: "Report Series", placeholder: "NZLR" },
+      { key: "reportYear", label: "Report Year", placeholder: "2007" },
+      { key: "yearType", label: "Report Year Brackets", placeholder: "round or square" },
+      { key: "volume", label: "Report Volume", placeholder: "3" },
+      { key: "startingPage", label: "Report Starting Page", placeholder: "338" },
+    ],
+    // NZLSG 3 r 3.4: pre-neutral unreported decision by file number
+    "case.reported": [
+      { key: "fileNumber", label: "File Number (unreported)", placeholder: "CP 291/85" },
+      { key: "registry", label: "Registry", placeholder: "Wellington" },
+      { key: "date", label: "Judgment Date (unreported)", placeholder: "7 November 1985" },
+    ],
+    // NZLSG 3 r 3.5: Māori Land Court minute book
+    "case.quasi_judicial": [
+      { key: "caseName", label: "Case Name", placeholder: "Pomare – Peter Here Pomare" },
+      { key: "year", label: "Year", placeholder: "2015" },
+      { key: "blockNumber", label: "Minute Book Volume", placeholder: "103" },
+      { key: "minuteBookDistrict", label: "Minute Book District", placeholder: "Taitokerau" },
+      { key: "minuteBookAbbrev", label: "Minute Book Abbreviation", placeholder: "MB" },
+      { key: "page", label: "Folio", placeholder: "95" },
+      { key: "pinpoint", label: "Pinpoint" },
+    ],
+    // NZLSG 3 r 3.6
+    "report.waitangi_tribunal": [
+      { key: "title", label: "Title", required: true },
+      { key: "waiNumber", label: "Wai Claim Number", placeholder: "262" },
+      { key: "year", label: "Year", required: true, placeholder: "2011" },
+      { key: "pinpoint", label: "Pinpoint" },
+    ],
+    // NZLSG 3 r 4.2
+    "legislation.bill": [{ key: "billNumber", label: "Bill Number", placeholder: "12-1" }],
+    // NZLSG 3 r 5.1.1
+    hansard: [
+      { key: "nzpd", label: "New Zealand Parliamentary Debates (NZPD)", type: "checkbox" },
+      { key: "date", label: "Date", placeholder: "6 April 2005" },
+      { key: "volume", label: "Volume", placeholder: "624" },
+      { key: "page", label: "Page", placeholder: "19676" },
+      { key: "speaker", label: "Speaker" },
+      { key: "pinpoint", label: "Pinpoint" },
+    ],
+    // NZLSG 3 r 5.3 (Law Commission report types)
+    "report.law_reform": [
+      { key: "title", label: "Title", required: true },
+      { key: "reportType", label: "Report Type", placeholder: "R, SP, IP or PP" },
+      { key: "reportNumber", label: "Report Number", placeholder: "123" },
+      { key: "year", label: "Year", placeholder: "2011" },
+      { key: "pinpoint", label: "Pinpoint" },
+    ],
+    // NZLSG 3 r 4.1.1(e)
+    treaty: [
+      { key: "treatyOfWaitangi", label: "Treaty of Waitangi", type: "checkbox" },
+      { key: "language", label: "Treaty Language", placeholder: "english or maori" },
+    ],
+    // NZLSG 3 r 6.1.6: place of publication
+    book: [{ key: "place", label: "Place of Publication", placeholder: "Wellington" }],
+  },
+};
+
+/** The family a standard id belongs to, or undefined for AGLC. */
+export function standardFieldFamily(
+  standardId: string | undefined
+): StandardFieldFamily | undefined {
+  if (!standardId) return undefined;
+  if (standardId.startsWith("oscola")) return "oscola";
+  if (standardId.startsWith("nzlsg")) return "nzlsg";
+  return undefined;
+}
+
+/**
+ * The standard-specific fields for `sourceType` under `standardId` that the
+ * AGLC list does not already carry (empty under AGLC). These are the inputs
+ * the Insert view adds after the AGLC form.
+ */
+export function standardExtraFields(
+  sourceType: SourceType,
+  standardId?: string
+): FieldDefinition[] {
+  const family = standardFieldFamily(standardId);
+  if (!family) return [];
+  const extras = STANDARD_FIELDS_BY_SOURCE_TYPE[family][sourceType];
+  if (!extras) return [];
+  const base = EDIT_FIELDS_BY_SOURCE_TYPE[sourceType];
+  if (!base) return extras;
+  const known = new Set(base.map((f) => f.key));
+  return extras.filter((f) => !known.has(f.key));
+}
+
 /**
  * Returns field definitions for a given source type. These mirror the Insert
  * view layout — each source type shows only the fields relevant to it.
+ *
+ * STD-021: with `standardId` (the document's standard) the OSCOLA and NZLSG
+ * fields are included: appended to an explicit AGLC list, or — for a type
+ * whose AGLC list is the generic fallback — placed before the fallback
+ * fields it does not already name.
  */
-export function getFieldsForSourceType(sourceType: SourceType): FieldDefinition[] {
-  return EDIT_FIELDS_BY_SOURCE_TYPE[sourceType] ?? DEFAULT_FIELDS;
+export function getFieldsForSourceType(
+  sourceType: SourceType,
+  standardId?: string
+): FieldDefinition[] {
+  const base = EDIT_FIELDS_BY_SOURCE_TYPE[sourceType];
+  const extras = standardExtraFields(sourceType, standardId);
+  if (base) return extras.length === 0 ? base : [...base, ...extras];
+  if (extras.length === 0) return DEFAULT_FIELDS;
+  const known = new Set(extras.map((f) => f.key));
+  return [...extras, ...DEFAULT_FIELDS.filter((f) => !known.has(f.key))];
+}
+
+/** Alias of getFieldsForSourceType with the standard first, for callers keyed by standard. */
+export function fieldsForStandard(
+  standardId: string | undefined,
+  sourceType: SourceType
+): FieldDefinition[] {
+  return getFieldsForSourceType(sourceType, standardId);
 }
 
 /**

@@ -14,8 +14,9 @@ import {
 import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template, insertTitleParagraph, insertAuthorParagraph } from "../../word/template";
 import { getSharedStore } from "../../store/singleton";
+import { getDevicePref } from "../../store/devicePreferences";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig } from "../../engine/standards";
+import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards";
 import { writeErrorMessage } from "../../word/documentAccess";
 import { applyQuotationToText, stripBoundaryQuotes } from "../../engine/quotations/format";
 
@@ -277,20 +278,28 @@ export default function Styling(): JSX.Element {
 
   /**
    * QUOTE-001: Auto-Format Quotation (Rule 1.5.1)
-   * AGLC4 Rule 1.5.1: short quotations (of three lines or fewer) are
-   * incorporated within single quotation marks; long quotations (of three
-   * or more full lines) are indented from the left margin, in a smaller
-   * font, without quotation marks. The block-versus-inline decision and
-   * the boundary-mark handling live in `applyQuotationToText` (shared with
-   * the Quote panel, ENP-010): a selection of three or more paragraphs is
-   * forced to the block form, otherwise the estimated line count decides.
-   * This handler keeps only the Word-selection mechanics.
+   * AGLC4 Rule 1.5.1: short quotations (of three lines or less) are
+   * incorporated within single quotation marks; long quotations (of four
+   * or more lines) are indented from the left margin, in a smaller font,
+   * without quotation marks. The block-versus-inline decision and the
+   * boundary-mark handling live in `applyQuotationToText` (shared with the
+   * Quote panel, ENP-010), which takes the document config (STD-016: the
+   * standard's marks and threshold — OSCOLA 5 §1.5 longer than three
+   * lines, NZLSG 3 §1.2.2 thirty words or more): a selection of four or
+   * more paragraphs is at least four lines and is forced to the block
+   * form, otherwise the standard's estimate decides. This handler keeps
+   * only the Word-selection mechanics.
    */
   const handleFormatQuotation = useCallback(async () => {
     setApplying(true);
     try {
       setStatus(null);
       setError(null);
+      const store = await getSharedStore();
+      const config = resolveDocumentConfig(
+        store,
+        getDevicePref("courtToggles") as Record<string, string> | undefined
+      );
       await Word.run(async (context) => {
         const selection = context.document.getSelection();
         selection.load("text");
@@ -300,7 +309,8 @@ export default function Styling(): JSX.Element {
         const paragraphs = selection.paragraphs.items ?? [];
         const paraCount = paragraphs.length;
         const decision = applyQuotationToText(selection.text ?? "", {
-          forceBlock: paraCount >= 3,
+          forceBlock: paraCount >= 4,
+          config,
         });
 
         if (decision.mode === "block" && paraCount > 0) {
@@ -335,10 +345,10 @@ export default function Styling(): JSX.Element {
           await context.sync();
           setStatus("Applied block quote formatting (long quotation).");
         } else {
-          // Short quotation: wrap in curly single quotes
+          // Short quotation: wrap in the standard's curly quotation marks
           selection.insertText(decision.text, "Replace");
           await context.sync();
-          setStatus("Wrapped in single quotation marks (short quotation).");
+          setStatus("Wrapped in quotation marks (short quotation).");
         }
       });
     } catch (err: unknown) {

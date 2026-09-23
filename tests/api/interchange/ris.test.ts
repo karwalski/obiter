@@ -380,8 +380,7 @@ describe("risCodec.serialise", () => {
     const rec: InterchangeRecord = {
       ...records[0],
       formatted: {
-        standard:
-          "Harold Luntz, 'Loss of Chance in Medical Negligence' (2005) 27(3) Sydney Law Review 393.",
+        standard: "AGLC4",
         footnote:
           "Harold Luntz, 'Loss of Chance in Medical Negligence' (2005) 27(3) Sydney Law Review 393.",
         bibliography:

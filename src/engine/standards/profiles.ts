@@ -37,6 +37,19 @@ const AGLC4_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: secondary-source and quotation style (AGLC4 1.5.1, 4.1, 5.5, 6.3, 6.6.1, 7.2.5, 7.15)
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "comma",
+  bookParenthesisOrder: "publisher-edition-year",
+  includePlaceOfPublication: false,
+  chapterStartPage: true,
+  journalTitleStyle: "italic",
+  thesisTitleStyle: "quoted",
+  websiteStyle: "aglc",
+  blockQuoteThreshold: { lines: 4 },
+  // STD-015: AGLC4 1.4.3 (Ibid), 1.4.4/1.4.5 (short title and abbreviation declared for every source)
+  shortTitleIntroduction: "aglc",
+  ibidStyle: "capitalised",
 };
 
 // ─── AGLC5 (placeholder) ────────────────────────────────────────────────────
@@ -58,6 +71,19 @@ const AGLC5_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: secondary-source and quotation style (AGLC4 1.5.1, 4.1, 5.5, 6.3, 6.6.1, 7.2.5, 7.15)
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "comma",
+  bookParenthesisOrder: "publisher-edition-year",
+  includePlaceOfPublication: false,
+  chapterStartPage: true,
+  journalTitleStyle: "italic",
+  thesisTitleStyle: "quoted",
+  websiteStyle: "aglc",
+  blockQuoteThreshold: { lines: 4 },
+  // STD-015: AGLC4 1.4.3 (Ibid), 1.4.4/1.4.5 (short title and abbreviation declared for every source)
+  shortTitleIntroduction: "aglc",
+  ibidStyle: "capitalised",
 };
 
 // ─── OSCOLA 5 ────────────────────────────────────────────────────────────────
@@ -79,6 +105,19 @@ const OSCOLA5_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: OSCOLA 5 §1.5, §3.1.1, §3.2.1, §3.2.4, §3.3, §3.7.1, §3.7.6
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "comma",
+  bookParenthesisOrder: "edition-publisher-year",
+  includePlaceOfPublication: false,
+  chapterStartPage: false,
+  journalTitleStyle: "roman",
+  thesisTitleStyle: "italic",
+  websiteStyle: "oscola",
+  blockQuoteThreshold: { lines: 4 },
+  // STD-015: OSCOLA 5 §1.2.1 (short forms declared for legislation and treaties only; ibid not used)
+  shortTitleIntroduction: "declared",
+  ibidStyle: "lowercase",
 };
 
 // ─── OSCOLA 4 (OSC-ENH-007: delta audit from OSCOLA 5) ─────────────────────
@@ -139,6 +178,19 @@ const OSCOLA4_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: OSCOLA 4 §1.5, §3.2.1, §3.2.3, §3.3, §3.4.7 (thesis title quoted), §3.4.8
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "comma",
+  bookParenthesisOrder: "edition-publisher-year",
+  includePlaceOfPublication: false,
+  chapterStartPage: false,
+  journalTitleStyle: "roman",
+  thesisTitleStyle: "quoted",
+  websiteStyle: "oscola",
+  blockQuoteThreshold: { lines: 4 },
+  // STD-015: OSCOLA 4 §1.2.1, §1.2.3 (unquoted declared short forms; lower-case ibid)
+  shortTitleIntroduction: "declared",
+  ibidStyle: "lowercase",
 };
 
 // ─── NZLSG 3 ─────────────────────────────────────────────────────────────────
@@ -160,6 +212,19 @@ const NZLSG3_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: NZLSG 3 §1.2.2, §6.1.1, §6.2, §6.4, §6.7.1, §7.1.1
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "space",
+  bookParenthesisOrder: "edition-publisher-place-year",
+  includePlaceOfPublication: true,
+  chapterStartPage: true,
+  journalTitleStyle: "roman",
+  thesisTitleStyle: "quoted",
+  websiteStyle: "nzlsg",
+  blockQuoteThreshold: { words: 30 },
+  // STD-015: NZLSG 3 §2.3.1, §2.3.2 (no ibid; reference tags are not declared by the engine)
+  shortTitleIntroduction: "none",
+  ibidStyle: "capitalised",
 };
 
 // ─── NZLSG 4 (placeholder) ──────────────────────────────────────────────────
@@ -190,6 +255,19 @@ const NZLSG4_CONFIG: CitationConfig = {
   ibidSuppressionMode: "off",
   unreportedGateMode: "off",
   loaType: "off",
+  // STD-016: NZLSG 3 §1.2.2, §6.1.1, §6.2, §6.4, §6.7.1, §7.1.1
+  authorNameOrder: "given-first",
+  authorTitleSeparator: "space",
+  bookParenthesisOrder: "edition-publisher-place-year",
+  includePlaceOfPublication: true,
+  chapterStartPage: true,
+  journalTitleStyle: "roman",
+  thesisTitleStyle: "quoted",
+  websiteStyle: "nzlsg",
+  blockQuoteThreshold: { words: 30 },
+  // STD-015: NZLSG 3 §2.3.1, §2.3.2 (no ibid; reference tags are not declared by the engine)
+  shortTitleIntroduction: "none",
+  ibidStyle: "capitalised",
 };
 
 // ─── Registry ────────────────────────────────────────────────────────────────

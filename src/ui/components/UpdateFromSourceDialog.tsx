@@ -24,6 +24,7 @@ import type { SourceUpdateResult } from "../../api/updateFromSource";
 import { INTERCHANGE_DATA_KEY } from "../../api/interchange/model";
 import type { CitationInterchangeBag, InterchangeProvenance } from "../../api/interchange/model";
 import { writeErrorMessage } from "../../word/documentAccess";
+import { getSharedStoreIfReady } from "../../store/singleton";
 
 export interface UpdateFromSourceDialogProps {
   citation: Citation;
@@ -49,9 +50,32 @@ const EXTRA_LABELS: Readonly<Record<string, string>> = {
   mnc: "Medium neutral citation",
 };
 
-/** The form's fields plus a labelled row for each identifier the fetch supplied. */
-export function mergeFieldsFor(sourceType: string, fetched: SourceData): FieldDefinition[] {
-  const base = getFieldsForSourceType(sourceType as SourceType);
+/**
+ * STD-021: the document's standard, read from the shared store when it is
+ * ready, so the merge table lists the OSCOLA / NZLSG fields. Undefined
+ * (AGLC field list) when the store is not yet loaded or the singleton is
+ * unavailable; the dialog otherwise owns no store access.
+ */
+function activeStandardId(): string | undefined {
+  try {
+    return getSharedStoreIfReady()?.getStandardId();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The form's fields plus a labelled row for each identifier the fetch
+ * supplied. STD-021: with `standardId` the OSCOLA / NZLSG fields (neutral
+ * citation, parallel report) are listed with their labels rather than
+ * falling back to raw keys.
+ */
+export function mergeFieldsFor(
+  sourceType: string,
+  fetched: SourceData,
+  standardId?: string
+): FieldDefinition[] {
+  const base = getFieldsForSourceType(sourceType as SourceType, standardId);
   const known = new Set<string>();
   for (const field of base) {
     known.add(field.key);
@@ -173,9 +197,10 @@ export default function UpdateFromSourceDialog({
   }, [citation, citationText]);
 
   const label = result?.adapterLabel ?? "the source";
+  const standardId = activeStandardId();
   const fields = useMemo(
-    () => mergeFieldsFor(citation.sourceType, result?.fields ?? {}),
-    [citation.sourceType, result]
+    () => mergeFieldsFor(citation.sourceType, result?.fields ?? {}, standardId),
+    [citation.sourceType, result, standardId]
   );
   const columns = useMemo<FieldMergeColumn[]>(
     () => [

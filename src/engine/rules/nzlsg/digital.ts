@@ -14,6 +14,14 @@
 
 import { FormattedRun } from "../../../types/formattedRun";
 
+/**
+ * NZLSG 3 §7.1.1: an address starting with `www` is cited without its
+ * `http://`; any other address is cited as stored.
+ */
+function nzUrl(url: string): string {
+  return url.replace(/^https?:\/\/(?=www\.)/i, "");
+}
+
 // ─── Data Interfaces ────────────────────────────────────────────────────────
 
 export interface NZWebsiteData {
@@ -21,7 +29,9 @@ export interface NZWebsiteData {
   author?: string;
   /** Title of the page/article (in double quotation marks). */
   title: string;
-  /** Year of publication or last update. */
+  /** Full date of publication or last update (NZLSG 3 §7.1.1 '(6 April 2009)'); preferred over `year`. */
+  date?: string;
+  /** Year of publication or last update (used when no full date is stored). */
   year?: number;
   /** Website name. */
   website?: string;
@@ -72,6 +82,8 @@ export interface NZNewspaperData {
   place?: string;
   /** Date of publication (formatted for display). */
   date: string;
+  /** Online edition (NZLSG 3 §7.2 '(online ed, Auckland, 24 June 2011)'). */
+  onlineEdition?: boolean;
   /** Page reference (used with 'at' prefix). */
   pinpoint?: string;
 }
@@ -119,8 +131,10 @@ export function formatNZWebsite(data: NZWebsiteData): FormattedRun[] {
   // Title in double quotation marks
   runs.push({ text: `\u201C${data.title}\u201D` });
 
-  // Year in parentheses (optional)
-  if (data.year !== undefined) {
+  // Date (§7.1.1) or year in parentheses (optional)
+  if (data.date) {
+    runs.push({ text: ` (${data.date})` });
+  } else if (data.year !== undefined) {
     runs.push({ text: ` (${data.year})` });
   }
 
@@ -131,7 +145,7 @@ export function formatNZWebsite(data: NZWebsiteData): FormattedRun[] {
 
   // URL in angle brackets (optional)
   if (data.url) {
-    runs.push({ text: ` <${data.url}>` });
+    runs.push({ text: ` <${nzUrl(data.url)}>` });
   }
 
   // Pinpoint with 'at' prefix
@@ -177,7 +191,7 @@ export function formatNZBlog(data: NZBlogData): FormattedRun[] {
 
   // URL in angle brackets (optional)
   if (data.url) {
-    runs.push({ text: ` <${data.url}>` });
+    runs.push({ text: ` <${nzUrl(data.url)}>` });
   }
 
   // Pinpoint with 'at' prefix
@@ -225,7 +239,7 @@ export function formatNZSocialMedia(data: NZSocialMediaData): FormattedRun[] {
 
   // URL in angle brackets (optional)
   if (data.url) {
-    runs.push({ text: ` <${data.url}>` });
+    runs.push({ text: ` <${nzUrl(data.url)}>` });
   }
 
   return runs;
@@ -266,8 +280,11 @@ export function formatNZNewspaper(data: NZNewspaperData): FormattedRun[] {
   runs.push({ text: ` ` });
   runs.push({ text: data.newspaper, italic: true });
 
-  // Place and date in parentheses
+  // (online ed, Place, Date) / (Place, Date) — §7.2
   const parenParts: string[] = [];
+  if (data.onlineEdition) {
+    parenParts.push("online ed");
+  }
   if (data.place) {
     parenParts.push(data.place);
   }

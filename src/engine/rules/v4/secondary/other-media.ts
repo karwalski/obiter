@@ -6,6 +6,8 @@
 import { Author, Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors, normaliseBodyName } from "./authors";
+import type { CitationConfig } from "../../../standards/types";
+import { nestInnerMarks, pushSecondaryPinpoint, quoteRunsWith, secondaryStyleFor } from "./style";
 
 // ─── Data Interfaces ────────────────────────────────────────────────────────
 
@@ -233,6 +235,12 @@ export interface InternetMaterialData {
   archivedUrl?: string;
   /** A5-EXP-4 (experimental): date the snapshot was archived/captured. */
   archiveDate?: string;
+  /**
+   * STD-016: the document config; absent means AGLC4. OSCOLA 5 §3.7.1
+   * renders `Author, ‘Title’ (Site, date) pinpoint <url>`; NZLSG 3 §7.1.1
+   * `Author “Title” (date) Site <url> at pinpoint`.
+   */
+  config?: CitationConfig;
 }
 
 export interface SocialMediaData {
@@ -889,6 +897,11 @@ export function formatPodcast(data: PodcastData): FormattedRun[] {
  * @see AGLC4, Rule 7.15.
  */
 export function formatInternetMaterial(data: InternetMaterialData): FormattedRun[] {
+  const style = secondaryStyleFor(data.config);
+  if (style.websiteStyle !== "aglc") {
+    return formatStandardInternetMaterial(data, style.websiteStyle);
+  }
+
   const runs: FormattedRun[] = [];
 
   if (data.authors && data.authors.length > 0) {
@@ -951,6 +964,103 @@ export function formatInternetMaterial(data: InternetMaterialData): FormattedRun
     runs.push({ text: ` (archived at ${suffix ? `${suffix} ` : ""}${archivedUrl})` });
   }
 
+  return runs;
+}
+
+/**
+ * STD-016: internet materials under OSCOLA 5 §3.7.1 and NZLSG 3 §7.1.1.
+ *
+ * OSCOLA 5 §3.7.1: author, quoted title, `(italic site name, date)`, the
+ * pinpoint, then the link in angle brackets. A persistent link or DOI needs
+ * no access date; the data carries no access date, so none is emitted
+ * (OSCOLA 4 §3.4.8's `accessed …` form is DECISION-040). The AGLC document
+ * type ('Web Page', 'Blog Post') is not an OSCOLA element.
+ *
+ * NZLSG 3 §7.1.1: author, title in double quotes, `(date)`, site name when
+ * it differs from the author, `<URL>` (an address starting with `www` loses
+ * its `http://`), `at` pinpoint after the URL. No access date.
+ *
+ * Both: the author is omitted where identical to the site name (as AGLC4
+ * 7.15); with no author the citation starts with the title.
+ */
+function formatStandardInternetMaterial(
+  data: InternetMaterialData,
+  form: "oscola" | "nzlsg"
+): FormattedRun[] {
+  const runs: FormattedRun[] = [];
+  const style = secondaryStyleFor(data.config);
+  const site = data.website.trim();
+
+  // OSCOLA keeps the AGLC4 7.15 rule (author omitted where it is the site
+  // name, the site staying in the bracket); NZLSG 3 §7.1.1 shows the author
+  // and gives the site name only when it differs from the author.
+  let authorText = "";
+  if (data.authors && data.authors.length > 0) {
+    const authorRuns = formatAuthors(data.authors);
+    authorText = authorRuns
+      .map((r) => r.text)
+      .join("")
+      .trim();
+    if (form === "nzlsg" || authorText.toLowerCase() !== site.toLowerCase()) {
+      runs.push(...authorRuns);
+      runs.push({ text: style.authorTitleSeparator });
+    } else {
+      authorText = "";
+    }
+  }
+
+  if (data.title) {
+    // The title as typed (as AGLC4 7.15 does), in the standard's marks with
+    // nested marks swapped (OSCOLA 5 §1.5; NZLSG 3 §7.1.3)
+    const title = nestInnerMarks(data.title, style.quotationMarkStyle);
+    runs.push(...quoteRunsWith([{ text: title }], style.quoteMarks));
+    if (data.translatedTitle) {
+      runs.push({ text: ` [${data.translatedTitle}]` });
+    }
+  }
+
+  if (form === "oscola") {
+    // (Site, date) with the site name italic
+    const date = (data.date ?? "").trim();
+    if (site || date) {
+      runs.push({ text: " (" });
+      if (site) {
+        runs.push({ text: site, italic: true });
+        if (data.translatedWebsiteName) {
+          runs.push({ text: ` [${data.translatedWebsiteName}]` });
+        }
+        if (date) runs.push({ text: ", " });
+      }
+      if (date) runs.push({ text: date });
+      runs.push({ text: ")" });
+    }
+    if (data.pinpoint) {
+      pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
+    }
+    if (data.url) {
+      runs.push({ text: ` <${data.url}>` });
+    }
+    return runs;
+  }
+
+  // NZLSG: (date) Site <URL> at pinpoint
+  const date = (data.date ?? "").trim();
+  if (date) {
+    runs.push({ text: ` (${date})` });
+  }
+  // The site name is given when it differs from the author (§7.1.1)
+  if (site && site.toLowerCase() !== authorText.toLowerCase()) {
+    runs.push({ text: ` ${site}` });
+    if (data.translatedWebsiteName) {
+      runs.push({ text: ` [${data.translatedWebsiteName}]` });
+    }
+  }
+  if (data.url) {
+    runs.push({ text: ` <${data.url.replace(/^https?:\/\/(?=www\.)/i, "")}>` });
+  }
+  if (data.pinpoint) {
+    pushSecondaryPinpoint(runs, data.pinpoint, style, " ");
+  }
   return runs;
 }
 

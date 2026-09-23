@@ -4,10 +4,12 @@
  */
 
 /**
- * OSCOLA Digital Source Formatter Tests (OSC-ENH-005)
+ * OSCOLA Digital Source Formatter Tests (OSC-ENH-005, STD-017)
  *
- * Tests for OSCOLA 5 Rules 3.7.1–3.7.5 digital source formatters.
- * Each test verifies the joined text output of FormattedRun[] arrays.
+ * Tests for the OSCOLA 5 §3.7.1 (websites, blogs, social media, online
+ * video) and §3.7.2 (podcasts) formatters, against the forms recorded in
+ * docs/standards-rule-notes.md. Each test verifies the joined text output
+ * of FormattedRun[] arrays.
  */
 
 import { FormattedRun } from "../../src/types/formattedRun";
@@ -24,14 +26,29 @@ function joinRuns(runs: FormattedRun[]): string {
   return runs.map((r) => r.text).join("");
 }
 
+/** The texts of the italic runs. */
+function italics(runs: FormattedRun[]): string[] {
+  return runs.filter((r) => r.italic).map((r) => r.text);
+}
+
 // ─── Website (OSCOLA 5 §3.7.1) ──────────────────────────────────────────────
 
-describe("formatOscolaWebsite — OSCOLA 5 Rule 3.7.1", () => {
-  /**
-   * @example Jane Smith, \u2018The Future of Legal Tech\u2019 (Law Society Gazette,
-   *   15 March 2026) <https://example.com/article> accessed 20 April 2026
-   */
-  test("formats a full website citation with all fields", () => {
+describe("formatOscolaWebsite — OSCOLA 5 §3.7.1", () => {
+  test("notes example: persistent link, no access date; site name italic", () => {
+    const runs = formatOscolaWebsite({
+      author: "Cyclefree",
+      title: "Is This Really Necessary, Minister?",
+      websiteName: "Legal Feminist",
+      date: "27 April 2023",
+      url: "https://perma.cc/3THK-P4AX",
+    });
+    expect(joinRuns(runs)).toBe(
+      "Cyclefree, ‘Is This Really Necessary, Minister?’ (Legal Feminist, 27 April 2023) <https://perma.cc/3THK-P4AX>"
+    );
+    expect(italics(runs)).toEqual(["Legal Feminist"]);
+  });
+
+  test("ordinary URL: 'accessed <date>' after the link", () => {
     const result = joinRuns(
       formatOscolaWebsite({
         author: "Jane Smith",
@@ -43,11 +60,11 @@ describe("formatOscolaWebsite — OSCOLA 5 Rule 3.7.1", () => {
       })
     );
     expect(result).toBe(
-      "Jane Smith, \u2018The Future of Legal Tech\u2019 (Law Society Gazette, 15 March 2026) <https://example.com/article> accessed 20 April 2026"
+      "Jane Smith, ‘The Future of Legal Tech’ (Law Society Gazette, 15 March 2026) <https://example.com/article> accessed 20 April 2026"
     );
   });
 
-  test("formats a website citation without author", () => {
+  test("no author: the citation starts with the title", () => {
     const result = joinRuns(
       formatOscolaWebsite({
         title: "About Us",
@@ -58,11 +75,11 @@ describe("formatOscolaWebsite — OSCOLA 5 Rule 3.7.1", () => {
       })
     );
     expect(result).toBe(
-      "\u2018About Us\u2019 (Ministry of Justice, 1 January 2026) <https://moj.gov.uk/about> accessed 10 April 2026"
+      "‘About Us’ (Ministry of Justice, 1 January 2026) <https://moj.gov.uk/about> accessed 10 April 2026"
     );
   });
 
-  test("formats a website citation without date", () => {
+  test("no date: (Site) alone", () => {
     const result = joinRuns(
       formatOscolaWebsite({
         author: "John Doe",
@@ -73,109 +90,87 @@ describe("formatOscolaWebsite — OSCOLA 5 Rule 3.7.1", () => {
       })
     );
     expect(result).toBe(
-      "John Doe, \u2018Legal Resources\u2019 (BAILII) <https://bailii.org/resources> accessed 5 March 2026"
+      "John Doe, ‘Legal Resources’ (BAILII) <https://bailii.org/resources> accessed 5 March 2026"
     );
   });
 
-  test("formats a website citation without author or date", () => {
-    const result = joinRuns(
-      formatOscolaWebsite({
-        title: "Sentencing Guidelines",
-        websiteName: "Sentencing Council",
-        url: "https://sentencingcouncil.org.uk",
-        accessedDate: "15 April 2026",
-      })
-    );
-    expect(result).toBe(
-      "\u2018Sentencing Guidelines\u2019 (Sentencing Council) <https://sentencingcouncil.org.uk> accessed 15 April 2026"
-    );
-  });
-
-  test("uses single curly quotes for the title", () => {
-    const runs = formatOscolaWebsite({
-      author: "A",
-      title: "B",
-      websiteName: "C",
-      url: "https://c.com",
-      accessedDate: "1 Jan 2026",
-    });
-    const titleRun = runs.find((r) => r.text.includes("\u2018"));
-    expect(titleRun).toBeDefined();
-    expect(titleRun!.text).toContain("\u2018B\u2019");
-  });
-
-  test("wraps URL in angle brackets", () => {
-    const result = joinRuns(
-      formatOscolaWebsite({
-        title: "T",
-        websiteName: "W",
-        url: "https://x.com",
-        accessedDate: "1 Jan 2026",
-      })
-    );
-    expect(result).toContain("<https://x.com>");
+  test("no site and no date: no bracket", () => {
+    expect(
+      joinRuns(formatOscolaWebsite({ title: "Data", websiteName: "", url: "https://example.org" }))
+    ).toBe("‘Data’ <https://example.org>");
   });
 });
 
-// ─── Blog (OSCOLA 5 §3.7.2) ─────────────────────────────────────────────────
+// ─── Blog (OSCOLA 5 §3.7.1) ─────────────────────────────────────────────────
 
-describe("formatOscolaBlog — OSCOLA 5 Rule 3.7.2", () => {
-  /**
-   * @example Jack of Kent, \u2018The Importance of Section 3\u2019 (Jack of Kent Blog,
-   *   15 March 2026) <https://example.com> accessed 20 April 2026
-   */
-  test("formats a full blog citation", () => {
-    const result = joinRuns(
-      formatOscolaBlog({
-        author: "Jack of Kent",
-        title: "The Importance of Section 3",
-        blogName: "Jack of Kent Blog",
-        date: "15 March 2026",
-        url: "https://example.com",
-        accessedDate: "20 April 2026",
-      })
-    );
-    expect(result).toBe(
-      "Jack of Kent, \u2018The Importance of Section 3\u2019 (Jack of Kent Blog, 15 March 2026) <https://example.com> accessed 20 April 2026"
-    );
-  });
-
-  test("includes blog name in parenthetical", () => {
-    const result = joinRuns(
-      formatOscolaBlog({
-        author: "A Blogger",
-        title: "Post Title",
-        blogName: "The Legal Blog",
-        date: "1 February 2026",
-        url: "https://blog.com/post",
-        accessedDate: "10 March 2026",
-      })
-    );
-    expect(result).toContain("(The Legal Blog, 1 February 2026)");
-  });
-
-  test("returns correct number of runs", () => {
+describe("formatOscolaBlog — OSCOLA 5 §3.7.1", () => {
+  test("blogs take the website form: author, quoted title, (italic blog, date), link, access date", () => {
     const runs = formatOscolaBlog({
-      author: "Author",
-      title: "Title",
-      blogName: "Blog",
-      date: "1 Jan 2026",
-      url: "https://blog.com",
-      accessedDate: "2 Jan 2026",
+      author: "Jack of Kent",
+      title: "The Importance of Section 3",
+      blogName: "Jack of Kent Blog",
+      date: "15 March 2026",
+      url: "https://example.com",
+      accessedDate: "20 April 2026",
     });
-    expect(runs).toHaveLength(5);
+    expect(joinRuns(runs)).toBe(
+      "Jack of Kent, ‘The Importance of Section 3’ (Jack of Kent Blog, 15 March 2026) <https://example.com> accessed 20 April 2026"
+    );
+    expect(italics(runs)).toEqual(["Jack of Kent Blog"]);
+  });
+
+  test("notes example: DOI or persistent link needs no access date", () => {
+    expect(
+      joinRuns(
+        formatOscolaBlog({
+          author: "Maximilian Steinbeis",
+          title: "A European Network of Constitutional Law Blogs",
+          blogName: "VerfBlog",
+          date: "17 March 2015",
+          url: "https://perma.cc/XXXX-YYYY",
+        })
+      )
+    ).toBe(
+      "Maximilian Steinbeis, ‘A European Network of Constitutional Law Blogs’ (VerfBlog, 17 March 2015) <https://perma.cc/XXXX-YYYY>"
+    );
+  });
+
+  test("no author: starts with the title", () => {
+    expect(
+      joinRuns(
+        formatOscolaBlog({
+          title: "Post Title",
+          blogName: "The Legal Blog",
+          date: "1 February 2026",
+          url: "https://blog.com/post",
+        })
+      )
+    ).toBe("‘Post Title’ (The Legal Blog, 1 February 2026) <https://blog.com/post>");
   });
 });
 
-// ─── Social Media (OSCOLA 5 §3.7.3) ─────────────────────────────────────────
+// ─── Social Media (OSCOLA 5 §3.7.1) ─────────────────────────────────────────
 
-describe("formatOscolaSocialMedia — OSCOLA 5 Rule 3.7.3", () => {
-  test("formats a tweet with handle", () => {
+describe("formatOscolaSocialMedia — OSCOLA 5 §3.7.1", () => {
+  test("notes example: username, (platform, date, time), persistent link", () => {
+    expect(
+      joinRuns(
+        formatOscolaSocialMedia({
+          handle: "@The Criminal Bar",
+          platform: "Twitter",
+          date: "26 June 2023",
+          time: "9:13pm GMT+1",
+          url: "https://perma.cc/HD6K-3GZQ",
+        })
+      )
+    ).toBe("@The Criminal Bar (Twitter, 26 June 2023, 9:13pm GMT+1) <https://perma.cc/HD6K-3GZQ>");
+  });
+
+  test("the handle is preferred over the display name", () => {
     const result = joinRuns(
       formatOscolaSocialMedia({
         author: "The Law Society",
         handle: "@TheLawSociety",
-        content: "New guidance published today",
         platform: "Twitter",
         date: "15 March 2026",
         url: "https://twitter.com/TheLawSociety/status/123",
@@ -183,48 +178,57 @@ describe("formatOscolaSocialMedia — OSCOLA 5 Rule 3.7.3", () => {
       })
     );
     expect(result).toBe(
-      "The Law Society (@TheLawSociety), \u2018New guidance published today\u2019 (Twitter, 15 March 2026) <https://twitter.com/TheLawSociety/status/123> accessed 20 April 2026"
+      "@TheLawSociety (Twitter, 15 March 2026) <https://twitter.com/TheLawSociety/status/123> accessed 20 April 2026"
     );
   });
 
-  test("formats a post without handle", () => {
+  test("no handle: the display name stands as the author", () => {
     const result = joinRuns(
       formatOscolaSocialMedia({
         author: "Lord Neuberger",
-        content: "Reflections on the rule of law",
         platform: "LinkedIn",
         date: "10 February 2026",
         url: "https://linkedin.com/post/abc",
-        accessedDate: "15 March 2026",
       })
     );
-    expect(result).toContain("Lord Neuberger, ");
-    expect(result).not.toContain("(@");
+    expect(result).toBe(
+      "Lord Neuberger (LinkedIn, 10 February 2026) <https://linkedin.com/post/abc>"
+    );
   });
 
-  test("truncates content longer than 50 characters", () => {
+  test("a supplied post excerpt is quoted after the username", () => {
+    expect(
+      joinRuns(
+        formatOscolaSocialMedia({
+          handle: "@author",
+          content: "Short post",
+          platform: "Twitter",
+          date: "1 Jan 2026",
+          url: "https://t.co/x",
+        })
+      )
+    ).toBe("@author, ‘Short post’ (Twitter, 1 Jan 2026) <https://t.co/x>");
+  });
+
+  test("truncates an excerpt longer than 50 characters with an ellipsis", () => {
     const longContent =
       "This is a very long social media post that exceeds the maximum character limit for excerpts";
     const result = joinRuns(
       formatOscolaSocialMedia({
-        author: "Author",
         handle: "@author",
         content: longContent,
         platform: "Twitter",
         date: "1 Jan 2026",
         url: "https://twitter.com/a",
-        accessedDate: "2 Jan 2026",
       })
     );
-    // Should contain ellipsis character
-    expect(result).toContain("\u2026");
-    // The excerpt inside quotes should be <= 51 chars (50 + ellipsis)
-    const match = result.match(/\u2018(.*?)\u2019/);
+    expect(result).toContain("…");
+    const match = result.match(/‘(.*?)’/);
     expect(match).toBeDefined();
     expect(match![1].length).toBeLessThanOrEqual(51);
   });
 
-  test("does not truncate content at exactly 50 characters", () => {
+  test("does not truncate an excerpt of exactly 50 characters", () => {
     const exact50 = "A".repeat(50);
     const result = joinRuns(
       formatOscolaSocialMedia({
@@ -233,167 +237,112 @@ describe("formatOscolaSocialMedia — OSCOLA 5 Rule 3.7.3", () => {
         platform: "Twitter",
         date: "1 Jan 2026",
         url: "https://t.co/x",
-        accessedDate: "2 Jan 2026",
       })
     );
-    expect(result).not.toContain("\u2026");
-  });
-
-  test("does not truncate content shorter than 50 characters", () => {
-    const result = joinRuns(
-      formatOscolaSocialMedia({
-        author: "Author",
-        content: "Short post",
-        platform: "Twitter",
-        date: "1 Jan 2026",
-        url: "https://t.co/x",
-        accessedDate: "2 Jan 2026",
-      })
-    );
-    expect(result).toContain("\u2018Short post\u2019");
-    expect(result).not.toContain("\u2026");
-  });
-
-  test("includes platform in parenthetical", () => {
-    const result = joinRuns(
-      formatOscolaSocialMedia({
-        author: "Author",
-        content: "Content",
-        platform: "X (formerly Twitter)",
-        date: "1 Jan 2026",
-        url: "https://x.com/a",
-        accessedDate: "2 Jan 2026",
-      })
-    );
-    expect(result).toContain("(X (formerly Twitter), 1 Jan 2026)");
+    expect(result).not.toContain("…");
   });
 });
 
-// ─── Podcast (OSCOLA 5 §3.7.4) ──────────────────────────────────────────────
+// ─── Podcast (OSCOLA 5 §3.7.2) ──────────────────────────────────────────────
 
-describe("formatOscolaPodcast — OSCOLA 5 Rule 3.7.4", () => {
-  /**
-   * @example \u2018Law in Action: Supreme Court Review\u2019 (BBC Radio 4,
-   *   15 March 2026) <https://example.com/podcast> accessed 20 April 2026
-   */
-  test("formats a podcast citation without author", () => {
-    const result = joinRuns(
-      formatOscolaPodcast({
-        episodeTitle: "Law in Action: Supreme Court Review",
-        seriesName: "BBC Radio 4",
-        date: "15 March 2026",
-        url: "https://example.com/podcast",
-        accessedDate: "20 April 2026",
-      })
-    );
-    expect(result).toBe(
-      "\u2018Law in Action: Supreme Court Review\u2019 (BBC Radio 4, 15 March 2026) <https://example.com/podcast> accessed 20 April 2026"
+describe("formatOscolaPodcast — OSCOLA 5 §3.7.2", () => {
+  test("notes example: podcast name, quoted episode title, (date), timestamp, link, access date", () => {
+    expect(
+      joinRuns(
+        formatOscolaPodcast({
+          seriesName: "Double Jeopardy podcast",
+          episodeTitle: "Episode 27: Dr Bryn Harris – Free Speech, Harm and the Internet",
+          date: "7 April 2023",
+          timestamp: "3:40–3:56",
+          url: "https://example.org/double-jeopardy/27",
+          accessedDate: "21 July 2023",
+        })
+      )
+    ).toBe(
+      "Double Jeopardy podcast, ‘Episode 27: Dr Bryn Harris – Free Speech, Harm and the Internet’ (7 April 2023) 3:40–3:56 <https://example.org/double-jeopardy/27> accessed 21 July 2023"
     );
   });
 
-  test("formats a podcast citation with author", () => {
-    const result = joinRuns(
-      formatOscolaPodcast({
-        author: "Joshua Rozenberg",
-        episodeTitle: "The State of the Judiciary",
-        seriesName: "Law in Action",
-        date: "1 April 2026",
-        url: "https://bbc.co.uk/podcast/123",
-        accessedDate: "10 April 2026",
-      })
-    );
-    expect(result).toBe(
-      "Joshua Rozenberg, \u2018The State of the Judiciary\u2019 (Law in Action, 1 April 2026) <https://bbc.co.uk/podcast/123> accessed 10 April 2026"
+  test("no timestamp and no access date", () => {
+    expect(
+      joinRuns(
+        formatOscolaPodcast({
+          seriesName: "Law in Action",
+          episodeTitle: "The State of the Judiciary",
+          date: "1 April 2026",
+          url: "https://bbc.co.uk/podcast/123",
+        })
+      )
+    ).toBe(
+      "Law in Action, ‘The State of the Judiciary’ (1 April 2026) <https://bbc.co.uk/podcast/123>"
     );
   });
 
-  test("returns correct number of runs without author", () => {
-    const runs = formatOscolaPodcast({
-      episodeTitle: "Ep",
-      seriesName: "Series",
-      date: "1 Jan 2026",
-      url: "https://pod.com",
-      accessedDate: "2 Jan 2026",
-    });
-    expect(runs).toHaveLength(4);
-  });
-
-  test("returns correct number of runs with author", () => {
-    const runs = formatOscolaPodcast({
-      author: "Host",
-      episodeTitle: "Ep",
-      seriesName: "Series",
-      date: "1 Jan 2026",
-      url: "https://pod.com",
-      accessedDate: "2 Jan 2026",
-    });
-    expect(runs).toHaveLength(5);
+  test("an author precedes the podcast name", () => {
+    expect(
+      joinRuns(
+        formatOscolaPodcast({
+          author: "Joshua Rozenberg",
+          seriesName: "Law in Action",
+          episodeTitle: "Ep",
+          date: "1 Jan 2026",
+          url: "https://pod.com",
+        })
+      )
+    ).toBe("Joshua Rozenberg, Law in Action, ‘Ep’ (1 Jan 2026) <https://pod.com>");
   });
 });
 
-// ─── Video (OSCOLA 5 §3.7.5) ────────────────────────────────────────────────
+// ─── Online video (OSCOLA 5 §3.7.1) ─────────────────────────────────────────
 
-describe("formatOscolaVideo — OSCOLA 5 Rule 3.7.5", () => {
-  /**
-   * @example UK Supreme Court, \u2018R v Adams Judgment Summary\u2019 (YouTube,
-   *   15 March 2026) <https://youtube.com/watch?v=abc> accessed 20 April 2026
-   */
-  test("formats a full video citation", () => {
-    const result = joinRuns(
-      formatOscolaVideo({
-        author: "UK Supreme Court",
-        title: "R v Adams Judgment Summary",
-        platform: "YouTube",
-        date: "15 March 2026",
-        url: "https://youtube.com/watch?v=abc",
-        accessedDate: "20 April 2026",
-      })
-    );
-    expect(result).toBe(
-      "UK Supreme Court, \u2018R v Adams Judgment Summary\u2019 (YouTube, 15 March 2026) <https://youtube.com/watch?v=abc> accessed 20 April 2026"
+describe("formatOscolaVideo — OSCOLA 5 §3.7.1", () => {
+  test("notes example: author, quoted title, (platform, date), timestamp before the link", () => {
+    expect(
+      joinRuns(
+        formatOscolaVideo({
+          author: "UK Supreme Court",
+          title: "Lady Hale’s Valedictory Remarks – 18 December 2019",
+          platform: "YouTube",
+          date: "18 December 2019",
+          timestamp: "42:41–51:17",
+          url: "https://perma.cc/7YZV-Y43A",
+        })
+      )
+    ).toBe(
+      "UK Supreme Court, ‘Lady Hale’s Valedictory Remarks – 18 December 2019’ (YouTube, 18 December 2019) 42:41–51:17 <https://perma.cc/7YZV-Y43A>"
     );
   });
 
-  test("formats a video citation without author", () => {
-    const result = joinRuns(
-      formatOscolaVideo({
-        title: "Parliamentary Debate Highlights",
-        platform: "YouTube",
-        date: "1 February 2026",
-        url: "https://youtube.com/watch?v=xyz",
-        accessedDate: "5 March 2026",
-      })
-    );
-    expect(result).toBe(
-      "\u2018Parliamentary Debate Highlights\u2019 (YouTube, 1 February 2026) <https://youtube.com/watch?v=xyz> accessed 5 March 2026"
+  test("ordinary URL with an access date", () => {
+    expect(
+      joinRuns(
+        formatOscolaVideo({
+          author: "UK Supreme Court",
+          title: "R v Adams Judgment Summary",
+          platform: "YouTube",
+          date: "15 March 2026",
+          url: "https://youtube.com/watch?v=abc",
+          accessedDate: "20 April 2026",
+        })
+      )
+    ).toBe(
+      "UK Supreme Court, ‘R v Adams Judgment Summary’ (YouTube, 15 March 2026) <https://youtube.com/watch?v=abc> accessed 20 April 2026"
     );
   });
 
-  test("supports non-YouTube platforms", () => {
-    const result = joinRuns(
-      formatOscolaVideo({
-        author: "Inner Temple",
-        title: "Advocacy Masterclass",
-        platform: "Vimeo",
-        date: "20 March 2026",
-        url: "https://vimeo.com/123",
-        accessedDate: "21 April 2026",
-      })
+  test("no author: starts with the title", () => {
+    expect(
+      joinRuns(
+        formatOscolaVideo({
+          title: "Parliamentary Debate Highlights",
+          platform: "YouTube",
+          date: "1 February 2026",
+          url: "https://youtube.com/watch?v=xyz",
+        })
+      )
+    ).toBe(
+      "‘Parliamentary Debate Highlights’ (YouTube, 1 February 2026) <https://youtube.com/watch?v=xyz>"
     );
-    expect(result).toContain("(Vimeo, 20 March 2026)");
-  });
-
-  test("includes accessed date at the end", () => {
-    const result = joinRuns(
-      formatOscolaVideo({
-        title: "Title",
-        platform: "YouTube",
-        date: "1 Jan 2026",
-        url: "https://yt.com/1",
-        accessedDate: "15 April 2026",
-      })
-    );
-    expect(result).toMatch(/accessed 15 April 2026$/);
   });
 });
 
@@ -401,41 +350,31 @@ describe("formatOscolaVideo — OSCOLA 5 Rule 3.7.5", () => {
 
 describe("cross-cutting: all digital formatters", () => {
   test("all formatters return FormattedRun[] with text property", () => {
-    const websiteRuns = formatOscolaWebsite({
-      title: "T",
-      websiteName: "W",
-      url: "https://w.com",
-      accessedDate: "1 Jan 2026",
-    });
+    const websiteRuns = formatOscolaWebsite({ title: "T", websiteName: "W", url: "https://w.com" });
     const blogRuns = formatOscolaBlog({
       author: "A",
       title: "T",
       blogName: "B",
       date: "1 Jan 2026",
       url: "https://b.com",
-      accessedDate: "1 Jan 2026",
     });
     const socialRuns = formatOscolaSocialMedia({
       author: "A",
-      content: "C",
       platform: "P",
       date: "1 Jan 2026",
       url: "https://p.com",
-      accessedDate: "1 Jan 2026",
     });
     const podcastRuns = formatOscolaPodcast({
       episodeTitle: "E",
       seriesName: "S",
       date: "1 Jan 2026",
       url: "https://s.com",
-      accessedDate: "1 Jan 2026",
     });
     const videoRuns = formatOscolaVideo({
       title: "T",
       platform: "P",
       date: "1 Jan 2026",
       url: "https://p.com",
-      accessedDate: "1 Jan 2026",
     });
 
     for (const runs of [websiteRuns, blogRuns, socialRuns, podcastRuns, videoRuns]) {

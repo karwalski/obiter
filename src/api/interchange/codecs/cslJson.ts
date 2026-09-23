@@ -23,6 +23,7 @@ import type {
   InterchangeRecord,
 } from "../model";
 import { parseDateParts, parseFreeTextDate, toDateParts } from "../mapper/dates";
+import { formattedNoteLine, parseFormattedNoteLine } from "../mapper/formattedNote";
 import { cslTypeToKind, KIND_TO_CSL_TYPE } from "../mapper/kinds";
 import { creatorsWithRole, formatCslName, parseCslName } from "../mapper/names";
 import type { CslName } from "../mapper/names";
@@ -81,8 +82,6 @@ const RESERVED_PASSTHROUGH = new Set(["formatted-footnote", "formatted-bibliogra
 
 const NOTE_OBITER_ID = /^obiter-id:\s*(.+?)\s*$/i;
 const NOTE_OBITER_TYPE = /^obiter-type:\s*(.+?)\s*$/i;
-const NOTE_FOOTNOTE = /^AGLC\w*\s+footnote:\s*(.*?)\s*$/i;
-const NOTE_BIBLIOGRAPHY = /^AGLC\w*\s+bibliography:\s*(.*?)\s*$/i;
 
 const PARSE_ADVICE = "Export the library again from Zotero or Mendeley and try again.";
 
@@ -225,14 +224,10 @@ function readNote(record: InterchangeRecord, value: unknown): void {
       record.provenance.obiterSourceType = m[1];
       continue;
     }
-    m = NOTE_FOOTNOTE.exec(line);
-    if (m) {
-      addPassthrough(record, "formatted-footnote", m[1]);
-      continue;
-    }
-    m = NOTE_BIBLIOGRAPHY.exec(line);
-    if (m) {
-      addPassthrough(record, "formatted-bibliography", m[1]);
+    // "<standard> footnote: …" under any label (AGLC4, OSCOLA 5, NZLSG 3). STD-025.
+    const formatted = parseFormattedNoteLine(line);
+    if (formatted) {
+      addPassthrough(record, `formatted-${formatted.key}`, formatted.text);
       continue;
     }
     record.notes.push(line);
@@ -440,14 +435,20 @@ function noteOf(record: InterchangeRecord, includeFormatted: boolean): string | 
   if (provenance.obiterSourceType) lines.push(`obiter-type: ${provenance.obiterSourceType}`);
   if (includeFormatted) {
     if (formatted) {
-      const label = formatted.standard || "AGLC4";
-      if (formatted.footnote) lines.push(`${label} footnote: ${formatted.footnote}`);
-      if (formatted.bibliography) lines.push(`${label} bibliography: ${formatted.bibliography}`);
+      const { standard } = formatted;
+      if (formatted.footnote)
+        lines.push(formattedNoteLine(standard, "footnote", formatted.footnote));
+      if (formatted.bibliography) {
+        lines.push(formattedNoteLine(standard, "bibliography", formatted.bibliography));
+      }
     } else {
       const footnote = passthrough["formatted-footnote"];
       const bibliography = passthrough["formatted-bibliography"];
-      if (typeof footnote === "string") lines.push(`AGLC4 footnote: ${footnote}`);
-      if (typeof bibliography === "string") lines.push(`AGLC4 bibliography: ${bibliography}`);
+      if (typeof footnote === "string")
+        lines.push(formattedNoteLine(undefined, "footnote", footnote));
+      if (typeof bibliography === "string") {
+        lines.push(formattedNoteLine(undefined, "bibliography", bibliography));
+      }
     }
   }
   return lines.length ? lines.join("\n") : undefined;

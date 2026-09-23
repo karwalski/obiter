@@ -13,7 +13,7 @@ import { listCitationVersions } from "../../store/citationHistory";
 import type { CitationVersion } from "../../store/citationHistory";
 import { writeErrorMessage } from "../../word/documentAccess";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { Citation, SourceType, SourceData, INTRODUCTORY_SIGNALS, IntroductorySignal } from "../../types/citation";
 import {
@@ -252,7 +252,11 @@ export default function EditCitation(): JSX.Element {
     // Populate canonical field keys from any aliases the data was stored
     // under (e.g. a paste-parsed unreported case keeps its court in
     // `courtId`), so those fields load their value instead of blank.
-    setFormData(applyFieldAliases(found.data, getFieldsForSourceType(found.sourceType)));
+    // STD-021: the document's standard decides which fields the form lists
+    const activeStandard = getSharedStoreIfReady()?.getStandardId();
+    setFormData(
+      applyFieldAliases(found.data, getFieldsForSourceType(found.sourceType, activeStandard))
+    );
     setShortTitle(found.shortTitle ?? "");
     setTags(Array.isArray(found.tags) ? [...found.tags] : []);
     setSignal(found.signal ?? "");
@@ -292,10 +296,11 @@ export default function EditCitation(): JSX.Element {
       commentaryAfter: commentaryAfter || undefined,
       overrideText: overrideText || undefined,
     };
-    const courtToggles =
-      getSharedStoreIfReady()?.getCourtToggles() ??
-      (getDevicePref("courtToggles") as Record<string, string> | undefined);
-    const courtConfig = buildCourtConfig(standardConfig, courtToggles);
+    // STD-013: the document config (writing mode and court toggles).
+    const store = getSharedStoreIfReady();
+    const courtConfig = store
+      ? resolveDocumentConfig(store, getDevicePref("courtToggles") as Record<string, string> | undefined)
+      : standardConfig;
     return getFormattedPreview(previewCitation, courtConfig);
   }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
 
@@ -911,7 +916,8 @@ export default function EditCitation(): JSX.Element {
 
   // ─── Edit Form ───────────────────────────────────────────────────────────
 
-  const fields = getFieldsForSourceType(citation.sourceType);
+  // STD-021: the OSCOLA / NZLSG fields join the list under those standards
+  const fields = getFieldsForSourceType(citation.sourceType, standardId);
   const typeLabel = SOURCE_TYPE_LABELS[citation.sourceType] || citation.sourceType;
 
   return (

@@ -95,6 +95,8 @@ import { useCitationContext } from "../context/CitationContext";
 import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
 
 type AglcVersion = "4" | "5";
+/** STD-022: the NZLSG subsequent-reference style (NZLSG 3 r 2.3), document metadata. */
+type NzlsgStyle = "general" | "commercial";
 
 const LLM_API_KEY_URLS: Record<string, string> = {
   openai: "https://platform.openai.com/api-keys",
@@ -167,6 +169,7 @@ export default function Settings(): JSX.Element {
 
   const [, setVersion] = useState<AglcVersion>("4");
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+  const [nzlsgStyle, setNzlsgStyle] = useState<NzlsgStyle>("general");
   const [loading, setLoading] = useState(true);
   const [migrationNotice, setMigrationNotice] = useState(false);
   const [ackStatus, setAckStatus] = useState<string | null>(null);
@@ -187,7 +190,10 @@ export default function Settings(): JSX.Element {
     unreportedGate: UnreportedGate;
     ibidSuppression: IbidSuppression;
     loaType: LoaType;
-    /** PD-driven parallel citation order (e.g. WA MNC-first); no UI control. */
+    /**
+     * Parallel citation order (e.g. WA MNC-first per PD). Absent means the
+     * engine default, report-first; the STD-022 control writes it explicitly.
+     */
     parallelOrder?: ParallelOrder;
   }>({
     parallelCitations: "mandatory",
@@ -463,12 +469,17 @@ export default function Settings(): JSX.Element {
         llmConfig,
         autoRefresh: autoRefreshCitations,
         templatePrefs,
+        // STD-022: the document's standard and court settings seed the
+        // account too; the NZLSG style only when it applies.
+        standardId,
+        courtJurisdiction: courtJurisdiction || "",
         courtToggles: courtJurisdiction ? { ...courtToggles } : {},
+        ...(standardId.startsWith("nzlsg") ? { nzlsgStyle } : {}),
       });
     }
   }, [
     pushSyncedSettings, llmProvider, llmModel, llmEndpoint, llmMaxTokens, llmEnabled,
-    autoRefreshCitations, templatePrefs, courtJurisdiction, courtToggles,
+    autoRefreshCitations, templatePrefs, standardId, nzlsgStyle, courtJurisdiction, courtToggles,
   ]);
 
   const handleLocalKeyOverrideToggle = useCallback(
@@ -638,6 +649,10 @@ export default function Settings(): JSX.Element {
           setVersion(store.getAglcVersion());
           setStandardId(store.getStandardId());
           setWritingMode(store.getWritingMode());
+          // STD-022: NZLSG style from document metadata (general when unset).
+          // Optional call: a partial store (see DocumentStandardSource) may
+          // predate the accessor.
+          setNzlsgStyle(store.getNzlsgStyle?.() ?? "general");
 
           // Load court jurisdiction and toggles (COURT-002)
           const savedJurisdiction = store.getCourtJurisdiction();
@@ -728,6 +743,7 @@ export default function Settings(): JSX.Element {
     // warranted — existing citations reflow on the next Refresh All.
     const store = await getSharedStore();
     const hadExistingCitations = store.getAll().length > 0;
+    let leftCourtMode = false;
     try {
       await store.setStandardId(newStandardId);
       setStandardId(newStandardId);
@@ -754,14 +770,44 @@ export default function Settings(): JSX.Element {
           await store.setCourtToggles(undefined);
           setDocSetting("obiter-writingMode", "academic");
           setDevicePref("courtToggles", undefined);
+          leftCourtMode = true;
         }
       }
+      // STD-022: sync the standard (and, under NZLSG, its style); a court
+      // reset clears the synced court namespaces as well.
+      void pushSyncedSettings({
+        standardId: newStandardId,
+        ...(newStandardId.startsWith("nzlsg") ? { nzlsgStyle } : {}),
+        ...(leftCourtMode ? { courtJurisdiction: "", courtToggles: {} } : {}),
+      });
       triggerRefresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save standard";
       setError(message);
     }
-  }, [standardId, writingMode, triggerRefresh]);
+  }, [standardId, writingMode, nzlsgStyle, triggerRefresh, pushSyncedSettings]);
+
+  // STD-022: the NZLSG subsequent-reference style (NZLSG 3 r 2.3) lives in
+  // the document so every device renders the same references, and is synced.
+  const handleNzlsgStyleChange = useCallback(async (style: NzlsgStyle) => {
+    if (style === nzlsgStyle) return;
+    try {
+      const store = await getSharedStore();
+      const hadExistingCitations = store.getAll().length > 0;
+      await store.setNzlsgStyle(style);
+      setNzlsgStyle(style);
+      setStandardNotice(
+        hadExistingCitations
+          ? "Citation style updated. Run Refresh All to reformat existing subsequent references."
+          : null
+      );
+      void pushSyncedSettings({ nzlsgStyle: style });
+      triggerRefresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to save citation style";
+      setError(message);
+    }
+  }, [nzlsgStyle, triggerRefresh, pushSyncedSettings]);
 
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {
@@ -776,6 +822,7 @@ export default function Settings(): JSX.Element {
         await store.setCourtJurisdiction(undefined);
         await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
+        void pushSyncedSettings({ courtJurisdiction: "", courtToggles: {} });
       } else if (store.getCourtToggles() === undefined) {
         // One-release migration: toggle overrides used to live only in the
         // device prefs, so a document customised before the migration lost
@@ -794,7 +841,7 @@ export default function Settings(): JSX.Element {
       const message = err instanceof Error ? err.message : "Failed to save writing mode";
       setError(message);
     }
-  }, [triggerRefresh]);
+  }, [triggerRefresh, pushSyncedSettings]);
 
   // Leave Manual Citations Mode and resume automatic formatting. When
   // `lockFirst` is true, every existing footnote is frozen first so manual
@@ -831,6 +878,7 @@ export default function Settings(): JSX.Element {
         await store.setCourtJurisdiction(undefined);
         await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
+        void pushSyncedSettings({ courtJurisdiction: "", courtToggles: {} });
         setModeNotice(hadExistingCitations ? buildReformatNotice("Jurisdiction cleared.") : null);
         triggerRefresh();
         return;
@@ -855,7 +903,8 @@ export default function Settings(): JSX.Element {
       setCourtToggles(newToggles);
       await store.setCourtToggles(newToggles);
       setDevicePref("courtToggles", undefined);
-      void pushSyncedSettings({ courtToggles: { ...newToggles } });
+      // STD-022: the jurisdiction id is synced with its toggle record.
+      void pushSyncedSettings({ courtJurisdiction: jurisdictionId, courtToggles: { ...newToggles } });
       setModeNotice(hadExistingCitations ? buildReformatNotice("Jurisdiction updated.") : null);
       triggerRefresh();
     } catch (err: unknown) {
@@ -1127,6 +1176,28 @@ export default function Settings(): JSX.Element {
           </div>
         </label>
 
+        {standardId.startsWith("nzlsg") && (
+          <>
+            <label style={{ fontSize: 12, display: "block", marginTop: 6 }}>
+              Citation style
+              <select
+                className="ic-select"
+                style={{ width: "100%", marginTop: 4 }}
+                value={nzlsgStyle}
+                onChange={(e) => void handleNzlsgStyleChange(e.target.value as NzlsgStyle)}
+              >
+                <option value="general">General</option>
+                <option value="commercial">Commercial</option>
+              </select>
+            </label>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+              {nzlsgStyle === "commercial"
+                ? "Commercial style: subsequent references use the short form only, with no ‘above n’ cross-references (NZLSG r 2.3). Stored in the document."
+                : "General style: subsequent references cross-refer with ‘above n’ (NZLSG r 2.3). Stored in the document."}
+            </p>
+          </>
+        )}
+
         {standardNotice && (
           <p style={{ fontSize: 11, margin: "8px 0 0", color: "var(--colour-text-secondary)" }}>
             {standardNotice}
@@ -1215,6 +1286,19 @@ export default function Settings(): JSX.Element {
                     <option value="off">Off</option>
                     <option value="preferred">Preferred</option>
                     <option value="mandatory">Mandatory</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Parallel citation order
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.parallelOrder ?? "report-first"}
+                    onChange={(e) => handleToggleOverride("parallelOrder", e.target.value as ParallelOrder)}
+                  >
+                    <option value="report-first">Authorised report first</option>
+                    <option value="mnc-first">Medium neutral citation first</option>
                   </select>
                 </label>
 

@@ -11,6 +11,12 @@
  * Author[] for author lists, flat strings for author, speaker and body
  * fields. Everything Obiter does not cite goes into the passthrough bag
  * under data.interchange (DECISION-038).
+ *
+ * A record Obiter exported (obiter id + source type, DECISION-038 item 3)
+ * carries its own data keys as `obiter-field:` note lines; when it comes
+ * back as the same source type those lines restore the data exactly and
+ * no field is derived (STD-025). The derived mapping below is for records
+ * from other tools.
  */
 
 import type { Author, Citation, SourceType } from "../../../types/citation";
@@ -25,6 +31,7 @@ import type {
 } from "../model";
 import { INTERCHANGE_DATA_KEY, PASSTHROUGH_TEXT_CAP, issue } from "../model";
 import { toAglcDateString, yearOf } from "./dates";
+import { FORMATTED_NOTE_LOOKAHEAD, isFormattedNoteLine, liftFormattedNotes } from "./formattedNote";
 import { inferSourceType } from "./inferSourceType";
 import type { SourceTypeInference } from "./inferSourceType";
 import {
@@ -547,6 +554,12 @@ function mapSecondary(
       mapDateAndYear(record, data, true);
       set(data, "reportType", record.genre);
       set(data, "reportNumber", record.number);
+      // STD-021: a 'Wai 262' number from another tool is the claim number the
+      // NZLSG Waitangi Tribunal form (rule 3.6) cites
+      if (sourceType === "report.waitangi_tribunal") {
+        const wai = /^\s*wai\s*(\d+)/i.exec(record.number ?? "");
+        if (wai) set(data, "waiNumber", Number(wai[1]));
+      }
       set(data, "pinpoint", legal.pinpoint);
       break;
     case "report.parliamentary":
@@ -826,15 +839,29 @@ function composeCustomText(record: InterchangeRecord): string {
  * note back into lines so field notes and the formatted citation are
  * recognised individually.
  */
+const JOINED_NOTE_SPLIT = new RegExp(
+  `;\\s*(?=obiter-(?:field|id|type):|${FORMATTED_NOTE_LOOKAHEAD})`
+);
+
 function expandJoinedNotes(notes: string[]): string[] {
   const out: string[] = [];
   for (const note of notes) {
-    const parts = note.split(
-      /;\s*(?=obiter-(?:field|id|type):|AGLC\d? (?:footnote|bibliography):)/
-    );
+    const parts = note.split(JOINED_NOTE_SPLIT);
     for (const part of parts) if (part.trim()) out.push(part.trim());
   }
   return out;
+}
+
+/**
+ * True when the record carries Obiter's round-trip provenance (obiter id
+ * and source type, DECISION-038 item 3) and is coming back as that type.
+ * A type chosen in the preview that differs from the exported one is a
+ * foreign mapping.
+ */
+function isObiterRoundTrip(record: InterchangeRecord, sourceType: SourceType): boolean {
+  return (
+    record.provenance.obiterId !== undefined && record.provenance.obiterSourceType === sourceType
+  );
 }
 
 /** Parses "obiter-field:<key>: <json>" note lines into key/value pairs. */
@@ -888,7 +915,7 @@ function buildBag(
   const abstract = truncate(record.abstract, issues, "abstract");
   if (abstract) bag.abstract = abstract;
   const notes = record.notes.filter(
-    (n) => !/^(obiter-id|obiter-type|obiter-field|AGLC\d? (footnote|bibliography)):/.test(n)
+    (n) => !/^obiter-(id|type|field):/.test(n) && !isFormattedNoteLine(n)
   );
   if (notes.length > 0) {
     const joined = truncate(notes.join("\n"), issues, "notes");
@@ -905,27 +932,16 @@ function buildBag(
   return bag;
 }
 
-// ─── Entry point ────────────────────────────────────────────────────────────
-
-/** Builds a citation for a record; never throws. */
-export function mapRecordToCitation(
+/**
+ * Derives the data of a record from another tool (or an Obiter export made
+ * before the field notes existed) from its native fields.
+ */
+function mapForeignRecord(
   record: InterchangeRecord,
-  options: ToCitationOptions
-): MappedCitation {
-  const issues: InterchangeIssue[] = [];
-  record.notes = expandJoinedNotes(record.notes);
-  const inference = options.sourceTypeOverride
-    ? {
-        sourceType: options.sourceTypeOverride,
-        confidence: 1,
-        reasons: ["Chosen in the preview"],
-        issues: [],
-      }
-    : inferSourceType(record);
-  issues.push(...inference.issues);
-  const sourceType = inference.sourceType;
-  const data: Data = {};
-
+  data: Data,
+  sourceType: SourceType,
+  issues: InterchangeIssue[]
+): void {
   if (sourceType.startsWith("foreign.")) mapForeign(record, data, issues);
   else if (
     sourceType === "case.reported" ||
@@ -1007,13 +1023,41 @@ export function mapRecordToCitation(
       )
     );
   }
+}
 
-  // A record exported from Obiter carries its data keys as note lines;
-  // when it comes back as the same source type, restore them exactly.
-  if (record.provenance.obiterSourceType === sourceType) {
-    for (const [key, value] of readFieldNotes(record)) {
+// ─── Entry point ────────────────────────────────────────────────────────────
+
+/** Builds a citation for a record; never throws. */
+export function mapRecordToCitation(
+  record: InterchangeRecord,
+  options: ToCitationOptions
+): MappedCitation {
+  const issues: InterchangeIssue[] = [];
+  record.notes = expandJoinedNotes(record.notes);
+  liftFormattedNotes(record);
+  const inference = options.sourceTypeOverride
+    ? {
+        sourceType: options.sourceTypeOverride,
+        confidence: 1,
+        reasons: ["Chosen in the preview"],
+        issues: [],
+      }
+    : inferSourceType(record);
+  issues.push(...inference.issues);
+  const sourceType = inference.sourceType;
+  const data: Data = {};
+
+  // A same-tool round trip restores the data exactly from the field notes
+  // (DECISION-038 item 4): nothing is derived, and the formatted note is
+  // never read as citation data. An export made before the field notes
+  // existed falls back to the derived mapping.
+  const fieldNotes = isObiterRoundTrip(record, sourceType) ? readFieldNotes(record) : [];
+  if (fieldNotes.length > 0) {
+    for (const [key, value] of fieldNotes) {
       if (value !== undefined && value !== null) data[key] = value;
     }
+  } else {
+    mapForeignRecord(record, data, sourceType, issues);
   }
 
   const now = options.now ?? new Date().toISOString();

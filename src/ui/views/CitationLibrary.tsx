@@ -14,7 +14,7 @@ import ExportDialog from "../components/ExportDialog";
 import DuplicatesDialog from "../components/DuplicatesDialog";
 import type { DuplicatesDialogCluster } from "../components/DuplicatesDialog";
 import { buildDedupeKeyFromCitation, findDuplicateClusters } from "../../api/interchange/dedupe";
-import type { DedupeKey, DedupeMatchKind } from "../../api/interchange/dedupe";
+import type { DedupeKeys, DedupeMatchKind } from "../../api/interchange/dedupe";
 import { useStatus } from "../context/StatusContext";
 import { listMissingRequiredFields } from "../../engine/validator";
 import { getFieldsForSourceType } from "./editCitationFields";
@@ -28,7 +28,7 @@ import type { FormattedRun } from "../../types/formattedRun";
 import { useCitationContext } from "../context/CitationContext";
 import CitationFinder from "../components/CitationFinder";
 import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
+import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { RECOVERY_VIEW_ENABLED } from "../featureFlags";
 import { userTags } from "../../engine/tags";
@@ -213,13 +213,27 @@ function getShortTitleDuplicates(citation: Citation, allCitations: Citation[]): 
 }
 
 /** Strongest dedupe key first, matching findDuplicateClusters. */
-const MANUAL_CLUSTER_KEYS: ReadonlyArray<{ field: keyof DedupeKey; kind: DedupeMatchKind }> = [
+const MANUAL_CLUSTER_KEYS: ReadonlyArray<{ field: keyof DedupeKeys; kind: DedupeMatchKind }> = [
   { field: "doi", kind: "doi" },
   { field: "isbn", kind: "isbn" },
   { field: "citeKey", kind: "cite-key" },
-  { field: "legal", kind: "legal" },
+  { field: "legalKeys", kind: "legal" },
   { field: "loose", kind: "loose" },
 ];
+
+/**
+ * The first value of `field` on the earliest member that every member also
+ * carries. A case carries a SET of legal keys (STD-020: MNC, report and
+ * parallels), so a member matches when any of its keys is that value.
+ */
+function sharedKeyValue(keys: DedupeKeys[], field: keyof DedupeKeys): string | undefined {
+  const valuesOf = (key: DedupeKeys | undefined): string[] => {
+    const value = key?.[field];
+    if (Array.isArray(value)) return value;
+    return value ? [value] : [];
+  };
+  return valuesOf(keys[0]).find((value) => keys.every((k) => valuesOf(k).includes(value)));
+}
 
 /**
  * ENP-003: a card-level merge reviews the citation and the others sharing its
@@ -233,10 +247,8 @@ export function buildManualCluster(members: Citation[]): DuplicatesDialogCluster
   );
   const keys = ordered.map(buildDedupeKeyFromCitation);
   for (const { field, kind } of MANUAL_CLUSTER_KEYS) {
-    const value = keys[0]?.[field];
-    if (value && keys.every((k) => k[field] === value)) {
-      return { kind, key: value, members: ordered };
-    }
+    const value = sharedKeyValue(keys, field);
+    if (value) return { kind, key: value, members: ordered };
   }
   return {
     kind: "loose",
@@ -538,10 +550,11 @@ export default function CitationLibrary(): JSX.Element {
           precedingCitations.length === 1 &&
           precedingCitations[0].citationId === citation.id;
 
-        const courtToggles =
-          (await getSharedStore()).getCourtToggles() ??
-          (getDevicePref("courtToggles") as Record<string, string> | undefined);
-        const courtConfig = buildCourtConfig(getStandardConfig(standardId), courtToggles);
+        // STD-013: the document config (writing mode and court toggles).
+        const courtConfig = resolveDocumentConfig(
+          await getSharedStore(),
+          getDevicePref("courtToggles") as Record<string, string> | undefined
+        );
         // The typed pinpoint, parsed once: `[42]` is a paragraph, `s 5` a
         // section, a bare `42` stays a page (Rule 1.1.6).
         const pin = pinpointFromTitleString(pinpointInput);
@@ -795,10 +808,11 @@ export default function CitationLibrary(): JSX.Element {
 
   // ── Interchange (INTEROP-012/013/014) ──────────────────────────────────
 
+  // STD-013: the document config (writing mode and court toggles).
   const courtConfigForPreview = useCallback(() => {
-    const courtToggles =
-      store?.getCourtToggles() ?? (getDevicePref("courtToggles") as Record<string, string> | undefined);
-    return buildCourtConfig(getStandardConfig(standardId), courtToggles);
+    return store
+      ? resolveDocumentConfig(store, getDevicePref("courtToggles") as Record<string, string> | undefined)
+      : getStandardConfig(standardId);
   }, [standardId]);
 
   const renderCitationText = useCallback(
@@ -814,7 +828,8 @@ export default function CitationLibrary(): JSX.Element {
       const footnote = renderCitationText(citation);
       let bibliography: string | undefined;
       try {
-        bibliography = formatBibliographyEntry(citation)
+        // STD-018: the bibliography leg renders in the document's standard.
+        bibliography = formatBibliographyEntry(citation, courtConfigForPreview())
           .map((r) => r.text)
           .join("");
       } catch {
@@ -822,7 +837,7 @@ export default function CitationLibrary(): JSX.Element {
       }
       return { footnote, bibliography };
     },
-    [renderCitationText]
+    [renderCitationText, courtConfigForPreview]
   );
 
   const readWordSources = useCallback(

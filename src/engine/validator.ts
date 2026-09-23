@@ -13,9 +13,11 @@ import { checkNumberFormatting } from "./rules/v4/general/numbers";
 import { shouldItaliciseTitle } from "./rules/v4/general/italicisation";
 import { LATIN_TERMS_ITALICISED } from "./data/latin-terms";
 import type {
+  CitationStandardId,
   WritingMode,
   ParallelCitationMode as ConfigParallelCitationMode,
   IbidSuppressionMode,
+  UnreportedGateMode,
 } from "./standards/types";
 import {
   type CourtJurisdiction as PresetCourtJurisdiction,
@@ -112,13 +114,6 @@ export interface DocumentFormattingMetrics {
 // ─── VALID-001: Document-wide orchestration ──────────────────────────────────
 
 /**
- * Validates an entire document by running all AGLC4 checks across footnotes
- * and citations, then categorises issues by severity.
- *
- * @remarks Orchestrates Rules 1.1.3, 1.1.4, 1.4.3, 1.6.1, 1.6.3, 1.10.1,
- * 1.11.1, and completeness checks for major source types.
- */
-/**
  * Heading entry passed from the UI layer for heading format validation.
  */
 export interface HeadingEntry {
@@ -126,32 +121,124 @@ export interface HeadingEntry {
   text: string;
 }
 
+/**
+ * STD-019: the standard family a check set is selected for. `aglc` covers
+ * `aglc4`/`aglc5`, `oscola` covers `oscola4`/`oscola5`, `nzlsg` covers
+ * `nzlsg3`/`nzlsg4`. An unknown or absent standard id is treated as AGLC
+ * (the historical behaviour of every positional caller).
+ */
+export type StandardFamily = "aglc" | "oscola" | "nzlsg";
+
+/**
+ * Resolves the standard family from a store `standardId`.
+ */
+export function standardFamilyOf(standardId?: CitationStandardId | string): StandardFamily {
+  if (typeof standardId === "string") {
+    if (standardId.startsWith("oscola")) return "oscola";
+    if (standardId.startsWith("nzlsg")) return "nzlsg";
+  }
+  return "aglc";
+}
+
+/**
+ * STD-019: options for `validateDocument`. Carries the document's standard
+ * and the court configuration the Validation view builds
+ * (`buildCourtConfig({ ...getStandardConfig(id), writingMode }, toggles)`).
+ */
+export interface ValidateDocumentOptions {
+  /** The store's standard id; selects the check set. Absent = AGLC. */
+  standardId?: CitationStandardId;
+  /** MULTI-014 writing mode; "court" enables the practice-direction checks. */
+  writingMode?: WritingMode;
+  /** Court preset identifier (COURT-003); names the practice direction. */
+  courtJurisdiction?: string;
+  /** COURT-FIX-003 parallel-citation enforcement mode. */
+  parallelCitationMode?: ConfigParallelCitationMode;
+  /** COURT-FIX-004 ibid suppression toggle. */
+  ibidSuppressionMode?: IbidSuppressionMode;
+  /** COURT-007 unreported-judgment gate toggle. */
+  unreportedGateMode?: UnreportedGateMode;
+  /** Built-in heading entries for the AGLC r 1.12.2 heading check. */
+  headings?: HeadingEntry[];
+}
+
+/**
+ * Validates an entire document by running the check set for the document's
+ * standard across footnotes and citations, then categorises issues by
+ * severity.
+ *
+ * Check-set selection (STD-019):
+ * - Universal (every standard): footnote closing punctuation, dangling
+ *   cross-references, long quotations and ellipsis spacing (each with the
+ *   standard's own rule id and quotation convention), citation completeness,
+ *   capitalisation and title presence, plus the court-mode checks.
+ * - AGLC only: r 1.1.3 'and' between sources (OSCOLA §1.1.4 shares it;
+ *   NZLSG §2.2.4(a) requires 'and'), r 1.1.2 footnote-number position
+ *   (OSCOLA §1.1 shares it), r 1.4.3 ibid correctness, r 1.5.7 quotation
+ *   clauses, r 1.6 typography, r 1.10/1.11 numbers and dates, r 1.8.3 Latin
+ *   terms (OSCOLA §1.3.3 and NZLSG r 1.1.3 leave common Latin in roman),
+ *   r 1.12.2 headings, r 2.2.7 parallel-citation prohibition (OSCOLA §2.1.3
+ *   and NZLSG r 3.1(a) require neutral citation plus report), r 2.3.1 MNC
+ *   adoption years, r 2.3.4 court-order officers, r 3.1.2 legislative
+ *   history hint and r 3.9.3 issuing-body names.
+ *
+ * The positional signature is kept for existing callers; new callers pass a
+ * `ValidateDocumentOptions` object as the fourth argument.
+ *
+ * @remarks Orchestrates AGLC4 Rules 1.1.3, 1.1.4, 1.4.3, 1.6.1, 1.6.3,
+ * 1.10.1, 1.11.1, and completeness checks for major source types; OSCOLA 5
+ * §1.1, §1.2.2, §1.5; NZLSG 3 rr 1.2.2, 2.2.4(a), 2.3.1.
+ */
 export function validateDocument(
   footnoteTexts: string[],
   citations: Citation[],
   bodyText?: string,
-  writingMode?: WritingMode,
+  writingModeOrOptions?: WritingMode | ValidateDocumentOptions,
   courtJurisdiction?: string,
   parallelCitationMode?: ConfigParallelCitationMode,
   ibidSuppressionMode?: IbidSuppressionMode,
   headings?: HeadingEntry[]
 ): ValidationResult {
+  const options: ValidateDocumentOptions =
+    typeof writingModeOrOptions === "object" && writingModeOrOptions !== null
+      ? writingModeOrOptions
+      : {
+          writingMode: writingModeOrOptions,
+          courtJurisdiction,
+          parallelCitationMode,
+          ibidSuppressionMode,
+          headings,
+        };
+  return validateDocumentWithOptions(footnoteTexts, citations, bodyText, options);
+}
+
+function validateDocumentWithOptions(
+  footnoteTexts: string[],
+  citations: Citation[],
+  bodyText: string | undefined,
+  options: ValidateDocumentOptions
+): ValidationResult {
   const allIssues: ValidationIssue[] = [];
-  const isCourtMode = writingMode === "court";
+  const family = standardFamilyOf(options.standardId);
+  const isAglc = family === "aglc";
+  const isCourtMode = options.writingMode === "court";
   // COURT-FIX-004: Use ibidSuppressionMode toggle instead of hardcoded court check.
   // Falls back to court mode check for backward compatibility when toggle not provided.
-  const ibidSuppressed = ibidSuppressionMode ? ibidSuppressionMode === "on" : isCourtMode;
+  const ibidSuppressed = options.ibidSuppressionMode
+    ? options.ibidSuppressionMode === "on"
+    : isCourtMode;
+  const pdSource = practiceDirectionFor(options.courtJurisdiction);
 
   // Footnote-level checks — stamp footnoteIndex on each issue for navigation
   for (let i = 0; i < footnoteTexts.length; i++) {
     const fnIssues: ValidationIssue[] = dedupeDashIssues([
-      ...checkFootnoteFormat(footnoteTexts[i], i),
-      ...checkTypography(footnoteTexts[i]),
-      ...checkDatesAndNumbers(footnoteTexts[i]),
-      ...checkEllipsisFormat(footnoteTexts[i], i),
-      ...checkLongQuotation(footnoteTexts[i], i),
-      ...checkLatinTermsItalicised(footnoteTexts[i], i),
-      ...checkQuotationClauses(footnoteTexts[i], i),
+      ...checkFootnoteFormat(footnoteTexts[i], i, family),
+      ...(isAglc ? checkTypography(footnoteTexts[i]) : []),
+      ...(isAglc ? checkDatesAndNumbers(footnoteTexts[i]) : []),
+      ...checkEllipsisFormat(footnoteTexts[i], i, family),
+      ...checkLongQuotation(footnoteTexts[i], i, family),
+      ...(isAglc ? checkLatinTermsItalicised(footnoteTexts[i], i) : []),
+      ...(isAglc ? checkQuotationClauses(footnoteTexts[i], i) : []),
     ]);
     const fnText = footnoteTexts[i];
     for (const issue of fnIssues) {
@@ -170,15 +257,18 @@ export function validateDocument(
   }
 
   // Cross-footnote checks
-  // COURT-FIX-004: Skip ibid correctness when ibid is suppressed (toggle-driven)
-  if (!ibidSuppressed) {
+  // COURT-FIX-004: Skip ibid correctness when ibid is suppressed (toggle-driven).
+  // STD-019: AGLC r 1.4.3 only — OSCOLA 5 §1.2.1 rejects ibid outright (the
+  // OSCOLA rule set warns), OSCOLA 4 §1.2.3 lets ibid follow a multi-source
+  // footnote, and NZLSG r 2.3.1 replaces ibid with 'above n x'.
+  if (isAglc && !ibidSuppressed) {
     allIssues.push(...checkIbidCorrectness(footnoteTexts));
   }
-  allIssues.push(...checkCrossReferences(footnoteTexts));
+  allIssues.push(...checkCrossReferences(footnoteTexts, family));
 
-  // Body text checks (Rule 1.1.2: footnote number position)
-  if (bodyText) {
-    allIssues.push(...checkFootnoteNumberPosition(bodyText));
+  // Body text checks (Rule 1.1.2 / OSCOLA §1.1: footnote number position)
+  if (bodyText && family !== "nzlsg") {
+    allIssues.push(...checkFootnoteNumberPosition(bodyText, family));
   }
 
   // Citation completeness checks
@@ -186,44 +276,72 @@ export function validateDocument(
     allIssues.push(...checkCitationCompleteness(citation));
     allIssues.push(...checkCitationCapitalisation(citation));
     allIssues.push(...checkTitlePresence(citation));
-    allIssues.push(...checkLegislativeHistoryHint(citation));
-    allIssues.push(...checkCourtOrderOfficers(citation));
-    allIssues.push(...checkIssuingBodyName(citation));
+    if (isAglc) {
+      allIssues.push(...checkLegislativeHistoryHint(citation));
+      allIssues.push(...checkCourtOrderOfficers(citation));
+      allIssues.push(...checkIssuingBodyName(citation));
+    }
   }
 
   // Rule 2.3.1: medium neutral citations must not predate the year the
-  // court began allocating its own judgment numbers.
-  allIssues.push(...checkMncYearValidity(citations));
+  // court began allocating its own judgment numbers (AGLC's adoption table).
+  if (isAglc) {
+    allIssues.push(...checkMncYearValidity(citations));
+  }
 
-  // Heading format checks (VALID-011, Rule 1.12.2)
-  if (headings && headings.length > 0) {
-    allIssues.push(...checkHeadingFormat(headings));
+  // Heading format checks (VALID-011, Rule 1.12.2) — AGLC only; OSCOLA and
+  // NZLSG prescribe no heading case or numbering scheme.
+  if (isAglc && options.headings && options.headings.length > 0) {
+    allIssues.push(...checkHeadingFormat(options.headings));
   }
 
   // Parallel citation checks (Rule 2.2.7: prohibited for Australian cases
   // in academic AGLC style). MULTI-014: Court mode skips this check —
   // parallels are emitted by default and expected in court submissions.
-  if (!isCourtMode) {
+  // STD-019: OSCOLA 5 §2.1.3 and NZLSG 3 r 3.1(a) require the neutral
+  // citation followed by the report, so the prohibition never fires there.
+  if (isAglc && !isCourtMode) {
     allIssues.push(...checkParallelCitations(citations));
   }
 
-  // COURT-FIX-003: Parallel citation enforcement based on config
-  if (parallelCitationMode && parallelCitationMode !== "off") {
-    allIssues.push(...checkParallelCitationEnforcement(citations, parallelCitationMode));
+  // COURT-FIX-003: Parallel citation enforcement based on config. The issue
+  // cites the practice direction, not AGLC r 2.2.7 (which prohibits them).
+  if (options.parallelCitationMode && options.parallelCitationMode !== "off") {
+    allIssues.push(
+      ...checkParallelCitationEnforcement(citations, options.parallelCitationMode, pdSource)
+    );
   }
 
-  // COURT-010: Queensland subsequent-treatment validation
-  // Flags case citations where subsequent treatment is blank in Qld mode
-  if (
-    isCourtMode &&
-    courtJurisdiction &&
-    isCourtJurisdictionPreset(courtJurisdiction) &&
-    QLD_JURISDICTIONS.has(courtJurisdiction as PresetCourtJurisdiction)
-  ) {
-    allIssues.push(...checkSubsequentTreatment(citations));
+  if (isCourtMode) {
+    // COURT-FIX-004: with ibid suppressed, 'Ibid' and '(n X)' in a footnote
+    // are the court-submission warnings validateCourtMode raises.
+    if (ibidSuppressed) {
+      allIssues.push(...checkCourtSubsequentReferences(footnoteTexts, pdSource));
+    }
+
+    // COURT-007 / COURT-FIX-006: unreported-judgment gate from the toggle.
+    if (options.unreportedGateMode === "warn") {
+      allIssues.push(...checkUnreportedJudgments(citations, pdSource));
+    }
+
+    // COURT-010: Queensland subsequent-treatment validation
+    // Flags case citations where subsequent treatment is blank in Qld mode
+    if (
+      options.courtJurisdiction &&
+      isCourtJurisdictionPreset(options.courtJurisdiction) &&
+      QLD_JURISDICTIONS.has(options.courtJurisdiction as PresetCourtJurisdiction)
+    ) {
+      allIssues.push(...checkSubsequentTreatment(citations));
+    }
   }
 
-  // Categorise by severity
+  return categoriseBySeverity(allIssues);
+}
+
+/**
+ * Splits issues into the three severity buckets of a `ValidationResult`.
+ */
+function categoriseBySeverity(allIssues: ValidationIssue[]): ValidationResult {
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
   const info: ValidationIssue[] = [];
@@ -243,6 +361,84 @@ export function validateDocument(
   }
 
   return { errors, warnings, info };
+}
+
+/**
+ * The rule label court-mode issues carry: the jurisdiction's practice
+ * direction when the preset is known, else a generic label.
+ */
+function practiceDirectionFor(courtJurisdiction?: string): string {
+  if (courtJurisdiction && isCourtJurisdictionPreset(courtJurisdiction)) {
+    return getPracticeDirectionSource(courtJurisdiction as CourtJurisdiction);
+  }
+  return "Court practice direction";
+}
+
+// ─── STD-019: Quotation spans ────────────────────────────────────────────────
+
+/** A half-open character range `[start, end)` of a footnote's text. */
+interface TextSpan {
+  start: number;
+  end: number;
+}
+
+/**
+ * Returns true when the single closing mark at `index` is an apostrophe
+ * (a letter on both sides, eg "Crown’s") rather than a closing quotation
+ * mark.
+ */
+function isApostropheAt(text: string, index: number): boolean {
+  const before = text[index - 1] ?? "";
+  const after = text[index + 1] ?? "";
+  return /[A-Za-z]/.test(before) && /[A-Za-z]/.test(after);
+}
+
+/**
+ * Finds the spans enclosed by a pair of quotation marks, inclusive of the
+ * marks themselves. For the single pair (‘ ’) a closing mark that reads as
+ * an apostrophe does not close the span.
+ */
+function quotedSpans(text: string, open: string, close: string): TextSpan[] {
+  const spans: TextSpan[] = [];
+  const single = open === "‘";
+  let from = 0;
+  while (from < text.length) {
+    const start = text.indexOf(open, from);
+    if (start === -1) break;
+    let end = -1;
+    let cursor = start + 1;
+    while (cursor < text.length) {
+      const candidate = text.indexOf(close, cursor);
+      if (candidate === -1) break;
+      if (single && isApostropheAt(text, candidate)) {
+        cursor = candidate + 1;
+        continue;
+      }
+      end = candidate;
+      break;
+    }
+    if (end === -1) break;
+    spans.push({ start, end: end + 1 });
+    from = end + 1;
+  }
+  return spans;
+}
+
+/** True when `offset` lies inside any of `spans`. */
+function insideSpans(spans: TextSpan[], offset: number): boolean {
+  return spans.some((span) => offset > span.start && offset < span.end - 1);
+}
+
+/**
+ * Spans of quoted text under either mark style, for checks that must leave
+ * quotations alone (NZLSG r 1.1.1(c): quotations follow the original).
+ */
+function allQuotedSpans(text: string): TextSpan[] {
+  return [
+    ...quotedSpans(text, "“", "”"),
+    ...quotedSpans(text, "‘", "’"),
+    ...quotedSpans(text, '"', '"'),
+  ];
 }
 
 /**
@@ -288,13 +484,20 @@ function dedupeDashIssues(issues: ValidationIssue[]): ValidationIssue[] {
  *
  * @remarks AGLC4 Rule 1.1.2 — "Footnote reference numbers are placed
  * after punctuation."
+ * @remarks OSCOLA 5 §1.1 (p 3) — the footnote marker follows the
+ * punctuation (STD-019: the same heuristic under the OSCOLA id).
  */
-export function checkFootnoteNumberPosition(bodyText: string): ValidationIssue[] {
+export function checkFootnoteNumberPosition(
+  bodyText: string,
+  family: StandardFamily = "aglc"
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!bodyText || bodyText.trim().length === 0) {
     return issues;
   }
+
+  const ruleNumber = family === "oscola" ? "OSCOLA 1.1" : "1.1.2";
 
   // Match a word character followed by a number (1-999) immediately followed
   // by sentence-ending punctuation (. , ; :). This heuristic catches patterns
@@ -313,7 +516,7 @@ export function checkFootnoteNumberPosition(bodyText: string): ValidationIssue[]
     const digitOffset = match.index + match[1].length;
 
     issues.push({
-      ruleNumber: "1.1.2",
+      ruleNumber,
       message: `Possible footnote number ${match[2]} placed before '${match[3]}' — footnote markers should appear after punctuation`,
       severity: "info",
       offset: digitOffset,
@@ -341,10 +544,15 @@ export function checkFootnoteNumberPosition(bodyText: string): ValidationIssue[]
  * @remarks AGLC4 Rule 1.1.4 — footnotes end with a full stop or other
  * appropriate closing punctuation (the guide's own example ends a discursive
  * footnote with a question mark).
+ * @remarks OSCOLA 5 §1.1 (p 3) — footnotes close with a full stop and
+ * several citations are separated by semicolons; §1.1.4 — no 'and' before
+ * the last source. NZLSG 3 r 2.2.4(a) — footnotes conclude with a full stop
+ * and 'and' precedes the last source, so the 'and' check is silent there.
  */
 export function checkFootnoteFormat(
   footnoteText: string,
-  footnoteIndex: number
+  footnoteIndex: number,
+  family: StandardFamily = "aglc"
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
@@ -353,16 +561,23 @@ export function checkFootnoteFormat(
     return issues;
   }
 
+  const closingRule =
+    family === "oscola" ? "OSCOLA 1.1" : family === "nzlsg" ? "NZLSG 2.2.4" : "1.1.4";
+
   // Rule 1.1.4: Missing closing punctuation (full stop, ? or !)
   if (!/[.?!]$/.test(trimmed)) {
     issues.push({
-      ruleNumber: "1.1.4",
+      ruleNumber: closingRule,
       message: `Footnote ${footnoteIndex + 1} does not end with closing punctuation (full stop, question mark or exclamation mark)`,
       severity: "error",
       offset: trimmed.length - 1,
       length: 1,
       suggestion: trimmed + ".",
     });
+  }
+
+  if (family === "nzlsg") {
+    return issues;
   }
 
   // Rule 1.1.3: "and" between sources instead of ";"
@@ -378,7 +593,7 @@ export function checkFootnoteFormat(
     const andIdx = match[0].search(/\band\b/i);
     const absoluteOffset = match.index + andIdx;
     issues.push({
-      ruleNumber: "1.1.3",
+      ruleNumber: family === "oscola" ? "OSCOLA 1.1.4" : "1.1.3",
       message: `Footnote ${footnoteIndex + 1}: use ';' to separate sources, not 'and'`,
       severity: "warning",
       offset: absoluteOffset,
@@ -436,23 +651,34 @@ export function checkIbidCorrectness(footnoteTexts: string[]): ValidationIssue[]
  * function flags references where X exceeds the total footnote count.
  *
  * @remarks AGLC4 Rule 1.4 — Cross-referencing footnotes.
+ * @remarks OSCOLA 5 §1.2.2 (p 7) — cross-references name the footnote
+ * ('(n 109)', 'See n 109'). NZLSG 3 r 2.3.1 — 'above n x'; under NZLSG a
+ * dangling 'above n X' is flagged as well (STD-019).
  */
-export function checkCrossReferences(footnoteTexts: string[]): ValidationIssue[] {
+export function checkCrossReferences(
+  footnoteTexts: string[],
+  family: StandardFamily = "aglc"
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const totalFootnotes = footnoteTexts.length;
+  const ruleNumber =
+    family === "oscola" ? "OSCOLA 1.2.2" : family === "nzlsg" ? "NZLSG 2.3.1" : "1.4";
 
   for (let i = 0; i < footnoteTexts.length; i++) {
     const text = footnoteTexts[i];
-    // Match (n X) where X is a number
-    const crossRefRegex = /\(n\s+(\d+)\)/g;
+    // Match (n X) where X is a number; under NZLSG also 'above n X'
+    const crossRefRegex =
+      family === "nzlsg" ? /\(n\s+(\d+)\)|\babove n\s+(\d+)\b/g : /\(n\s+(\d+)\)/g;
     let match: RegExpExecArray | null;
 
     while ((match = crossRefRegex.exec(text)) !== null) {
-      const referencedFootnote = Number(match[1]);
+      const referenced = match[1] ?? match[2];
+      const referencedFootnote = Number(referenced);
       if (referencedFootnote > totalFootnotes || referencedFootnote < 1) {
+        const form = match[1] !== undefined ? `(n ${referenced})` : `above n ${referenced}`;
         issues.push({
-          ruleNumber: "1.4",
-          message: `Footnote ${i + 1}: cross-reference '(n ${match[1]})' refers to non-existent footnote`,
+          ruleNumber,
+          message: `Footnote ${i + 1}: cross-reference '${form}' refers to non-existent footnote`,
           severity: "error",
           offset: match.index,
           length: match[0].length,
@@ -551,10 +777,13 @@ export function checkDatesAndNumbers(text: string): ValidationIssue[] {
  *
  * @remarks AGLC4 Rule 1.5.3 (PDF p 43) — omissions are indicated by an
  * ellipsis ('…') with a space before and after.
+ * @remarks OSCOLA 5 §1.5 (p 9) and NZLSG 3 r 1.2.2(b)(v) — the ellipsis
+ * symbol, spaced from the adjacent text (same check, the standard's own id).
  */
 export function checkEllipsisFormat(
   footnoteText: string,
-  footnoteIndex: number
+  footnoteIndex: number,
+  family: StandardFamily = "aglc"
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
@@ -563,13 +792,16 @@ export function checkEllipsisFormat(
     return issues;
   }
 
+  const ruleNumber =
+    family === "oscola" ? "OSCOLA 1.5" : family === "nzlsg" ? "NZLSG 1.2.2" : "1.5.3";
+
   // Flag three or more consecutive full stops
   const consecutiveDotsRegex = /\.{3,}/g;
   let match: RegExpExecArray | null;
 
   while ((match = consecutiveDotsRegex.exec(trimmed)) !== null) {
     issues.push({
-      ruleNumber: "1.5.3",
+      ruleNumber,
       message: `Footnote ${footnoteIndex + 1}: ellipsis should be the '…' character with a space either side, not '${match[0]}'`,
       severity: "warning",
       offset: match.index,
@@ -583,7 +815,7 @@ export function checkEllipsisFormat(
 
   while ((match = spacedDotsRegex.exec(trimmed)) !== null) {
     issues.push({
-      ruleNumber: "1.5.3",
+      ruleNumber,
       message: `Footnote ${footnoteIndex + 1}: ellipsis should be the '…' character with a space either side, not spaced full stops '. . .'`,
       severity: "warning",
       offset: match.index,
@@ -599,7 +831,7 @@ export function checkEllipsisFormat(
 
   while ((match = unspacedEllipsisRegex.exec(trimmed)) !== null) {
     issues.push({
-      ruleNumber: "1.5.3",
+      ruleNumber,
       message: `Footnote ${footnoteIndex + 1}: an ellipsis should be preceded and followed by a space`,
       severity: "warning",
       offset: match.index,
@@ -732,8 +964,17 @@ export function checkQuotationClauses(
  *
  * @remarks AGLC4 Rule 1.5.1 — long quotations (four lines or more) are
  * indented, in a smaller font, without quotation marks.
+ * @remarks OSCOLA 5 §1.5 (p 9) — quotations longer than three lines are
+ * indented without quotation marks (same length heuristic, single marks).
+ * @remarks NZLSG 3 r 1.2.2(a)(ii) — quotations of 30 words or more are
+ * indented without quotation marks; short quotations take double marks, so
+ * the NZLSG scan counts the words inside double quotation marks.
  */
-export function checkLongQuotation(footnoteText: string, footnoteIndex: number): ValidationIssue[] {
+export function checkLongQuotation(
+  footnoteText: string,
+  footnoteIndex: number,
+  family: StandardFamily = "aglc"
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const trimmed = footnoteText.trim();
 
@@ -741,16 +982,23 @@ export function checkLongQuotation(footnoteText: string, footnoteIndex: number):
     return issues;
   }
 
+  if (family === "nzlsg") {
+    return checkNzlsgLongQuotation(trimmed, footnoteIndex);
+  }
+
+  const ruleNumber = family === "oscola" ? "OSCOLA 1.5" : "1.5.1";
+  const ruleLabel = family === "oscola" ? "OSCOLA §1.5" : "Rule 1.5.1";
+
   // Match text enclosed in curly single quotes (AGLC4 convention)
-  const curlyQuoteRegex = /\u2018([^'\u2018\u2019]*)\u2019/g;
+  const curlyQuoteRegex = /‘([^'‘’]*)’/g;
   let match: RegExpExecArray | null;
 
   while ((match = curlyQuoteRegex.exec(trimmed)) !== null) {
     const quotedContent = match[1];
     if (quotedContent.length > 360) {
       issues.push({
-        ruleNumber: "1.5.1",
-        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
+        ruleNumber,
+        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per ${ruleLabel}`,
         severity: "info",
         offset: match.index,
         length: match[0].length,
@@ -765,12 +1013,47 @@ export function checkLongQuotation(footnoteText: string, footnoteIndex: number):
     const quotedContent = match[1];
     if (quotedContent.length > 360) {
       issues.push({
-        ruleNumber: "1.5.1",
-        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per Rule 1.5.1`,
+        ruleNumber,
+        message: `Footnote ${footnoteIndex + 1} contains a long quotation (>${quotedContent.length} chars) that may need block quote formatting per ${ruleLabel}`,
         severity: "info",
         offset: match.index,
         length: match[0].length,
       });
+    }
+  }
+
+  return issues;
+}
+
+/** NZLSG 3 r 1.2.2(a)(ii): the long-quotation threshold, in words. */
+const NZLSG_LONG_QUOTATION_WORDS = 30;
+
+/**
+ * NZLSG scan for `checkLongQuotation`: double-quoted (curly or straight)
+ * text of 30 words or more that is still run into the footnote.
+ *
+ * @remarks NZLSG 3 r 1.2.2(a)(i)–(ii) — short quotations (fewer than 30
+ * words) run in the text in double quotation marks; 30 words or more are
+ * indented without quotation marks.
+ */
+function checkNzlsgLongQuotation(trimmed: string, footnoteIndex: number): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const patterns = [/“([^“”]*)”/g, /"([^"]*?)"/g];
+
+  for (const pattern of patterns) {
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(trimmed)) !== null) {
+      const tokens = match[1].trim().split(/\s+/);
+      const words = tokens.filter((word) => word.length > 0).length;
+      if (words >= NZLSG_LONG_QUOTATION_WORDS) {
+        issues.push({
+          ruleNumber: "NZLSG 1.2.2",
+          message: `Footnote ${footnoteIndex + 1} contains a long quotation (${words} words) that should be indented without quotation marks per NZLSG r 1.2.2(a)(ii)`,
+          severity: "info",
+          offset: match.index,
+          length: match[0].length,
+        });
+      }
     }
   }
 
@@ -1583,50 +1866,88 @@ const MAORI_MACRON_TERMS: ReadonlyArray<{ plain: string; correct: string }> = [
 const MAORI_TERMS_NEEDING_MACRONS = MAORI_MACRON_TERMS.filter((t) => t.plain !== t.correct);
 
 /**
+ * Options for the standard-specific rule sets (STD-019).
+ */
+export interface StandardRuleOptions {
+  /**
+   * The store's standard id. `checkOscolaRules` raises the ibid warning
+   * for OSCOLA 5 only (OSCOLA 4 §1.2.1 permits ibid for the immediately
+   * preceding footnote); absent = OSCOLA 5.
+   */
+  standardId?: CitationStandardId;
+}
+
+/**
+ * True when a citation record expressly flags its title as italicised.
+ *
+ * STD-019: the validator receives plain footnote text, so an italic Act
+ * title cannot be detected from the inputs available; the OSCOLA §2.4.1 and
+ * NZLSG r 4.1.1(a) warnings therefore fire only when the citation data
+ * carries an explicit `titleItalic: true` flag (no form writes it yet —
+ * see the STD-019 todo in tests/standards/validator.test.ts).
+ */
+function hasExplicitItalicTitle(citation: Citation): boolean {
+  const flag = citation.data.titleItalic;
+  return flag === true || flag === "true";
+}
+
+/**
  * OSCOLA-specific validation rules (VALID-EXT-001).
  *
  * Checks:
- * - Italicised legislation titles (should be roman in OSCOLA)
- * - Missing neutral citation for post-2001 UK cases
- * - Ibid usage in OSCOLA 5 mode (deprecated)
- * - Double quotation marks (OSCOLA uses single)
- * - Missing Table of Cases in bibliography
+ * - 'ibid' in OSCOLA 5 (§1.2.1: "'ibid' should not be used"); silent for
+ *   OSCOLA 4, whose §1.2.1/§1.2.3 permit it for the preceding footnote
+ * - Double quotation marks outside a single-quoted span (§1.5: single
+ *   inverted commas; double only for a quotation within a quotation)
+ * - Legislation title expressly flagged italic (§2.4.1: roman)
+ * - Missing neutral citation for a post-2001 UK case (§2.1.3)
+ * - Table of Cases reminder when cases are cited (§1.6.2)
  *
- * @remarks OSCOLA 5 Rules 1.3, 2.1.1, 2.2, 1.4
+ * @remarks OSCOLA 5 §1.2.1 p 6, §1.5 p 9, §1.6.2 p 11, §2.1.3 p 18,
+ * §2.4.1 p 25; OSCOLA 4 §1.2.1 and §1.2.3.
  */
 export function checkOscolaRules(
   citations: Citation[],
-  footnoteTexts: string[]
+  footnoteTexts: string[],
+  options: StandardRuleOptions = {}
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const ibidDeprecated = options.standardId !== "oscola4";
 
-  // Check for ibid usage (deprecated in OSCOLA 5)
   for (let i = 0; i < footnoteTexts.length; i++) {
     const text = footnoteTexts[i];
-    const ibidRegex = /\bIbid\b/gi;
     let match: RegExpExecArray | null;
 
-    while ((match = ibidRegex.exec(text)) !== null) {
-      issues.push({
-        ruleNumber: "OSCOLA 1.3",
-        message: `Footnote ${i + 1}: 'Ibid' is deprecated in OSCOLA 5 — use short-form '(n X)' for all subsequent references`,
-        severity: "warning",
-        offset: match.index,
-        length: match[0].length,
-        suggestion: "(n X)",
-      });
+    // OSCOLA 5 §1.2.1: ibid is not used (OSCOLA 4 §1.2.1 permits it)
+    if (ibidDeprecated) {
+      const ibidRegex = /\bIbid\b/gi;
+      while ((match = ibidRegex.exec(text)) !== null) {
+        issues.push({
+          ruleNumber: "OSCOLA 1.2.1",
+          message: `Footnote ${i + 1}: 'Ibid' is deprecated in OSCOLA 5 — use short-form '(n X)' for all subsequent references`,
+          severity: "warning",
+          offset: match.index,
+          length: match[0].length,
+          suggestion: "(n X)",
+        });
+      }
     }
 
-    // Check for double quotation marks (OSCOLA uses single)
-    const doubleQuoteRegex = /[\u201C\u201D]/g;
+    // §1.5: single inverted commas; double marks are correct only for a
+    // quotation within a (single-quoted) quotation.
+    const singleQuoted = quotedSpans(text, "‘", "’");
+    const doubleQuoteRegex = /[“”]/g;
     while ((match = doubleQuoteRegex.exec(text)) !== null) {
+      if (insideSpans(singleQuoted, match.index)) {
+        continue;
+      }
       issues.push({
-        ruleNumber: "OSCOLA 1.2",
+        ruleNumber: "OSCOLA 1.5",
         message: `Footnote ${i + 1}: OSCOLA uses single quotation marks for titles, not double`,
         severity: "warning",
         offset: match.index,
         length: 1,
-        suggestion: match[0] === "\u201C" ? "\u2018" : "\u2019",
+        suggestion: match[0] === "“" ? "‘" : "’",
       });
     }
   }
@@ -1635,18 +1956,20 @@ export function checkOscolaRules(
   for (const citation of citations) {
     const label = getCitationLabel(citation);
 
-    // Flag italicised legislation (OSCOLA uses roman)
-    if (citation.sourceType.startsWith("legislation.")) {
+    // §2.4.1: statute titles are roman — only an explicit italic flag can
+    // show a breach from the validator's plain-text inputs.
+    if (citation.sourceType.startsWith("legislation.") && hasExplicitItalicTitle(citation)) {
       issues.push({
-        ruleNumber: "OSCOLA 2.2",
+        ruleNumber: "OSCOLA 2.4.1",
         message: `Legislation '${label}': OSCOLA requires legislation titles in roman (not italic)`,
         severity: "warning",
         offset: 0,
         length: 0,
+        citationId: citation.id,
       });
     }
 
-    // Flag missing neutral citation for post-2001 UK cases
+    // §2.1.3: neutral citation for UK cases from 2001
     if (citation.sourceType.startsWith("case.")) {
       const d = citation.data;
       const year = d.year as number | undefined;
@@ -1661,25 +1984,26 @@ export function checkOscolaRules(
         const hasMnc = typeof mnc === "string" && mnc.trim().length > 0;
         if (!hasMnc) {
           issues.push({
-            ruleNumber: "OSCOLA 2.1.1",
+            ruleNumber: "OSCOLA 2.1.3",
             message: `Case '${label}': post-2001 UK case should include a neutral citation`,
             severity: "warning",
             offset: 0,
             length: 0,
+            citationId: citation.id,
           });
         }
       }
     }
   }
 
-  // Check for missing Table of Cases (heuristic: if there are case citations
-  // but no footnote text mentions "Table of Cases")
+  // §1.6.2: Table of Cases (heuristic: if there are case citations but no
+  // footnote text mentions "Table of Cases")
   const hasCaseCitations = citations.some((c) => c.sourceType.startsWith("case."));
   if (hasCaseCitations) {
     const allText = footnoteTexts.join(" ");
     if (!allText.includes("Table of Cases") && !allText.includes("TABLE OF CASES")) {
       issues.push({
-        ruleNumber: "OSCOLA 1.4",
+        ruleNumber: "OSCOLA 1.6.2",
         message:
           "OSCOLA requires a Table of Cases listing all cited cases — consider generating one",
         severity: "info",
@@ -1698,14 +2022,18 @@ export function checkOscolaRules(
  * NZLSG-specific validation rules (VALID-EXT-002).
  *
  * Checks:
- * - Italicised legislation titles (should be roman in NZLSG)
- * - Single quotation marks in titles (NZLSG uses double)
- * - `(n X)` in commercial style (should be short-form only)
- * - Ibid usage (NZLSG general style does not use ibid)
- * - Missing `at` before pinpoints
- * - Missing macrons in common te reo Maori legal terms
+ * - 'Ibid' (r 2.3.1: 'above n x' replaces ibid)
+ * - Single quotation marks outside a double-quoted span (r 1.2.2: double
+ *   marks; single only for a quotation within a quotation)
+ * - `(n X)` cross-references (r 2.3.1: not the NZLSG form)
+ * - Missing 'at' before a pinpoint (r 3.1)
+ * - Missing macrons in common te reo Māori legal terms, outside quotations
+ *   (r 1.1.1(c): macrons are used; quotations follow the original)
+ * - Legislation title expressly flagged italic (r 4.1.1(a): roman)
  *
- * @remarks NZLSG 3rd ed Rules 2.3, 4.1, 1.1.2, 6.1
+ * @remarks NZLSG 3 rr 1.1.1(c), 1.2.2, 2.3.1, 3.1, 4.1.1(a). The single
+ * quotation-mark issue keeps the id 'NZLSG 1.1.2' pending the STD-019
+ * decision recorded in tests/standards/validator.test.ts.
  */
 export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -1714,11 +2042,11 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
     const text = footnoteTexts[i];
     let match: RegExpExecArray | null;
 
-    // Flag ibid usage (NZLSG general style does not use ibid)
+    // r 2.3.1: 'above n x' instead of ibid
     const ibidRegex = /\bIbid\b/gi;
     while ((match = ibidRegex.exec(text)) !== null) {
       issues.push({
-        ruleNumber: "NZLSG 2.3",
+        ruleNumber: "NZLSG 2.3.1",
         message: `Footnote ${i + 1}: NZLSG does not use 'Ibid' — use 'above n X, at [pinpoint]' instead`,
         severity: "warning",
         offset: match.index,
@@ -1726,32 +2054,30 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
       });
     }
 
-    // Flag single quotation marks (NZLSG uses double for titles)
-    const singleQuoteRegex = /[\u2018\u2019]/g;
+    // r 1.2.2: double quotation marks; single marks are correct only for a
+    // quotation within a (double-quoted) quotation.
+    const doubleQuoted = quotedSpans(text, "“", "”");
+    const singleQuoteRegex = /[‘’]/g;
     while ((match = singleQuoteRegex.exec(text)) !== null) {
       // Skip apostrophes within words (e.g., "it's", "don't")
-      const before = text[match.index - 1] ?? "";
-      const after = text[match.index + 1] ?? "";
-      const isApostrophe = /[a-zA-Z]/.test(before) && /[a-zA-Z]/.test(after);
-
-      if (!isApostrophe) {
-        issues.push({
-          ruleNumber: "NZLSG 1.1.2",
-          message: `Footnote ${i + 1}: NZLSG uses double quotation marks for titles, not single`,
-          severity: "warning",
-          offset: match.index,
-          length: 1,
-          suggestion: match[0] === "\u2018" ? "\u201C" : "\u201D",
-        });
+      if (isApostropheAt(text, match.index) || insideSpans(doubleQuoted, match.index)) {
+        continue;
       }
+      issues.push({
+        ruleNumber: "NZLSG 1.1.2",
+        message: `Footnote ${i + 1}: NZLSG uses double quotation marks for titles, not single`,
+        severity: "warning",
+        offset: match.index,
+        length: 1,
+        suggestion: match[0] === "‘" ? "“" : "”",
+      });
     }
 
-    // Flag (n X) in commercial style — this is a general check; the caller
-    // should only invoke this when commercial style is active
+    // r 2.3.1: '(n X)' is not the NZLSG cross-reference form
     const nXRegex = /\(n\s+\d+\)/g;
     while ((match = nXRegex.exec(text)) !== null) {
       issues.push({
-        ruleNumber: "NZLSG 2.3",
+        ruleNumber: "NZLSG 2.3.1",
         message: `Footnote ${i + 1}: '${match[0]}' cross-reference style is not used in NZLSG commercial style — use short-form citation only`,
         severity: "warning",
         offset: match.index,
@@ -1759,15 +2085,15 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
       });
     }
 
-    // Flag missing 'at' before pinpoints — heuristic: number after comma
-    // at end of citation (e.g., ", 42." should be ", at 42.")
+    // r 3.1: 'at' before pinpoints — heuristic: number after comma at the
+    // end of a citation (e.g., ", 42." should be ", at 42.")
     const missingAtRegex = /,\s+(\d+)\s*\./g;
     while ((match = missingAtRegex.exec(text)) !== null) {
       // Check this is not already preceded by 'at'
       const precedingText = text.substring(Math.max(0, match.index - 4), match.index);
       if (!precedingText.includes("at")) {
         issues.push({
-          ruleNumber: "NZLSG 2.2",
+          ruleNumber: "NZLSG 3.1",
           message: `Footnote ${i + 1}: NZLSG requires 'at' before pinpoint references`,
           severity: "info",
           offset: match.index + 2,
@@ -1777,12 +2103,17 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
       }
     }
 
-    // Flag missing macrons in common Maori legal terms
+    // r 1.1.1(c): macrons in common te reo Māori terms; quoted text follows
+    // the original and is left alone.
+    const quoted = allQuotedSpans(text);
     for (const term of MAORI_TERMS_NEEDING_MACRONS) {
       const termRegex = new RegExp(`\\b${term.plain}\\b`, "g");
       while ((match = termRegex.exec(text)) !== null) {
+        if (insideSpans(quoted, match.index)) {
+          continue;
+        }
         issues.push({
-          ruleNumber: "NZLSG",
+          ruleNumber: "NZLSG 1.1.1",
           message: `Footnote ${i + 1}: '${term.plain}' should include macrons: '${term.correct}'`,
           severity: "info",
           offset: match.index,
@@ -1797,14 +2128,16 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
   for (const citation of citations) {
     const label = getCitationLabel(citation);
 
-    // Flag italicised legislation (NZLSG uses roman)
-    if (citation.sourceType.startsWith("legislation.")) {
+    // r 4.1.1(a): the short title is roman — only an explicit italic flag
+    // can show a breach from the validator's plain-text inputs.
+    if (citation.sourceType.startsWith("legislation.") && hasExplicitItalicTitle(citation)) {
       issues.push({
-        ruleNumber: "NZLSG 4.1",
+        ruleNumber: "NZLSG 4.1.1",
         message: `Legislation '${label}': NZLSG requires legislation titles in roman (not italic)`,
         severity: "warning",
         offset: 0,
         length: 0,
+        citationId: citation.id,
       });
     }
   }
@@ -1913,7 +2246,8 @@ export function checkParallelCitations(citations: Citation[]): ValidationIssue[]
  */
 export function checkParallelCitationEnforcement(
   citations: Citation[],
-  mode: ConfigParallelCitationMode
+  mode: ConfigParallelCitationMode,
+  ruleNumber: string = "Court practice direction"
 ): ValidationIssue[] {
   if (mode === "off") {
     return [];
@@ -1933,7 +2267,7 @@ export function checkParallelCitationEnforcement(
 
     if (!hasParallels) {
       issues.push({
-        ruleNumber: "2.2.7",
+        ruleNumber,
         message:
           `Case '${label}': Parallel citations ${mode === "mandatory" ? "required" : "recommended"} ` +
           `for reported cases but none are recorded`,
@@ -2150,65 +2484,13 @@ export function validateCourtMode(
   }
 
   // ── Warning: ibid or (n X) pattern in footnotes ────────────────────
-  for (let i = 0; i < footnoteTexts.length; i++) {
-    const text = footnoteTexts[i];
-
-    // Check for ibid
-    const ibidRegex = /\bIbid\b/gi;
-    let match: RegExpExecArray | null;
-    while ((match = ibidRegex.exec(text)) !== null) {
-      allIssues.push({
-        ruleNumber: pdSource,
-        message:
-          `Footnote ${i + 1}: 'Ibid' detected — court submissions should use ` +
-          `short-form subsequent references instead`,
-        severity: "warning",
-        offset: match.index,
-        length: match[0].length,
-      });
-    }
-
-    // Check for (n X) cross-references
-    const crossRefRegex = /\(n\s+\d+\)/g;
-    while ((match = crossRefRegex.exec(text)) !== null) {
-      allIssues.push({
-        ruleNumber: pdSource,
-        message:
-          `Footnote ${i + 1}: '${match[0]}' cross-reference detected — court ` +
-          `submissions should use short-form subsequent references instead`,
-        severity: "warning",
-        offset: match.index,
-        length: match[0].length,
-      });
-    }
-  }
+  allIssues.push(...checkCourtSubsequentReferences(footnoteTexts, pdSource));
 
   // ── Warning: unreported judgment without confirmation ─────────────
   // COURT-FIX-006: Gate is now driven solely by config.unreportedGate
   // (which reflects the court toggle, including any user override).
   if (config.unreportedGate === "warn") {
-    for (const citation of citations) {
-      if (citation.sourceType !== "case.unreported.mnc") {
-        continue;
-      }
-
-      const label = getCitationLabel(citation);
-      const confirmed =
-        citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
-
-      if (!confirmed) {
-        allIssues.push({
-          ruleNumber: pdSource,
-          message:
-            `Case '${label}': Unreported judgment cited without confirmation ` +
-            `that it contains a material statement of legal principle not found ` +
-            `in reported authority`,
-          severity: "warning",
-          offset: 0,
-          length: 0,
-        });
-      }
-    }
+    allIssues.push(...checkUnreportedJudgments(citations, pdSource));
   }
 
   // ── Info: subsequent treatment not recorded (Qld only) ─────────────
@@ -2281,26 +2563,95 @@ export function validateCourtMode(
     allIssues.push(...checkSubmissionFormatting(config, formatting));
   }
 
-  // Categorise by severity
-  const errors: ValidationIssue[] = [];
-  const warnings: ValidationIssue[] = [];
-  const info: ValidationIssue[] = [];
+  return categoriseBySeverity(allIssues);
+}
 
-  for (const issue of allIssues) {
-    switch (issue.severity) {
-      case "error":
-        errors.push(issue);
-        break;
-      case "warning":
-        warnings.push(issue);
-        break;
-      case "info":
-        info.push(issue);
-        break;
+/**
+ * Court-submission warnings for 'Ibid' and '(n X)' in footnotes: court
+ * mode renders short-form subsequent references without either
+ * (COURT-VALID-001; COURT-FIX-004 ibid suppression).
+ *
+ * @param pdSource - The practice direction the issues cite.
+ */
+export function checkCourtSubsequentReferences(
+  footnoteTexts: string[],
+  pdSource: string
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (let i = 0; i < footnoteTexts.length; i++) {
+    const text = footnoteTexts[i];
+
+    // Check for ibid
+    const ibidRegex = /\bIbid\b/gi;
+    let match: RegExpExecArray | null;
+    while ((match = ibidRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: pdSource,
+        message:
+          `Footnote ${i + 1}: 'Ibid' detected — court submissions should use ` +
+          `short-form subsequent references instead`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
+    }
+
+    // Check for (n X) cross-references
+    const crossRefRegex = /\(n\s+\d+\)/g;
+    while ((match = crossRefRegex.exec(text)) !== null) {
+      issues.push({
+        ruleNumber: pdSource,
+        message:
+          `Footnote ${i + 1}: '${match[0]}' cross-reference detected — court ` +
+          `submissions should use short-form subsequent references instead`,
+        severity: "warning",
+        offset: match.index,
+        length: match[0].length,
+      });
     }
   }
 
-  return { errors, warnings, info };
+  return issues;
+}
+
+/**
+ * COURT-007 unreported-judgment gate: warns for each unreported (MNC)
+ * judgment cited without the material-principle confirmation.
+ *
+ * @param pdSource - The practice direction the issues cite.
+ */
+export function checkUnreportedJudgments(
+  citations: Citation[],
+  pdSource: string
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.unreported.mnc") {
+      continue;
+    }
+
+    const label = getCitationLabel(citation);
+    const confirmed =
+      citation.data.unreportedConfirmed === true || citation.data.unreportedConfirmed === "true";
+
+    if (!confirmed) {
+      issues.push({
+        ruleNumber: pdSource,
+        message:
+          `Case '${label}': Unreported judgment cited without confirmation ` +
+          `that it contains a material statement of legal principle not found ` +
+          `in reported authority`,
+        severity: "warning",
+        offset: 0,
+        length: 0,
+        citationId: citation.id,
+      });
+    }
+  }
+
+  return issues;
 }
 
 /**

@@ -8,6 +8,7 @@
 
 import {
   MAX_TAG_LENGTH,
+  isDerivedTag,
   isSystemTag,
   normaliseTag,
   normaliseTags,
@@ -23,7 +24,6 @@ describe("isSystemTag", () => {
     "import:needs-details",
     "imported-from-bibtex",
     "imported-from-word",
-    "waitangi_tribunal",
     "dedupe:merged",
   ])("%s is a system tag", (tag) => {
     expect(isSystemTag(tag)).toBe(true);
@@ -35,6 +35,15 @@ describe("isSystemTag", () => {
       expect(isSystemTag(tag)).toBe(false);
     }
   );
+
+  // STD-021: the Waitangi Tribunal classification is derived from the record
+  // (source type or text), so the tag is a legacy hint — neither a system
+  // tag nor a user tag, never typed, never exported, kept in place on save.
+  test("waitangi_tribunal is a derived classification hint, not a system tag", () => {
+    expect(isSystemTag("waitangi_tribunal")).toBe(false);
+    expect(isDerivedTag("waitangi_tribunal")).toBe(true);
+    expect(normaliseTag("Waitangi_Tribunal")).toBeUndefined();
+  });
 });
 
 describe("userTags and systemTags", () => {
@@ -42,7 +51,8 @@ describe("userTags and systemTags", () => {
 
   test("split the stored array in order", () => {
     expect(userTags(tags)).toEqual(["contract", "remedies"]);
-    expect(systemTags(tags)).toEqual(["import", "import:ris", "waitangi_tribunal"]);
+    // STD-021: the derived hint is neither a user tag nor a system tag
+    expect(systemTags(tags)).toEqual(["import", "import:ris"]);
   });
 });
 

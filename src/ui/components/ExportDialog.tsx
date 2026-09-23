@@ -40,7 +40,7 @@ const FORMATS: Array<{ value: ExportFormat; label: string; hint?: string }> = [
   { value: "csl-json", label: "CSL-JSON (.json)", hint: "Zotero, Pandoc" },
   {
     value: "formatted-text",
-    label: "Formatted text (AGLC4)",
+    label: "Formatted text",
     hint: "Plain text only. Italics are not preserved.",
   },
 ];
@@ -208,7 +208,7 @@ export default function ExportDialog({
               checked={format === f.value}
               onChange={() => setFormat(f.value)}
             />
-            {f.label}
+            {f.value === "formatted-text" ? `${f.label} (${standardLabel})` : f.label}
             {f.hint && <span className="export-hint"> — {f.hint}</span>}
           </label>
         ))}

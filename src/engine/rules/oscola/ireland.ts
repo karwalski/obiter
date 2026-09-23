@@ -152,7 +152,9 @@ export function formatIrishStatutoryInstrument(data: {
  *   Bunreacht na hEireann, art X.Y.Z
  *
  * Note: The title is italic per convention for constitutional instruments
- * in OSCOLA Ireland.
+ * in OSCOLA Ireland. The article is optional (STD-017): the engine appends
+ * an occurrence pinpoint (`, art 40.3.1`) itself, so a citation stored
+ * without an article renders the title alone.
  *
  * @example
  *   Bunreacht na hEireann, art 40.3.1
@@ -161,7 +163,7 @@ export function formatIrishStatutoryInstrument(data: {
  *   Bunreacht na hEireann, art 34
  */
 export function formatBunreachtNaHEireann(data: {
-  article: string;
+  article?: string;
   subsection?: string;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
@@ -170,11 +172,13 @@ export function formatBunreachtNaHEireann(data: {
   runs.push({ text: "Bunreacht na h\u00C9ireann", italic: true });
 
   // Article reference
-  let pinpointText = `, art ${data.article}`;
-  if (data.subsection) {
-    pinpointText += `.${data.subsection}`;
+  if (data.article) {
+    let pinpointText = `, art ${data.article}`;
+    if (data.subsection) {
+      pinpointText += `.${data.subsection}`;
+    }
+    runs.push({ text: pinpointText });
   }
-  runs.push({ text: pinpointText });
 
   return runs;
 }

@@ -8,6 +8,8 @@ import { FormattedRun } from "../../../../types/formattedRun";
 import { toTitleCase } from "../general/capitalisation";
 import { shouldItaliciseTitle, shouldQuoteTitle } from "../general/italicisation";
 import { parseTitleMarkup, quoteTitleRuns } from "../general/titleMarkup";
+import type { CitationConfig } from "../../../standards/types";
+import { nestInnerMarks, quoteRunsWith, secondaryStyleFor } from "./style";
 
 /** Matches a bare span of dates (eg '1937–49', '1901–1950'). */
 const DATE_SPAN = /^\d{4}(\s*[–-]\s*\d{2,4})?$/;
@@ -74,15 +76,29 @@ export function formatSecondaryTitleText(title: string): string {
  *
  * @see AGLC4, Rule 4.2.
  */
-export function formatSecondaryTitle(title: string, sourceType: SourceType): FormattedRun[] {
+export function formatSecondaryTitle(
+  title: string,
+  sourceType: SourceType,
+  config?: CitationConfig
+): FormattedRun[] {
   const capitalised = formatSecondaryTitleText(title);
 
-  if (shouldItaliciseTitle(sourceType)) {
+  if (shouldItaliciseTitle(sourceType, config)) {
     return parseTitleMarkup(capitalised, true);
   }
 
-  if (shouldQuoteTitle(sourceType)) {
-    return quoteTitleRuns(parseTitleMarkup(capitalised, false));
+  if (shouldQuoteTitle(sourceType, config)) {
+    // STD-016: the standard's outer marks (AGLC4 1.8.2 / OSCOLA 5 §1.5
+    // single; NZLSG 3 §1.2.2 double); under OSCOLA and NZLSG curly marks
+    // within the title take the nested style (OSCOLA 5 §3.3, NZLSG 3 §6.4).
+    const style = secondaryStyleFor(config);
+    if (style.family === "aglc") {
+      return quoteTitleRuns(parseTitleMarkup(capitalised, false));
+    }
+    const nested = style.swapInnerMarks
+      ? nestInnerMarks(capitalised, style.quotationMarkStyle)
+      : capitalised;
+    return quoteRunsWith(parseTitleMarkup(nested, false), style.quoteMarks);
   }
 
   // Default: plain text (embedded italic markers still honoured).

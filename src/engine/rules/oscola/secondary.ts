@@ -4,14 +4,16 @@
  */
 
 /**
- * OSCOLA 5 §3.6 — Theses and Dissertations (OSC-ENH-006)
+ * OSCOLA 5 §3.7.6 — Theses and Dissertations (OSC-ENH-006, STD-017)
  *
- * Pure formatting function for thesis/dissertation citations per OSCOLA 5
- * Rule 3.6. Title in single curly quotes (not italic). Pinpoint follows
+ * Pure formatting function for thesis/dissertation citations. OSCOLA 5
+ * §3.7.6 sets the title in italics; OSCOLA 4 §3.4.7 put it in single quotes,
+ * roman (docs/standards-rule-notes.md). The caller chooses through
+ * `titleStyle` (default: the OSCOLA 5 italic form). Pinpoint follows
  * directly without 'at' prefix.
  *
  * Format:
- *   Author, 'Title' (Type of thesis, University Year) pinpoint
+ *   Author, Title (Type of thesis, University Year) pinpoint
  */
 
 import { FormattedRun } from "../../../types/formattedRun";
@@ -21,8 +23,10 @@ import { FormattedRun } from "../../../types/formattedRun";
 export interface OscolaThesisData {
   /** Author name(s). */
   author: string;
-  /** Title of the thesis (will be in single curly quotes, not italic). */
+  /** Title of the thesis (italic under OSCOLA 5 §3.7.6, single-quoted roman under OSCOLA 4 §3.4.7). */
   title: string;
+  /** Title style: "italic" (OSCOLA 5 §3.7.6, default) or "quoted" (OSCOLA 4 §3.4.7). */
+  titleStyle?: "italic" | "quoted";
   /** Type of thesis (e.g. "DPhil thesis", "PhD thesis", "LLM thesis"). */
   thesisType: string;
   /** University name. */
@@ -36,14 +40,17 @@ export interface OscolaThesisData {
 // ─── OSC-ENH-006: Thesis/Dissertation ────────────────────────────────────────
 
 /**
- * Formats a thesis/dissertation citation per OSCOLA 5 Rule 3.6.
+ * Formats a thesis/dissertation citation per OSCOLA 5 §3.7.6.
  *
- * OSCOLA 5 Rule 3.6: Author, 'Title' (Type of thesis, University Year) pinpoint.
- * Title is in single curly quotes (not italic — differs from NZLSG which uses
- * double quotes). Pinpoint follows the parenthetical directly without 'at'.
+ * OSCOLA 5 §3.7.6: Author, *Title* (Type of thesis, University Year) pinpoint —
+ * the title italic and no comma between university and year:
+ * `Javan Herberg, Injunctive Relief for Wrongful Termination of Employment
+ * (DPhil thesis, University of Oxford 1989)`. OSCOLA 4 §3.4.7 (`titleStyle:
+ * "quoted"`) sets the title in single curly quotes, roman. Pinpoint follows
+ * the parenthetical directly without 'at'.
  *
  * @example
- *   // John Smith, 'The Doctrine of Legitimate Expectations in EU Law'
+ *   // John Smith, The Doctrine of Legitimate Expectations in EU Law
  *   // (DPhil thesis, University of Oxford 2020) 45
  *   formatOscolaThesis({
  *     author: "John Smith",
@@ -60,8 +67,12 @@ export function formatOscolaThesis(data: OscolaThesisData): FormattedRun[] {
   // Author followed by comma
   runs.push({ text: `${data.author}, ` });
 
-  // Title in single curly quotes (not italic per OSCOLA 5 Rule 3.6)
-  runs.push({ text: `\u2018${data.title}\u2019` });
+  // Title: italic (OSCOLA 5 §3.7.6) or single curly quotes, roman (OSCOLA 4 §3.4.7)
+  if (data.titleStyle === "quoted") {
+    runs.push({ text: `\u2018${data.title}\u2019` });
+  } else {
+    runs.push({ text: data.title, italic: true });
+  }
 
   // Thesis type, university, and year in parentheses
   // Note: OSCOLA format has no comma between university and year

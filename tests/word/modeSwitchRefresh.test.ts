@@ -20,88 +20,16 @@ import { refreshAllCitations } from "../../src/word/citationRefresher";
 import { LOCKED_PARENT_CC_TITLE } from "../../src/word/footnoteManager";
 import { CitationStore } from "../../src/store/citationStore";
 import { setDevicePref } from "../../src/store/devicePreferences";
-import {
-  FakeDocState,
-  installFakeWord,
-  makeFakeContext,
-  storeXmlWith,
-} from "../store/fakeWordHarness";
+import { FakeDocState, installFakeWord, storeXmlWith } from "../store/fakeWordHarness";
+import { htmlToText, makeRefreshContext } from "../store/fakeFootnoteHarness";
 
 // ─── Harness ────────────────────────────────────────────────────────────────
+//
+// The fake footnote document (parent `obiter-fn` CC per footnote, child
+// citation CCs, insertHtml capture) is the shared tests/store/fakeFootnoteHarness.
 
 /** The refresher never rebuilds without a snapshot; tests supply a no-op hook. */
 const noopHook = async (): Promise<void> => undefined;
-
-interface FakeParentCC {
-  tag: string;
-  title: string;
-  text: string;
-  load: jest.Mock;
-  insertHtml: jest.Mock;
-  getRange: jest.Mock;
-  contentControls: { load: jest.Mock; items: unknown[] };
-}
-
-interface FootnoteSpec {
-  citationId: string;
-  existingText: string;
-  /** Parent-CC title (carries the lock flag and the rendered-text hash). */
-  title?: string;
-}
-
-/**
- * Builds a fake refresh context over `doc` with one parent CC (tag
- * "obiter-fn") per footnote, each containing a single child citation CC.
- * Mirrors the SAFE-004 integration mock style, generalized to N footnotes.
- */
-function makeRefreshContext(
-  doc: FakeDocState,
-  specs: FootnoteSpec[]
-): { context: Word.RequestContext; parents: FakeParentCC[] } {
-  const handle = makeFakeContext(doc);
-
-  const fns = specs.map((spec) => {
-    const wrappedChild = { tag: "", title: "", appearance: "" };
-    const matchRange = { insertContentControl: jest.fn(() => wrappedChild) };
-    const parentRange = {
-      search: jest.fn(() => ({ items: [matchRange], load: jest.fn() })),
-    };
-    const childCC = { tag: spec.citationId, title: "Citation:auto" };
-    const parentCC: FakeParentCC = {
-      tag: "obiter-fn",
-      title: spec.title ?? "Obiter Footnote",
-      text: spec.existingText,
-      load: jest.fn(),
-      insertHtml: jest.fn(),
-      getRange: jest.fn(() => parentRange),
-      contentControls: { load: jest.fn(), items: [childCC] },
-    };
-    const noteItem = {
-      body: {
-        // Word's body.contentControls includes nested descendants.
-        contentControls: { load: jest.fn(), items: [parentCC, childCC] },
-      },
-    };
-    return { parentCC, noteItem };
-  });
-
-  const context = handle.context as unknown as {
-    document: { body?: unknown; customXmlParts: unknown };
-  };
-  context.document.body = {
-    footnotes: { load: jest.fn(), items: fns.map((f) => f.noteItem) },
-  };
-
-  return {
-    context: context as unknown as Word.RequestContext,
-    parents: fns.map((f) => f.parentCC),
-  };
-}
-
-/** Plain text of an insertHtml fragment (the refresher's expected text). */
-function htmlToText(html: string): string {
-  return new DOMParser().parseFromString(html, "text/html").body.textContent ?? "";
-}
 
 interface BaselineFootnote {
   /** The text Obiter rendered for this footnote. */
@@ -122,8 +50,8 @@ async function renderBaseline(
   citationId: string
 ): Promise<BaselineFootnote[]> {
   const { context, parents } = makeRefreshContext(doc, [
-    { citationId, existingText: "seed text one" },
-    { citationId, existingText: "seed text two" },
+    { citationId, text: "seed text one" },
+    { citationId, text: "seed text two" },
   ]);
   const result = await refreshAllCitations(context, store, noopHook);
   expect(result.failures).toEqual([]);
@@ -159,8 +87,8 @@ describe("mode switch through refreshAllCitations", () => {
     expect(baseline[1].text).toBe("Ibid.");
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: baseline[1].text, title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
     const result = await refreshAllCitations(context, store, noopHook);
 
@@ -182,8 +110,8 @@ describe("mode switch through refreshAllCitations", () => {
     await store.setCourtToggles({ ibidSuppression: "on" });
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: baseline[1].text, title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
     const result = await refreshAllCitations(context, store, noopHook);
 
@@ -206,8 +134,8 @@ describe("mode switch through refreshAllCitations", () => {
 
     // fn2's text no longer matches the stored hash — the user edited it.
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: "My manual correction.", title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: "My manual correction.", title: baseline[1].title },
     ]);
     const result = await refreshAllCitations(context, store, noopHook);
 
@@ -226,9 +154,9 @@ describe("mode switch through refreshAllCitations", () => {
     await store.setCourtToggles({ ibidSuppression: "on" });
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
       // Locked — even though court mode would rewrite this "Ibid.".
-      { citationId: "cit-1", existingText: baseline[1].text, title: LOCKED_PARENT_CC_TITLE },
+      { citationId: "cit-1", text: baseline[1].text, title: LOCKED_PARENT_CC_TITLE },
     ]);
     const result = await refreshAllCitations(context, store, noopHook);
 
@@ -251,8 +179,8 @@ describe("courtToggles source of truth in the refresher", () => {
     setDevicePref("courtToggles", { ibidSuppression: "off" });
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: baseline[1].text, title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
     await refreshAllCitations(context, store, noopHook);
 
@@ -271,8 +199,8 @@ describe("courtToggles source of truth in the refresher", () => {
     setDevicePref("courtToggles", { ibidSuppression: "on" });
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: baseline[1].text, title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
     await refreshAllCitations(context, store, noopHook);
 
@@ -289,8 +217,8 @@ describe("courtToggles source of truth in the refresher", () => {
     await store.setWritingMode("court");
 
     const { context, parents } = makeRefreshContext(doc, [
-      { citationId: "cit-1", existingText: baseline[0].text, title: baseline[0].title },
-      { citationId: "cit-1", existingText: baseline[1].text, title: baseline[1].title },
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
     const result = await refreshAllCitations(context, store, noopHook);
 

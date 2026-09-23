@@ -441,12 +441,11 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
     const engineText = joinText(engineRuns);
 
+    // STD-016: OSCOLA 5 §3.2.1 — (edition, publisher year), no comma before
+    // the year, 'edn'
     expect(engineText).toBe(
-      "Andrew Burrows, The Law of Restitution (Oxford University Press, 3rd edn, 2011)"
+      "Andrew Burrows, The Law of Restitution (3rd edn, Oxford University Press 2011)"
     );
-    // When edition wiring is complete, the "edn" abbreviation should appear
-    // The config is correctly set to "edn" for OSCOLA
-    expect(OSCOLA5_CONFIG.editionAbbreviation).toBe("edn");
   });
 
   // ─── 12. Subsequent reference — no ibid ────────────────────────────────────
@@ -844,7 +843,7 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
 
   // ─── 12. Subsequent reference — "above n" format, no ibid ─────────────────
 
-  it("produces 'above n' short reference (not ibid) with NZLSG config", () => {
+  it("produces the rule 1 pinpoint-only reference (not ibid) with NZLSG config", () => {
     // NZLSG disables ibid and uses "above n" format
     expect(NZLSG3_CONFIG.ibidEnabled).toBe(false);
     expect(NZLSG3_CONFIG.subsequentReferenceFormat).toBe("above n");
@@ -874,8 +873,11 @@ describe("NZLSG-ENH-002: NZLSG engine dispatch integration", () => {
 
     // Should NOT produce "Ibid" — NZLSG disables ibid
     expect(text).not.toMatch(/^Ibid/i);
-    // Should produce "above n" format with short title
-    expect(text).toContain("above n");
+    // STD-015: NZLSG 3 §2.3.1(a) rule 1 — the source is obvious from the
+    // immediately preceding footnote, so only the capitalised pinpoint is
+    // given; the "above n" form is for a source that is not the preceding
+    // one (test 13).
+    expect(text).toBe("At 134");
     // Closing punctuation now managed by refresher
   });
 
