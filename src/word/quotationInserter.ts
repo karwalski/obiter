@@ -17,7 +17,7 @@ export interface InsertQuotationOptions {
  * AGLC4 Rule 1.1.3 puts it — after the quotation (and after any closing
  * punctuation or quotation mark).
  *
- * Block mode (Rule 1.5.1, long quotations of three or more full lines): each
+ * Block mode (Rule 1.5.1, long quotations of four or more full lines): each
  * paragraph of the text becomes a new paragraph after the current one in the
  * "AGLC4 Block Quote" style; where that style is not installed the paragraph
  * takes the equivalent direct formatting (10pt, 36pt left indent, 12pt line

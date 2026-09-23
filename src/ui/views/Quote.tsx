@@ -248,7 +248,7 @@ function FormattedRuns({ runs }: { runs: FormattedRun[] }): JSX.Element {
  * ENP-010: turns a pasted passage into a formatted quotation with its
  * citation footnote and pinpoint.
  *
- * - Rule 1.5.1: three or more full lines become an indented block quotation
+ * - Rule 1.5.1: four or more full lines become an indented block quotation
  *   without quotation marks; shorter passages are set inline in single
  *   quotation marks.
  * - Rule 1.7.1: the footnote carries the pinpoint of the quoted passage;
@@ -605,7 +605,7 @@ export default function Quote(): JSX.Element {
 
   const modeLabel = (mode: QuotationMode): string =>
     mode === "block"
-      ? "Block quotation (three or more lines, Rule 1.5.1)"
+      ? "Block quotation (four or more lines, Rule 1.5.1)"
       : "Inline quotation (Rule 1.5.1)";
 
   if (loading) {
@@ -636,7 +636,7 @@ export default function Quote(): JSX.Element {
       <h2>Quote</h2>
       <p className="quote-help">
         Paste a passage, choose its source and pinpoint, and insert it as a formatted quotation with
-        its footnote. Long quotations of three or more lines are set as a block quotation without
+        its footnote. Long quotations of four or more lines are set as a block quotation without
         quotation marks; shorter ones are set inline in single quotation marks (Rule 1.5.1).
       </p>
 
