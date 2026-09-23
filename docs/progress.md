@@ -1682,7 +1682,7 @@ explicit action; provenance lives in the `interchange` bag from DECISION-038.
 
 ## EPIC: STD — Standards and Court Mode Review (OSCOLA 5/4, NZLSG 3, Court Submission Mode)
 
-**Phase:** Post-backlog | **Stories:** 25 | **Completed:** 24 (STD-024 release in progress)
+**Phase:** Post-backlog | **Stories:** 25 | **Completed:** 25
 
 Seeded 2026-09-22. Three surveys found the OSCOLA and NZLSG tests were almost all pure-formatter unit
 tests and court mode had one end-to-end suite, with defects behind the gaps (court previews rendering
@@ -1717,6 +1717,6 @@ DECISION-040. Ships as a patch.
 | STD-021 | UK and NZ field mapping in forms and dispatchers; Waitangi Tribunal selectable; tag derived | — | FIX | DONE |
 | STD-022 | NZLSG style and court parallel-order controls in Settings, synced; Quote picker preview per standard | — | FIX | DONE |
 | STD-023 | Docs: standards coverage table, website court and standards sections, DECISION-040 | — | DOCS | DONE |
-| STD-024 | Release 1.17.1 (patch, web deploy) | — | RELEASE | IN PROGRESS |
+| STD-024 | Release 1.17.1 (patch, web deploy) shipped 2026-09-23 | — | RELEASE | DONE |
 | STD-025 | Interchange round trip per standard: standard label in the footnote note, no derived keys on an Obiter round trip | DECISION-038 item 3 | FIX | DONE |
 
