@@ -9,19 +9,25 @@
  * citation in its child control. On Word for the web the old child survived
  * the "Replace" — so every rebuild added a child beside it (`Mabo (n 1);
  * Mabo (n 1); …`) — or the search found nothing and the citation lost its
- * binding. The rebuild now deletes the old children explicitly and writes
- * each citation through the parent's own `insertHtml`, wrapping the range
- * it returns (the insert path's mechanism), with separators and closing
- * punctuation appended as plain text outside the children.
+ * binding. The rebuild now runs three synced stages per chunk, the sequence
+ * verified live on Word for the web: delete the old children → sync; chain
+ * the text as ranges (`parentCC.insertHtml(cit1, "Replace")` →
+ * `.insertText("; ", "After")` → `.insertHtml(cit2, "After")` →
+ * `.insertText(".", "After")`) → sync; wrap each citation range in its child
+ * control → sync. Appending through the parent's "End" put the full stop
+ * inside the last child, and wrapping in the text batch put the separator
+ * inside the child.
  *
  * Over the shared fake footnote harness, which models the web host (a
- * "Replace" insert does NOT remove existing children; only `delete()` does):
+ * "Replace" insert does NOT remove existing children; only `delete()` does;
+ * the parent's "End" and a same-batch wrap swallow text into the child):
  *
  * 1. After a rebuild each footnote holds exactly one child per rendered
  *    citation, tagged and titled like the insert path's children.
  * 2. The children the footnote was seeded with are deleted.
- * 3. Separators and the closing punctuation are written as text outside
- *    the child controls; the footnote text is the expected render.
+ * 3. Each child's text is exactly its citation (no separator, no full
+ *    stop); the parent text is `cit1; cit2.`; the wraps are issued only
+ *    after the text batch has synced.
  * 4. A second rebuild replaces the children again without changing the count.
  */
 
@@ -32,6 +38,7 @@ import { FakeDocState, installFakeWord, storeXmlWith } from "../store/fakeWordHa
 import {
   DEFAULT_PARENT_TITLE,
   footnoteTexts,
+  htmlToText,
   liveChildren,
   makeRefreshContext,
 } from "../store/fakeFootnoteHarness";
@@ -106,41 +113,81 @@ describe("rebuild writes exactly one child control per citation", () => {
     }
   });
 
-  it("keeps separators and closing punctuation outside the child controls", async () => {
+  it("chains the text off the first Replace and keeps separators and punctuation outside the children", async () => {
     const { store, ctx } = await makeDoc();
 
     await refreshAllCitations(ctx.context, store, noopHook);
 
-    // fn1: [cit-1] "; " [cit-2] "." — html writes are wrapped, text writes are not.
+    // fn1: parent.insertHtml(cit-1, "Replace") → .insertText("; ", "After")
+    // → .insertHtml(cit-2, "After") → .insertText(".", "After"). Only the
+    // html writes are wrapped; nothing goes through the parent's "End".
     const fn1 = ctx.parents[0].writes;
     expect(fn1.map((w) => w.kind)).toEqual(["html", "text", "html", "text"]);
-    expect(fn1.map((w) => w.location)).toEqual(["Replace", "End", "End", "End"]);
+    expect(fn1.map((w) => w.location)).toEqual(["Replace", "After", "After", "After"]);
+    expect(fn1.map((w) => w.via)).toEqual(["parent", "range", "range", "range"]);
     expect(fn1.map((w) => w.child !== undefined)).toEqual([true, false, true, false]);
     expect(fn1[1].content).toBe("; ");
     expect(fn1[3].content).toBe(".");
 
-    // Single-citation footnotes: [citation] "." with the "." outside the child.
+    // Single-citation footnotes: [citation] "." with the "." chained after it.
     for (const parent of ctx.parents.slice(1)) {
-      expect(parent.writes.map((w) => [w.kind, w.location])).toEqual([
-        ["html", "Replace"],
-        ["text", "End"],
+      expect(parent.writes.map((w) => [w.kind, w.location, w.via])).toEqual([
+        ["html", "Replace", "parent"],
+        ["text", "After", "range"],
       ]);
       expect(parent.writes[0].child).toBeDefined();
       expect(parent.writes[1].child).toBeUndefined();
       expect(parent.writes[1].content).toBe(".");
     }
+    for (const parent of ctx.parents) {
+      expect(parent.insertText).not.toHaveBeenCalled();
+      // insertHtml is never called with an empty fragment (it throws on the web).
+      for (const call of parent.insertHtml.mock.calls) expect(call[0]).not.toBe("");
+    }
+  });
 
-    // The children's text plus the separators and punctuation IS the footnote
-    // text — the expected render the hash in the parent title covers.
+  it("each child's text is exactly its citation and the parent text is `cit1; cit2.`", async () => {
+    const { store, ctx } = await makeDoc();
+
+    await refreshAllCitations(ctx.context, store, noopHook);
+
     const texts = footnoteTexts(ctx);
     const children = liveChildren(ctx);
+    for (const [i, fnChildren] of children.entries()) {
+      // Every child covers its citation's HTML fragment and nothing else —
+      // no separator, no full stop, no trailing space.
+      const citationWrites = ctx.parents[i].writes.filter((w) => w.kind === "html");
+      expect(fnChildren.map((c) => c.text)).toEqual(
+        citationWrites.map((w) => htmlToText(w.content))
+      );
+      for (const child of fnChildren) {
+        expect(child.text).not.toMatch(/[;.]\s*$/);
+        expect(child.text).not.toMatch(/\s$/);
+      }
+    }
     expect(texts[0]).toBe(`${children[0][0].text}; ${children[0][1].text}.`);
     expect(texts[1]).toBe(`${children[1][0].text}.`);
     expect(texts[2]).toBe(`${children[2][0].text}.`);
     expect(texts[1]).toContain("(n 1)");
-    // insertHtml is never called with an empty fragment (it throws on the web).
-    for (const parent of ctx.parents) {
-      for (const call of parent.insertHtml.mock.calls) expect(call[0]).not.toBe("");
+    // The live parent text agrees with the write log.
+    expect(ctx.parents.map((p) => p.text)).toEqual(texts);
+  });
+
+  it("issues the wraps only after the text batch has synced, and the deletes before it", async () => {
+    const { store, ctx } = await makeDoc();
+
+    await refreshAllCitations(ctx.context, store, noopHook);
+
+    for (const [i, parent] of ctx.parents.entries()) {
+      const textBatches = new Set(parent.writes.map((w) => w.batch));
+      expect(textBatches.size).toBe(1);
+      const [textBatch] = textBatches;
+      for (const seeded of ctx.children[i]) {
+        expect(seeded.deletedInBatch).toBeLessThan(textBatch);
+      }
+      for (const child of ctx.wrapped[i]) {
+        expect(child.wrappedInBatch).toBeGreaterThan(textBatch);
+      }
     }
   });
 

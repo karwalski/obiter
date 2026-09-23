@@ -10,20 +10,33 @@
  * refresher writes back (`insertHtml`, `insertText`, `clear`).
  *
  * The shape mirrors what the refresher reads (footnoteTracker.buildFootnoteMap
- * and citationRefresher.scanFootnotes) and writes (executeRebuildChunk):
+ * and citationRefresher.scanFootnotes) and writes (executeRebuildChunk, three
+ * synced stages per chunk):
  *
  *   body.footnotes.items[i].body.contentControls.items = [parentCC, childCC…]
  *   parentCC.contentControls.items                     = [childCC…]
- *   childCC.delete(false)                                (old children removed)
- *   parentCC.insertHtml(html, "Replace" | "End") → range.insertContentControl()
- *   parentCC.insertText(sep | ".", "End");  parentCC.title = "<hash title>"
+ *   1. childCC.delete(false)                          → sync
+ *   2. r1 = parentCC.insertHtml(cit1, "Replace");
+ *      s1 = r1.insertText("; ", "After");
+ *      r2 = s1.insertHtml(cit2, "After");
+ *      r2.insertText(".", "After")                    → sync
+ *   3. r1.insertContentControl(); r2.insertContentControl();
+ *      parentCC.title = "<hash title>"                → sync
  *
  * The fake document is LIVE and models Word for the web, the stricter host:
- * a write updates the parent's text ("Replace" resets it, "End" appends), a
- * child wrapped through `insertContentControl` joins the parent's
- * `contentControls`, and only an explicit `delete()` removes a child — a
- * "Replace" insert on the parent does NOT (the v1.17.2 defect), so a rebuild
- * that forgets to delete shows up as accumulating children.
+ * a write updates the parent's text ("Replace" resets it, a range's "After"
+ * appends), a child wrapped through `insertContentControl` covers the text
+ * of that range only and joins the parent's `contentControls`, and only an
+ * explicit `delete()` removes a child — a "Replace" insert on the parent
+ * does NOT (the v1.17.2 defect), so a rebuild that forgets to delete shows
+ * up as accumulating children. Two further web quirks verified live are
+ * modelled so a regression is visible in the child text: anything written
+ * through the parent's "End" lands INSIDE a child sitting at the end of the
+ * parent (` Ibid [42] .` with the full stop swallowed), and a range wrapped
+ * in the same batch as a write chained after it swallows that write
+ * (`Lima;` instead of `Lima`). Every write, wrap and delete records the
+ * number of syncs already issued (`batch`) so a suite can assert the
+ * stage order.
  *
  * The old `getRange("Whole").search(text)` fake is kept for callers that
  * still wrap by search; the refresher no longer does.
@@ -95,25 +108,45 @@ export interface FakeChildCC {
   delete: jest.Mock;
   /** True once the refresher deleted this control from its parent. */
   removed: boolean;
+  /** Syncs already issued when `delete()` was queued (undefined until deleted). */
+  deletedInBatch?: number;
+  /** Syncs already issued when this control was wrapped (undefined when seeded). */
+  wrappedInBatch?: number;
 }
 
 /** @deprecated Wrapped children are {@link FakeChildCC}s; kept as an alias. */
 export type FakeWrappedCC = FakeChildCC;
 
-/** One write the refresher issued on a parent CC, in call order. */
+/** One write the refresher issued into a footnote, in call order. */
 export interface FakeWrite {
   /** `insertHtml` or `insertText`. */
   kind: "html" | "text";
   /** The fragment (HTML) or the plain text passed in. */
   content: string;
-  /** The insert location passed in ("Replace" or "End"). */
+  /** The insert location passed in ("Replace" / "End" on the parent, "After" on a range). */
   location: string;
+  /** Whether the write went through the parent CC or a range an earlier write returned. */
+  via: "parent" | "range";
+  /** Syncs already issued when the write was queued. */
+  batch: number;
   /** The child CC wrapped around this write's returned range, if any. */
   child?: FakeChildCC;
 }
 
-/** The range an `insertHtml` / `insertText` on a fake parent returns. */
+/**
+ * The range an `insertHtml` / `insertText` returns — on the parent or on an
+ * earlier range. Chained `insertText(…, "After")` / `insertHtml(…, "After")`
+ * append to the footnote in call order and return the new range;
+ * `insertContentControl` wraps the text of THIS range only.
+ */
 export interface FakeInsertedRange {
+  /** The text this range covers. */
+  readonly text: string;
+  /** `insertText(text, "After")` → a new range appended after this one. */
+  insertText: jest.Mock;
+  /** `insertHtml(html, "After")` → a new range appended after this one. */
+  insertHtml: jest.Mock;
+  /** Wraps this range's text in a fresh child CC and returns it. */
   insertContentControl: jest.Mock;
 }
 
@@ -138,7 +171,7 @@ export interface FakeParentCC {
   getRange: jest.Mock;
   /** The parent's live children: seeded ones not yet deleted, plus wrapped ones. */
   contentControls: { load: jest.Mock; readonly items: FakeChildCC[] };
-  /** Every write issued on this parent, in order. */
+  /** Every write issued into this footnote (through the parent or a chained range), in order. */
   writes: FakeWrite[];
 }
 
@@ -191,6 +224,7 @@ export function makeRefreshContext(
         removed: false,
         delete: jest.fn(() => {
           child.removed = true;
+          child.deletedInBatch = handle.getSyncCount();
           const at = live.indexOf(child);
           if (at >= 0) live.splice(at, 1);
         }),
@@ -208,20 +242,47 @@ export function makeRefreshContext(
 
     // Every write updates the footnote's text the way Word presents it to
     // the next scan and returns the inserted range; wrapping that range
-    // records one child per citation.
-    const write = (kind: "html" | "text", content: string, location: string): FakeInsertedRange => {
+    // records one child covering that range's text.
+    const write = (
+      kind: "html" | "text",
+      content: string,
+      location: string,
+      via: "parent" | "range"
+    ): FakeInsertedRange => {
       const text = kind === "html" ? htmlToText(content) : content;
-      parentCC.text = location === "Replace" ? text : parentCC.text + text;
-      const entry: FakeWrite = { kind, content, location };
-      writes.push(entry);
-      return {
+      const batch = handle.getSyncCount();
+      if (location === "Replace") {
+        parentCC.text = text;
+      } else {
+        parentCC.text += text;
+        // Web quirk: the parent's "End" sits inside a child at the end of
+        // the parent, so the text is swallowed into that child.
+        const last = writes[writes.length - 1];
+        if (via === "parent" && last?.child && !last.child.removed) {
+          last.child.text += text;
+        }
+      }
+      const entry: FakeWrite = { kind, content, location, via, batch };
+      const at = writes.push(entry) - 1;
+      const range: FakeInsertedRange = {
+        text,
+        insertText: jest.fn((next: string, loc: string) => write("text", next, loc, "range")),
+        insertHtml: jest.fn((next: string, loc: string) => write("html", next, loc, "range")),
         insertContentControl: jest.fn(() => {
-          const child = makeChild("", "", text);
+          const wrapBatch = handle.getSyncCount();
+          // Web quirk: a range wrapped before its batch has synced extends
+          // over the write chained after it.
+          const follower = writes[at + 1];
+          const swallowed =
+            wrapBatch === batch && follower !== undefined ? writeText(follower) : "";
+          const child = makeChild("", "", text + swallowed);
+          child.wrappedInBatch = wrapBatch;
           wrapped.push(child);
           entry.child = child;
           return child;
         }),
       };
+      return range;
     };
 
     // Legacy search fake: every search returns one match whose
@@ -244,8 +305,12 @@ export function makeRefreshContext(
       title: spec.title ?? DEFAULT_PARENT_TITLE,
       text: spec.text ?? "",
       load: jest.fn(),
-      insertHtml: jest.fn((html: string, location: string) => write("html", html, location)),
-      insertText: jest.fn((text: string, location: string) => write("text", text, location)),
+      insertHtml: jest.fn((html: string, location: string) =>
+        write("html", html, location, "parent")
+      ),
+      insertText: jest.fn((text: string, location: string) =>
+        write("text", text, location, "parent")
+      ),
       clear: jest.fn(() => {
         parentCC.text = "";
       }),
@@ -315,7 +380,8 @@ function writeText(write: FakeWrite): string {
 
 /**
  * The text a sequence of writes leaves in a footnote ("Replace" resets,
- * anything else appends), or `undefined` when nothing was written.
+ * anything else — a range's "After" or the parent's "End" — appends), or
+ * `undefined` when nothing was written.
  */
 export function textOfWrites(writes: readonly FakeWrite[]): string | undefined {
   if (writes.length === 0) return undefined;

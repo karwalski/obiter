@@ -1682,7 +1682,7 @@ explicit action; provenance lives in the `interchange` bag from DECISION-038.
 
 ## EPIC: STD — Standards and Court Mode Review (OSCOLA 5/4, NZLSG 3, Court Submission Mode)
 
-**Phase:** Post-backlog | **Stories:** 27 | **Completed:** 26 (STD-027 release in progress)
+**Phase:** Post-backlog | **Stories:** 28 | **Completed:** 26 (STD-027, STD-028 release in progress)
 
 Seeded 2026-09-22. Three surveys found the OSCOLA and NZLSG tests were almost all pure-formatter unit
 tests and court mode had one end-to-end suite, with defects behind the gaps (court previews rendering
@@ -1721,4 +1721,5 @@ DECISION-040. Ships as a patch.
 | STD-025 | Interchange round trip per standard: standard label in the footnote note, no derived keys on an Obiter round trip | DECISION-038 item 3 | FIX | DONE |
 | STD-026 | Word for the web verification (v1.17.1, 23 Sep 2026): pinpoint dropped when the Insert form reuses a library citation; concurrent refreshes duplicated footnote content; NZLSG string statute pinpoint got `at`; ordinal edition (`4th`) dropped; shipped as 1.17.2 | Live test in Word Online | FIX | DONE |
 | STD-027 | Word for the web: footnote rebuild used search-and-wrap for child content controls, which on Word Online duplicated or dropped them on every rebuild; the rebuild now deletes the old children and wraps the range `insertHtml` returns, as the insert path does (1 sync per chunk); shipped as 1.17.3 | Live test in Word Online | FIX | IN PROGRESS |
+| STD-028 | Word for the web: a brand-new document refused the first custom XML part write with `ItemNotFound`, so every new document opened the pane with the red "citation store could not be loaded" banner; the write is retried and first-use init degrades to an empty in-memory library | Live test in Word Online | FIX | IN PROGRESS |
 

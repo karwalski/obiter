@@ -53,7 +53,6 @@ import {
   isFootnoteLocked,
   parseParentTitle,
   buildParentTitle,
-  insertChildCitation,
 } from "./footnoteManager";
 import { hashRenderedText } from "../utils/textHash";
 import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
@@ -67,10 +66,10 @@ const CLOSING_PUNCTUATION = [".", "!", "?"];
 
 /**
  * Number of footnotes rebuilt per pipelined batch (SAFE-003). Each chunk
- * costs exactly 1 sync (delete old children → insert + wrap → stamp title,
- * all queued) regardless of size, so larger chunks mean fewer round trips
- * on Word for Web; 8 keeps each batch small enough that a mid-chunk failure
- * has a bounded blast radius.
+ * costs exactly 3 syncs (delete old children → chained text inserts → wrap
+ * children + stamp titles) regardless of size, so larger chunks mean fewer
+ * round trips on Word for Web; 8 keeps each batch small enough that a
+ * mid-chunk failure has a bounded blast radius.
  */
 export const REBUILD_CHUNK_SIZE = 8;
 
@@ -659,7 +658,7 @@ export interface RebuildWorkItem {
  *  3. Classify each footnote per the SAFE-002 matrix (lock wins first).
  *  4. SAFE-004 seam: `onBeforeRebuild` runs with the rebuild set before any
  *     document mutation.
- *  5. Rebuild in chunks of {@link REBUILD_CHUNK_SIZE}, 1 sync per chunk;
+ *  5. Rebuild in chunks of {@link REBUILD_CHUNK_SIZE}, 3 syncs per chunk;
  *     a failing chunk is recorded in `failures` and processing continues.
  *
  * @param context - An active Word request context.
@@ -807,9 +806,10 @@ async function renderAndRebuild(
 
 /**
  * Executes the queued rebuilds in chunks, pipelining the three Word stages
- * across each chunk: all insertHtml (+ new hashed titles) → sync; all
- * searches → sync; all child-CC wraps → sync. Exactly 3 syncs per chunk
- * instead of 3 per footnote (SAFE-003 — batching matters on Word for Web).
+ * across each chunk: all child-CC deletes → sync; all chained text inserts
+ * → sync; all child-CC wraps (+ new hashed titles) → sync. Exactly 3 syncs
+ * per chunk instead of 3 per footnote (SAFE-003 — batching matters on Word
+ * for Web).
  *
  * Each chunk is independently wrapped in try/catch: a failing chunk is
  * recorded as a {@link RefreshFailure} and processing continues with the
@@ -848,30 +848,51 @@ export async function executeRebuilds(
 }
 
 /**
- * Rebuilds one chunk of footnotes in a single batch: for every footnote,
- * delete its existing child controls, write the new content piece by piece
- * through the parent (wrapping each citation's returned range in its child
- * control), and stamp the new rendered-text hash into the parent title
- * (SAFE-002). One sync for the whole chunk.
+ * Rebuilds one chunk of footnotes in three synced stages, each covering
+ * every footnote of the chunk (SAFE-003):
  *
- * The title is queued in the same batch as the content, so the recorded
- * hash always matches the text that was actually written; if the batch
- * fails nothing is committed and the next refresh retries the rebuild.
+ *  1. Delete the existing child controls → sync. On Word for the web they
+ *     survive the parent's "Replace" insert below, and a rebuild that left
+ *     them in place either accumulated a second child beside the survivor
+ *     (footnotes growing `Mabo (n 1); Mabo (n 1); …`) or left the citation
+ *     unbound.
+ *  2. Write the new content as a chain of ranges ({@link writeRebuildContent})
+ *     → sync.
+ *  3. Wrap each citation's range in its child control and stamp the new
+ *     rendered-text hash into the parent title (SAFE-002) → sync.
+ *
+ * The wrap MUST sit in its own batch after the text sync: queued together
+ * with the inserts, Word for the web extended the child over the separator
+ * written after it (`Lima;` inside the child instead of `Lima`). The title
+ * is queued with the wraps, so a footnote is only marked as hashed once its
+ * children are bound; if a batch fails the chunk is reported and the next
+ * refresh retries the rebuild.
  */
 async function executeRebuildChunk(
   context: Word.RequestContext,
   chunk: readonly RebuildWorkItem[]
 ): Promise<void> {
+  // Stage 1: delete the old children of every footnote in the chunk.
   for (const item of chunk) {
-    // Delete the old children explicitly. On Word for the web they survive
-    // the parent's "Replace" insert below, and a search-and-wrap over the
-    // new text either wrapped a second child beside the survivor (footnotes
-    // accumulating `Mabo (n 1); Mabo (n 1); …`) or found nothing and left
-    // the citation unbound.
     for (const childCC of item.existingChildCCs) {
       childCC.delete(false);
     }
-    writeRebuildContent(item.parentCC, item.rendered);
+  }
+  await context.sync();
+
+  // Stage 2: write the new text of every footnote (no controls yet).
+  const pendingWraps = chunk.map((item) => writeRebuildContent(item.parentCC, item.rendered));
+  await context.sync();
+
+  // Stage 3: bind each citation range to its child control and record the
+  // hash of the text that was just written.
+  for (const [i, item] of chunk.entries()) {
+    for (const pending of pendingWraps[i]) {
+      const childCC = pending.range.insertContentControl("RichText");
+      childCC.tag = pending.citationId;
+      childCC.title = pending.title;
+      childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+    }
     item.parentCC.title = buildParentTitle({
       locked: false,
       renderedHash: hashRenderedText(item.expectedText),
@@ -1057,14 +1078,24 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
   return parts.join("");
 }
 
+/** A citation range written by {@link writeRebuildContent}, awaiting its child control. */
+interface PendingChildWrap {
+  /** The range `insertHtml` returned for the citation's runs. */
+  range: Word.Range;
+  /** The child content control tag (the citation ID). */
+  citationId: string;
+  /** The occurrence title (format preference and pinpoint). */
+  title: string;
+}
+
 /**
- * Writes a parent CC's rebuilt content through the same mechanism the insert
- * path uses (`insertChildCitation`): each citation goes in via the parent's
- * own `insertHtml`, whose returned range is wrapped in the child CC, while
- * separators and the closing punctuation are appended as plain text so they
- * stay OUTSIDE the child CCs. The caller syncs once for the whole chunk.
+ * Writes a parent CC's rebuilt content as a chain of ranges and returns the
+ * citation ranges for the caller to wrap in child controls AFTER the batch
+ * has synced. Each piece — citation HTML, separator, closing punctuation —
+ * is inserted "After" the range the previous piece returned, so separators
+ * and punctuation land between the citations rather than inside them.
  *
- * Structure after the rebuild:
+ * Structure after the rebuild (once the caller has wrapped the ranges):
  *   [parent CC]
  *     [child CC tag=uuid-1] citation 1 runs [/child CC]
  *     "; "   (or ". " per Rule 1.1.3)
@@ -1072,67 +1103,77 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
  *     "."    (or empty per Rule 1.1.4)
  *   [/parent CC]
  *
- * The first piece is written with "Replace", which also clears whatever
- * text the parent still held; every later piece is appended with "End".
- * Writing through the parent keeps the children inside it on both hosts
- * (`getRange("End").insertContentControl()` lands them outside on the web,
- * WEB-001), and wrapping the range `insertHtml` returns is deterministic
- * where a text search over the rebuilt footnote was not. `insertHtml` is
- * never called with an empty fragment (it throws on the web): a citation
- * that renders to nothing is skipped, and a footnote with nothing to write
- * is cleared instead.
+ * The first piece is written through the parent with "Replace", which also
+ * clears whatever text the parent still held; every later piece is chained
+ * off the previous range with "After". Nothing is ever appended through
+ * the parent's "End": on Word for the web the parent keeps an end marker,
+ * so `parentCC.insertText(…, "End")` lands after a trailing space and, once
+ * a child control sits at the end, INSIDE that child (` Ibid [42] .` with
+ * the full stop swallowed). Writing through the parent keeps the children
+ * inside it on both hosts (`getRange("End").insertContentControl()` lands
+ * them outside on the web, WEB-001), and wrapping the range `insertHtml`
+ * returns is deterministic where a text search over the rebuilt footnote
+ * was not. `insertHtml` is never called with an empty fragment (it throws
+ * on the web): a citation that renders to nothing is skipped, and a
+ * footnote with nothing to write is cleared instead.
+ *
+ * Sequence verified live on Word for the web (`India; Juliet. ` in the
+ * parent, the child wrapping exactly `India`; the trailing space is Word's
+ * control marker).
  *
  * @param parentCC - The parent content control to rewrite.
  * @param rendered - The rendered citation entries to write, in order.
+ * @returns The citation ranges to wrap, in order, once the batch has synced.
  */
-function writeRebuildContent(parentCC: Word.ContentControl, rendered: RenderedCitation[]): void {
-  let written = false;
-  const location = (): "Replace" | "End" => (written ? "End" : "Replace");
+function writeRebuildContent(
+  parentCC: Word.ContentControl,
+  rendered: RenderedCitation[]
+): PendingChildWrap[] {
+  const pending: PendingChildWrap[] = [];
+  // The range of the last piece written; the next piece goes "After" it.
+  let tail: Word.Range | undefined;
+
+  const appendText = (text: string): void => {
+    tail = tail ? tail.insertText(text, "After") : parentCC.insertText(text, "Replace");
+  };
 
   for (let j = 0; j < rendered.length; j++) {
-    // Separator before this child — plain text outside the child CCs
+    // Separator before this citation — plain text between the children
     // (Rule 1.1.3).
     if (j > 0) {
-      const separator = getSeparator(
-        rendered[j - 1].signal,
-        rendered[j].signal,
-        rendered[j - 1].isNote,
-        rendered[j].isNote
+      appendText(
+        getSeparator(
+          rendered[j - 1].signal,
+          rendered[j].signal,
+          rendered[j - 1].isNote,
+          rendered[j].isNote
+        )
       );
-      parentCC.insertText(
-        separator,
-        location() as Word.InsertLocation.replace | Word.InsertLocation.end
-      );
-      written = true;
     }
 
-    if (runsToHtml(rendered[j].runs).length === 0) {
+    const html = runsToHtml(rendered[j].runs);
+    if (html.length === 0) {
       continue;
     }
+    tail = tail ? tail.insertHtml(html, "After") : parentCC.insertHtml(html, "Replace");
     // Preserve the user's format preference (and any pinpoint) in the title.
     // The rendered format is recomputed from preference + context each refresh.
-    insertChildCitation(
-      parentCC,
-      rendered[j].citationId,
-      buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint),
-      rendered[j].runs,
-      location()
-    );
-    written = true;
+    pending.push({
+      range: tail,
+      citationId: rendered[j].citationId,
+      title: buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint),
+    });
   }
 
-  // Closing punctuation after the last child CC (Rule 1.1.4).
+  // Closing punctuation after the last citation (Rule 1.1.4).
   const lastCitationText = runsToPlainText(rendered[rendered.length - 1].runs);
   const closingPunct = getClosingPunctuation(lastCitationText);
   if (closingPunct) {
-    parentCC.insertText(
-      closingPunct,
-      location() as Word.InsertLocation.replace | Word.InsertLocation.end
-    );
-    written = true;
+    appendText(closingPunct);
   }
 
-  if (!written) {
+  if (!tail) {
     parentCC.clear();
   }
+  return pending;
 }

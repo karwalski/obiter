@@ -155,10 +155,18 @@ function makeRefreshContext(
 } {
   const handle = makeFakeContext(doc);
 
-  // The rebuild deletes the old child, then wraps the range each insertHtml
-  // returns (the insert path's mechanism) and appends punctuation as text.
+  // The rebuild deletes the old child, chains the citation HTML and the
+  // punctuation as ranges, then wraps the citation's range after the sync.
   const wrappedChild = { tag: "", title: "", appearance: "" };
-  const insertedRange = { insertContentControl: jest.fn(() => wrappedChild) };
+  const insertedRange: {
+    insertText: jest.Mock;
+    insertHtml: jest.Mock;
+    insertContentControl: jest.Mock;
+  } = {
+    insertText: jest.fn(() => insertedRange),
+    insertHtml: jest.fn(() => insertedRange),
+    insertContentControl: jest.fn(() => wrappedChild),
+  };
   const childCC = { tag: opts.citationId, title: "Citation:auto", delete: jest.fn() };
   const parentCC = {
     tag: "obiter-fn",

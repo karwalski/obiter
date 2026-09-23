@@ -25,6 +25,7 @@ import { APP_VERSION } from "../constants";
 import { createLogger } from "../debug/logger";
 import {
   hostReportsReadOnly,
+  isItemNotFoundError,
   isNotAllowedError,
   isWriteRefused,
   rethrowWriteFailure,
@@ -323,6 +324,26 @@ export class CitationStore {
       try {
         await this.persist();
       } catch (err: unknown) {
+        // A brand-new document on Word for the web has no addressable custom
+        // XML part store until the host has saved it once, so the very first
+        // write comes back as ItemNotFound. Nothing is wrong with the library
+        // — it is empty and in memory — and the next write succeeds. Degrade
+        // quietly rather than failing the load and telling the user their
+        // citations may be missing.
+        if (isItemNotFoundError(err)) {
+          this.diagnostics = {
+            ...this.diagnostics,
+            status: "new",
+            detail:
+              "The document would not accept the initial store write yet " +
+              "(ItemNotFound) — a new document the host has not saved. The " +
+              "empty library is in memory and is written on the next save.",
+          };
+          log.warn(
+            "initStore: document not ready for the first store write; retrying on next write"
+          );
+          return;
+        }
         if (!isWriteRefused(err)) throw err;
         this.readOnly = true;
         this.diagnostics = {
@@ -797,6 +818,18 @@ export class CitationStore {
   private persist(opts: { allowDataLoss?: boolean } = {}): Promise<void> {
     const run = this.persistChain
       .then(() => this.doPersist(opts.allowDataLoss === true))
+      .catch(async (err: unknown) => {
+        // A part enumerated a moment ago can be gone by the time the batch
+        // commits (autosave, co-authoring, a second pane), and a brand-new
+        // document can refuse the first part outright. Both surface as
+        // ItemNotFound and both are fixed by looking again: re-enumerate and
+        // write once more before treating it as a failure.
+        if (isItemNotFoundError(err)) {
+          log.warn("persist: ItemNotFound, re-enumerating and retrying once");
+          return this.doPersist(opts.allowDataLoss === true);
+        }
+        throw err;
+      })
       .catch((err: unknown) => {
         // A document that cannot be edited rejects the write with NotAllowed,
         // whose stack is entirely inside Word's runtime — it reaches the user

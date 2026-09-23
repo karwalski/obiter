@@ -48,6 +48,34 @@ export function isNotAllowedError(err: unknown): boolean {
 }
 
 /**
+ * True when Office.js refused a call because the item it addressed is not in
+ * the document: `ItemNotFound`.
+ *
+ * Word for the web raises this against a document that is not yet ready to
+ * hold what we are writing — most visibly on a brand-new document, whose
+ * custom XML part store is not addressable until the host has saved it once.
+ * It also arrives when a part enumerated a moment ago has since been replaced
+ * (autosave, co-authoring, a second pane). Neither is a defect in the store:
+ * the right response is to leave the in-memory data alone and write again
+ * later, not to fail the load.
+ *
+ * @param err - the value thrown by an Office.js call
+ */
+export function isItemNotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as {
+    code?: unknown;
+    message?: unknown;
+    debugInfo?: { code?: unknown };
+  };
+  const code = typeof e.code === "string" ? e.code : undefined;
+  const debugCode = typeof e.debugInfo?.code === "string" ? e.debugInfo.code : undefined;
+  if (code === "ItemNotFound" || debugCode === "ItemNotFound") return true;
+  const message = typeof e.message === "string" ? e.message : "";
+  return /\bItemNotFound\b/.test(message);
+}
+
+/**
  * Best-effort read of the host's own view of the document, used only to
  * enrich a message — never as the gate. `Office.context.document.mode` is a
  * snapshot and does not capture every restriction (IRM and co-authoring locks

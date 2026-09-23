@@ -58,6 +58,13 @@ export class FakeDocState {
    */
   readOnly = false;
 
+  /**
+   * Number of part writes still to be refused with `ItemNotFound` before the
+   * document starts accepting them — how Word for the web behaves on a new
+   * document it has not saved yet.
+   */
+  itemNotFoundWrites = 0;
+
   addPart(xml: string, namespaceUri?: string): FakePart {
     const ns = namespaceUri ?? inferNamespace(xml);
     const part = new FakePart(this, `part-${this.nextId++}`, ns, xml);
@@ -119,6 +126,24 @@ export function makeNotAllowedError(): Error & {
   return err;
 }
 
+/**
+ * Reproduces the shape Word for the web throws when the item a call addresses
+ * is not in the document: a brand-new document whose custom XML part store is
+ * not addressable yet, or a part replaced between enumeration and the write.
+ */
+export function makeItemNotFoundError(): Error & {
+  code: string;
+  debugInfo: { code: string; errorLocation: string };
+} {
+  const err = new Error(
+    "We couldn't find the item you requested. Check the OfficeExtension.Error.debugInfo for more information."
+  ) as Error & { code: string; debugInfo: { code: string; errorLocation: string } };
+  err.name = "RichApi.Error";
+  err.code = "ItemNotFound";
+  err.debugInfo = { code: "ItemNotFound", errorLocation: "CustomXmlPartCollection.add" };
+  return err;
+}
+
 export function makeFakeContext(doc: FakeDocState): FakeContextHandle {
   let syncCount = 0;
   let partAddCount = 0;
@@ -137,6 +162,10 @@ export function makeFakeContext(doc: FakeDocState): FakeContextHandle {
     add(xml: string): FakePart {
       partAddCount++;
       if (doc.readOnly) throw makeNotAllowedError();
+      if (doc.itemNotFoundWrites > 0) {
+        doc.itemNotFoundWrites--;
+        throw makeItemNotFoundError();
+      }
       return doc.addPart(xml);
     },
   };

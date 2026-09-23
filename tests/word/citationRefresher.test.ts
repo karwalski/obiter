@@ -116,12 +116,21 @@ interface MockParentCC {
   insertText: jest.Mock;
 }
 
+interface MockInsertedRange {
+  insertText: jest.Mock;
+  insertHtml: jest.Mock;
+  insertContentControl: jest.Mock;
+}
+
 /**
  * Builds a minimal parent-CC proxy: title, insertHtml / insertText returning
- * a range whose insertContentControl yields a fresh child CC.
+ * a range whose chained insertText / insertHtml return further ranges and
+ * whose insertContentControl yields a fresh child CC.
  */
 function makeMockParentCC(): MockParentCC {
-  const makeInsertedRange = (): { insertContentControl: jest.Mock } => ({
+  const makeInsertedRange = (): MockInsertedRange => ({
+    insertText: jest.fn(() => makeInsertedRange()),
+    insertHtml: jest.fn(() => makeInsertedRange()),
     insertContentControl: jest.fn(() => ({ tag: "", title: "", appearance: "" })),
   });
   return {
@@ -163,7 +172,7 @@ function makeSyncCountingContext(): { context: Word.RequestContext; getSyncCount
 }
 
 describe("SAFE-003 — executeRebuilds sync batching", () => {
-  it("uses exactly 1 sync per chunk: R rebuilds cost ceil(R/8) syncs", async () => {
+  it("uses exactly 3 syncs per chunk: R rebuilds cost 3·ceil(R/8) syncs", async () => {
     const R = 20;
     const ccs = Array.from({ length: R }, () => makeMockParentCC());
     const items = ccs.map((cc, i) => makeWorkItem(i + 1, cc));
@@ -171,7 +180,9 @@ describe("SAFE-003 — executeRebuilds sync batching", () => {
 
     const outcome = await executeRebuilds(context, items, REBUILD_CHUNK_SIZE);
 
-    const expectedSyncs = Math.ceil(R / REBUILD_CHUNK_SIZE);
+    // Three synced stages per chunk: delete old children → chained text
+    // inserts → wrap children + stamp titles.
+    const expectedSyncs = 3 * Math.ceil(R / REBUILD_CHUNK_SIZE);
     expect(getSyncCount()).toBe(expectedSyncs);
     // AC bound for the whole refresh: ≤ 2 + 3·ceil(R/8). The two extra syncs
     // (batch read + final commit) live outside executeRebuilds.
@@ -183,7 +194,7 @@ describe("SAFE-003 — executeRebuilds sync batching", () => {
   it("writes the rendered-text hash into each parent title (SAFE-002)", async () => {
     const cc = makeMockParentCC();
     const item = makeWorkItem(1, cc);
-    const { context } = makeSyncCountingContext();
+    const { context, getSyncCount } = makeSyncCountingContext();
 
     await executeRebuilds(context, [item]);
 
@@ -191,12 +202,36 @@ describe("SAFE-003 — executeRebuilds sync batching", () => {
       buildParentTitle({ locked: false, renderedHash: hashRenderedText(item.expectedText) })
     );
     expect(cc.insertHtml).toHaveBeenCalledTimes(1);
+    expect(getSyncCount()).toBe(3);
+  });
+
+  it("wraps each citation range only after the text batch has synced", async () => {
+    const cc = makeMockParentCC();
+    const item = makeWorkItem(1, cc);
+    const { context } = makeSyncCountingContext();
+    const sync = context.sync as jest.Mock;
+
+    await executeRebuilds(context, [item]);
+
+    // Chain: parent.insertHtml(cit, "Replace") → range.insertText(".", "After").
+    expect(cc.insertHtml).toHaveBeenCalledWith(expect.any(String), "Replace");
+    const citationRange = cc.insertHtml.mock.results[0].value as MockInsertedRange;
+    expect(citationRange.insertText).toHaveBeenCalledWith(".", "After");
+    expect(cc.insertText).not.toHaveBeenCalled();
+
+    // The wrap is queued strictly after the sync that committed the text:
+    // the second sync precedes the insertContentControl call.
+    const wrap = citationRange.insertContentControl as jest.Mock;
+    expect(wrap).toHaveBeenCalledTimes(1);
+    expect(sync.mock.invocationCallOrder[1]).toBeLessThan(wrap.mock.invocationCallOrder[0]);
+    expect(wrap.mock.invocationCallOrder[0]).toBeLessThan(sync.mock.invocationCallOrder[2]);
   });
 
   it("a failing chunk is recorded and the remaining chunks still rebuild", async () => {
     const R = 20; // chunks: [1-8], [9-16], [17-20]
     const ccs = Array.from({ length: R }, () => makeMockParentCC());
-    // Footnote 9 (first item of the second chunk) fails at insertHtml.
+    // Footnote 9 (first item of the second chunk) fails at insertHtml
+    // (stage 2 — the text batch).
     ccs[8].insertHtml.mockImplementation(() => {
       throw new Error("boom");
     });
