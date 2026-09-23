@@ -155,19 +155,18 @@ function makeRefreshContext(
 } {
   const handle = makeFakeContext(doc);
 
+  // The rebuild deletes the old child, then wraps the range each insertHtml
+  // returns (the insert path's mechanism) and appends punctuation as text.
   const wrappedChild = { tag: "", title: "", appearance: "" };
-  const matchRange = { insertContentControl: jest.fn(() => wrappedChild) };
-  const parentRange = {
-    search: jest.fn(() => ({ items: [matchRange], load: jest.fn() })),
-  };
-  const childCC = { tag: opts.citationId, title: "Citation:auto" };
+  const insertedRange = { insertContentControl: jest.fn(() => wrappedChild) };
+  const childCC = { tag: opts.citationId, title: "Citation:auto", delete: jest.fn() };
   const parentCC = {
     tag: "obiter-fn",
     title: opts.locked ? LOCKED_PARENT_CC_TITLE : "Obiter Footnote",
     text: opts.existingText,
     load: jest.fn(),
-    insertHtml: jest.fn(),
-    getRange: jest.fn(() => parentRange),
+    insertHtml: jest.fn(() => insertedRange),
+    insertText: jest.fn(() => insertedRange),
     contentControls: { load: jest.fn(), items: [childCC] },
   };
   const noteItem = {

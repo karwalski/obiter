@@ -41,7 +41,7 @@ import {
 } from "../engine/engine";
 import type { CitationContext } from "../engine/engine";
 import { buildFootnoteMap, updateFirstFootnoteNumbers } from "./footnoteTracker";
-import { escapeHtml, runsToHtml } from "./formattedRunsHtml";
+import { runsToHtml } from "./formattedRunsHtml";
 import type { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint, IntroductorySignal } from "../types/citation";
 import { resolveDocumentConfig } from "../engine/standards";
@@ -53,6 +53,7 @@ import {
   isFootnoteLocked,
   parseParentTitle,
   buildParentTitle,
+  insertChildCitation,
 } from "./footnoteManager";
 import { hashRenderedText } from "../utils/textHash";
 import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
@@ -66,9 +67,10 @@ const CLOSING_PUNCTUATION = [".", "!", "?"];
 
 /**
  * Number of footnotes rebuilt per pipelined batch (SAFE-003). Each chunk
- * costs exactly 3 syncs (insertHtml → search → wrap) regardless of size,
- * so larger chunks mean fewer round trips on Word for Web; 8 keeps each
- * batch small enough that a mid-chunk failure has a bounded blast radius.
+ * costs exactly 1 sync (delete old children → insert + wrap → stamp title,
+ * all queued) regardless of size, so larger chunks mean fewer round trips
+ * on Word for Web; 8 keeps each batch small enough that a mid-chunk failure
+ * has a bounded blast radius.
  */
 export const REBUILD_CHUNK_SIZE = 8;
 
@@ -157,6 +159,14 @@ export interface ChildEntry {
   formatPreference: "auto" | "full" | "short" | "ibid";
   /** The CC title string (e.g. "Citation:short:4-5"). */
   ccTitle?: string;
+  /**
+   * The child content control proxy the scan found for this occurrence.
+   * A rebuild deletes it explicitly before rewriting the footnote (Word for
+   * the web leaves it in place through `parentCC.insertHtml(…, "Replace")`,
+   * so without the delete every rebuild accumulated one more child).
+   * Absent for entries assembled outside a document scan (tests).
+   */
+  cc?: Word.ContentControl;
 }
 
 /**
@@ -548,6 +558,7 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
           pinpoint: parsed.pinpoint,
           formatPreference: parsed.formatPreference,
           ccTitle,
+          cc: childCC,
         });
       }
     }
@@ -627,6 +638,12 @@ export interface RebuildWorkItem {
   expectedText: string;
   /** The footnote's current document text (pre-rebuild, for the SAFE-004 hook). */
   existingText: string;
+  /**
+   * The footnote's existing child citation controls, deleted before the new
+   * content is written so the rebuilt footnote holds exactly one child per
+   * rendered citation.
+   */
+  existingChildCCs: readonly Word.ContentControl[];
 }
 
 /**
@@ -642,7 +659,7 @@ export interface RebuildWorkItem {
  *  3. Classify each footnote per the SAFE-002 matrix (lock wins first).
  *  4. SAFE-004 seam: `onBeforeRebuild` runs with the rebuild set before any
  *     document mutation.
- *  5. Rebuild in chunks of {@link REBUILD_CHUNK_SIZE}, 3 syncs per chunk;
+ *  5. Rebuild in chunks of {@link REBUILD_CHUNK_SIZE}, 1 sync per chunk;
  *     a failing chunk is recorded in `failures` and processing continues.
  *
  * @param context - An active Word request context.
@@ -750,6 +767,7 @@ async function renderAndRebuild(
           rendered,
           expectedText,
           existingText,
+          existingChildCCs: fnEntry.children.flatMap((child) => (child.cc ? [child.cc] : [])),
         });
         break;
     }
@@ -830,40 +848,34 @@ export async function executeRebuilds(
 }
 
 /**
- * Rebuilds one chunk of footnotes with the three pipelined stages.
+ * Rebuilds one chunk of footnotes in a single batch: for every footnote,
+ * delete its existing child controls, write the new content piece by piece
+ * through the parent (wrapping each citation's returned range in its child
+ * control), and stamp the new rendered-text hash into the parent title
+ * (SAFE-002). One sync for the whole chunk.
  *
- * Stage 1 also writes the new parent-CC title carrying the hash of the
- * expected text (SAFE-002), in the same batch as the insertHtml — so even
- * if a later stage fails, the recorded hash matches the text that was
- * actually written and the next refresh classifies it as a stale render
- * and retries the rebuild.
+ * The title is queued in the same batch as the content, so the recorded
+ * hash always matches the text that was actually written; if the batch
+ * fails nothing is committed and the next refresh retries the rebuild.
  */
 async function executeRebuildChunk(
   context: Word.RequestContext,
   chunk: readonly RebuildWorkItem[]
 ): Promise<void> {
-  // Stage 1: compose and insert every footnote's HTML, and stamp the new
-  // rendered-text hash into the parent title. One sync for the whole chunk.
-  const childTextsPerItem = chunk.map((item) => {
-    const { html, childTexts } = buildRebuildHtml(item.rendered);
-    item.parentCC.insertHtml(html, "Replace" as Word.InsertLocation.replace);
+  for (const item of chunk) {
+    // Delete the old children explicitly. On Word for the web they survive
+    // the parent's "Replace" insert below, and a search-and-wrap over the
+    // new text either wrapped a second child beside the survivor (footnotes
+    // accumulating `Mabo (n 1); Mabo (n 1); …`) or found nothing and left
+    // the citation unbound.
+    for (const childCC of item.existingChildCCs) {
+      childCC.delete(false);
+    }
+    writeRebuildContent(item.parentCC, item.rendered);
     item.parentCC.title = buildParentTitle({
       locked: false,
       renderedHash: hashRenderedText(item.expectedText),
     });
-    return childTexts;
-  });
-  await context.sync();
-
-  // Stage 2: queue every footnote's child-text searches. One sync.
-  const searchesPerItem = chunk.map((item, i) =>
-    queueChildSearches(item.parentCC, childTextsPerItem[i])
-  );
-  await context.sync();
-
-  // Stage 3: wrap every citation's text in its child CC. One sync.
-  for (let i = 0; i < chunk.length; i++) {
-    wrapChildControls(chunk[i].rendered, childTextsPerItem[i], searchesPerItem[i]);
   }
   await context.sync();
 }
@@ -1046,10 +1058,13 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
 }
 
 /**
- * Composes a parent CC's entire content as ONE HTML fragment (stage 1 of a
- * rebuild), plus the plain child texts needed to wrap child CCs later.
+ * Writes a parent CC's rebuilt content through the same mechanism the insert
+ * path uses (`insertChildCitation`): each citation goes in via the parent's
+ * own `insertHtml`, whose returned range is wrapped in the child CC, while
+ * separators and the closing punctuation are appended as plain text so they
+ * stay OUTSIDE the child CCs. The caller syncs once for the whole chunk.
  *
- * Structure after the full rebuild:
+ * Structure after the rebuild:
  *   [parent CC]
  *     [child CC tag=uuid-1] citation 1 runs [/child CC]
  *     "; "   (or ". " per Rule 1.1.3)
@@ -1057,99 +1072,67 @@ function buildExpectedText(rendered: RenderedCitation[]): string {
  *     "."    (or empty per Rule 1.1.4)
  *   [/parent CC]
  *
- * The content — citations, separators, and closing punctuation — is written
- * in a single insertHtml call, then the child CCs are wrapped around each
- * citation's text afterwards. The piecewise APIs are broken on Word on the
- * web: `getRange("End").insertContentControl()` lands children outside the
- * parent (WEB-001), font assignments on ranges returned by insertText
- * silently no-op (WEB-002), per-piece insertHtml/insertText calls inject
- * smart-paste join spaces at fragment boundaries, and insertOoxml throws
- * `unsupportedSelection` inside footnotes on the web. A single HTML
- * fragment imports with exact text and per-run formatting on both hosts
- * (verified empirically); "Replace" also clears the placeholder state.
+ * The first piece is written with "Replace", which also clears whatever
+ * text the parent still held; every later piece is appended with "End".
+ * Writing through the parent keeps the children inside it on both hosts
+ * (`getRange("End").insertContentControl()` lands them outside on the web,
+ * WEB-001), and wrapping the range `insertHtml` returns is deterministic
+ * where a text search over the rebuilt footnote was not. `insertHtml` is
+ * never called with an empty fragment (it throws on the web): a citation
+ * that renders to nothing is skipped, and a footnote with nothing to write
+ * is cleared instead.
  *
- * @param rendered - The rendered citation entries to write.
- * @returns The composed HTML fragment and each citation's plain text.
+ * @param parentCC - The parent content control to rewrite.
+ * @param rendered - The rendered citation entries to write, in order.
  */
-function buildRebuildHtml(rendered: RenderedCitation[]): { html: string; childTexts: string[] } {
-  const htmlPieces: string[] = [];
-  const childTexts: string[] = [];
-  for (let j = 0; j < rendered.length; j++) {
-    childTexts.push(runsToPlainText(rendered[j].runs));
-    htmlPieces.push(runsToHtml(rendered[j].runs));
+function writeRebuildContent(parentCC: Word.ContentControl, rendered: RenderedCitation[]): void {
+  let written = false;
+  const location = (): "Replace" | "End" => (written ? "End" : "Replace");
 
-    // Separator after this child (if not the last) — plain text in the
-    // fragment, outside the child CCs (Rules 1.1.3, 1.1.4).
-    if (j < rendered.length - 1) {
+  for (let j = 0; j < rendered.length; j++) {
+    // Separator before this child — plain text outside the child CCs
+    // (Rule 1.1.3).
+    if (j > 0) {
       const separator = getSeparator(
+        rendered[j - 1].signal,
         rendered[j].signal,
-        rendered[j + 1].signal,
-        rendered[j].isNote,
-        rendered[j + 1].isNote
+        rendered[j - 1].isNote,
+        rendered[j].isNote
       );
-      htmlPieces.push(escapeHtml(separator));
+      parentCC.insertText(
+        separator,
+        location() as Word.InsertLocation.replace | Word.InsertLocation.end
+      );
+      written = true;
     }
+
+    if (runsToHtml(rendered[j].runs).length === 0) {
+      continue;
+    }
+    // Preserve the user's format preference (and any pinpoint) in the title.
+    // The rendered format is recomputed from preference + context each refresh.
+    insertChildCitation(
+      parentCC,
+      rendered[j].citationId,
+      buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint),
+      rendered[j].runs,
+      location()
+    );
+    written = true;
   }
 
   // Closing punctuation after the last child CC (Rule 1.1.4).
   const lastCitationText = runsToPlainText(rendered[rendered.length - 1].runs);
   const closingPunct = getClosingPunctuation(lastCitationText);
   if (closingPunct) {
-    htmlPieces.push(escapeHtml(closingPunct));
+    parentCC.insertText(
+      closingPunct,
+      location() as Word.InsertLocation.replace | Word.InsertLocation.end
+    );
+    written = true;
   }
 
-  return { html: htmlPieces.join(""), childTexts };
-}
-
-/**
- * Queues a search for each citation's text within the parent CC (stage 2 of
- * a rebuild). The caller syncs once for the whole chunk.
- *
- * Word's Range.search caps the query at 255 characters, so very long
- * citations search by prefix.
- */
-function queueChildSearches(
-  parentCC: Word.ContentControl,
-  childTexts: string[]
-): Word.RangeCollection[] {
-  const parentRange = parentCC.getRange("Whole" as Word.RangeLocation.whole);
-  return childTexts.map((text) => {
-    const query = text.length > 250 ? text.slice(0, 250) : text;
-    const found = parentRange.search(query, { matchCase: true });
-    found.load("items");
-    return found;
-  });
-}
-
-/**
- * Wraps each citation's text in its child CC (stage 3 of a rebuild). The
- * caller syncs once for the whole chunk.
- *
- * When the same text occurs more than once in the footnote (e.g. two "Ibid"
- * children), occurrences are assigned to children in document order.
- */
-function wrapChildControls(
-  rendered: RenderedCitation[],
-  childTexts: string[],
-  searches: Word.RangeCollection[]
-): void {
-  const occurrenceCursor = new Map<string, number>();
-  for (let j = 0; j < rendered.length; j++) {
-    const text = childTexts[j];
-    const matches = searches[j].items ?? [];
-    const k = occurrenceCursor.get(text) ?? 0;
-    occurrenceCursor.set(text, k + 1);
-    const target = matches[k] ?? matches[0];
-    if (!target) {
-      // Leave this citation unwrapped rather than corrupting a neighbour —
-      // the next refresh pass rebuilds the footnote and retries.
-      continue;
-    }
-    const childCC = target.insertContentControl("RichText");
-    childCC.tag = rendered[j].citationId;
-    // Preserve the user's format preference (and any pinpoint) in the title.
-    // The rendered format is recomputed from preference + context each refresh.
-    childCC.title = buildOccurrenceTitle(rendered[j].formatPreference, rendered[j].pinpoint);
-    childCC.appearance = "Hidden" as Word.ContentControlAppearance;
+  if (!written) {
+    parentCC.clear();
   }
 }

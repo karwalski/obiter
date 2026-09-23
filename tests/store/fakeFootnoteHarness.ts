@@ -14,8 +14,19 @@
  *
  *   body.footnotes.items[i].body.contentControls.items = [parentCC, childCC…]
  *   parentCC.contentControls.items                     = [childCC…]
- *   parentCC.insertHtml(html, "Replace"); parentCC.title = "<hash title>"
- *   parentCC.getRange("Whole").search(text) → [{ insertContentControl }]
+ *   childCC.delete(false)                                (old children removed)
+ *   parentCC.insertHtml(html, "Replace" | "End") → range.insertContentControl()
+ *   parentCC.insertText(sep | ".", "End");  parentCC.title = "<hash title>"
+ *
+ * The fake document is LIVE and models Word for the web, the stricter host:
+ * a write updates the parent's text ("Replace" resets it, "End" appends), a
+ * child wrapped through `insertContentControl` joins the parent's
+ * `contentControls`, and only an explicit `delete()` removes a child — a
+ * "Replace" insert on the parent does NOT (the v1.17.2 defect), so a rebuild
+ * that forgets to delete shows up as accumulating children.
+ *
+ * The old `getRange("Whole").search(text)` fake is kept for callers that
+ * still wrap by search; the refresher no longer does.
  *
  * Promoted from tests/word/modeSwitchRefresh.test.ts (SAFE-002/004 pattern);
  * the same mock style lives inline in tests/word/footnoteBackup.test.ts.
@@ -70,34 +81,65 @@ export interface FootnoteSpec extends OccurrenceSpec {
 
 // ─── Fake proxies ───────────────────────────────────────────────────────────
 
-/** A fake child citation content control (tag = citation id). */
+/**
+ * A fake child citation content control (tag = citation id) — either seeded
+ * from a spec or wrapped by a rebuild through `insertContentControl`.
+ */
 export interface FakeChildCC {
   tag: string;
   title: string;
+  /** The child's text: "" when seeded, the wrapped fragment's text when wrapped. */
   text: string;
+  appearance: string;
+  /** `delete(keepContent)` as the rebuild issues it; marks the control removed. */
+  delete: jest.Mock;
+  /** True once the refresher deleted this control from its parent. */
+  removed: boolean;
+}
+
+/** @deprecated Wrapped children are {@link FakeChildCC}s; kept as an alias. */
+export type FakeWrappedCC = FakeChildCC;
+
+/** One write the refresher issued on a parent CC, in call order. */
+export interface FakeWrite {
+  /** `insertHtml` or `insertText`. */
+  kind: "html" | "text";
+  /** The fragment (HTML) or the plain text passed in. */
+  content: string;
+  /** The insert location passed in ("Replace" or "End"). */
+  location: string;
+  /** The child CC wrapped around this write's returned range, if any. */
+  child?: FakeChildCC;
+}
+
+/** The range an `insertHtml` / `insertText` on a fake parent returns. */
+export interface FakeInsertedRange {
+  insertContentControl: jest.Mock;
 }
 
 /** A fake `obiter-fn` parent content control with write capture. */
 export interface FakeParentCC {
   tag: string;
   title: string;
+  /** The footnote's current text; updated live by every write. */
   text: string;
   load: jest.Mock;
-  /** Captures every `insertHtml(html, location)` the refresher issues. */
+  /**
+   * Captures every `insertHtml(html, location)` the refresher issues and
+   * returns a {@link FakeInsertedRange} whose `insertContentControl` records
+   * the wrapped child.
+   */
   insertHtml: jest.Mock;
-  /** Captures every `insertText(text, location)` call (footnoteManager paths). */
+  /** Captures every `insertText(text, location)` call; returns a range too. */
   insertText: jest.Mock;
   /** Captures `clear()` (the restore path clears before re-inserting). */
   clear: jest.Mock;
+  /** The legacy search fake (`getRange("Whole").search(text)`), for old callers. */
   getRange: jest.Mock;
-  contentControls: { load: jest.Mock; items: FakeChildCC[] };
-}
-
-/** A content control wrapped around a citation's text during a rebuild. */
-export interface FakeWrappedCC {
-  tag: string;
-  title: string;
-  appearance: string;
+  /** The parent's live children: seeded ones not yet deleted, plus wrapped ones. */
+  contentControls: { load: jest.Mock; readonly items: FakeChildCC[] };
+  /** Every write issued on this parent, in order. */
+  writes: FakeWrite[];
 }
 
 /** The fake refresh context plus its per-footnote proxies. */
@@ -105,13 +147,14 @@ export interface FakeFootnoteContext {
   context: Word.RequestContext;
   /** The `obiter-fn` parent CC of each footnote, in document order. */
   parents: FakeParentCC[];
-  /** The child citation CCs of each footnote, in document order. */
+  /** The child citation CCs each footnote was SEEDED with, in document order. */
   children: FakeChildCC[][];
   /**
-   * The CCs the rebuild wrapped around each footnote's citation text, in the
-   * order `insertContentControl` was called (one per rendered citation).
+   * The CCs rebuilds wrapped around each footnote's citation text, in the
+   * order `insertContentControl` was called (one per rendered citation),
+   * accumulated across every refresh run over this context.
    */
-  wrapped: FakeWrappedCC[][];
+  wrapped: FakeChildCC[][];
 }
 
 // ─── Builder ────────────────────────────────────────────────────────────────
@@ -123,7 +166,7 @@ export interface FakeFootnoteContext {
  * Word's `body.contentControls` includes nested descendants, so each
  * footnote body lists the parent followed by its children, and the parent's
  * own `contentControls` lists the children only — the refresher relies on
- * both views.
+ * both views. Both views are live (see the module comment).
  *
  * `opts.bodyText` seeds `document.body.text` for callers that read the body
  * (the refresher does not).
@@ -137,22 +180,59 @@ export function makeRefreshContext(
 
   const fns = specs.map((spec) => {
     const occurrences: OccurrenceSpec[] = [spec, ...(spec.additional ?? [])];
-    const children: FakeChildCC[] = occurrences.map((occ) => ({
-      tag: occ.citationId,
-      title: buildOccurrenceTitle(occ.pref ?? "auto", occ.pinpoint),
-      text: "",
-    }));
+    const live: FakeChildCC[] = [];
 
-    const wrapped: FakeWrappedCC[] = [];
-    // Every search returns one match whose insertContentControl yields a
-    // fresh wrapped CC, so the rebuild's stage 3 records one CC per citation.
+    const makeChild = (tag: string, title: string, text: string): FakeChildCC => {
+      const child: FakeChildCC = {
+        tag,
+        title,
+        text,
+        appearance: "",
+        removed: false,
+        delete: jest.fn(() => {
+          child.removed = true;
+          const at = live.indexOf(child);
+          if (at >= 0) live.splice(at, 1);
+        }),
+      };
+      live.push(child);
+      return child;
+    };
+
+    const children: FakeChildCC[] = occurrences.map((occ) =>
+      makeChild(occ.citationId, buildOccurrenceTitle(occ.pref ?? "auto", occ.pinpoint), "")
+    );
+
+    const wrapped: FakeChildCC[] = [];
+    const writes: FakeWrite[] = [];
+
+    // Every write updates the footnote's text the way Word presents it to
+    // the next scan and returns the inserted range; wrapping that range
+    // records one child per citation.
+    const write = (kind: "html" | "text", content: string, location: string): FakeInsertedRange => {
+      const text = kind === "html" ? htmlToText(content) : content;
+      parentCC.text = location === "Replace" ? text : parentCC.text + text;
+      const entry: FakeWrite = { kind, content, location };
+      writes.push(entry);
+      return {
+        insertContentControl: jest.fn(() => {
+          const child = makeChild("", "", text);
+          wrapped.push(child);
+          entry.child = child;
+          return child;
+        }),
+      };
+    };
+
+    // Legacy search fake: every search returns one match whose
+    // insertContentControl yields a fresh wrapped CC.
     const parentRange = {
       search: jest.fn(() => {
-        const wrappedChild: FakeWrappedCC = { tag: "", title: "", appearance: "" };
         const matchRange = {
           insertContentControl: jest.fn(() => {
-            wrapped.push(wrappedChild);
-            return wrappedChild;
+            const child = makeChild("", "", "");
+            wrapped.push(child);
+            return child;
           }),
         };
         return { items: [matchRange], load: jest.fn() };
@@ -164,15 +244,28 @@ export function makeRefreshContext(
       title: spec.title ?? DEFAULT_PARENT_TITLE,
       text: spec.text ?? "",
       load: jest.fn(),
-      insertHtml: jest.fn(),
-      insertText: jest.fn(),
-      clear: jest.fn(),
+      insertHtml: jest.fn((html: string, location: string) => write("html", html, location)),
+      insertText: jest.fn((text: string, location: string) => write("text", text, location)),
+      clear: jest.fn(() => {
+        parentCC.text = "";
+      }),
       getRange: jest.fn(() => parentRange),
-      contentControls: { load: jest.fn(), items: children },
+      contentControls: {
+        load: jest.fn(),
+        get items(): FakeChildCC[] {
+          return [...live];
+        },
+      },
+      writes,
     };
     const noteItem = {
       body: {
-        contentControls: { load: jest.fn(), items: [parentCC, ...children] },
+        contentControls: {
+          load: jest.fn(),
+          get items(): Array<FakeParentCC | FakeChildCC> {
+            return [parentCC, ...live];
+          },
+        },
       },
     };
     return { parentCC, children, wrapped, noteItem };
@@ -215,21 +308,35 @@ export function htmlToText(html: string): string {
     .replace(/&amp;/g, "&");
 }
 
-/** The last HTML fragment written to each footnote, or undefined if untouched. */
-export function footnoteHtml(ctx: FakeFootnoteContext): Array<string | undefined> {
-  return ctx.parents.map((parent) => {
-    const calls = parent.insertHtml.mock.calls;
-    return calls.length > 0 ? (calls[calls.length - 1][0] as string) : undefined;
-  });
+/** Plain text of one write: the fragment's text for HTML, the text itself otherwise. */
+function writeText(write: FakeWrite): string {
+  return write.kind === "html" ? htmlToText(write.content) : write.content;
 }
 
 /**
- * The text each footnote holds after the refresh: the plain text of the last
- * `insertHtml` fragment when the footnote was rebuilt, otherwise the text it
- * started with (unchanged, user-edited or locked).
+ * The text a sequence of writes leaves in a footnote ("Replace" resets,
+ * anything else appends), or `undefined` when nothing was written.
+ */
+export function textOfWrites(writes: readonly FakeWrite[]): string | undefined {
+  if (writes.length === 0) return undefined;
+  let text = "";
+  for (const write of writes) {
+    text = write.location === "Replace" ? writeText(write) : text + writeText(write);
+  }
+  return text;
+}
+
+/**
+ * The text each footnote holds after the refresh: reconstructed from the
+ * sequence of `insertHtml` / `insertText` calls when the footnote was
+ * rebuilt, otherwise the text it started with (unchanged, user-edited or
+ * locked).
  */
 export function footnoteTexts(ctx: FakeFootnoteContext): string[] {
-  return footnoteHtml(ctx).map((html, i) =>
-    html === undefined ? ctx.parents[i].text : htmlToText(html)
-  );
+  return ctx.parents.map((parent) => textOfWrites(parent.writes) ?? parent.text);
+}
+
+/** The child CCs each footnote's parent currently holds, in document order. */
+export function liveChildren(ctx: FakeFootnoteContext): FakeChildCC[][] {
+  return ctx.parents.map((parent) => parent.contentControls.items);
 }

@@ -26,12 +26,7 @@ import {
 } from "../../src/word/citationRefresher";
 import { CitationStore } from "../../src/store/citationStore";
 import { FakeDocState, installFakeWord, storeXmlWith } from "../store/fakeWordHarness";
-import {
-  FakeFootnoteContext,
-  footnoteTexts,
-  htmlToText,
-  makeRefreshContext,
-} from "../store/fakeFootnoteHarness";
+import { footnoteTexts, makeRefreshContext } from "../store/fakeFootnoteHarness";
 
 const noopHook = async (): Promise<void> => undefined;
 
@@ -43,18 +38,8 @@ function twoFootnoteDoc(): { doc: FakeDocState; specs: { citationId: string }[] 
   return { doc, specs: [{ citationId: "cit-1" }, { citationId: "cit-1" }] };
 }
 
-/**
- * Makes the fake document reflect what the refresher writes: after an
- * `insertHtml(html, "Replace")` the parent's text is the rendered text, as
- * Word would present it to the next scan.
- */
-function trackWrites(ctx: FakeFootnoteContext): void {
-  for (const parent of ctx.parents) {
-    parent.insertHtml.mockImplementation((html: string) => {
-      parent.text = htmlToText(html);
-    });
-  }
-}
+// The fake document is live: every write updates the parent's text as Word
+// would present it to the next scan (see tests/store/fakeFootnoteHarness).
 
 beforeEach(() => {
   localStorage.clear();
@@ -67,7 +52,6 @@ describe("refreshAllCitations serialises concurrent calls", () => {
     const store = new CitationStore();
     await store.initStore();
     const ctx = makeRefreshContext(doc, specs);
-    trackWrites(ctx);
 
     const [first, second] = await Promise.all([
       refreshAllCitations(ctx.context, store, noopHook),
@@ -81,9 +65,10 @@ describe("refreshAllCitations serialises concurrent calls", () => {
     expect(second.updated).toBe(0);
     expect(second.unchanged).toBe(2);
 
-    // Each footnote was written exactly once and wrapped exactly once.
+    // Each footnote's citation was written exactly once and wrapped exactly once.
     for (const parent of ctx.parents) expect(parent.insertHtml).toHaveBeenCalledTimes(1);
     expect(ctx.wrapped.map((w) => w.length)).toEqual([1, 1]);
+    expect(ctx.parents.map((p) => p.contentControls.items.length)).toEqual([1, 1]);
 
     // No duplicated text: fn2 is a single Ibid, fn1 a single full citation.
     const texts = footnoteTexts(ctx);
@@ -98,7 +83,6 @@ describe("refreshAllCitations serialises concurrent calls", () => {
     const store = new CitationStore();
     await store.initStore();
     const ctx = makeRefreshContext(doc, specs);
-    trackWrites(ctx);
 
     await Promise.all([
       refreshAllCitations(ctx.context, store, noopHook),
@@ -116,7 +100,6 @@ describe("refreshAllCitations serialises concurrent calls", () => {
     const store = new CitationStore();
     await store.initStore();
     const ctx = makeRefreshContext(doc, specs);
-    trackWrites(ctx);
 
     const running = refreshAllCitations(ctx.context, store);
     const waiting = refreshAllCitations(ctx.context, store);
@@ -134,7 +117,6 @@ describe("refreshAllCitations serialises concurrent calls", () => {
     const store = new CitationStore();
     await store.initStore();
     const ctx = makeRefreshContext(doc, specs);
-    trackWrites(ctx);
 
     const broken = {
       document: {

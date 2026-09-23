@@ -21,7 +21,7 @@ import { LOCKED_PARENT_CC_TITLE } from "../../src/word/footnoteManager";
 import { CitationStore } from "../../src/store/citationStore";
 import { setDevicePref } from "../../src/store/devicePreferences";
 import { FakeDocState, installFakeWord, storeXmlWith } from "../store/fakeWordHarness";
-import { htmlToText, makeRefreshContext } from "../store/fakeFootnoteHarness";
+import { footnoteTexts, makeRefreshContext } from "../store/fakeFootnoteHarness";
 
 // ─── Harness ────────────────────────────────────────────────────────────────
 //
@@ -49,17 +49,15 @@ async function renderBaseline(
   store: CitationStore,
   citationId: string
 ): Promise<BaselineFootnote[]> {
-  const { context, parents } = makeRefreshContext(doc, [
+  const ctx = makeRefreshContext(doc, [
     { citationId, text: "seed text one" },
     { citationId, text: "seed text two" },
   ]);
-  const result = await refreshAllCitations(context, store, noopHook);
+  const result = await refreshAllCitations(ctx.context, store, noopHook);
   expect(result.failures).toEqual([]);
   expect(result.updated).toBe(2);
-  return parents.map((parent) => ({
-    text: htmlToText(parent.insertHtml.mock.calls[0][0] as string),
-    title: parent.title,
-  }));
+  const texts = footnoteTexts(ctx);
+  return ctx.parents.map((parent, i) => ({ text: texts[i], title: parent.title }));
 }
 
 /** A doc + initialised store with a single case citation "cit-1". */
@@ -109,10 +107,11 @@ describe("mode switch through refreshAllCitations", () => {
     await store.setCourtJurisdiction("HCA");
     await store.setCourtToggles({ ibidSuppression: "on" });
 
-    const { context, parents } = makeRefreshContext(doc, [
+    const ctx = makeRefreshContext(doc, [
       { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
       { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
+    const { context, parents } = ctx;
     const result = await refreshAllCitations(context, store, noopHook);
 
     // The academic "Ibid." matches its stored hash, so the config-driven
@@ -120,7 +119,7 @@ describe("mode switch through refreshAllCitations", () => {
     expect(result.userEdits).toEqual([]);
     expect(result.failures).toEqual([]);
     expect(parents[1].insertHtml).toHaveBeenCalledTimes(1);
-    const rebuiltText = htmlToText(parents[1].insertHtml.mock.calls[0][0] as string);
+    const rebuiltText = footnoteTexts(ctx)[1];
     expect(rebuiltText).not.toContain("Ibid");
     expect(rebuiltText).not.toBe(baseline[1].text);
   });
@@ -178,16 +177,17 @@ describe("courtToggles source of truth in the refresher", () => {
     // Conflicting legacy device value — must be ignored when the store has one.
     setDevicePref("courtToggles", { ibidSuppression: "off" });
 
-    const { context, parents } = makeRefreshContext(doc, [
+    const ctx = makeRefreshContext(doc, [
       { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
       { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
+    const { context, parents } = ctx;
     await refreshAllCitations(context, store, noopHook);
 
     // With the device pref ("off") the expected fn2 text would stay "Ibid."
     // (unchanged). The store value suppresses ibid, so fn2 is rebuilt.
     expect(parents[1].insertHtml).toHaveBeenCalledTimes(1);
-    expect(htmlToText(parents[1].insertHtml.mock.calls[0][0] as string)).not.toContain("Ibid");
+    expect(footnoteTexts(ctx)[1]).not.toContain("Ibid");
   });
 
   test("falls back to the legacy device preference when the store has no toggles", async () => {
@@ -198,16 +198,17 @@ describe("courtToggles source of truth in the refresher", () => {
     expect(store.getCourtToggles()).toBeUndefined();
     setDevicePref("courtToggles", { ibidSuppression: "on" });
 
-    const { context, parents } = makeRefreshContext(doc, [
+    const ctx = makeRefreshContext(doc, [
       { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
       { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
     ]);
+    const { context, parents } = ctx;
     await refreshAllCitations(context, store, noopHook);
 
     // Base court config leaves ibid enabled; only the device fallback
     // suppresses it, so a rebuild of fn2 proves the fallback was read.
     expect(parents[1].insertHtml).toHaveBeenCalledTimes(1);
-    expect(htmlToText(parents[1].insertHtml.mock.calls[0][0] as string)).not.toContain("Ibid");
+    expect(footnoteTexts(ctx)[1]).not.toContain("Ibid");
   });
 
   test("control: with neither store toggles nor device preference, ibid is kept in court mode", async () => {

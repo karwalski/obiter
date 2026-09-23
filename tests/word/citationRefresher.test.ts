@@ -113,21 +113,21 @@ describe("SAFE-003 — chunkItems", () => {
 interface MockParentCC {
   title: string;
   insertHtml: jest.Mock;
-  getRange: jest.Mock;
+  insertText: jest.Mock;
 }
 
-/** Builds a minimal parent-CC proxy: insertHtml, title, getRange→search→wrap. */
+/**
+ * Builds a minimal parent-CC proxy: title, insertHtml / insertText returning
+ * a range whose insertContentControl yields a fresh child CC.
+ */
 function makeMockParentCC(): MockParentCC {
-  const makeMatchRange = (): { insertContentControl: jest.Mock } => ({
+  const makeInsertedRange = (): { insertContentControl: jest.Mock } => ({
     insertContentControl: jest.fn(() => ({ tag: "", title: "", appearance: "" })),
   });
-  const parentRange = {
-    search: jest.fn(() => ({ items: [makeMatchRange()], load: jest.fn() })),
-  };
   return {
     title: "Obiter Footnote",
-    insertHtml: jest.fn(),
-    getRange: jest.fn(() => parentRange),
+    insertHtml: jest.fn(() => makeInsertedRange()),
+    insertText: jest.fn(() => makeInsertedRange()),
   };
 }
 
@@ -148,6 +148,7 @@ function makeWorkItem(footnoteNumber: number, cc: MockParentCC): RebuildWorkItem
     rendered,
     expectedText: `${text}.`,
     existingText: "stale text",
+    existingChildCCs: [],
   };
 }
 
@@ -162,7 +163,7 @@ function makeSyncCountingContext(): { context: Word.RequestContext; getSyncCount
 }
 
 describe("SAFE-003 — executeRebuilds sync batching", () => {
-  it("uses exactly 3 syncs per chunk: R rebuilds cost 3·ceil(R/8) syncs", async () => {
+  it("uses exactly 1 sync per chunk: R rebuilds cost ceil(R/8) syncs", async () => {
     const R = 20;
     const ccs = Array.from({ length: R }, () => makeMockParentCC());
     const items = ccs.map((cc, i) => makeWorkItem(i + 1, cc));
@@ -170,7 +171,7 @@ describe("SAFE-003 — executeRebuilds sync batching", () => {
 
     const outcome = await executeRebuilds(context, items, REBUILD_CHUNK_SIZE);
 
-    const expectedSyncs = 3 * Math.ceil(R / REBUILD_CHUNK_SIZE);
+    const expectedSyncs = Math.ceil(R / REBUILD_CHUNK_SIZE);
     expect(getSyncCount()).toBe(expectedSyncs);
     // AC bound for the whole refresh: ≤ 2 + 3·ceil(R/8). The two extra syncs
     // (batch read + final commit) live outside executeRebuilds.
