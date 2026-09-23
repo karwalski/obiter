@@ -2095,6 +2095,7 @@ section:nth-child(even) {
 
 .docs-figure {
   margin: var(--space-xxl) 0;
+  padding: var(--space-lg) var(--space-lg) 0;
   background-color: var(--colour-surface);
   border: 1px solid var(--colour-border);
   border-radius: var(--radius-lg);
@@ -2102,8 +2103,22 @@ section:nth-child(even) {
 }
 
 .docs-figure img {
-  width: 100%;
+  /* Task-pane captures are tall and narrow (the pane is about 330px wide in
+     Word). Stretching them to the column width blew them up to over 1500px
+     tall, so cap the height and let the width follow: they then render at
+     roughly life size. Wide captures (the ribbon) still scale down to fit. */
   display: block;
+  width: auto;
+  /* One width for every pane capture, close to the pane's real 330px, so the
+     images sit in a consistent column instead of each scaling differently. */
+  max-width: min(100%, 340px);
+  max-height: 700px;
+  margin: 0 auto;
+}
+
+.docs-figure--wide img {
+  width: 100%;
+  max-height: none;
 }
 
 .docs-figure figcaption {
