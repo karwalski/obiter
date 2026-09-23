@@ -2116,8 +2116,15 @@ section:nth-child(even) {
   margin: 0 auto;
 }
 
+/* A wide capture (the ribbon) spans the whole column, edge to edge: the
+   narrow-capture width cap and the figure's side padding are both undone. */
+.docs-figure--wide {
+  padding: 0;
+}
+
 .docs-figure--wide img {
   width: 100%;
+  max-width: 100%;
   max-height: none;
 }
 
