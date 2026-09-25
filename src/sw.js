@@ -6,7 +6,7 @@
  * disabled when offline.
  */
 
-const CACHE_NAME = "obiter-v1.17.3";
+const CACHE_NAME = "obiter-v1.17.4";
 
 // Install — skip waiting, no precache (hashed filenames handle cache busting)
 self.addEventListener("install", function () {

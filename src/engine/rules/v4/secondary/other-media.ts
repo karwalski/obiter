@@ -6,6 +6,7 @@
 import { Author, Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatAuthors, normaliseBodyName } from "./authors";
+import { formatPinpoint } from "../general/pinpoints";
 import type { CitationConfig } from "../../../standards/types";
 import { nestInnerMarks, pushSecondaryPinpoint, quoteRunsWith, secondaryStyleFor } from "./style";
 
@@ -146,6 +147,8 @@ export interface CorrespondenceData {
   sender: string;
   recipient: string;
   date: string;
+  /** A5-FIX-1: rule 7.12 pinpoint, after the full date. */
+  pinpoint?: Pinpoint;
 }
 
 export interface InterviewData {
@@ -704,7 +707,10 @@ export function formatEditorial(data: EditorialData): FormattedRun[] {
 /**
  * AGLC4 Rule 7.12 — Correspondence
  *
- * Format: Type from Sender to Recipient, Date.
+ * Format: Type from Sender to Recipient, Full Date, Pinpoint.
+ *
+ * The rule's template ends with the pinpoint after the full date, preceded
+ * by a comma (rule 7.12, p 125; A5-FIX-1).
  *
  * @param data - Correspondence citation metadata.
  * @returns FormattedRun[] representing the formatted citation.
@@ -712,11 +718,15 @@ export function formatEditorial(data: EditorialData): FormattedRun[] {
  * @see AGLC4, Rule 7.12.
  */
 export function formatCorrespondence(data: CorrespondenceData): FormattedRun[] {
-  return [
+  const runs: FormattedRun[] = [
     {
       text: data.type + " from " + data.sender + " to " + data.recipient + ", " + data.date,
     },
   ];
+  if (data.pinpoint) {
+    runs.push({ text: ", " }, ...formatPinpoint(data.pinpoint));
+  }
+  return runs;
 }
 
 // ─── OTHER-023 ──────────────────────────────────────────────────────────────

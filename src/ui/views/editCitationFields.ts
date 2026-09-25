@@ -229,9 +229,17 @@ export const EDIT_FIELDS_BY_SOURCE_TYPE: Partial<Record<SourceType, FieldDefinit
     { key: "platform", label: "Platform", required: true, placeholder: "ChatGPT" },
     { key: "model", label: "Model", placeholder: "ChatGPT, Claude" },
     { key: "modelVersion", label: "Model Version", placeholder: "GPT-5, Claude Opus 4.8" },
+    // A5-EXP-6..8 (experimental): developer, recipient, prompt note. DECISION-041.
+    { key: "developer", label: "Developer (experimental)", placeholder: "OpenAI, Anthropic" },
+    { key: "recipient", label: "Recipient (experimental)", placeholder: "the author" },
     { key: "outputDate", label: "Date of Output", required: true, placeholder: "7 July 2026" },
     { key: "transcriptCustody", label: "Transcript Custody", placeholder: "the author" },
     { key: "prompt", label: "Prompt" },
+    {
+      key: "includePrompt",
+      label: "Show the prompt in the footnote (experimental)",
+      type: "checkbox",
+    },
     { key: "url", label: "URL" },
     { key: "archivedUrl", label: "Archived Transcript URL" },
   ],

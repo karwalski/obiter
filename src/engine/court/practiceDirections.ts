@@ -173,9 +173,10 @@ export const PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
   // ── Tribunals ──────────────────────────────────────────────────────────────
   {
     jurisdiction: "ART",
-    name: "Administrative Review Tribunal — Practice Directions",
-    url: "https://www.art.gov.au/practice-directions",
-    lastVerified: "2026-04-21",
+    name: "Administrative Review Tribunal — Practice Directions and Other Guidance",
+    // A5-CM-4: the old /practice-directions path returned 404 on 2026-09-24.
+    url: "https://www.art.gov.au/help-and-resources/professionals-and-practitioners/practice-directions-and-other-guidance",
+    lastVerified: "2026-09-24",
   },
   {
     jurisdiction: "FWC",
@@ -290,6 +291,14 @@ const FAMILY_LABELS: Record<AiReminderFamily, string> = {
   "disclosure-restriction": "Court-mode AI reminder — disclosure + restriction",
 };
 
+/** A5-CM-4: the ART generative AI practice direction (PDF). */
+const ART_GENAI_PD_URL =
+  "https://www.art.gov.au/sites/default/files/2026-08/Administrative%20Review%20Tribunal%20(Generative%20AI)%20Practice%20Direction.pdf";
+
+/** A5-CM-5: the ART expert evidence practice direction (PDF, compiled 20 Aug 2026). */
+const ART_EXPERT_EVIDENCE_PD_URL =
+  "https://www.art.gov.au/sites/default/files/2024-12/Administrative%20Review%20Tribunal%20%28Expert%20Evidence%29%20Practice%20Direction.pdf";
+
 /**
  * AI-use practice-direction instruments, registered as source links.
  * Each carries lastVerified "2026-07-23" per A5-CM-1.
@@ -383,6 +392,23 @@ export const AI_PRACTICE_DIRECTION_LINKS: PracticeDirectionLink[] = [
     name: "PD-AI — Use of Generative Artificial Intelligence (May 2026)",
     url: "https://www.fcfcoa.gov.au/practice-directions",
     lastVerified: "2026-07-23",
+  },
+  // ── Administrative Review Tribunal (Family 2) ──────────────────────────
+  // A5-CM-4: signed 20 Aug 2026, adapted from FCA GPN-AI; verified 2026-09-24.
+  {
+    jurisdiction: "ART",
+    name: "Administrative Review Tribunal (Use of Generative AI) Practice Direction 2026 (signed 20 Aug 2026)",
+    url: ART_GENAI_PD_URL,
+    lastVerified: "2026-09-24",
+  },
+  {
+    // A5-CM-5: cll 3.5A–3.5D (added by Amendment 1 of 2026, 20 Aug 2026)
+    // require an expert report to state whether it contains AI content,
+    // identify it and the tools used, and certify that it was checked.
+    jurisdiction: "ART",
+    name: "Administrative Review Tribunal (Expert Evidence) Practice Direction 2026 (commenced 2 Mar 2026; AI clauses 3.5A–3.5D added 20 Aug 2026)",
+    url: ART_EXPERT_EVIDENCE_PD_URL,
+    lastVerified: "2026-09-25",
   },
   // ── Western Australia (Family 2) ───────────────────────────────────────
   {
@@ -589,6 +615,33 @@ export const AI_USE_REMINDERS: AiUseReminder[] = [
       lastVerified: "2026-07-23",
     })
   ),
+
+  // A5-CM-4: the ART practice direction (Family 2). It requires verification
+  // of GenAI-assisted material (cl 2.4(d), 3.6), bars relying on a tool to
+  // verify its own output (cl 2.4(f)), bars GenAI making up or changing a
+  // person's evidence (cl 3.9) and requires disclosure where the Tribunal asks
+  // and for evidentiary material (cll 2.4(c), 3.11–3.13).
+  {
+    jurisdiction: "ART",
+    family: "disclosure-restriction",
+    label: FAMILY_LABELS["disclosure-restriction"],
+    reminder: DISCLOSURE_RESTRICTION_REMINDER,
+    instruments: [
+      {
+        name: "Administrative Review Tribunal (Use of Generative AI) Practice Direction 2026",
+        date: "signed and commenced 20 August 2026",
+        url: ART_GENAI_PD_URL,
+      },
+      {
+        // A5-CM-5: expert reports must disclose, identify and certify AI
+        // content (cll 3.5A–3.5D).
+        name: "Administrative Review Tribunal (Expert Evidence) Practice Direction 2026, cll 3.5A–3.5D",
+        date: "AI clauses in force 20 August 2026",
+        url: ART_EXPERT_EVIDENCE_PD_URL,
+      },
+    ],
+    lastVerified: "2026-09-24",
+  },
 ];
 
 /**
@@ -598,9 +651,7 @@ export const AI_USE_REMINDERS: AiUseReminder[] = [
  * Court mode surfaces this as practice-direction guidance — never as an AGLC
  * citation rule.
  */
-export function getAiUseReminderForJurisdiction(
-  jurisdictionId: string
-): AiUseReminder | undefined {
+export function getAiUseReminderForJurisdiction(jurisdictionId: string): AiUseReminder | undefined {
   return AI_USE_REMINDERS.find((r) => r.jurisdiction === jurisdictionId);
 }
 

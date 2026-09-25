@@ -573,6 +573,10 @@ function mapSecondaryToRecord(citation: Citation, data: Data, record: Interchang
       record.edition = str(data, "modelVersion");
       record.issued = date(data, "outputDate");
       if (str(data, "prompt")) record.passthrough.prompt = str(data, "prompt") as string;
+      // A5-EXP-6..8 (experimental): no interchange field fits, so passthrough.
+      if (str(data, "developer")) record.passthrough.developer = str(data, "developer") as string;
+      if (str(data, "recipient")) record.passthrough.recipient = str(data, "recipient") as string;
+      if (data.includePrompt === true) record.passthrough["include-prompt"] = "true";
       break;
     case "submission.government":
       push("authors", "author");

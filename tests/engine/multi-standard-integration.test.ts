@@ -370,30 +370,25 @@ describe("OSC-ENH-002: OSCOLA engine dispatch integration", () => {
       provider: "OpenAI",
       prompt: "Summarise the rule in Donoghue v Stevenson",
       dateGenerated: "15 March 2026",
-      url: "https://chat.openai.com/share/abc123",
     });
-    const directText = joinText(directRuns);
-    expect(directText).toBe(
-      "ChatGPT (OpenAI), ‘Summarise the rule in Donoghue v Stevenson’ (response generated 15 March 2026) <https://chat.openai.com/share/abc123>"
+    expect(joinText(directRuns)).toBe(
+      "ChatGPT, response to ‘Summarise the rule in Donoghue v Stevenson’, OpenAI (15 March 2026)"
     );
 
-    // Via engine
+    // Via engine: OSCOLA 5 r 3.7.13 (A5-EXP-13). The developer field fills the
+    // developer element; the stored url and model are not r 3.7.13 elements.
     const citation = makeCitation("genai_output", {
       platform: "ChatGPT",
       model: "GPT-4",
+      developer: "OpenAI",
       prompt: "Summarise the rule in Donoghue v Stevenson",
-      outputDate: "15 March 2026",
+      outputDate: "2026-03-15",
       url: "https://chat.openai.com/share/abc123",
     });
 
     const engineRuns = formatCitation(citation, firstCitationContext, OSCOLA5_CONFIG);
-    const engineText = joinText(engineRuns);
-
-    // GenAI output is dispatched through the engine (may use OSCOLA or AGLC4 formatter)
-    // Engine data uses platform (no provider field), so no "(OpenAI)" suffix.
-    expect(engineText).toBe(
-      "ChatGPT, ‘Summarise the rule in Donoghue v Stevenson’ " +
-        "(response generated 15 March 2026) <https://chat.openai.com/share/abc123>"
+    expect(joinText(engineRuns)).toBe(
+      "ChatGPT, response to ‘Summarise the rule in Donoghue v Stevenson’, OpenAI (15 March 2026)"
     );
   });
 

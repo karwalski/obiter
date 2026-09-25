@@ -13,19 +13,13 @@
 import { FormattedRun } from "../../src/types/formattedRun";
 
 // ─── Cases ────────────────────────────────────────────────────────────────────
-import {
-  formatOscolaCase,
-  OSCOLA_REPORT_HIERARCHY,
-} from "../../src/engine/rules/oscola/cases";
+import { formatOscolaCase, OSCOLA_REPORT_HIERARCHY } from "../../src/engine/rules/oscola/cases";
 import {
   formatOscolaScottishCase,
   SCOTTISH_COURT_IDS,
   SCOTTISH_HISTORICAL_SERIES,
 } from "../../src/engine/rules/oscola/cases-scotland";
-import {
-  formatOscolaNICase,
-  NI_COURT_IDS,
-} from "../../src/engine/rules/oscola/cases-ni";
+import { formatOscolaNICase, NI_COURT_IDS } from "../../src/engine/rules/oscola/cases-ni";
 
 // ─── Legislation ──────────────────────────────────────────────────────────────
 import {
@@ -130,8 +124,7 @@ import {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Join all runs into plain text */
-const joinText = (runs: FormattedRun[]): string =>
-  runs.map((r) => r.text).join("");
+const joinText = (runs: FormattedRun[]): string => runs.map((r) => r.text).join("");
 
 // =============================================================================
 // 1. OSCOLA UK CASES (cases.ts)
@@ -150,9 +143,7 @@ describe("OSC-001/002: formatOscolaCase", () => {
         startPage: 884,
       },
     });
-    expect(joinText(runs)).toBe(
-      "Corr v IBC Vehicles Ltd [2008] UKHL 15, [2008] 1 AC 884"
-    );
+    expect(joinText(runs)).toBe("Corr v IBC Vehicles Ltd [2008] UKHL 15, [2008] 1 AC 884");
   });
 
   it("formats pre-2001 case with court (JSDoc: Donoghue v Stevenson)", () => {
@@ -421,9 +412,7 @@ describe("OSC-004: formatOscolaNICase", () => {
         startPage: 380,
       },
     });
-    expect(joinText(runs)).toBe(
-      "Re McFarland [2004] NICA 29, [2004] NI 380"
-    );
+    expect(joinText(runs)).toBe("Re McFarland [2004] NICA 29, [2004] NI 380");
   });
 
   it("formats NI case with neutral only (JSDoc: R v Magee)", () => {
@@ -551,9 +540,7 @@ describe("OSC-005: formatOscolaPrimaryLegislation", () => {
       type: "asp",
       number: 4,
     });
-    expect(joinText(runs)).toBe(
-      "Adoption and Children (Scotland) Act 2007 (asp 4)"
-    );
+    expect(joinText(runs)).toBe("Adoption and Children (Scotland) Act 2007 (asp 4)");
   });
 
   it("formats Welsh anaw (JSDoc: Legislation (Wales) Act)", () => {
@@ -582,9 +569,7 @@ describe("OSC-005: formatOscolaPrimaryLegislation", () => {
       type: "asc",
       number: 4,
     });
-    expect(joinText(runs)).toBe(
-      "Curriculum and Assessment (Wales) Act 2021 (asc 4)"
-    );
+    expect(joinText(runs)).toBe("Curriculum and Assessment (Wales) Act 2021 (asc 4)");
   });
 
   it("renders in roman (not italic)", () => {
@@ -604,9 +589,7 @@ describe("OSC-005: formatOscolaPrimaryLegislation", () => {
       regnalYear: "39 & 40 Geo III",
       chapter: "c 67",
     });
-    expect(joinText(runs)).toBe(
-      "Combination Act 1799, 39 & 40 Geo III, c 67"
-    );
+    expect(joinText(runs)).toBe("Combination Act 1799, 39 & 40 Geo III, c 67");
   });
 
   it("includes regnal year without chapter", () => {
@@ -637,15 +620,12 @@ describe("OSC-006: formatOscolaSecondaryLegislation", () => {
       type: "si",
       number: 3132,
     });
-    expect(joinText(runs)).toBe(
-      "Civil Procedure Rules 1998, SI 1998/3132"
-    );
+    expect(joinText(runs)).toBe("Civil Procedure Rules 1998, SI 1998/3132");
   });
 
   it("formats SSI (JSDoc: NHS Scotland Regulations)", () => {
     const runs = formatOscolaSecondaryLegislation({
-      title:
-        "National Health Service (General Medical Services Contracts) (Scotland) Regulations",
+      title: "National Health Service (General Medical Services Contracts) (Scotland) Regulations",
       year: 2018,
       type: "ssi",
       number: 66,
@@ -657,8 +637,7 @@ describe("OSC-006: formatOscolaSecondaryLegislation", () => {
 
   it("formats SR (JSDoc: Phosphorus Compounds)", () => {
     const runs = formatOscolaSecondaryLegislation({
-      title:
-        "Phosphorus Compounds (Prohibition) Regulations (Northern Ireland)",
+      title: "Phosphorus Compounds (Prohibition) Regulations (Northern Ireland)",
       year: 1989,
       type: "sr",
       number: 182,
@@ -675,9 +654,7 @@ describe("OSC-006: formatOscolaSecondaryLegislation", () => {
       type: "wsi",
       number: 100,
     });
-    expect(joinText(runs)).toBe(
-      "Education (Wales) Regulations 2020, WSI 2020/100"
-    );
+    expect(joinText(runs)).toBe("Education (Wales) Regulations 2020, WSI 2020/100");
   });
 
   it("includes pinpoint", () => {
@@ -688,9 +665,7 @@ describe("OSC-006: formatOscolaSecondaryLegislation", () => {
       number: 3132,
       pinpoint: "r 3.1",
     });
-    expect(joinText(runs)).toBe(
-      "Civil Procedure Rules 1998, SI 1998/3132, r 3.1"
-    );
+    expect(joinText(runs)).toBe("Civil Procedure Rules 1998, SI 1998/3132, r 3.1");
   });
 
   it("renders in roman (not italic)", () => {
@@ -717,9 +692,7 @@ describe("OSC-007: formatOscolaHansard", () => {
       column: 800,
       speaker: "Boris Johnson",
     });
-    expect(joinText(runs)).toBe(
-      "HC Deb 3 March 2020, vol 672, col 800 (Boris Johnson)"
-    );
+    expect(joinText(runs)).toBe("HC Deb 3 March 2020, vol 672, col 800 (Boris Johnson)");
   });
 
   it("formats HL Deb without speaker (JSDoc)", () => {
@@ -729,9 +702,7 @@ describe("OSC-007: formatOscolaHansard", () => {
       volume: 800,
       column: 60,
     });
-    expect(joinText(runs)).toBe(
-      "HL Deb 18 November 2019, vol 800, col 60"
-    );
+    expect(joinText(runs)).toBe("HL Deb 18 November 2019, vol 800, col 60");
   });
 
   it("handles column range as string", () => {
@@ -741,9 +712,7 @@ describe("OSC-007: formatOscolaHansard", () => {
       volume: 100,
       column: "800-05",
     });
-    expect(joinText(runs)).toBe(
-      "HC Deb 1 January 2020, vol 100, col 800-05"
-    );
+    expect(joinText(runs)).toBe("HC Deb 1 January 2020, vol 100, col 800-05");
   });
 });
 
@@ -770,9 +739,7 @@ describe("OSC-007: formatOscolaCommandPaper", () => {
       year: 2010,
     });
     const titleRun = runs.find(
-      (r) =>
-        r.text ===
-        "Proposals for the Reform of Legal Aid in England and Wales"
+      (r) => r.text === "Proposals for the Reform of Legal Aid in England and Wales"
     );
     expect(titleRun?.italic).toBe(true);
   });
@@ -888,8 +855,7 @@ describe("OSC-008: formatEuLegislation", () => {
     const runs = formatEuLegislation({
       instrumentType: "Council Regulation (EC)",
       number: "139/2004",
-      title:
-        "on the control of concentrations between undertakings",
+      title: "on the control of concentrations between undertakings",
       year: 2004,
       ojSeries: "L24",
       ojPage: "1",
@@ -908,9 +874,7 @@ describe("OSC-008: formatEuLegislation", () => {
       ojSeries: "L376",
       ojPage: "36",
     });
-    const titleRun = runs.find(
-      (r) => r.text === "on services in the internal market"
-    );
+    const titleRun = runs.find((r) => r.text === "on services in the internal market");
     expect(titleRun?.italic).toBeUndefined();
   });
 });
@@ -935,9 +899,7 @@ describe("OSC-008: formatCjeuCase", () => {
       reportSeries: "ECR",
       page: "585",
     });
-    expect(joinText(runs)).toBe(
-      "Case C-6/64 Costa v ENEL [1964] ECR 585"
-    );
+    expect(joinText(runs)).toBe("Case C-6/64 Costa v ENEL [1964] ECR 585");
   });
 
   it("case name is italic", () => {
@@ -1014,15 +976,16 @@ describe("OSC-008: formatAssimilatedEuLaw (OSCOLA 5 §2.4.9, STD-017)", () => {
       amendingSi: "2019/419",
       pinpoint: "art 5",
     });
-    expect(joinText(runs)).toBe("Assimilated Regulation (EU) 2016/679, as amended by SI 2019/419, art 5");
+    expect(joinText(runs)).toBe(
+      "Assimilated Regulation (EU) 2016/679, as amended by SI 2019/419, art 5"
+    );
   });
 });
 
 describe("OSC-008: formatEuTreaty", () => {
   it("formats EU treaty (JSDoc: TFEU)", () => {
     const runs = formatEuTreaty({
-      title:
-        "Treaty on the Functioning of the European Union",
+      title: "Treaty on the Functioning of the European Union",
       year: 2012,
       ojReference: "C326/47",
       pinpoint: "art 267",
@@ -1200,8 +1163,7 @@ describe("OSC-009: formatEcommhrDecision", () => {
 describe("OSC-009: formatCouncilOfEuropeTreaty", () => {
   it("formats CoE treaty (JSDoc: ECHR)", () => {
     const runs = formatCouncilOfEuropeTreaty({
-      title:
-        "Convention for the Protection of Human Rights and Fundamental Freedoms",
+      title: "Convention for the Protection of Human Rights and Fundamental Freedoms",
       shortTitle: "European Convention on Human Rights, as amended",
       etsNumber: "CETS No 005",
     });
@@ -1340,9 +1302,7 @@ describe("OSC-010: formatUnDocument", () => {
       date: "10 December 1948",
       documentSymbol: "A/810",
     });
-    expect(joinText(runs)).toBe(
-      "UNGA Res 217A (III) (10 December 1948) UN Doc A/810"
-    );
+    expect(joinText(runs)).toBe("UNGA Res 217A (III) (10 December 1948) UN Doc A/810");
   });
 
   it("formats UNSC resolution (JSDoc: UNSC Res 1373)", () => {
@@ -1352,9 +1312,7 @@ describe("OSC-010: formatUnDocument", () => {
       date: "28 September 2001",
       documentSymbol: "S/RES/1373",
     });
-    expect(joinText(runs)).toBe(
-      "UNSC Res 1373 (28 September 2001) UN Doc S/RES/1373"
-    );
+    expect(joinText(runs)).toBe("UNSC Res 1373 (28 September 2001) UN Doc S/RES/1373");
   });
 
   it("includes title in italic when provided", () => {
@@ -1386,9 +1344,7 @@ describe("OSC-010: formatUnResolution", () => {
       resolutionNumber: "61/295",
       date: "13 September 2007",
     });
-    expect(joinText(runs)).toBe(
-      "UNGA Res 61/295 (13 September 2007)"
-    );
+    expect(joinText(runs)).toBe("UNGA Res 61/295 (13 September 2007)");
   });
 
   it("includes document symbol", () => {
@@ -1468,8 +1424,7 @@ describe("OSC-010: formatIcjCase", () => {
 describe("OSC-010: formatItlosCase", () => {
   it("formats ITLOS case (JSDoc: Saiga)", () => {
     const runs = formatItlosCase({
-      caseName:
-        'The M/V "Saiga" (No 2) Case (Saint Vincent and the Grenadines v Guinea)',
+      caseName: 'The M/V "Saiga" (No 2) Case (Saint Vincent and the Grenadines v Guinea)',
       phase: "Merits",
       year: 1999,
       page: 10,
@@ -1543,8 +1498,7 @@ describe("OSC-010: formatWtoReport", () => {
   it("formats WTO report (JSDoc: Shrimp)", () => {
     const runs = formatWtoReport({
       reportType: "Appellate Body Report",
-      title:
-        "United States \u2014 Import Prohibition of Certain Shrimp and Shrimp Products",
+      title: "United States \u2014 Import Prohibition of Certain Shrimp and Shrimp Products",
       documentNumber: "WT/DS58/AB/R",
       date: "12 October 1998",
     });
@@ -1580,63 +1534,55 @@ describe("OSC-010: formatWtoReport", () => {
 // 9. OSCOLA GenAI (genai.ts)
 // =============================================================================
 
-describe("OSC-011: formatGenAiCitation", () => {
-  it("formats ChatGPT citation (JSDoc)", () => {
+describe("OSC-011 / A5-EXP-13: formatGenAiCitation (OSCOLA 5 r 3.7.13)", () => {
+  it("reproduces the r 3.7.13 example exactly", () => {
     const runs = formatGenAiCitation({
       toolName: "ChatGPT",
       provider: "OpenAI",
-      prompt: "Summarise the rule in Donoghue v Stevenson",
-      dateGenerated: "15 March 2026",
-      url: "https://chat.openai.com/share/abc123",
+      prompt: "Explain how artificial intelligence works",
+      dateGenerated: "16 July 2023",
     });
     expect(joinText(runs)).toBe(
-      "ChatGPT (OpenAI), \u2018Summarise the rule in Donoghue v Stevenson\u2019 (response generated 15 March 2026) <https://chat.openai.com/share/abc123>"
+      "ChatGPT, response to \u2018Explain how artificial intelligence works\u2019, OpenAI (16 July 2023)"
     );
   });
 
-  it("formats Claude citation without URL (JSDoc)", () => {
+  it("converts an ISO form-input date (rule-style date)", () => {
     const runs = formatGenAiCitation({
       toolName: "Claude",
       provider: "Anthropic",
-      prompt:
-        "What are the elements of negligence in English law?",
-      dateGenerated: "10 January 2026",
+      prompt: "What are the elements of negligence in English law?",
+      dateGenerated: "2026-01-10",
     });
     expect(joinText(runs)).toBe(
-      "Claude (Anthropic), \u2018What are the elements of negligence in English law?\u2019 (response generated 10 January 2026)"
+      "Claude, response to \u2018What are the elements of negligence in English law?\u2019, Anthropic (10 January 2026)"
     );
   });
 
-  it("handles version", () => {
+  it("omits the prompt element when no instructions were given (DECISION-040)", () => {
     const runs = formatGenAiCitation({
       toolName: "ChatGPT",
-      prompt: "Test prompt",
-      dateGenerated: "1 January 2026",
-      version: "GPT-4",
+      provider: "OpenAI",
+      dateGenerated: "16 July 2023",
     });
-    expect(joinText(runs)).toContain("(version GPT-4)");
+    expect(joinText(runs)).toBe("ChatGPT, OpenAI (16 July 2023)");
   });
 
-  it("handles tool without provider", () => {
+  it("omits the developer when none is recorded", () => {
     const runs = formatGenAiCitation({
       toolName: "Perplexity",
       prompt: "Test",
       dateGenerated: "1 January 2026",
     });
-    expect(joinText(runs)).toBe(
-      "Perplexity, \u2018Test\u2019 (response generated 1 January 2026)"
-    );
+    expect(joinText(runs)).toBe("Perplexity, response to \u2018Test\u2019 (1 January 2026)");
   });
 
-  it("uses single curly quotes", () => {
-    const runs = formatGenAiCitation({
-      toolName: "AI",
-      prompt: "Hello",
-      dateGenerated: "1 Jan 2026",
-    });
-    const promptRun = runs.find((r) => r.text.includes("Hello"));
-    expect(promptRun?.text).toContain("\u2018");
-    expect(promptRun?.text).toContain("\u2019");
+  it("renders no URL, version or 'response generated' (not r 3.7.13 elements)", () => {
+    const text = joinText(
+      formatGenAiCitation({ toolName: "AI", prompt: "Hello", dateGenerated: "1 January 2026" })
+    );
+    expect(text).not.toMatch(/<|version|response generated/);
+    expect(text).toContain("\u2018Hello\u2019");
   });
 });
 
@@ -1778,12 +1724,8 @@ describe("OSC-013: generateTableOfLegislation", () => {
   });
 
   it("handles treaty category", () => {
-    const sections = generateTableOfLegislation([
-      { title: "ECHR", category: "treaty" },
-    ]);
-    expect(sections[0].heading).toBe(
-      "Treaties and International Instruments"
-    );
+    const sections = generateTableOfLegislation([{ title: "ECHR", category: "treaty" }]);
+    expect(sections[0].heading).toBe("Treaties and International Instruments");
   });
 
   it("returns empty array for no legislation", () => {
@@ -1801,9 +1743,7 @@ describe("OSC-014: formatIrishCase", () => {
       caseName: "Langan v Health Service Executive",
       neutralCitation: { year: 2024, court: "IESC", number: 1 },
     });
-    expect(joinText(runs)).toBe(
-      "Langan v Health Service Executive [2024] IESC 1"
-    );
+    expect(joinText(runs)).toBe("Langan v Health Service Executive [2024] IESC 1");
   });
 
   it("formats Irish case with report citation (JSDoc: Maguire v Ardagh)", () => {
@@ -1856,9 +1796,7 @@ describe("OSC-014: formatIrishAct", () => {
       year: 2000,
       pinpoint: "s 37",
     });
-    expect(joinText(runs)).toBe(
-      "Planning and Development Act 2000, s 37"
-    );
+    expect(joinText(runs)).toBe("Planning and Development Act 2000, s 37");
   });
 
   it("formats Irish Act without pinpoint (JSDoc: Criminal Justice Act)", () => {
@@ -1885,9 +1823,7 @@ describe("OSC-014: formatIrishStatutoryInstrument", () => {
       year: 1997,
       siNumber: 356,
     });
-    expect(joinText(runs)).toBe(
-      "District Court (Small Claims) Rules 1997, SI No 356/1997"
-    );
+    expect(joinText(runs)).toBe("District Court (Small Claims) Rules 1997, SI No 356/1997");
   });
 
   it("includes pinpoint", () => {
@@ -2310,8 +2246,16 @@ describe("OSC-ENH-004: OSCOLA secondary source formatting", () => {
           createdAt: "2026-01-01T00:00:00Z",
           modifiedAt: "2026-01-01T00:00:00Z",
         },
-        { footnoteNumber: 1, isFirstCitation: true, isSameAsPreceding: false, precedingFootnoteCitationCount: 0, firstFootnoteNumber: 1, isWithinSameFootnote: false, formatPreference: "full" },
-        oscolaConfig,
+        {
+          footnoteNumber: 1,
+          isFirstCitation: true,
+          isSameAsPreceding: false,
+          precedingFootnoteCitationCount: 0,
+          firstFootnoteNumber: 1,
+          isWithinSameFootnote: false,
+          formatPreference: "full",
+        },
+        oscolaConfig
       );
       const text = joinText(runs);
       expect(text).toContain("6th edn");

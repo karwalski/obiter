@@ -1,7 +1,7 @@
 {
   "version": "AGLC4",
-  "generatedAt": "2026-08-01T03:30:09.773Z",
-  "generatedBy": "Obiter v1.16.0",
+  "generatedAt": "2026-09-25T11:19:31.412Z",
+  "generatedBy": "Obiter v1.17.3",
   "sourceTypes": [
     {
       "type": "case.reported",
@@ -874,9 +874,10 @@
         "date"
       ],
       "optionalFields": [
-        "type"
+        "type",
+        "pinpoint"
       ],
-      "formatTemplate": "Type from Sender to Recipient, FullDate."
+      "formatTemplate": "Type from Sender to Recipient, FullDate, Pinpoint."
     },
     {
       "type": "interview",
@@ -964,19 +965,23 @@
       "category": "secondary",
       "requiredFields": [
         "platform",
-        "model",
         "outputDate"
       ],
       "optionalFields": [
+        "model",
         "prompt",
         "url",
         "modelVersion",
         "transcriptCustody",
-        "archivedUrl"
+        "archivedUrl",
+        "developer",
+        "recipient",
+        "includePrompt",
+        "pinpoint"
       ],
-      "formatTemplate": "Correspondence from Platform (Model Version) to the author, OutputDate <URL> (archived at ArchivedUrl).",
+      "formatTemplate": "Output|Correspondence from Platform (Model Version), Developer to Recipient|the author, OutputDate, Pinpoint <URL> (archived at ArchivedUrl). The output was generated in response to the prompt, 'Prompt'.",
       "provenance": "experimental_pending_aglc5",
-      "provenanceNote": "MULR interim guidance by analogy to rule 7.12; OSCOLA 5 r 3.7.13 precedent"
+      "provenanceNote": "MULR interim guidance by analogy to rule 7.12; UQ Library interim template; OSCOLA 5 r 3.7.13 precedent"
     },
     {
       "type": "dataset",

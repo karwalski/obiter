@@ -661,8 +661,8 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     label: "Written Correspondence",
     category: "secondary",
     requiredFields: ["sender", "recipient", "date"],
-    optionalFields: ["type"],
-    formatTemplate: "Type from Sender to Recipient, FullDate.",
+    optionalFields: ["type", "pinpoint"],
+    formatTemplate: "Type from Sender to Recipient, FullDate, Pinpoint.",
   },
   {
     type: "interview",
@@ -731,17 +731,33 @@ const SOURCE_TYPE_METADATA: SourceTypeMeta[] = [
     ruleNumber: "Obiter experimental (pending AGLC5)",
     label: "Generative AI Output",
     category: "secondary",
-    requiredFields: ["platform", "model", "outputDate"],
+    // A5-EXP-14: model is optional, as in the forms and the library
+    // template (which has no model element).
+    requiredFields: ["platform", "outputDate"],
     // A5-EXP-1: modelVersion renders with the model; archivedUrl appends an
     // "(archived at …)" note; transcriptCustody + prompt are stored for the
     // record but are not part of the correspondence line.
-    optionalFields: ["prompt", "url", "modelVersion", "transcriptCustody", "archivedUrl"],
+    // A5-EXP-6..8: developer follows the model, recipient replaces "the
+    // author", includePrompt appends the prompt note (DECISION-041).
+    optionalFields: [
+      "model",
+      "prompt",
+      "url",
+      "modelVersion",
+      "transcriptCustody",
+      "archivedUrl",
+      "developer",
+      "recipient",
+      "includePrompt",
+      "pinpoint",
+    ],
     // Treated as written correspondence (rule 7.12) per MULR interim
     // guidance; AGLC4 itself contains no generative-AI rule.
     formatTemplate:
-      "Correspondence from Platform (Model Version) to the author, OutputDate <URL> (archived at ArchivedUrl).",
+      "Output|Correspondence from Platform (Model Version), Developer to Recipient|the author, OutputDate, Pinpoint <URL> (archived at ArchivedUrl). The output was generated in response to the prompt, 'Prompt'.",
     provenance: "experimental_pending_aglc5",
-    provenanceNote: "MULR interim guidance by analogy to rule 7.12; OSCOLA 5 r 3.7.13 precedent",
+    provenanceNote:
+      "MULR interim guidance by analogy to rule 7.12; UQ Library interim template; OSCOLA 5 r 3.7.13 precedent",
   },
   {
     // A5-EXP-2: dataset — experimental, no AGLC4 rule. Basis: APA §10.10 /

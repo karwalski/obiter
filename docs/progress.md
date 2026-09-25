@@ -1555,6 +1555,31 @@ form)"**; court-mode items labelled practice-direction-sourced; only DATA-* rows
 | A5-EXP-4 | Experimental | archived-web fields on internet_material | FEATURE | A5-LABEL | TODO (P1) |
 | A5-EXP-5 | Experimental | AI-layer marker preset (optional) | FEATURE | A5-LABEL | TODO (P2) |
 | A5-WS-1 | Ops | AGLC5 publication-day runbook + monitoring cadence | OPS | — | TODO |
+| A5-EXP-6 | Experimental | genai_output developer (vendor) element | FEATURE | A5-EXP-1 | DONE (2026-09-24) |
+| A5-EXP-7 | Experimental | genai_output named recipient | FEATURE | A5-EXP-1 | DONE (2026-09-24) |
+| A5-EXP-8 | Experimental | genai_output opt-in prompt note | FEATURE | A5-EXP-1 | DONE (2026-09-24) |
+| A5-CM-4 | Court mode | ART Generative AI PD 2026 reminder | FEATURE | A5-CM-1 | DONE (2026-09-24) |
+| A5-WS-2 | Ops | AGLC5 watcher (distinguishes unreadable from unchanged) | OPS | A5-WS-1 | DONE (2026-09-24) |
+| A5-WEB-3 | Website | Public experimental AGLC5 features page | FEATURE | A5-EXP-6..8 | DONE (2026-09-24) |
+| A5-EXP-9 | Experimental | genai "Output from" wording + document legacy toggle | FEATURE | A5-EXP-1 | DONE (2026-09-24) |
+| A5-EXP-10 | Experimental | genai short form in later references (empty lead fix) | FIX | A5-EXP-9 | DONE (2026-09-24) |
+| A5-EXP-11 | Experimental | genai AGLC bibliography entry (empty entry fix) | FIX | A5-EXP-9 | DONE (2026-09-24) |
+| A5-EXP-12 | Experimental | genai prompt-note comma | FIX | A5-EXP-8 | DONE (2026-09-24) |
+| A5-EXP-13 | Standards | OSCOLA 5 r 3.7.13 generative AI form | FIX | — | DONE (2026-09-24) |
+| A5-DOC-5 | Docs | Close DECISION-041 (a)–(c); update site and docs | DOCS | A5-EXP-9..13 | DONE (2026-09-24) |
+| A5-LETTER-2 | Website | Correct open letter's AGLC5 themes / channel claims | FIX | — | DONE (owner approved 2026-09-25) |
+| A5-WS-3 | Ops | Runbook: retire genaiWording on AGLC5 publication | OPS | A5-EXP-9 | DONE (2026-09-24) |
+| A5-EXP-14 | Experimental | genai model optional in rule export | FIX | — | DONE (2026-09-24) |
+| A5-EXP-15 | Experimental | Settings UI test for genai wording | TEST | A5-EXP-9 | DONE (2026-09-24) |
+| A5-DOC-6 | Docs | User docs: AI fields, wording setting, ART reminder | DOCS | A5-EXP-6..13 | DONE (2026-09-24) |
+| A5-RES-1 | Research | Remaining genai evidence gaps (MULR, journals, guides, NZ) | RESEARCH | — | DONE (2026-09-25) |
+| A5-CM-5 | Research | ART Expert Evidence / Common Procedures PDs 2026 | RESEARCH | A5-CM-4 | DONE (2026-09-25) |
+| A5-EXP-16 | Experimental | NZLSG genai form (Canterbury adaptation) | FEATURE | A5-RES-1 | DEFERRED (second NZ source) |
+| A5-FIX-1 | Engine | r 7.12 first-citation pinpoint (correspondence + genai) | FIX | — | DONE (2026-09-25) |
+| A5-DOC-7 | Docs | AI help text: NZLSG has no rule | DOCS | A5-EXP-16 | DONE (2026-09-25) |
+| A5-IDEA-1 | Idea | AI-use disclosure statement helper | FEATURE | — | IDEA (P2) |
+| A5-REL-1 | Ops | Staged release 1.17.4 (local build, zip, tag) | OPS | — | DONE (deploy/push pending) |
+| A5-WS-4 | Ops | Schedule the AGLC5 watcher (monthly GitHub Action) | OPS | A5-WS-2 | DONE (2026-09-25) |
 
 Suggested sequencing (package Part E): (1) letter editor notes → publish; (2) DATA + doc updates
 (zero behaviour risk); (3) CM-1/CM-3 court-mode data; (4) CM-2 on sign-off; (5) A5-LABEL → EXP-1;

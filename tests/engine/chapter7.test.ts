@@ -942,7 +942,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
     });
 
     expect(toPlainText(runs)).toBe(
-      "Correspondence from ChatGPT (GPT-4o) to the author, 7 July 2026"
+      "Output from ChatGPT (GPT-4o) to the author, 7 July 2026"
     );
   });
 
@@ -954,7 +954,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
     });
     const text = toPlainText(runs);
 
-    expect(text).toBe("Correspondence from ChatGPT to the author, 7 July 2026");
+    expect(text).toBe("Output from ChatGPT to the author, 7 July 2026");
     expect(text).not.toContain("()");
   });
 
@@ -967,7 +967,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
     });
 
     expect(toPlainText(runs)).toBe(
-      "Correspondence from Claude (Claude 3.5 Sonnet) to the author, 10 January 2026 " +
+      "Output from Claude (Claude 3.5 Sonnet) to the author, 10 January 2026 " +
         "<https://claude.ai/chat/abc123>"
     );
   });
@@ -982,7 +982,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
       outputDate: "7 July 2026",
     });
     expect(toPlainText(runs)).toBe(
-      "Correspondence from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026"
+      "Output from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026"
     );
   });
 
@@ -993,7 +993,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
       outputDate: "7 July 2026",
     });
     expect(toPlainText(runs)).toBe(
-      "Correspondence from OpenAI (ChatGPT) to the author, 7 July 2026"
+      "Output from OpenAI (ChatGPT) to the author, 7 July 2026"
     );
   });
 
@@ -1007,7 +1007,7 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
       archivedUrl: "https://web.archive.org/web/2026/https://chat.openai.com/share/abc",
     });
     expect(toPlainText(runs)).toBe(
-      "Correspondence from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026 " +
+      "Output from OpenAI (ChatGPT GPT-5) to the author, 7 July 2026 " +
         "<https://chat.openai.com/share/abc> " +
         "(archived at https://web.archive.org/web/2026/https://chat.openai.com/share/abc)"
     );
@@ -1022,8 +1022,89 @@ describe("Rule 7.12 — GenAI output (MULR interim guidance)", () => {
     });
     expect(toPlainText(runs)).not.toContain("the author, 7 July 2026 (");
     expect(toPlainText(runs)).toBe(
-      "Correspondence from OpenAI (ChatGPT) to the author, 7 July 2026"
+      "Output from OpenAI (ChatGPT) to the author, 7 July 2026"
     );
+  });
+
+  it("A5-FIX-1: a first-citation pinpoint follows the date and precedes the URL (rule 7.12)", () => {
+    const runs = formatGenaiOutput({
+      platform: "ChatGPT",
+      model: "",
+      developer: "OpenAI",
+      outputDate: "7 July 2026",
+      url: "https://chatgpt.com/share/abc",
+      pinpoint: { type: "page", value: "2" },
+    });
+    expect(toPlainText(runs)).toBe(
+      "Output from ChatGPT, OpenAI to the author, 7 July 2026, 2 <https://chatgpt.com/share/abc>"
+    );
+  });
+
+  // ── A5-EXP-6..8 (experimental, pending AGLC5; DECISION-041) ────────────────
+
+  it("A5-EXP-6: renders the developer after the platform and model", () => {
+    const runs = formatGenaiOutput({
+      platform: "ChatGPT",
+      model: "GPT-5",
+      developer: "OpenAI",
+      outputDate: "2026-07-07",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Output from ChatGPT (GPT-5), OpenAI to the author, 7 July 2026"
+    );
+  });
+
+  it("A5-EXP-6: a blank developer leaves the citation unchanged", () => {
+    const runs = formatGenaiOutput({
+      platform: "ChatGPT",
+      model: "GPT-5",
+      developer: "  ",
+      outputDate: "7 July 2026",
+    });
+    expect(toPlainText(runs)).toBe("Output from ChatGPT (GPT-5) to the author, 7 July 2026");
+  });
+
+  it("A5-EXP-7: a named recipient replaces 'the author'", () => {
+    const runs = formatGenaiOutput({
+      platform: "Copilot",
+      model: "",
+      developer: "Microsoft",
+      recipient: "Fred Jones",
+      outputDate: "24 February 2025",
+    });
+    expect(toPlainText(runs)).toBe(
+      "Output from Copilot, Microsoft to Fred Jones, 24 February 2025"
+    );
+  });
+
+  it("A5-EXP-8: the prompt note follows the URL and archive note only when opted in", () => {
+    const base = {
+      platform: "Claude",
+      model: "Claude Opus 4.8",
+      developer: "Anthropic",
+      outputDate: "7 July 2026",
+      url: "https://claude.ai/share/abc",
+      archivedUrl: "https://web.archive.org/web/2026/https://claude.ai/share/abc",
+      prompt: "Summarise the rule in Mabo",
+    };
+    expect(toPlainText(formatGenaiOutput(base))).not.toContain("prompt");
+    expect(toPlainText(formatGenaiOutput({ ...base, includePrompt: true }))).toBe(
+      "Output from Claude (Claude Opus 4.8), Anthropic to the author, 7 July 2026 " +
+        "<https://claude.ai/share/abc> " +
+        "(archived at https://web.archive.org/web/2026/https://claude.ai/share/abc). " +
+        "The output was generated in response to the prompt, \u2018Summarise the rule in Mabo\u2019"
+    );
+  });
+
+  it("A5-EXP-8: an opted-in note with no prompt adds nothing", () => {
+    const runs = formatGenaiOutput({
+      platform: "Claude",
+      model: "",
+      outputDate: "7 July 2026",
+      prompt: "   ",
+      includePrompt: true,
+    });
+    expect(toPlainText(runs)).toBe("Output from Claude to the author, 7 July 2026");
   });
 });
 
@@ -1400,6 +1481,29 @@ describe("Rule 7.14.4 \u2014 Radio segments and podcasts", () => {
 // ─── Rule 7.12 — Written Correspondence ────────────────────────────────────────
 
 describe("Rule 7.12 — Written Correspondence", () => {
+  // A5-FIX-1: the rule 7.12 template ends '«Full Date», «Pinpoint»' (p 125).
+  it("A5-FIX-1: renders a first-citation page pinpoint after the full date (rule 7.12)", () => {
+    const runs = formatCorrespondence({
+      type: "Email",
+      sender: "Vanessa Li",
+      recipient: "Samantha Jones",
+      date: "4 November 2015",
+      pinpoint: { type: "page", value: "2" },
+    });
+    expect(toPlainText(runs)).toBe("Email from Vanessa Li to Samantha Jones, 4 November 2015, 2");
+  });
+
+  it("A5-FIX-1: renders a paragraph pinpoint in its bracketed form", () => {
+    const runs = formatCorrespondence({
+      type: "Letter",
+      sender: "A",
+      recipient: "B",
+      date: "1 January 2020",
+      pinpoint: { type: "paragraph", value: "[3]" },
+    });
+    expect(toPlainText(runs)).toBe("Letter from A to B, 1 January 2020, [3]");
+  });
+
   /*
    * AGLC4 Example 93:
    * Email from Vanessa Li to Samantha Jones, 4 November 2015.

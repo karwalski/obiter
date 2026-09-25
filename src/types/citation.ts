@@ -339,6 +339,11 @@ export interface StoreMetadata {
    * Absent means "general".
    */
   nzlsgStyle?: "general" | "commercial";
+  /**
+   * A5-EXP-9: wording of the experimental generative AI form under AGLC.
+   * Absent means "output"; "correspondence" keeps the earlier Obiter form.
+   */
+  genaiWording?: "output" | "correspondence";
   headingListId?: number; // Persisted Word multilevel list ID for heading numbering
   ccModel?: "flat" | "parent-child"; // FN-005: content control model version (defaults to "flat" for backward compat)
 }

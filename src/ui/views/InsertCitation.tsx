@@ -5630,6 +5630,42 @@ function renderGenaiForm(
       </div>
 
       <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-developer">
+          Developer (optional, experimental)
+          <FieldHelp
+            description="The organisation that developed the AI tool. Not an AGLC4 element: follows the UQ Library interim template and OSCOLA 5 r 3.7.13."
+            example="OpenAI, Anthropic, Google, Microsoft"
+          />
+        </label>
+        <input
+          id="ic-genai-developer"
+          className="ic-input"
+          type="text"
+          value={(data.developer as string) || ""}
+          placeholder="e.g. OpenAI"
+          onChange={(e) => updateField("developer", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
+        <label className="ic-label" htmlFor="ic-genai-recipient">
+          Recipient (optional, experimental)
+          <FieldHelp
+            description="Who received the output. Leave blank for 'the author'."
+            example="Fred Jones"
+          />
+        </label>
+        <input
+          id="ic-genai-recipient"
+          className="ic-input"
+          type="text"
+          value={(data.recipient as string) || ""}
+          placeholder="the author"
+          onChange={(e) => updateField("recipient", e.target.value)}
+        />
+      </div>
+
+      <div className="ic-field">
         <label className="ic-label" htmlFor="ic-genai-transcript-custody">
           Transcript Custody (optional)
         </label>
@@ -5655,6 +5691,18 @@ function renderGenaiForm(
           rows={3}
           onChange={(e) => updateField("prompt", e.target.value)}
         />
+      </div>
+
+      <div className="ic-field ic-field--checkbox">
+        <label className="ic-checkbox-label" htmlFor="ic-genai-include-prompt">
+          <input
+            id="ic-genai-include-prompt"
+            type="checkbox"
+            checked={data.includePrompt === true}
+            onChange={(e) => updateField("includePrompt", e.target.checked)}
+          />{" "}
+          Show the prompt in the footnote (experimental)
+        </label>
       </div>
 
       <div className="ic-field">
@@ -5700,9 +5748,10 @@ function renderGenaiForm(
 
       <div className="ic-note">
         Experimental, pending AGLC5. AGLC4 has no generative-AI rule; Obiter
-        cites AI-generated content by analogy to written correspondence (Rule
-        7.12), following MULR interim guidance and the OSCOLA 5 r 3.7.13 element
-        set. The form will migrate to the AGLC5 rule when published.
+        follows the form Australian law libraries use (&lsquo;Output from&rsquo;, by
+        analogy to written correspondence, Rule 7.12). Under OSCOLA 5 the r 3.7.13
+        form is used. NZLSG 3 has no rule, so the AGLC form is used there too.
+        The form will migrate to the AGLC5 rule when published.
       </div>
     </div>
   );

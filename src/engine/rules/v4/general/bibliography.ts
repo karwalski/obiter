@@ -14,6 +14,7 @@ import {
   parseFreeTextAuthors,
 } from "../secondary/authors";
 import { formatCitation } from "../../../engine";
+import { formatOutputDate, genaiTypeWord } from "../secondary/genai";
 import type { Author } from "../../../../types/citation";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
@@ -384,7 +385,7 @@ export function formatBibliographyEntry(
     case "nzlsg":
       return formatNzlsgBibliographyEntry(citation, config as CitationConfig);
     default:
-      return formatAglcBibliographyEntry(citation);
+      return formatAglcBibliographyEntry(citation, config);
   }
 }
 
@@ -410,6 +411,8 @@ function bibliographyTarget(citation: Citation): Citation {
   const data: Record<string, unknown> = { ...citation.data };
   delete data["pinpoint"];
   delete data["abbreviation"];
+  // A5-EXP-8: the prompt note is footnote commentary, not part of the entry.
+  delete data["includePrompt"];
   return {
     ...citation,
     data,
@@ -631,9 +634,45 @@ function formatNzlsgBibliographyEntry(citation: Citation, config: CitationConfig
 }
 
 /**
+ * A5-EXP-11 (experimental, pending AGLC5): the bibliography entry for
+ * generative AI output, in the form the Australian law-library guides give
+ * under Other (rule 1.13 section E): developer first, then the platform,
+ * recipient, the type word and the date.
+ *
+ * Example: OpenAI, ChatGPT to the author, Output, 7 July 2026
+ *
+ * The developer is omitted when blank. The type word follows the document's
+ * genaiWording (A5-EXP-9). DECISION-041.
+ */
+function formatGenaiBibliographyEntry(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const data = citation.data;
+  const text = (key: string): string => {
+    const value = data[key];
+    return typeof value === "string" ? value.trim() : "";
+  };
+  const platform = text("platform") === "__other__" ? text("platformCustom") : text("platform");
+  const model = text("model");
+  const version = text("modelVersion");
+  const modelParen = [model, version].filter(Boolean).join(" ");
+  const program = modelParen ? `${platform} (${modelParen})` : platform;
+  const lead = [text("developer"), program].filter(Boolean).join(", ");
+  const parts = [
+    `${lead} to ${text("recipient") || "the author"}`,
+    genaiTypeWord(config?.genaiWording),
+    formatOutputDate(text("outputDate")),
+  ].filter(Boolean);
+  return [{ text: parts.join(", ") }];
+}
+
+/**
  * AGLC4 Rule 1.13 entry (the no-config path of {@link formatBibliographyEntry}).
  */
-function formatAglcBibliographyEntry(citation: Citation): FormattedRun[] {
+function formatAglcBibliographyEntry(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  // A5-EXP-11 (experimental, pending AGLC5): generative AI output has no
+  // author or title element, so the generic path produced an empty entry.
+  if (citation.sourceType === "genai_output") {
+    return formatGenaiBibliographyEntry(citation, config);
+  }
   const runs: FormattedRun[] = [];
   const data = citation.data;
 

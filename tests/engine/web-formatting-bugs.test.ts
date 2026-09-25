@@ -104,8 +104,8 @@ describe("WEB-008 — GenAI output date and empty parenthetical (Rule 7.12 via M
       model: "GPT-4o",
       outputDate: "2026-07-07",
     });
-    // Not 'Correspondence from ChatGPT () to the author, 2026-07-07'
-    expect(plain(runs)).toBe("Correspondence from ChatGPT (GPT-4o) to the author, 7 July 2026.");
+    // Not 'Output from ChatGPT () to the author, 2026-07-07'
+    expect(plain(runs)).toBe("Output from ChatGPT (GPT-4o) to the author, 7 July 2026.");
   });
 
   it("omits the parenthetical entirely when no model is recorded", () => {
@@ -113,7 +113,7 @@ describe("WEB-008 — GenAI output date and empty parenthetical (Rule 7.12 via M
       platform: "ChatGPT",
       outputDate: "2026-07-07",
     });
-    expect(plain(runs)).toBe("Correspondence from ChatGPT to the author, 7 July 2026.");
+    expect(plain(runs)).toBe("Output from ChatGPT to the author, 7 July 2026.");
   });
 
   it("passes an already-formatted date through unchanged (Rule 1.11.1 form)", () => {
@@ -124,7 +124,7 @@ describe("WEB-008 — GenAI output date and empty parenthetical (Rule 7.12 via M
       url: "https://claude.ai/chat/abc123",
     });
     expect(plain(runs)).toBe(
-      "Correspondence from Claude (Claude 3.5 Sonnet) to the author, 10 January 2026 " +
+      "Output from Claude (Claude 3.5 Sonnet) to the author, 10 January 2026 " +
         "<https://claude.ai/chat/abc123>."
     );
   });

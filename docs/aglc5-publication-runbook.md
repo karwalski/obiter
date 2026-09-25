@@ -15,13 +15,21 @@
 
 | Cadence | Watch | Source | Action |
 |---|---|---|---|
-| **Monthly** | AGLC5 publication status | `law.unimelb.edu.au/mulr/aglc/aglc-5` (last-modified currently 2026-05-12); `@AGLCTweets` | On any change from "considering the outcomes" → announced date / pre-order / ISBN, start the publication-day sequence (§2) |
-| **Quarterly** | Australian court AI protocols | Law Society of NSW "Court Protocols on AI" hub (current at 14 May 2026) | Re-scan for new/amended instruments; update the court-mode AI reminders (A5-CM-1) and `docs/court-practices-review.md` §5 |
-| **Annually** | Practice-direction link freshness | the 23 links + 5 AI-instrument links in `src/engine/court/practiceDirections.ts` | Re-open each; fix retired hosts (as with the 2026 NSW host move); bump `lastVerified` |
+| **Monthly** | AGLC5 publication status | `npm run aglc5:watch` (A5-WS-2), run automatically on the 1st of each month by `.github/workflows/aglc5-watch.yml` (A5-WS-4; opens an `aglc5-watch` issue on exit 1 or 2), against `law.unimelb.edu.au/mulr/aglc/aglc-5` (meta last-modified 2026-05-12); `@AGLCTweets` | Exit 1 (changed): triage the listed signals; on an announced date, pre-order or ISBN, start the publication-day sequence (§2), then rerun with `--update`. Exit 2 (unreadable): check in a browser; **never** treat it as "no change" |
+| **Quarterly** | Australian court AI protocols | Law Society of NSW "Court Protocols on AI" hub (current at 14 May 2026) | Re-scan for new/amended instruments; update the court-mode AI reminders (A5-CM-1) and `docs/court-practices-review.md` §5. Last added: ART Generative AI PD 2026 (20 Aug 2026, A5-CM-4); its sibling Expert Evidence and Common Procedures PDs 2026 are still to be read |
+| **Annually** | Practice-direction link freshness | the practice-direction and AI-instrument links in `src/engine/court/practiceDirections.ts` | Re-open each; fix retired hosts (as with the 2026 NSW host move); bump `lastVerified` |
 
-As of 2026-08-01: **AGLC5 is unpublished**, consultations are closed and outcomes are being
-considered (`docs/aglc5-and-peer-standards-research.md` Part 1). No date announced; publication
-is not imminent, so the correspondence window (the open letter) remains usefully open.
+As of 2026-09-24: **AGLC5 is unpublished**, consultations are closed and outcomes are being
+considered. The page now speaks of a "prospective new edition", and its feedback address and list
+of aims have been removed (`docs/aglc5-watch-2026-09.md`, DECISION-041). No date is announced.
+The Committee lists no contact channel, so the earlier note that the correspondence window
+remains open is withdrawn.
+
+**Fetching the page (A5-WS-2).** law.unimelb.edu.au and fedcourt.gov.au return HTTP 403
+(Cloudflare) to plain fetchers. The watcher retries through the r.jina.ai text proxy and exits 2
+when neither path returns the page. The Wayback Machine holds no capture of the AGLC5 page after
+24 March 2025, so archive diffs cannot stand in for direct polling. The baseline is
+`scripts/aglc5-watch-baseline.json`.
 
 ---
 
@@ -39,7 +47,8 @@ item is either promoted to an official AGLC5 form or cleanly retired.
 3. **Reconcile each EXP-* item** against the published AGLC5 rule:
    | EXP item | If AGLC5 adopts a matching rule | If AGLC5 differs | If AGLC5 is silent |
    |---|---|---|---|
-   | EXP-1 genai_output v2 | Map fields to the official GenAI rule; drop the experimental badge; keep v4 docs rendering via a shim | Add a v5 formatter; migrate stored fields; keep the badge until fully mapped | Keep as an Obiter extension, badge retained |
+   | EXP-1, EXP-6..13 genai_output | Map fields (platform, model, developer, recipient, prompt, date) to the official GenAI rule; drop the experimental badge; keep v4 docs rendering via a shim | Add a v5 formatter; migrate stored fields; keep the badge until fully mapped | Keep as an Obiter extension, badge retained |
+   | EXP-9 `genaiWording` document setting | Under AGLC5 documents, ignore the setting (both wordings map to the official form); hide the Settings control for AGLC5 | Same | Keep for AGLC4 documents only |
    | EXP-2 dataset / EXP-3 software | Promote to official types; badge off | Adjust element order/labels in v5; badge off once conformant | Keep experimental |
    | EXP-4 archived-web fields | Fold into the official archived-source rule | Adjust rendering | Keep experimental |
    | EXP-5 AI-layer marker | Replace with the official marker syntax | Adjust | Keep experimental |
@@ -53,7 +62,10 @@ item is either promoted to an official AGLC5 form or cleanly retired.
    audit total in `docs/aglc4-audit.md` / the AGLC5 audit.
 6. **Docs + letter.** Update `docs/obiter-extensions.md` (retire promoted rows), the
    modern-sources proposal (mark shipped), and the public site; close the relevant DECISIONs.
-7. **Regression.** Run the full suite plus a migration test that a v4 document with each EXP
+7. **Retire `genaiWording` (A5-WS-3).** Stop offering the setting for AGLC5 documents, but keep
+   reading the `genaiWording` attribute so AGLC4 documents that set it still open and render
+   unchanged. Never delete the attribute from a stored document.
+8. **Regression.** Run the full suite plus a migration test that a v4 document with each EXP
    field opens and renders unchanged after the upgrade.
 
 **Rollback:** the v4 engine path is untouched, so reverting the v5 rollout is a config flip;

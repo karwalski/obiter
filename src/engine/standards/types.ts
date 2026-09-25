@@ -136,6 +136,15 @@ export interface CitationConfig {
    */
   nzlsgStyle?: "general" | "commercial";
 
+  /**
+   * A5-EXP-9 (experimental, pending AGLC5): the type word of the AGLC
+   * generative AI form. Absent reads as "output" ("Output from …", the
+   * library interim template); "correspondence" keeps the earlier Obiter form
+   * for the whole document. Set from the document's store metadata under AGLC
+   * standards only (DECISION-041).
+   */
+  genaiWording?: "output" | "correspondence";
+
   // ─── STD-015: subsequent references and the first-citation declaration ──
   // Optional so that hand-built configs keep working; when absent the
   // resolver derives the value from `standardId` (AGLC behaviour).

@@ -97,6 +97,7 @@ import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHisto
 type AglcVersion = "4" | "5";
 /** STD-022: the NZLSG subsequent-reference style (NZLSG 3 r 2.3), document metadata. */
 type NzlsgStyle = "general" | "commercial";
+type GenaiWording = "output" | "correspondence";
 
 const LLM_API_KEY_URLS: Record<string, string> = {
   openai: "https://platform.openai.com/api-keys",
@@ -170,6 +171,7 @@ export default function Settings(): JSX.Element {
   const [, setVersion] = useState<AglcVersion>("4");
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
   const [nzlsgStyle, setNzlsgStyle] = useState<NzlsgStyle>("general");
+  const [genaiWording, setGenaiWording] = useState<GenaiWording>("output");
   const [loading, setLoading] = useState(true);
   const [migrationNotice, setMigrationNotice] = useState(false);
   const [ackStatus, setAckStatus] = useState<string | null>(null);
@@ -653,6 +655,8 @@ export default function Settings(): JSX.Element {
           // Optional call: a partial store (see DocumentStandardSource) may
           // predate the accessor.
           setNzlsgStyle(store.getNzlsgStyle?.() ?? "general");
+          // A5-EXP-9: generative AI wording from document metadata.
+          setGenaiWording(store.getGenaiWording?.() ?? "output");
 
           // Load court jurisdiction and toggles (COURT-002)
           const savedJurisdiction = store.getCourtJurisdiction();
@@ -808,6 +812,30 @@ export default function Settings(): JSX.Element {
       setError(message);
     }
   }, [nzlsgStyle, triggerRefresh, pushSyncedSettings]);
+
+  // A5-EXP-9: document-level wording of the experimental generative AI form.
+  // Stored in the document only; not synced to the account.
+  const handleGenaiWordingChange = useCallback(
+    async (wording: GenaiWording) => {
+      if (wording === genaiWording) return;
+      try {
+        const store = await getSharedStore();
+        const hadExistingCitations = store.getAll().length > 0;
+        await store.setGenaiWording(wording);
+        setGenaiWording(wording);
+        setStandardNotice(
+          hadExistingCitations
+            ? "Generative AI wording updated. Run Refresh All to reformat existing citations."
+            : null
+        );
+        triggerRefresh();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Failed to save generative AI wording";
+        setError(message);
+      }
+    },
+    [genaiWording, triggerRefresh]
+  );
 
   const handleWritingModeChange = useCallback(async (mode: WritingMode) => {
     try {
@@ -1194,6 +1222,28 @@ export default function Settings(): JSX.Element {
               {nzlsgStyle === "commercial"
                 ? "Commercial style: subsequent references use the short form only, with no ‘above n’ cross-references (NZLSG r 2.3). Stored in the document."
                 : "General style: subsequent references cross-refer with ‘above n’ (NZLSG r 2.3). Stored in the document."}
+            </p>
+          </>
+        )}
+
+        {standardId.startsWith("aglc") && (
+          <>
+            <label style={{ fontSize: 12, display: "block", marginTop: 6 }}>
+              Generative AI citations (experimental)
+              <select
+                className="ic-select"
+                style={{ width: "100%", marginTop: 4 }}
+                value={genaiWording}
+                onChange={(e) => void handleGenaiWordingChange(e.target.value as GenaiWording)}
+              >
+                <option value="output">Output from (library interim guidance)</option>
+                <option value="correspondence">Correspondence from (earlier Obiter form)</option>
+              </select>
+            </label>
+            <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+              AGLC4 has no generative AI rule. Australian law libraries cite AI output by analogy
+              to rule 7.12 as &lsquo;Output from&rsquo;. Choose the earlier wording to keep existing
+              documents unchanged. Stored in the document.
             </p>
           </>
         )}

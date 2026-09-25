@@ -239,18 +239,21 @@ export const referenceGuideEntries: ReferenceGuideEntry[] = [
   {
     id: "GENAI-001",
     ruleNumber: "7.12 (interim)",
-    title: "Citing AI-Generated Content",
+    title: "Citing AI-Generated Content (experimental)",
     summary:
-      "Under the Melbourne University Law Review interim guidance, AI-generated content (such as output from ChatGPT, Claude or Gemini) is cited as written correspondence under AGLC4 Rule 7.12. The AI platform and model are treated as the sender, and the user is the recipient.",
+      "AGLC4 has no generative AI rule. Australian law-library guides, relaying Melbourne University Law Review interim guidance, cite AI output by analogy to written correspondence (Rule 7.12): the program and its developer are the sender and the person who received the output is the recipient. Obiter's form is experimental, pending AGLC5.",
     examples: [
-      "Correspondence from ChatGPT (OpenAI, GPT-4) to the author, 15 March 2025.",
-      "Correspondence from Claude (Anthropic, Claude 3.5 Sonnet) to the author, 10 January 2026 <https://claude.ai/chat/abc123>.",
+      "Output from ChatGPT (GPT-5), OpenAI to the author, 7 July 2026.",
+      "Output from Copilot, Microsoft to Jane Smith, 24 February 2025.",
+      "Later reference: Output from ChatGPT (n 1).",
+      "Bibliography (Other): OpenAI, ChatGPT (GPT-5) to the author, Output, 7 July 2026",
     ],
     tips: [
-      "Identify both the platform name and the specific model used (e.g., 'ChatGPT (OpenAI, GPT-4)' rather than just 'ChatGPT').",
-      "Use 'the author' as the recipient unless the correspondence was directed to a named third party.",
-      "Include a URL in angle brackets if the chat session has a shareable link.",
-      "This interim guidance will likely change when AGLC5 is published with dedicated rules for AI-generated content.",
+      "Give the program, then its developer after a comma, with no comma before 'to'.",
+      "Use 'the author' as the recipient unless the output went to a named person.",
+      "To record the prompt, tick 'Show the prompt in the footnote': a note follows the citation.",
+      "A document can keep the earlier 'Correspondence from' wording in Settings.",
+      "This interim form will change when AGLC5 publishes a rule for AI-generated content.",
     ],
   },
 
@@ -1457,16 +1460,17 @@ export const oscolaReferenceGuideEntries: ReferenceGuideEntry[] = [
     ruleNumber: "OSCOLA 3.7.13",
     title: "Generative AI (Rule 3.7.13)",
     summary:
-      "OSCOLA 5 includes a dedicated rule for citing AI-generated content. The citation includes the AI tool name with provider, the prompt in single quotation marks, the date of generation, and optionally a URL to a shared session. This is a new rule specific to OSCOLA 5.",
+      "OSCOLA 5 treats the AI as the author. Any instructions given follow in single quotation marks after 'response to', then the organisation that developed the AI and, in brackets, the date the material was generated. The rule has no URL or model-version element.",
     examples: [
-      "ChatGPT (OpenAI), 'Summarise the rule in Donoghue v Stevenson' (response generated 15 March 2026) <https://chat.openai.com/share/abc123>.",
-      "Claude (Anthropic), 'What are the elements of negligence in English law?' (response generated 10 January 2026).",
+      "ChatGPT, response to 'Explain how artificial intelligence works', OpenAI (16 July 2023).",
+      "Claude, response to 'What are the elements of negligence in English law?', Anthropic (10 January 2026).",
+      "Later reference: ChatGPT (n 1).",
     ],
     tips: [
-      "Include the AI tool name and provider: 'ChatGPT (OpenAI)', 'Claude (Anthropic)'.",
-      "The prompt text goes in single quotation marks per OSCOLA convention.",
-      "Include 'response generated [date]' in parentheses.",
-      "Include a shareable URL if one exists.",
+      "Name the AI first, as the author.",
+      "Put the instructions in single quotation marks after 'response to'.",
+      "Give the developer, then the generation date in brackets with no comma before them.",
+      "If no instructions were given, Obiter omits that element (ChatGPT, OpenAI (date)).",
     ],
   },
 

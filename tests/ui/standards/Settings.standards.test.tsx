@@ -42,6 +42,9 @@ const mockStore = {
   // config). Present on the mock so the control tests exercise the setter.
   getNzlsgStyle: jest.fn(),
   setNzlsgStyle: jest.fn(),
+  // A5-EXP-9: the generative AI wording accessors (document metadata).
+  getGenaiWording: jest.fn(),
+  setGenaiWording: jest.fn(),
 };
 jest.mock("../../../src/store/singleton", () => ({
   getSharedStore: (): Promise<unknown> => Promise.resolve(mockStore),
@@ -238,6 +241,7 @@ beforeEach(() => {
   mockStore.getCourtJurisdiction.mockReturnValue(undefined);
   mockStore.getCourtToggles.mockReturnValue(undefined);
   mockStore.getNzlsgStyle.mockReturnValue(undefined);
+  mockStore.getGenaiWording.mockReturnValue(undefined);
   mockStore.getAll.mockReturnValue([A_CITATION]);
   mockStore.setStandardId.mockResolvedValue(undefined);
   mockStore.setAglcVersion.mockResolvedValue(undefined);
@@ -659,6 +663,35 @@ describe("STD-022 — NZLSG Citation style control (general / commercial)", () =
     expect(screen.queryByLabelText("Writing mode")).toBeNull();
     await selectFamily("AGLC", "aglc4");
     expect(screen.queryByLabelText("Citation style")).toBeNull();
+  });
+});
+
+describe("A5-EXP-15 — generative AI wording control (Output / Correspondence)", () => {
+  const LABEL = "Generative AI citations (experimental)";
+
+  test("under AGLC the control defaults to Output and persists a change", async () => {
+    await renderSettings();
+    const select = screen.getByLabelText(LABEL) as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(["output", "correspondence"]);
+    expect(select).toHaveValue("output");
+
+    fireEvent.change(select, { target: { value: "correspondence" } });
+    await waitFor(() => expect(mockStore.setGenaiWording).toHaveBeenCalledWith("correspondence"));
+    expect(select).toHaveValue("correspondence");
+    expect(mockTriggerRefresh).toHaveBeenCalled();
+  });
+
+  test("a stored correspondence wording is shown on load without being rewritten", async () => {
+    mockStore.getGenaiWording.mockReturnValue("correspondence");
+    await renderSettings();
+    expect(screen.getByLabelText(LABEL)).toHaveValue("correspondence");
+    expect(mockStore.setGenaiWording).not.toHaveBeenCalled();
+  });
+
+  test.each(["oscola5", "nzlsg3"] as const)("the control is absent under %s", async (id) => {
+    mockStore.getStandardId.mockReturnValue(id);
+    await renderSettings();
+    expect(screen.queryByLabelText(LABEL)).toBeNull();
   });
 });
 

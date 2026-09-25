@@ -599,6 +599,11 @@ Each item is one distinct question. "Meanwhile" is what the engine renders today
 
 #### OSCOLA 5
 
+0. **Generative AI, r 3.7.13 (resolved 2026-09-24, A5-EXP-13).** The engine now renders `AI, response to ‘prompt’, Developer (Date)` (pp 43–44). There is no URL and no model version, and ISO dates are converted. Three points remain judgement calls:
+   - With no prompt, the rule's conditional element is dropped, giving `ChatGPT, OpenAI (16 July 2023)`. The rule does not show this form.
+   - A later reference is the AI name plus `(n X)` (§1.2.1).
+   - The bibliography entry repeats the footnote form under §1.7. The rule says nothing specific about either.
+
 1. **Retrospective (pre-2001) neutral citations for foreign cases.** §1.1.1 and §2.1.3 bar retrospectively created MNCs for UK cases. §2.6.1 cites other jurisdictions "as at home" (no full stops). Does the bar reach an AustLII MNC such as `[1992] HCA 23`? Surfaces: `oscola5` `fx-mabo-reported / parallel`, `fx-mabo-mnc / first`, `first+paragraph`, `bibliography-entry`. Meanwhile: the stored MNC is rendered as in its home jurisdiction (`Mabo v Queensland [1992] HCA 23`). Reading: OSCOLA 5 §1.1.1, §2.1.3, §2.6.1; AGLC4 r 2.3.1. See NZLSG item 26 for the same question under NZLSG.
 2. **Page pinpoint after an MNC and report with no bracketed court identifier** (rule notes Unresolved 1). §2.1.6 states the no-comma rule only for citations ending in a bracketed court identifier; OSCOLA 4 §2.1.6 put a comma before a page pinpoint that follows a report page. Did the 5th edition keep or drop that comma? Surfaces: `oscola5` `fx-uk-corr`, `fx-scot-axa`, `fx-ni-wilson` / `first+page`. Meanwhile: the OSCOLA 4 comma (`[2008] 1 AC 884, 42`). Reading: OSCOLA 5 §2.1.6 and §2.2.1; OSCOLA 4 §2.1.6.
 3. **Irish paragraph pinpoints under §2.6.1.** Whether an Irish case takes `[2024] IESC 1 [42]` (E&W model) or `, para 42`. Surfaces: `oscola5` `fx-ie-langan / first+paragraph`. Meanwhile: `[42]` with no comma. Reading: OSCOLA 5 §2.6.1; the Irish courts' own practice direction on neutral citations; repo notes OSC-014.
@@ -666,3 +671,86 @@ Each item is one distinct question. "Meanwhile" is what the engine renders today
 51. **Previous-version rows in the active standard.** Should a previous-version row in Record details show that version's rendering in the active standard (it lists changed fields only)? Surfaces: `tests/ui/standards/RecordDetails.standards.test.tsx` todo (line 241). Meanwhile: changed fields only.
 
 **Related:** DECISION-022 and DECISION-025 (NZ neutral-citation adoption years and report-series typing) are unchanged by the online text: §3.3 lists the adoption years the engine already uses and Appendix 7 does not type report series.
+
+---
+
+## DECISION-041: Generative AI developer, recipient and prompt note; September 2026 watch corrections
+
+**Status:** DECIDED. Researcher items (a)–(c) were resolved on 24 September 2026 (see "Resolution" at the end of this entry). Revisit when MULR publishes its own text or AGLC5 publishes a rule.
+**Raised:** 2026-09-24 (A5-EXP-6, A5-EXP-7, A5-EXP-8, A5-CM-4, A5-WS-2; evidence in `docs/aglc5-watch-2026-09.md`)
+
+**Context:** AGLC4 has no generative AI rule. Obiter's `genai_output` (A5-EXP-1) cites AI output by analogy to rule 7.12 (written correspondence). Rule 7.12 lets a correspondent's position follow their name (derived notes, `../aglc4-rule-reference.md` §7.12, PDF p 150) but says nothing about software or vendors. The September 2026 watch found two interim sources that go further than Obiter did:
+
+- UQ Library's AGLC4 guide (page updated 14 July 2026) gives the template "Output from [program], [creator] to [recipient], [full date]", with examples naming both the vendor and a person as recipient. It also recommends recording the prompt in the footnote or an appendix.
+- OSCOLA 5 r 3.7.13 names the developing organisation and puts the prompt in quotation marks.
+
+**Decision:**
+
+1. **Developer (A5-EXP-6).** Optional. It follows the platform and model and precedes the recipient, with a comma before it and none after, matching the UQ template: `Correspondence from ChatGPT (GPT-5), OpenAI to the author, 7 July 2026`. Obiter keeps "Correspondence" as the type rather than UQ's "Output", so citations already in documents are unchanged. Under OSCOLA the field fills the formatter's existing provider slot.
+2. **Recipient (A5-EXP-7).** Optional. When blank it renders "the author", which was the only form before.
+3. **Prompt note (A5-EXP-8).** Opt-in (`includePrompt`) and off by default. The note follows the citation, any URL and the archive note: `… 7 July 2026. The output was generated in response to the prompt ‘…’`. It appears in the first citation only and never in a subsequent reference or the bibliography, because it is commentary rather than an element of the source. Obiter does not convert quotation marks inside the prompt; the user edits the prompt text if rule 1.5.1 nesting is needed.
+4. **Labelling.** All three fields sit on the experimental `genai_output` type (DECISION-036). The badge, the conformance exclusion and the WS-1 migration commitment apply unchanged.
+
+**Corrections and contradictions recorded by the watch (2026-09-24):**
+
+- **The Committee's aims are no longer published.** The live AGLC5 page (meta last-modified 12 May 2026) now speaks of "consultations for a prospective new edition". The `aglc-5@unimelb.edu.au` address and the list of aims have been removed. The last capture showing them is the Wayback Machine's of 24 March 2025, which lists **seven** aims; the commonly cited six omit a practice-oriented aim to encourage use by practitioners. The rewrite cannot be dated, so it must not be described as post-July 2026 news, and it must not be read as abandonment. Cite the aims to the dated capture as withdrawn from the live page.
+- **The open letter's correspondence channel.** The Committee lists no contact and says it is not accepting feedback, so the runbook's statement that the correspondence window remains open is withdrawn.
+- **OSCOLA licensing.** The claim that OSCOLA is published under a Creative Commons licence was refuted (1–2), and the 85-page PDF has no licence statement. OSCOLA supports an open-access argument (a free full text alongside the Hart print edition), not a permissive-reuse argument.
+- **The Federal Court's GPN-AI citation.** The source is `…/practice-notes/gpn-ai`, not the notice-to-profession page. GPN-AI (16 April 2026) and NSW SC Gen 23 (January 2025) have not changed and are not new.
+- **Court instruments are not citation rules.** The FCA, NSW and ART instruments impose verification and disclosure duties on the responsible person and prescribe no citation form. They stay in court mode (A5-CM-1, A5-CM-4) and are not AGLC4 defects.
+- **Refuted claims not to reuse:** a source-traceability rule in the ART practice direction; a metadata model for expert AI use in NSW SC Gen 23; the UQ page as "confirming" the analogy in the wording tested.
+
+**Researchers:**
+
+- (a) Does rule 7.12's allowance for a position after a name support a vendor in that slot, and should a comma follow it?
+- (b) Should the AGLC form adopt UQ's "Output from" type in place of "Correspondence from"?
+- (c) The OSCOLA 5 formatter (`src/engine/rules/oscola/genai.ts`) renders `ChatGPT (OpenAI), ‘prompt’ (response generated date)`. The r 3.7.13 example in `docs/standards-rule-notes.md` §3.7.13 orders the elements as tool, `response to ‘prompt’`, developer, then the date in brackets. This belongs with DECISION-040 and is unchanged here.
+
+**Resolution (2026-09-24; deep-research run `wf_1081fbee-c21`: 18 sources fetched, 25 claims checked, 24 confirmed, 1 refuted):**
+
+Library guides checked live on 24 September 2026. They copy the UQ template, so they show one convention repeated, not independent authorities:
+
+| Guide | Template or example (short) | Updated |
+|---|---|---|
+| UQ Library, https://guides.library.uq.edu.au/referencing/AGLC4/artificial-intelligence | Output from [program], [creator] to [recipient], [full date] | 14 Jul 2026 (not re-verified in this run) |
+| Macquarie, https://libguides.mq.edu.au/AGLC4_referencing/acknowledge_ref_AI | Output from ChatGPT, OpenAI to Fred Jones, … | 29 Jul 2026 |
+| UWA, https://guides.library.uwa.edu.au/AGLC4/Gen_AI | Output from ChatGPT, OpenAI to Jane Smith, …; optional URL; credits MULR editors | 26 Aug 2026 |
+| Adelaide University, https://au.libguides.com/referencing/ai | Output from ChatGPT, OpenAI to Jane Smith, … | 21 Sep 2026 |
+| Southern Cross, https://libguides.scu.edu.au/aglc/AITools | Output from Copilot, Microsoft to John Smith, …; footnote only | 24 Sep 2026 |
+| Deakin, https://deakin.libguides.com/legal-referencing/citing-generative-AI | Output from ChatGPT, OpenAI to John Smith, … | 3 Feb 2026 |
+| Murdoch, https://libguides.murdoch.edu.au/AGLC/generativeAI | Output from *Copilot*, Microsoft to Fred Jones, …; credits MULR and MJIL, "not official AGLC policy" | 28 Aug 2026 |
+
+- **(a) Punctuation. Decided: library practice.** The developer follows the program after a comma, and no comma comes before "to". Every template above does this. AGLC4 r 7.12 (p 125) gives no punctuation for a position after a name. The only descriptor example, ex 95 (p 126), inserts a place with commas on both sides. It is recorded here as a counter-analogy and not followed (owner decision).
+- **(b) Wording. Decided: "Output from" (A5-EXP-9).** Every guide uses it. None uses "Correspondence from". **Correction (25 Sep 2026, run `wf_569120e9-30f`, 3–0):** the University of Melbourne Re:cite AGLC page *does* give the same template, "Output from [program], [creator] to [recipient], [full date]". Its bibliography example is "OpenAI, ChatGPT to John Smith, Output, 23 February 2023". This was read from the Wayback capture of 1 June 2026, because the live page returns 403. The earlier statement that it gives no template was wrong. The earlier claim that it supports the "correspondence" wording stays refuted. MULR's own text was still not found. The owner chose a document setting (`genaiWording`) that keeps "Correspondence from" for documents that need it. Stored citations are unchanged.
+- **(c) OSCOLA. Decided: r 3.7.13 as printed (A5-EXP-13).** The form is `ChatGPT, response to ‘…’, OpenAI (16 July 2023)` (pp 43–44). There is no URL and no model version. See DECISION-040.
+- **Follow-ups decided with the owner:**
+  - Short form (A5-EXP-10): `Output from ChatGPT (n 1)`, extending item 2 of DECISION-037. A recipient's surname is added only when a recipient is named.
+  - Bibliography (A5-EXP-11): listed under Other in the four-guide form, `OpenAI, ChatGPT (GPT-5) to the author, Output, 7 July 2026`. Southern Cross's footnote-only rule was not followed.
+  - Prompt note (A5-EXP-12): takes the comma the guides use, "…to the prompt, ‘…’".
+- **Minority practices not adopted:**
+  - Murdoch italicises the program name, and uses "Report from" for report-type output (for example Scopus AI).
+  - Southern Cross puts the tool version in an appendix.
+- **Gap-closing run (25 Sep 2026, `wf_569120e9-30f`):**
+  - **More guides follow the footnote form.**
+    - UQ (re-verified, updated 25 Sep 2026): `Output from ChatGPT, OpenAI to Fred Jones, 24 February 2025`.
+    - QUT CiteWrite, https://www.citewrite.qut.edu.au/cite/examples/legal/legal_internet_ai.html (undated): same form. Its short form is `Output from ChatGPT (n 208)`, which matches A5-EXP-10.
+    - Griffith (Wayback, Jan 2026): same form.
+    - ANU, https://libguides.anu.edu.au/c.php?g=960102&p=6969607 (updated 25 Sep 2026): same form.
+    - None of their examples includes a model. Obiter already renders the model only when one is recorded.
+  - **One outlier.** Canberra, https://canberra.libguides.com/c.php?g=599301&p=6951694 (2 Sep 2026), uses a request-type, site and time form with no developer. It is not adopted.
+  - **Bibliography practice varies.**
+    - UQ, ANU and Re:cite match A5-EXP-11 (`Microsoft, Copilot to Fred Jones, Output, 24 February 2025`).
+    - QUT writes `Open AI, Output from ChatGPT to John Smith, …`.
+    - Griffith says no entry is needed.
+    - A5-EXP-11 is kept: it is the majority form.
+  - **MULR's own text:** not found. Every trace is a library paraphrase. Re:cite even misnames the journal. Credit the form as library guidance relaying MULR editors' interim advice, never as an MULR or AGLC rule.
+  - **Journals:** no Australian law journal footnote citing a specific AI output was found.
+    - Hargreaves [2025] LER 4 cites ChatGPT only as a product.
+    - The Legal Education Review AI policy (endorsed by the Australasian Law Academics Association (ALAA), 28 Apr 2025) requires disclosure in the first footnote but gives no citation form.
+  - **New Zealand:**
+    - Auckland, https://auckland.libguides.com/nzlsg/generative-ai (14 Jul 2026): NZLSG 3 gives no AI guidance.
+    - Canterbury, https://canterbury.libguides.com/laws/referencing (21 Sep 2026): adapts NZLSG r 7.6, e.g. `Output from ChatGPT (artificial intelligence chatbot by OpenAI) to Name in response to the prompt … (Date)`. This is a candidate NZLSG form (A5-EXP-16, owner decision).
+  - **Not verified:**
+    - 21 Australian guides: Monash, UNSW, Sydney, RMIT, UTS, La Trobe and others.
+    - VUW, Otago, Waikato and AUT.
+    - The NZ Law Foundation.

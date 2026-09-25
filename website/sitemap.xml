@@ -20,13 +20,19 @@
   </url>
   <url>
     <loc>https://obiter.com.au/docs.html</loc>
-    <lastmod>2026-08-09</lastmod>
+    <lastmod>2026-09-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://obiter.com.au/aglc5.html</loc>
-    <lastmod>2026-08-09</lastmod>
+    <lastmod>2026-09-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://obiter.com.au/aglc5-experimental.html</loc>
+    <lastmod>2026-09-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

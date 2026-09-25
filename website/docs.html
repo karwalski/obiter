@@ -17,7 +17,7 @@
   <meta name="twitter:description" content="Complete walkthrough of every Obiter feature. Learn how to install the add-in, insert citations, generate bibliographies, validate your document, and more.">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
-  <link rel="stylesheet" href="css/style.css?v=1174">
+  <link rel="stylesheet" href="css/style.css?v=1175">
 </head>
 <body>
 
@@ -290,6 +290,37 @@
           <img src="screenshots/insert-citation.png?v=1173" alt="The Insert Citation view with a reported case form filled in and preview showing" loading="lazy" onerror="this.closest(&quot;figure&quot;).style.display=&quot;none&quot;">
           <figcaption>The Insert Citation view with a reported case form filled in and preview showing</figcaption>
         </figure>
+
+        <h3 id="experimental-sources">Experimental source types (pending AGLC5)</h3>
+        <p>
+          AGLC4 has no rule for generative AI output, datasets, software or archived web pages.
+          Obiter offers interim forms for them, each marked
+          <strong>Experimental &middot; pending AGLC5 (not an official AGLC4 form)</strong> in the
+          type picker and form header. They are left out of Obiter's AGLC4 conformance count and
+          will be mapped to the AGLC5 rules when those are published. The evidence and decisions
+          behind each form are on the
+          <a href="aglc5-experimental.html">experimental AGLC5 citation forms</a> page.
+        </p>
+        <p>
+          <strong>AI-Generated Content</strong> follows the form Australian law libraries use,
+          by analogy to written correspondence (rule 7.12):
+        </p>
+        <p class="docs-cite">Output from ChatGPT (GPT-5), OpenAI to the author, 7 July 2026</p>
+        <ul class="docs-list">
+          <li><strong>Platform</strong>, <strong>Model</strong> and <strong>Model Version</strong> identify the tool.</li>
+          <li><strong>Developer</strong> (optional) is the organisation that made it, such as OpenAI or Anthropic.</li>
+          <li><strong>Recipient</strong> (optional) defaults to &ldquo;the author&rdquo;. Enter a name if the output went to someone else.</li>
+          <li><strong>Show the prompt in the footnote</strong> adds a note after the citation: &ldquo;The output was generated in response to the prompt, &lsquo;&hellip;&rsquo;&rdquo;. The note appears only in the first citation.</li>
+          <li>Later references read <em>Output from ChatGPT (n 1)</em>. The bibliography lists the entry under Other: <em>OpenAI, ChatGPT (GPT-5) to the author, Output, 7 July 2026</em>.</li>
+          <li>Under OSCOLA 5 the same record renders in the r 3.7.13 form: <em>ChatGPT, response to &lsquo;&hellip;&rsquo;, OpenAI (7 July 2026)</em>.</li>
+          <li>NZLSG 3 has no rule for AI output, so NZLSG documents use the AGLC form above.</li>
+          <li>A pinpoint follows the date, as rule 7.12 provides for correspondence: <em>&hellip;, 7 July 2026, 2</em>.</li>
+        </ul>
+        <p>
+          Documents that already used Obiter's earlier wording, &ldquo;Correspondence from&rdquo;,
+          can keep it through <strong>Settings &rarr; Generative AI citations</strong> (see
+          <a href="#settings">Settings</a>).
+        </p>
       </div>
     </div>
   </section>
@@ -1267,6 +1298,16 @@
           OSCOLA 5 or NZLSG 3 from this dropdown.
         </p>
 
+        <h3>Generative AI citations (experimental)</h3>
+        <p>
+          Under an AGLC standard, the <strong>Generative AI citations</strong> control chooses
+          the wording of the experimental AI form for the whole document:
+          <strong>Output from</strong> (the default, as Australian law libraries use it) or
+          <strong>Correspondence from</strong> (Obiter's earlier form, for documents already
+          written that way). The choice is stored in the document. Run Refresh All after
+          changing it. See <a href="#experimental-sources">Experimental source types</a>.
+        </p>
+
         <h3>Citation management</h3>
         <p>
           The <strong>Citation Management</strong> section controls how Obiter
@@ -1546,6 +1587,17 @@
           <li><strong>Two parts (read / not read)</strong> &mdash; authorities expected to be read and those not expected to be read (SA Supreme Court; Federal Circuit and Family Court appeals).</li>
           <li><strong>Three parts (Tas)</strong> &mdash; authorities to be cited, authorities that might be referred to, and legislation with sections listed separately.</li>
         </ul>
+
+        <h3>Generative AI reminders</h3>
+        <p>
+          Where a court or tribunal has issued a practice note or direction on generative AI,
+          court mode shows a reminder with the instrument&rsquo;s name, date and a link. The
+          reminders are practice-direction guidance, not citation rules. They cover checking that
+          cited authorities exist and support the point, disclosing AI use where required, and not
+          relying on an AI tool alone to check AI output. The Administrative Review Tribunal
+          preset cites the Tribunal&rsquo;s Generative AI Practice Direction 2026 (20 August 2026)
+          and the AI clauses of its Expert Evidence Practice Direction 2026 (cll 3.5A&ndash;3.5D).
+        </p>
 
         <h3>Ibid suppression</h3>
         <p>

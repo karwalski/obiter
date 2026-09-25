@@ -35,6 +35,7 @@ import {
   joinAuthorNames,
 } from "./rules/v4/secondary/authors";
 import { formatSecondaryShortTitle } from "./rules/v4/secondary/general";
+import { genaiTypeWord } from "./rules/v4/secondary/genai";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
 
@@ -296,8 +297,8 @@ function getAuthorSurname(citation: Citation): string {
  * AGLC4 Rule 1.4.1 (guide ex 55): a report short title standing in for a
  * body author is italicised: *Traditional Rights and Freedoms* (n 52).
  */
-function formatSecondaryLead(citation: Citation): FormattedRun[] {
-  const exchangeLead = formatExchangeLead(citation);
+function formatSecondaryLead(citation: Citation, config?: CitationConfig): FormattedRun[] {
+  const exchangeLead = formatExchangeLead(citation, config);
   if (exchangeLead !== null) {
     return exchangeLead;
   }
@@ -314,6 +315,34 @@ function formatSecondaryLead(citation: Citation): FormattedRun[] {
 }
 
 /**
+ * A5-EXP-10 (experimental, pending AGLC5): the short-reference lead for
+ * generative AI output, which has neither an author nor a title element.
+ *
+ * AGLC and NZLSG follow the DECISION-037 correspondence lead: the type word
+ * and the platform, with the recipient's surname only when one is named
+ * ('Output from ChatGPT (n 1)'; 'Output from ChatGPT to Smith (n 1)').
+ * OSCOLA 5 r 3.7.13 makes the AI the author, so §1.2.1's brief identifier is
+ * the AI's name ('ChatGPT (n 1)'). DECISION-041.
+ */
+function genaiShortLead(citation: Citation, config?: CitationConfig): string {
+  const data = citation.data;
+  const text = (key: string): string => {
+    const value = data[key];
+    return typeof value === "string" ? value.trim() : "";
+  };
+  const platform =
+    text("platform") === "__other__"
+      ? text("platformCustom")
+      : text("platform") || text("toolName");
+  if (familyOf(config) === "oscola") {
+    return platform;
+  }
+  const lead = `${genaiTypeWord(config?.genaiWording)} from ${platform}`;
+  const recipient = text("recipient");
+  return recipient ? `${lead} to ${formatFreeTextAuthorLead(recipient)}` : lead;
+}
+
+/**
  * Formats the short-reference lead for interviews (Rule 7.13) and written
  * correspondence (Rule 7.12), which have neither an author nor a title
  * element for rule 1.4.1 to fall back on.
@@ -327,9 +356,9 @@ function formatSecondaryLead(citation: Citation): FormattedRun[] {
  *
  * Returns null for every other source type.
  */
-function formatExchangeLead(citation: Citation): FormattedRun[] | null {
+function formatExchangeLead(citation: Citation, config?: CitationConfig): FormattedRun[] | null {
   const type = citation.sourceType;
-  if (type !== "interview" && type !== "correspondence") {
+  if (type !== "interview" && type !== "correspondence" && type !== "genai_output") {
     return null;
   }
   const data = citation.data;
@@ -343,6 +372,9 @@ function formatExchangeLead(citation: Citation): FormattedRun[] | null {
   const shortTitle = citation.shortTitle ?? str("shortTitle");
   if (shortTitle) {
     return parseTitleMarkup(shortTitle, false);
+  }
+  if (type === "genai_output") {
+    return [{ text: genaiShortLead(citation, config) }];
   }
   if (type === "interview") {
     const interviewee = str("interviewee", "author", "name");
@@ -461,7 +493,7 @@ export function formatShortReference(
 
   // MULTI-014: Court mode — short name only, no (n X) cross-reference
   if (config?.writingMode === "court") {
-    return formatCourtShortReference(citation, pinpoint, disambiguate);
+    return formatCourtShortReference(citation, pinpoint, disambiguate, config);
   }
 
   // STD-015: OSCOLA 5 §1.2.1 / OSCOLA 4 §1.2.1 short forms
@@ -497,7 +529,7 @@ export function formatShortReference(
   } else if (isSecondarySource(citation.sourceType)) {
     // Secondary sources: Author Surname (n X) pinpoint.
     const surname = getAuthorSurname(citation);
-    runs.push(...formatSecondaryLead(citation));
+    runs.push(...formatSecondaryLead(citation, config));
 
     // Rule 1.4.1: multiple works by the same author — append the title,
     // styled the same way it appeared in the first citation (guide ex 61:
@@ -567,7 +599,7 @@ function shortReferenceLead(
     }
   } else if (isSecondarySource(citation.sourceType)) {
     const surname = getAuthorSurname(citation);
-    runs.push(...formatSecondaryLead(citation));
+    runs.push(...formatSecondaryLead(citation, config));
 
     if (disambiguate && surname) {
       const title = getTitle(citation, config);
@@ -769,7 +801,7 @@ function formatOscolaShortReference(
     runs.push({ text: ` (n ${firstFootnoteNumber})` });
   } else {
     const surname = getAuthorSurname(citation);
-    runs.push(...formatSecondaryLead(citation));
+    runs.push(...formatSecondaryLead(citation, config));
     if (disambiguate && surname) {
       const title = getTitle(citation, config);
       if (title) {
@@ -803,13 +835,14 @@ function formatOscolaShortReference(
 function formatCourtShortReference(
   citation: Citation,
   pinpoint?: Pinpoint,
-  disambiguate?: boolean
+  disambiguate?: boolean,
+  config?: CitationConfig
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
   if (isSecondarySource(citation.sourceType) && !internationalLeadsWithShortTitle(citation)) {
     const surname = getAuthorSurname(citation);
-    runs.push(...formatSecondaryLead(citation));
+    runs.push(...formatSecondaryLead(citation, config));
     if (disambiguate && surname) {
       const title = getTitle(citation);
       if (title) {

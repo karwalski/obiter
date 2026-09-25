@@ -34,18 +34,24 @@ Committee established in 2023**.
 **consultations ran across 2023–2026** (extended a year from the earlier "2023–2025"
 wording), that it is **"considering the outcomes of this consultation"**, and that it is
 **"not accepting further feedback at this time"** — a softening from the earlier "preparing
-the edition for publication". Implication: publication is not imminent, and the
-correspondence window (open letter / MULR route) is effectively still open even though the
-formal feedback window has closed. No published date announced (CRIT-005 Part B.1).
+the edition for publication". Implication: publication is not imminent. No published date
+announced (CRIT-005 Part B.1).
+
+**Correction (2026-09-24, A5-LETTER-2):** the live page no longer lists a contact address or the
+aims below, and says the Committee is not accepting further feedback. The statement that a
+correspondence window "remains open" is withdrawn: there is no published channel. The page now
+speaks of a "prospective new edition" (`docs/aglc5-watch-2026-09.md`, DECISION-041).
 
 **Retrieval note [CRIT-005]:** the live `law.unimelb.edu.au/mulr/aglc/aglc-5` page was
 **reachable directly** on the July 2026 pass (page last-modified **2026-05-12**), so no
 Wayback fallback was needed for the current status; the 403-to-bots behaviour below still
 applies to some sub-pages, and if the page 403s later, use the snapshot nearest that date.
 
-**Announced scope [high]** (the Committee's stated "identified areas of improvement" —
-these are *aims*, not confirmed features of a published edition). They map almost exactly
-onto the defect classes in `docs/aglc4-critique.md`:
+**Announced scope [high, now withdrawn from the live page]** (the Committee's stated "identified
+areas of improvement" — *aims*, not confirmed features of a published edition). **Correction
+(2026-09-24):** the live page no longer lists them; cite the Wayback Machine capture of 24 March
+2025, which lists **seven** aims (the table below omitted the practitioner aim, now added). They map
+almost exactly onto the defect classes in `docs/aglc4-critique.md`:
 
 | Announced AGLC5 aim | Corresponding CRIT-001 finding |
 |---|---|
@@ -55,11 +61,13 @@ onto the defect classes in `docs/aglc4-critique.md`:
 | Cite First Nations materials; decolonise scholarship | (New scope — DECISION-007 deferred pending consultation) |
 | Update internet-materials rules; move into the digital age, **explicitly accounting for AI** | No GenAI rule; internet rules trail practice (CRIT-002 modern-sources) |
 | Gender-inclusive, culturally-sensitive language and examples | (Language/quality — aligns with the example-quality findings) |
+| Develop a practice-oriented approach to promote use among practitioners | Court-practitioner register (parallel citations, lists of authorities) — `docs/court-practices-review.md` |
 
 **Implication:** the AGLC5 Committee has *publicly committed* to fixing exactly the
 categories Obiter documents. The CRIT-001 critique and the modern-sources proposal are
-well-timed as consultation-adjacent input (even though the formal window has closed, the
-open letter / MULR correspondence route remains — `website/aglc5.html`).
+well-timed as consultation-adjacent input. The formal window has closed and the Committee now
+lists no contact channel, so the open letter (`website/aglc5.html`) is a public record rather than
+correspondence the Committee has invited (correction 2026-09-24).
 
 ---
 

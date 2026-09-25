@@ -157,6 +157,8 @@ export interface DocumentStandardState {
   courtToggles?: Record<string, string>;
   /** STD-022: the NZLSG subsequent-reference style (document metadata); absent reads as general. */
   nzlsgStyle?: "general" | "commercial";
+  /** A5-EXP-9: the document's generative AI wording; applies under AGLC standards only. */
+  genaiWording?: "output" | "correspondence";
 }
 
 /**
@@ -170,13 +172,17 @@ export interface DocumentStandardState {
  * NZLSG standard the document's `nzlsgStyle` is mapped in (STD-022).
  */
 export function buildDocumentConfig(state: DocumentStandardState): CitationConfig {
-  const { standardId, writingMode, courtJurisdiction, courtToggles, nzlsgStyle } = state;
+  const { standardId, writingMode, courtJurisdiction, courtToggles, nzlsgStyle, genaiWording } =
+    state;
   const base: CitationConfig = {
     ...getStandardConfig(standardId),
     writingMode,
     // STD-022: the style is an NZLSG setting; under any other standard the
     // profile config stays byte for byte.
     ...(nzlsgStyle && standardId.startsWith("nzlsg") ? { nzlsgStyle } : {}),
+    // A5-EXP-9: only an explicit "correspondence" is carried, and only under
+    // AGLC, so every other config stays byte for byte.
+    ...(genaiWording === "correspondence" && standardId.startsWith("aglc") ? { genaiWording } : {}),
   };
   if (writingMode !== "court") {
     return base;
@@ -206,6 +212,8 @@ export interface DocumentStandardSource {
   getCourtToggles?(): Record<string, string> | undefined;
   /** STD-022: absent on a partial store; the config then carries no style (general). */
   getNzlsgStyle?(): "general" | "commercial" | undefined;
+  /** A5-EXP-9: absent on a partial store; the config then reads "output". */
+  getGenaiWording?(): "output" | "correspondence" | undefined;
 }
 
 /**
@@ -228,6 +236,7 @@ export function resolveDocumentConfig(
     courtJurisdiction: store.getCourtJurisdiction?.(),
     courtToggles: store.getCourtToggles?.() ?? fallbackToggles,
     nzlsgStyle: store.getNzlsgStyle?.(),
+    genaiWording: store.getGenaiWording?.(),
   });
   if (config.courtModeIgnored) {
     console.warn(

@@ -799,6 +799,9 @@ function mapSecondary(
       set(data, "outputDate", dateString(record));
       set(data, "url", record.identifiers.url);
       set(data, "prompt", record.passthrough.prompt);
+      set(data, "developer", record.passthrough.developer);
+      set(data, "recipient", record.passthrough.recipient);
+      if (record.passthrough["include-prompt"] === "true") data.includePrompt = true;
       break;
     case "submission.government":
       mapBodyOrAuthors(record, data, "body");

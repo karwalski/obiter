@@ -154,7 +154,8 @@ export function serializeStore(
   generatorVersion?: string,
   ccModel?: "flat" | "parent-child",
   courtToggles?: Record<string, string>,
-  nzlsgStyle?: "general" | "commercial"
+  nzlsgStyle?: "general" | "commercial",
+  genaiWording?: "output" | "correspondence"
 ): string {
   const lines: string[] = [];
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
@@ -170,10 +171,12 @@ export function serializeStore(
   // STD-022: the NZLSG citation style travels with the document alongside
   // the court toggles. Absent attribute deserializes to undefined (general).
   const nzlsgStyleAttr = nzlsgStyle ? ` nzlsgStyle="${escapeXml(nzlsgStyle)}"` : "";
+  // A5-EXP-9: generative AI wording; absent reads as "output".
+  const genaiWordingAttr = genaiWording ? ` genaiWording="${escapeXml(genaiWording)}"` : "";
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${nzlsgStyleAttr}${headingAttr}${ccModelAttr}>`
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${nzlsgStyleAttr}${genaiWordingAttr}${headingAttr}${ccModelAttr}>`
   );
 
   // INFRA-008 Layer 2: generator element
@@ -414,6 +417,7 @@ export function deserializeStore(xml: string): CitationStoreData {
   const courtJurisdiction = rawCourtJurisdiction === "TASCSC" ? "TASSC" : rawCourtJurisdiction;
   const courtToggles = parseCourtTogglesAttr(root.getAttribute("courtToggles"));
   const nzlsgStyle = parseNzlsgStyleAttr(root.getAttribute("nzlsgStyle"));
+  const genaiWording = parseGenaiWordingAttr(root.getAttribute("genaiWording"));
   const headingListIdStr = root.getAttribute("headingListId");
   const headingListId = headingListIdStr ? parseInt(headingListIdStr, 10) : undefined;
   const ccModel = (root.getAttribute("ccModel") as "flat" | "parent-child" | null) ?? undefined;
@@ -448,6 +452,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       courtJurisdiction,
       courtToggles,
       nzlsgStyle,
+      genaiWording,
       headingListId,
       ccModel,
     },
@@ -494,6 +499,14 @@ function isParserError(doc: Document): boolean {
  */
 function parseNzlsgStyleAttr(attr: string | null): "general" | "commercial" | undefined {
   return attr === "general" || attr === "commercial" ? attr : undefined;
+}
+
+/**
+ * A5-EXP-9: Parse the `genaiWording` root attribute. Absent or unrecognised
+ * values deserialize to undefined, which reads as "output".
+ */
+function parseGenaiWordingAttr(attr: string | null): "output" | "correspondence" | undefined {
+  return attr === "output" || attr === "correspondence" ? attr : undefined;
 }
 
 /**

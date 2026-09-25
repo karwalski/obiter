@@ -1,0 +1,67 @@
+# A5-WS-4: monthly AGLC5 watch
+#
+# Runs `npm run aglc5:watch` (scripts/aglc5-watch.ts) against the AGLC5
+# Committee page. Exit codes: 0 unchanged, 1 changed, 2 unreadable. On 1 or 2
+# the job opens an issue labelled `aglc5-watch`, or comments on the open one,
+# so an unreadable page is never mistaken for "no change". Triage per
+# docs/aglc5-publication-runbook.md §1. Uses only the default GITHUB_TOKEN.
+
+name: AGLC5 watch
+
+on:
+  schedule:
+    # 09:00 AEST (23:00 UTC) on the first day of each month
+    - cron: "0 23 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check the AGLC5 Committee page
+        id: watch
+        run: |
+          set +e
+          # ts-node is not a project dependency (npm run aglc5:watch uses npx);
+          # pin it here so the scheduled run is reproducible.
+          npx --yes ts-node@10.9.2 scripts/aglc5-watch.ts > watch.log 2>&1
+          code=$?
+          set -e
+          cat watch.log
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Report a change or an unreadable page
+        if: steps.watch.outputs.code != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODE: ${{ steps.watch.outputs.code }}
+        run: |
+          if [ "$CODE" = "1" ]; then
+            title="AGLC5 Committee page changed"
+          else
+            title="AGLC5 Committee page unreadable"
+          fi
+          body="$(printf '%s (exit %s) on %s.\n\n```\n%s\n```\n\nTriage per docs/aglc5-publication-runbook.md §1. After review, rerun locally with \`npm run aglc5:watch -- --update\` and commit the new baseline.\n\nRun: %s/%s/actions/runs/%s' \
+            "$title" "$CODE" "$(date -u +%Y-%m-%d)" "$(cat watch.log)" \
+            "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          gh label create aglc5-watch --color 0E8A16 --description "AGLC5 publication watch" 2>/dev/null || true
+          existing="$(gh issue list --label aglc5-watch --state open --json number --jq '.[0].number')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --label aglc5-watch --body "$body"
+          fi

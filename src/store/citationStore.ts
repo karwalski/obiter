@@ -629,6 +629,26 @@ export class CitationStore {
   }
 
   /**
+   * A5-EXP-9: Return the document's generative AI wording. Defaults to
+   * "output" when unset, so documents saved before the field existed render
+   * the library interim form.
+   */
+  getGenaiWording(): "output" | "correspondence" {
+    this.ensureInitialised();
+    return this.storeData!.metadata.genaiWording ?? "output";
+  }
+
+  /**
+   * A5-EXP-9: Update the generative AI wording and persist it into the
+   * document. The engine reads it through the document config.
+   */
+  async setGenaiWording(wording: "output" | "correspondence"): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.genaiWording = wording;
+    await this.persist();
+  }
+
+  /**
    * Return the persisted heading list ID, or undefined if not set.
    */
   getHeadingListId(): number | undefined {
@@ -859,7 +879,8 @@ export class CitationStore {
       APP_VERSION,
       this.storeData!.metadata.ccModel,
       this.storeData!.metadata.courtToggles,
-      this.storeData!.metadata.nzlsgStyle
+      this.storeData!.metadata.nzlsgStyle,
+      this.storeData!.metadata.genaiWording
     );
   }
 

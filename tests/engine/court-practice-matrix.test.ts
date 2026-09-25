@@ -194,9 +194,10 @@ describe("CRIT-004: court-practice validation matrix", () => {
       "FCA",
       "FCFCOA",
       "WASC",
+      "ART",
     ];
 
-    test("every AI reminder carries an instrument with a link and lastVerified 2026-07-23", () => {
+    test("every AI reminder carries an instrument with a link and a lastVerified date", () => {
       for (const r of getAllAiUseReminders()) {
         expect(r.instruments.length).toBeGreaterThan(0);
         for (const i of r.instruments) {
@@ -204,8 +205,25 @@ describe("CRIT-004: court-practice validation matrix", () => {
           expect(i.date.length).toBeGreaterThan(0);
           expect(i.url).toMatch(/^https:\/\//);
         }
-        expect(r.lastVerified).toBe("2026-07-23");
+        // A5-CM-4 entries were verified 2026-09-24; the A5-CM-1 set 2026-07-23.
+        expect(["2026-07-23", "2026-09-24"]).toContain(r.lastVerified);
       }
+    });
+
+    test("A5-CM-4: ART cites the Generative AI Practice Direction 2026 (20 August 2026)", () => {
+      const r = getAiUseReminderForJurisdiction("ART");
+      expect(r).toBeDefined();
+      expect(r!.instruments[0].name).toContain("Use of Generative AI) Practice Direction 2026");
+      expect(r!.instruments[0].date).toContain("20 August 2026");
+      expect(r!.instruments[0].url).toMatch(/^https:\/\/www\.art\.gov\.au\//);
+      expect(r!.lastVerified).toBe("2026-09-24");
+    });
+
+    test("A5-CM-5: ART also cites the Expert Evidence PD 2026 AI clauses (3.5A–3.5D)", () => {
+      const r = getAiUseReminderForJurisdiction("ART");
+      const names = r!.instruments.map((i) => i.name).join(" ");
+      expect(names).toContain("(Expert Evidence) Practice Direction 2026, cll 3.5A–3.5D");
+      for (const i of r!.instruments) expect(i.url).toMatch(/^https:\/\/www\.art\.gov\.au\//);
     });
 
     test("reminder labels always mark this as court-mode guidance, never an AGLC rule", () => {

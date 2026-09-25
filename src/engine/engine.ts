@@ -65,7 +65,7 @@ import {
   formatAudiobook,
 } from "./rules/v4/secondary/books";
 import { formatTreaty, formatMou } from "./rules/v4/international/treaties";
-import { formatGenaiOutput } from "./rules/v4/secondary/genai";
+import { formatGenaiOutput, genaiTypeWord } from "./rules/v4/secondary/genai";
 import { formatDataset } from "./rules/v4/secondary/dataset";
 import { formatSoftware } from "./rules/v4/secondary/software";
 import {
@@ -933,7 +933,7 @@ function dispatchSubmission(citation: Citation): FormattedRun[] {
  * Resolves the platform name from the dropdown value (using platformCustom
  * when "Other" is selected) and delegates to formatGenaiOutput.
  */
-function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
+function dispatchGenaiOutput(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   const platformRaw = (d.platform as string) ?? "";
   const platform = platformRaw === "__other__" ? ((d.platformCustom as string) ?? "") : platformRaw;
@@ -948,6 +948,15 @@ function dispatchGenaiOutput(citation: Citation): FormattedRun[] {
     // transcriptCustody is stored/shown in the record view, not the citation.
     transcriptCustody: (d.transcriptCustody as string) || undefined,
     archivedUrl: (d.archivedUrl as string) || undefined,
+    // A5-EXP-6..8 (experimental, pending AGLC5): developer, recipient and the
+    // opt-in prompt note. DECISION-041.
+    developer: toStr(d.developer) || undefined,
+    recipient: toStr(d.recipient) || undefined,
+    includePrompt: d.includePrompt === true || d.includePrompt === "true",
+    // A5-EXP-9: document-level wording (DECISION-041).
+    type: genaiTypeWord(config?.genaiWording),
+    // A5-FIX-1: rule 7.12 pinpoint, after the date.
+    pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
 
@@ -1669,6 +1678,8 @@ function dispatchCorrespondence(citation: Citation): FormattedRun[] {
     sender: pickString(d.sender, d.author),
     recipient: (d.recipient as string) ?? "",
     date: (d.date as string) ?? "",
+    // A5-FIX-1: rule 7.12 pinpoint.
+    pinpoint: normalisePinpoint(d.pinpoint),
   });
 }
 
@@ -4754,13 +4765,14 @@ function dispatchOscolaGenAi(citation: Citation): FormattedRun[] {
     platformRaw === "__other__"
       ? ((d.platformCustom as string) ?? "")
       : platformRaw || ((d.toolName as string) ?? "");
+  // A5-EXP-13: OSCOLA 5 r 3.7.13 has no URL or model-version element; the
+  // stored url and modelVersion stay on the record but are not rendered.
   return oscolaFormatGenAiCitation({
     toolName,
-    provider: d.provider as string | undefined,
-    prompt: (d.prompt as string) ?? "",
-    dateGenerated: (d.outputDate as string) ?? (d.dateGenerated as string) ?? "",
-    url: (d.url as string) || undefined,
-    version: d.version as string | undefined,
+    // A5-EXP-6: the form's developer field; `provider` is the legacy key.
+    provider: toStr(d.developer) || toStr(d.provider) || undefined,
+    prompt: toStr(d.prompt) || undefined,
+    dateGenerated: toStr(d.outputDate) || toStr(d.dateGenerated),
   });
 }
 
