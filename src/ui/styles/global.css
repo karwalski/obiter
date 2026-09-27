@@ -1208,13 +1208,17 @@ body {
   margin: 2px 0 6px;
 }
 
+/* Wraps at the default Word for Mac pane width (~320px) rather than
+   squeezing labels onto several lines and pushing Delete off the card. */
 .library-card-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
 }
 
 .library-btn {
+  white-space: nowrap;
   padding: 3px var(--space-sm);
   font-size: var(--text-xs);
   border: 1px solid var(--colour-border);
