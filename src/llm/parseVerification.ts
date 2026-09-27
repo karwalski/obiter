@@ -843,6 +843,11 @@ export async function verifyParse(
   let best = { candidate: current, ...checked, explained: [] as string[], confirmed: false };
   let rounds = 0;
   const failures: string[] = [];
+  // The start of an unparseable reply, shown in the notes so a failure can
+  // be diagnosed (prose, fences, a cut-off, an empty reply). It stays on the
+  // user's machine like the rest of the result.
+  let badReply: string | null = null;
+  let parsedOnce = false;
 
   for (let round = 1; round <= maxRounds; round++) {
     rounds = round;
@@ -864,7 +869,8 @@ export async function verifyParse(
       }
       try {
         parsed = parseVerifyResponse(response, current);
-      } catch {
+      } catch (err: unknown) {
+        badReply = `${response.length} characters, ${err instanceof Error ? err.message : "unparseable"}; it began: ${JSON.stringify(response.slice(0, 160))}`;
         if (attempt === 0) {
           messages.push(
             { role: "assistant", content: response },
@@ -880,6 +886,7 @@ export async function verifyParse(
       }
     }
     if (!parsed) break;
+    parsedOnce = true;
 
     const next = checkParse(input, parsed.candidate, opts);
     const { issues, notes } = applyExplanations(next.issues, parsed.explanations);
@@ -931,6 +938,7 @@ export async function verifyParse(
     ...best.explained,
     ...(best.candidate.notes ?? []),
     ...dropped.map((d) => `Dropped ${d}: not a field of this source type.`),
+    ...(badReply && !parsedOnce ? [`AI reply that couldn't be read (${badReply}).`] : []),
   ];
 
   return {

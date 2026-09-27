@@ -476,6 +476,20 @@ describe("verifyParse loop (LCT-010)", () => {
     expect(r.notes.join(" ")).toMatch(/Dropped flavour/);
   });
 
+  it("shows the start of an unreadable reply in the notes (Mnookin)", async () => {
+    const input =
+      "Robert H Mnookin, 'Why Negotiations Fail: An Exploration of Barriers to the Resolution of Conflict' (1993) 8 Ohio State Journal on Dispute Resolution 235.";
+    mockMulti.mockResolvedValue("I have checked the record and it looks correct.");
+    const r = await verifyParse(
+      input,
+      { sourceType: "journal.article", data: { title: "Why Negotiations Fail" } },
+      config
+    );
+    expect(mockMulti).toHaveBeenCalledTimes(2);
+    expect(r.warnings.join(" ")).toMatch(/wasn't valid JSON/);
+    expect(r.notes.join(" ")).toMatch(/it began: "I have checked the record/);
+  });
+
   it("returns the initial parse with a warning when the model fails", async () => {
     mockMulti.mockRejectedValueOnce(new Error("rate limited"));
     const r = await verifyParse(MABO, { sourceType: "case.reported", data: maboData }, config);
