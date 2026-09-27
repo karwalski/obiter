@@ -1769,5 +1769,5 @@ Seeded 2026-09-27 from the read-only review in `docs/research/legal-citation-too
 | LCT-010 | Parse-verification feedback loop (paste, corpus and Preview paths) | 1.1.6, 1.1.7, 1.2, 2.2.5 | FEATURE | DONE (branch) |
 | LCT-011 | DECISION-042: publisher words, organisation as web author, ibid after another citation | 6.3.1, 7.15, 1.4.3 | DOCS | TODO |
 | LCT-012 | Live-model check of LCT-010, then release 1.18.0 | — | RELEASE | TODO |
-| LCT-013 | Review and improve the CSL AGLC style upstream (non-overlapping with PR #8140) | core AGLC4 | SHARE | IN PROGRESS |
+| LCT-013 | Review and improve the CSL AGLC style upstream (non-overlapping with PR #8140); PR #8344 opened | core AGLC4 | SHARE | IN REVIEW (upstream) |
 | LCT-014 | NZLSG 4th edition watch | — | RESEARCH | WATCH |

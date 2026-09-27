@@ -89,3 +89,5 @@ An independent review re-checked every rule citation, abbreviation, schema resul
 - PR body: the wording is corrected, and the known limits now include paragraph lists (`[90, 92]`), the bare locator in `(n X)` references until the #8140 follow-up, and the comma before treaty pinpoints. It also notes that #8140 removes the superscript ordinals, which r 6.3.2 requires.
 
 After the fixes, the style re-validates against CSL 1.0.2, and the samples render `…, 2499–2517`, `…, 'demise'`, `[90]`, `s 5(2)` and `para 4`.
+
+**PR opened 27 Sep 2026:** https://github.com/citation-style-language/styles/pull/8344, from the `karwalski:aglc4-pinpoint-labels` branch. It's authored under the GitHub noreply address.
