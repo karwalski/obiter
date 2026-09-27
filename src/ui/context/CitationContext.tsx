@@ -5,10 +5,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  registerSelectionHandler,
-  unregisterSelectionHandler,
-} from "../../word/selectionHandler";
+import { registerSelectionHandler, unregisterSelectionHandler } from "../../word/selectionHandler";
 import { registerChangeListener, unregisterChangeListener } from "../../word/changeListener";
 import { refreshAllCitations } from "../../word/citationRefresher";
 import type { RefreshIssuesDetail } from "../../word/citationRefresher";
@@ -40,6 +37,11 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const refreshingRef = useRef(false);
+  // A refresh requested while another is running. It used to be dropped,
+  // which left an "auto" occurrence stale: an Ibid stayed Ibid after a
+  // different source was inserted before it (field report 27 Sep 2026).
+  // Now it runs once the current refresh finishes.
+  const refreshPendingRef = useRef(false);
   const debounceTimerRef = useRef<number | null>(null);
 
   // UX-005: Delay auto-refresh until Word finishes its initial document
@@ -67,14 +69,29 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     // Debounced: waits 1.5s after the last trigger before running, so rapid
     // inserts don't cause back-to-back full refreshes (O(n) each).
     // Gate: Manual Citations Mode disables all auto-refresh.
-    if (!autoRefreshEnabled || !startupReadyRef.current || getDevicePref("manualCitationMode") === true) return;
+    if (
+      !autoRefreshEnabled ||
+      !startupReadyRef.current ||
+      getDevicePref("manualCitationMode") === true
+    )
+      return;
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = window.setTimeout(() => {
-      if (refreshingRef.current) return;
-      refreshingRef.current = true;
+    debounceTimerRef.current = window.setTimeout(() => runRefresh(), 1500);
+  }, [autoRefreshEnabled]);
 
-      void Word.run(async (context) => {
+  /** Run one full refresh, then any refresh requested while it ran. */
+  function runRefresh(): void {
+    if (refreshingRef.current) {
+      refreshPendingRef.current = true;
+      return;
+    }
+    refreshingRef.current = true;
+    refreshPendingRef.current = false;
+
+    let run: Promise<unknown>;
+    try {
+      run = Word.run(async (context) => {
         try {
           const store = await getSharedStore();
           const result = await refreshAllCitations(context, store);
@@ -97,12 +114,25 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
           log.error("Auto-refresh failed", {
             error: err instanceof Error ? err.message : String(err),
           });
-        } finally {
-          refreshingRef.current = false;
         }
       });
-    }, 1500);
-  }, [autoRefreshEnabled]);
+    } catch {
+      // Word unavailable (host not ready): release the guard so the next
+      // trigger can run.
+      run = Promise.resolve();
+    }
+    void run
+      .catch(() => {
+        // Word.run itself failed (document closing); the next trigger retries.
+      })
+      .finally(() => {
+        refreshingRef.current = false;
+        if (refreshPendingRef.current) {
+          refreshPendingRef.current = false;
+          runRefresh();
+        }
+      });
+  }
 
   // Register the document selection handler — auto-navigate to /edit on CC click
   const navigateRef = useRef<ReturnType<typeof useNavigate> | null>(null);
@@ -111,8 +141,12 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   // Keep refs in sync (avoids re-registering the handler on every nav change)
   const navigate = useNavigate();
   const location = useLocation();
-  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
-  useEffect(() => { locationRef.current = location; }, [location]);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
 
   useEffect(() => {
     let mounted = true;
@@ -163,16 +197,18 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   }, [autoRefreshEnabled, triggerRefresh]);
 
   return (
-    <CitationContext.Provider value={{
-      selectedCitationId,
-      setSelectedCitationId,
-      focusField,
-      setFocusField,
-      refreshCounter,
-      triggerRefresh,
-      autoRefreshEnabled,
-      setAutoRefreshEnabled,
-    }}>
+    <CitationContext.Provider
+      value={{
+        selectedCitationId,
+        setSelectedCitationId,
+        focusField,
+        setFocusField,
+        refreshCounter,
+        triggerRefresh,
+        autoRefreshEnabled,
+        setAutoRefreshEnabled,
+      }}
+    >
       {children}
     </CitationContext.Provider>
   );
