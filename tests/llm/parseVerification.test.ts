@@ -17,6 +17,7 @@ import { findOverusedNumbers, findUngroundedNumbers, numbersIn } from "../../src
 import {
   buildTypeBrief,
   checkParse,
+  extractJsonObject,
   verifyParse,
   type ParseCandidate,
 } from "../../src/llm/parseVerification";
@@ -361,6 +362,50 @@ describe("verifyParse loop (LCT-010)", () => {
     expect(r.shortTitle).toBe("Mabo");
     const prompt = mockMulti.mock.calls[0][1][0].content;
     expect(prompt).toMatch(/never remove a short title/);
+  });
+
+  it("recovers JSON wrapped in prose or fences, including braces inside strings", () => {
+    expect(
+      JSON.parse(extractJsonObject('Here you go:\n```json\n{"a":"x}y","b":{"c":1}}\n```'))
+    ).toEqual({
+      a: "x}y",
+      b: { c: 1 },
+    });
+    expect(() => extractJsonObject('{"confirmed": true, "data": {"title": "Getting')).toThrow(
+      /incomplete/
+    );
+  });
+
+  it("repairs a truncated reply once, with at least 2,048 output tokens (Getting to Yes)", async () => {
+    const input =
+      "Roger Fisher, William Ury and Bruce Patton, Getting to Yes: Negotiating Agreement Without Giving In (Random House, 3rd ed, 2012) ch 6";
+    const book = {
+      authors: [
+        { givenNames: "Roger", surname: "Fisher" },
+        { givenNames: "William", surname: "Ury" },
+        { givenNames: "Bruce", surname: "Patton" },
+      ],
+      title: "Getting to Yes: Negotiating Agreement Without Giving In",
+      publisher: "Random House",
+      edition: "3",
+      year: "2012",
+      pinpoint: "ch 6",
+    };
+    mockMulti
+      .mockResolvedValueOnce(
+        '{"confirmed": true, "sourceType": "book", "data": {"authors": [{"givenNames": "Rog'
+      )
+      .mockResolvedValueOnce(reply({ confirmed: true, sourceType: "book", data: book }));
+    const r = await verifyParse(
+      input,
+      { sourceType: "book", data: book, shortTitle: "Getting to Yes" },
+      config
+    );
+    expect(mockMulti).toHaveBeenCalledTimes(2);
+    expect(mockMulti.mock.calls[0][0].maxTokens).toBeGreaterThanOrEqual(2048);
+    expect(mockMulti.mock.calls[1][1].at(-1)?.content).toMatch(/only the JSON object/);
+    expect(r.verification.confirmed).toBe(true);
+    expect(r.warnings).toEqual([]);
   });
 
   it("drops fields the type doesn't have, with a note", async () => {

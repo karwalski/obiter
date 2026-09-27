@@ -613,7 +613,7 @@ Respond with ONLY valid JSON (no markdown fencing) in this shape:
   "commentaryAfter": "<text or empty string>",
   "omitted": [ { "text": "<input text AGLC4 drops>", "reason": "<why>" } ],
   "explanations": { "<issue id>": "<why this issue is expected and needs no change>" },
-  "notes": [ "<anything the user should check>" ]
+  "notes": [ "<anything the user should check, one short sentence each, at most 3>" ]
 }
 
 Set "confirmed" to true only if Obiter's rendering of your returned record represents the input source faithfully under AGLC4. If another source type fits better, change "sourceType" and use that type's fields.`;
@@ -681,6 +681,37 @@ function asString(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() !== "" ? v : undefined;
 }
 
+/**
+ * Return the first complete top-level JSON object in a model reply, so a
+ * reply wrapped in prose or code fences still parses. Throws when there is
+ * no complete object, for example when the reply was cut off.
+ */
+export function extractJsonObject(text: string): string {
+  const start = text.indexOf("{");
+  if (start < 0) throw new Error("no JSON object in the reply");
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}" && --depth === 0) return text.slice(start, i + 1);
+  }
+  throw new Error("the JSON object in the reply is incomplete");
+}
+
+/**
+ * The verify reply repeats the whole record plus notes and explanations, so it
+ * needs more room than a plain parse. The 1,024-token default truncated real
+ * replies mid-object.
+ */
+const MIN_VERIFY_MAX_TOKENS = 2048;
+
 function parseVerifyResponse(
   text: string,
   previous: ParseCandidate
@@ -689,8 +720,7 @@ function parseVerifyResponse(
   confirmed: boolean;
   explanations: Record<string, string>;
 } {
-  const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
-  const raw = JSON.parse(cleaned) as VerifyResponse;
+  const raw = JSON.parse(extractJsonObject(text)) as VerifyResponse;
   const data =
     raw.data && typeof raw.data === "object" && !Array.isArray(raw.data)
       ? (raw.data as Record<string, unknown>)
@@ -781,24 +811,40 @@ export async function verifyParse(
 
   for (let round = 1; round <= maxRounds; round++) {
     rounds = round;
-    let response: string;
-    try {
-      response = await callLlmMultiTurn(
-        llmConfig,
-        buildVerifyMessages(input, current, checked.rendered, checked.issues, round)
-      );
-    } catch (err: unknown) {
-      failures.push(err instanceof Error ? err.message : "the AI didn't respond");
-      break;
+    const verifyConfig = {
+      ...llmConfig,
+      maxTokens: Math.max(llmConfig.maxTokens ?? 0, MIN_VERIFY_MAX_TOKENS),
+    };
+    const messages = buildVerifyMessages(input, current, checked.rendered, checked.issues, round);
+    let parsed: ReturnType<typeof parseVerifyResponse> | null = null;
+    // One repair attempt: if the reply isn't a complete JSON object, show the
+    // model its reply and ask for the JSON alone.
+    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+      let response: string;
+      try {
+        response = await callLlmMultiTurn(verifyConfig, messages);
+      } catch (err: unknown) {
+        failures.push(err instanceof Error ? err.message : "the AI didn't respond");
+        break;
+      }
+      try {
+        parsed = parseVerifyResponse(response, current);
+      } catch {
+        if (attempt === 0) {
+          messages.push(
+            { role: "assistant", content: response },
+            {
+              role: "user",
+              content:
+                "That reply was not one complete JSON object. Reply again with only the JSON object in the requested shape, with notes kept to one short sentence each.",
+            }
+          );
+        } else {
+          failures.push("the AI's reply wasn't valid JSON");
+        }
+      }
     }
-
-    let parsed: ReturnType<typeof parseVerifyResponse>;
-    try {
-      parsed = parseVerifyResponse(response, current);
-    } catch {
-      failures.push("the AI's reply wasn't valid JSON");
-      break;
-    }
+    if (!parsed) break;
 
     const next = checkParse(input, parsed.candidate, opts);
     const { issues, notes } = applyExplanations(next.issues, parsed.explanations);

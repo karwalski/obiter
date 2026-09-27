@@ -778,3 +778,8 @@ These three points came up when comparing legal-citation-tool's normalisation ru
 - **What the rule says (derived notes):** ibid is capitalised only when it opens a footnote. The notes don't say whether ibid may refer back to the last source of the *previous* footnote when another citation comes before it in the current footnote (`Smith (n 1); ibid`).
 - **What Obiter does:** Obiter emits the ibid. LCT-003 will lower-case it mid-footnote either way.
 - **Question:** is ibid permitted in that position, or must a short reference be used instead?
+
+**(d) A particle in a phrasal verb in a title, r 1.7.** (Added 2026-09-27 from a user test.)
+- **What the rule says (derived notes):** capitalise every word of a title except articles, conjunctions and prepositions. "In" is one of the rule's examples of a preposition.
+- **What Obiter does:** Obiter lowercases every listed word. So *Getting to Yes: Negotiating Agreement without Giving in* comes out with a lower-case "in". Here "in" belongs to the verb "give in", not a preposition.
+- **Question:** should a particle that is part of a phrasal verb keep its capital ("Giving In")? Or does the word list apply regardless of grammar? A lower-case "without" is correct under the rule, even though the book's cover capitalises it.
