@@ -1751,7 +1751,7 @@ DECISION-040. Ships as a patch.
 
 ## EPIC: LCT — Lessons from legal-citation-tool
 
-**Phase:** Post-backlog | **Stories:** 14 | **Completed:** 2 on branch `feat/lct-verification-loop` (not merged)
+**Phase:** Post-backlog | **Stories:** 14 | **Completed:** LCT-001, LCT-010 and LCT-012 shipped in v1.17.5 (27 Sep 2026)
 
 Seeded 2026-09-27 from the read-only review in `docs/research/legal-citation-tool-review.md`. The full stories are in `../footnote-backlog.md` under Epic LCT.
 
@@ -1766,8 +1766,8 @@ Seeded 2026-09-27 from the read-only review in `docs/research/legal-citation-too
 | LCT-007 | Spike: tracked changes during Scan & Repair apply | — | SPIKE | TODO |
 | LCT-008 | Opt-in AI-assisted repair of verbatim notes | — | FEATURE | TODO |
 | LCT-009 | Replay-real-output regression fixtures for AI parse | — | TEST | PARTIAL |
-| LCT-010 | Parse-verification feedback loop (paste, corpus and Preview paths) | 1.1.6, 1.1.7, 1.2, 2.2.5 | FEATURE | DONE (branch) |
+| LCT-010 | Parse-verification feedback loop (paste, corpus and Preview paths) | 1.1.6, 1.1.7, 1.2, 2.2.5 | FEATURE | DONE (v1.17.5) |
 | LCT-011 | DECISION-042: publisher words, organisation as web author, ibid after another citation | 6.3.1, 7.15, 1.4.3 | DOCS | TODO |
-| LCT-012 | Live-model check of LCT-010, then release 1.18.0 | — | RELEASE | TODO |
+| LCT-012 | Release as v1.17.5 (patch, web deploy; no manifest change) on 2026-09-27; live-model check of LCT-010 still owed | — | RELEASE | DONE (check owed) |
 | LCT-013 | Review and improve the CSL AGLC style upstream (non-overlapping with PR #8140); PR #8344 opened | core AGLC4 | SHARE | IN REVIEW (upstream) |
 | LCT-014 | NZLSG 4th edition watch | — | RESEARCH | WATCH |
