@@ -282,6 +282,9 @@ Deciding signals and commentary (AGLC4 r 1.2):
 - Prose before the citation goes in "commentaryBefore"; prose after it (eg "(emphasis added)", "and the cases cited there") goes in "commentaryAfter". Do not put them in data fields.
 - Text AGLC4 deliberately drops (eg "Pty Ltd" in a publisher, "p" before a page, a trailing full stop) goes in "omitted" with a short reason.
 
+Short title (AGLC4 r 1.4.4):
+- Always suggest one in "shortTitle", even if the input has none. Obiter decides when the "('…')" appears in the output, so never remove a short title and don't write notes about whether it appears.
+
 Never invent. Leave a field out if its value is not in the input. Every number you use must come from the input, and each occurrence of a number in the input fills at most one field.`;
 
 // ─── Rendering ──────────────────────────────────────────────────────────────
@@ -604,7 +607,7 @@ Respond with ONLY valid JSON (no markdown fencing) in this shape:
   "confirmed": true | false,
   "sourceType": "<source type>",
   "data": { <the complete corrected record, using only that type's fields> },
-  "shortTitle": "<short title or empty string>",
+  "shortTitle": "<suggested short title; never empty>",
   "signal": <one of the signals above, or null>,
   "commentaryBefore": "<text or empty string>",
   "commentaryAfter": "<text or empty string>",
@@ -711,6 +714,8 @@ function parseVerifyResponse(
     candidate: {
       sourceType,
       data,
+      // The model may improve the short title but never remove it: Obiter,
+      // not the model, decides when it appears (r 1.4.4).
       shortTitle: asString(raw.shortTitle) ?? previous.shortTitle,
       signal,
       commentaryBefore: asString(raw.commentaryBefore),

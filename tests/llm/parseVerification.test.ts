@@ -349,6 +349,20 @@ describe("verifyParse loop (LCT-010)", () => {
     ).toContain("invalid_signal");
   });
 
+  it("keeps the short title when the model returns it empty (r 1.4.4 is Obiter's call)", async () => {
+    mockMulti.mockResolvedValueOnce(
+      reply({ confirmed: true, sourceType: "case.reported", data: maboData, shortTitle: "" })
+    );
+    const r = await verifyParse(
+      MABO,
+      { sourceType: "case.reported", data: maboData, shortTitle: "Mabo" },
+      config
+    );
+    expect(r.shortTitle).toBe("Mabo");
+    const prompt = mockMulti.mock.calls[0][1][0].content;
+    expect(prompt).toMatch(/never remove a short title/);
+  });
+
   it("drops fields the type doesn't have, with a note", async () => {
     mockMulti.mockResolvedValueOnce(
       reply({ confirmed: true, sourceType: "case.reported", data: { ...maboData, flavour: "x" } })
