@@ -40,7 +40,7 @@ import { findOverusedNumbers, findUngroundedNumbers, flattenFields } from "./gro
 import { exportRuleReference } from "../engine/ruleExporter";
 import { formatCitation } from "../engine/engine";
 import { FIELD_ALIASES, getFieldAliases } from "../engine/fieldAliases";
-import { listMissingRequiredFields } from "../engine/validator";
+import { isJournalIssueMissing, listMissingRequiredFields } from "../engine/validator";
 import { referenceGuideEntries } from "../ui/data/referenceGuide";
 import { REPORT_SERIES } from "../engine/data/report-series";
 import { APPENDIX_A_SERIES } from "../engine/data/appendix-a-series";
@@ -79,6 +79,7 @@ export type ParseIssueKind =
   | "uncovered_text"
   | "et_al_authors"
   | "placeholder_issue"
+  | "missing_issue"
   | "invalid_signal";
 
 export interface ParseIssue {
@@ -542,6 +543,19 @@ export function checkParse(
     });
   }
 
+  // AGLC4 r 5.4: an issue number is required where the journal has one. The
+  // input may simply lack it, and the model must not invent it, so this is
+  // advisory. Skipped when the input shows RePEc's "no issue" placeholder.
+  if (isJournalIssueMissing(c.sourceType, c.data) && !/\d\s*\(C\)/.test(input)) {
+    push({
+      kind: "missing_issue",
+      field: "issue",
+      severity: "info",
+      message:
+        "No issue number. AGLC4 r 5.4 gives it after the volume, eg '81(4)', where the journal has one. Check the source or use Update from source.",
+    });
+  }
+
   // Signal.
   if (c.signal !== undefined && !isValidSignal(c.signal)) {
     push({
@@ -938,6 +952,10 @@ export async function verifyParse(
     ...best.explained,
     ...(best.candidate.notes ?? []),
     ...dropped.map((d) => `Dropped ${d}: not a field of this source type.`),
+    // What the model chose to leave out of the citation, so it is never silent.
+    ...(best.candidate.omitted ?? []).map(
+      (o) => `Left out: '${o.text}'${o.reason ? ` (${o.reason})` : ""}.`
+    ),
     ...(badReply && !parsedOnce ? [`AI reply that couldn't be read (${badReply}).`] : []),
   ];
 

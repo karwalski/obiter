@@ -231,6 +231,25 @@ describe("checkParse", () => {
     );
   });
 
+  it("notes a missing issue number (r 5.4) without blocking (Mnookin)", () => {
+    const input =
+      "Robert H Mnookin, 'Why Negotiations Fail: An Exploration of Barriers to the Resolution of Conflict' (1993) 8 Ohio State Journal on Dispute Resolution 235.";
+    const c: ParseCandidate = {
+      sourceType: "journal.article",
+      data: {
+        authors: [{ givenNames: "Robert H", surname: "Mnookin" }],
+        title: "Why Negotiations Fail: An Exploration of Barriers to the Resolution of Conflict",
+        year: "1993",
+        volume: "8",
+        journal: "Ohio State Journal on Dispute Resolution",
+        startingPage: "235",
+      },
+    };
+    const issue = checkParse(input, c).issues.find((i) => i.kind === "missing_issue");
+    expect(issue?.severity).toBe("info");
+    expect(kinds({ ...c, data: { ...c.data, issue: "2" } }, input)).not.toContain("missing_issue");
+  });
+
   it("reports input text that reached no field, signal or commentary", () => {
     const input = `See ${MABO} (emphasis added)`;
     const c: ParseCandidate = { sourceType: "case.reported", data: maboData };
@@ -465,6 +484,19 @@ describe("verifyParse loop (LCT-010)", () => {
     expect(mockMulti.mock.calls[1][1].at(-1)?.content).toMatch(/only the JSON object/);
     expect(r.verification.confirmed).toBe(true);
     expect(r.warnings).toEqual([]);
+  });
+
+  it("shows what the model left out as a note", async () => {
+    mockMulti.mockResolvedValueOnce(
+      reply({
+        confirmed: true,
+        sourceType: "case.reported",
+        data: maboData,
+        omitted: [{ text: "The Monthly Newsletter", reason: "journal subtitle, r 5.5" }],
+      })
+    );
+    const r = await verifyParse(MABO, { sourceType: "case.reported", data: maboData }, config);
+    expect(r.notes).toContain("Left out: 'The Monthly Newsletter' (journal subtitle, r 5.5).");
   });
 
   it("drops fields the type doesn't have, with a note", async () => {

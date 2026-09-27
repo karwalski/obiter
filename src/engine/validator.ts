@@ -280,6 +280,7 @@ function validateDocumentWithOptions(
       allIssues.push(...checkLegislativeHistoryHint(citation));
       allIssues.push(...checkCourtOrderOfficers(citation));
       allIssues.push(...checkIssuingBodyName(citation));
+      allIssues.push(...checkJournalIssue(citation));
     }
   }
 
@@ -1465,6 +1466,40 @@ export function checkCourtOrderOfficers(citation: Citation): ValidationIssue[] {
  * body, so a name carrying company designators is flagged for the user
  * instead.
  */
+/**
+ * True when a journal article has a volume but no issue number.
+ *
+ * @remarks AGLC4 Rule 5.4 — the volume and the issue number are both given,
+ * the issue in parentheses immediately after the volume ('40(1)'). A pasted
+ * or imported citation often lacks the issue, and Obiter cannot know whether
+ * the journal has one (some volumes have none), so this is a hint, not an
+ * error. Field report 27 Sep 2026: '(1993) 8' should have been '8(2)', and
+ * '(2001) 81' should have been '81(4)'.
+ */
+export function isJournalIssueMissing(sourceType: string, data: Record<string, unknown>): boolean {
+  if (sourceType !== "journal.article" && sourceType !== "journal.online") return false;
+  return isFieldValuePresent(data.volume) && !isFieldValuePresent(data.issue);
+}
+
+/** Rule 5.4 hint for a journal article with a volume and no issue number. */
+export function checkJournalIssue(citation: Citation): ValidationIssue[] {
+  if (!isJournalIssueMissing(citation.sourceType, citation.data as Record<string, unknown>)) {
+    return [];
+  }
+  return [
+    {
+      ruleNumber: "5.4",
+      message: `Journal article '${getCitationLabel(citation)}' has no issue number. AGLC4 r 5.4 gives the issue after the volume, eg '81(4)', where the journal has one.`,
+      suggestion:
+        "Add the issue number from the source, or use Update from source. Leave it out only if the volume has no issues.",
+      severity: "info",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    },
+  ];
+}
+
 export function checkIssuingBodyName(citation: Citation): ValidationIssue[] {
   if (citation.sourceType !== "legislation.quasi") {
     return [];
