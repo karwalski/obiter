@@ -1509,8 +1509,12 @@ export default function EditCitation(): JSX.Element {
         <CitationPreview
           runs={previewRuns}
           sourceType={citation?.sourceType}
-          onParsed={(parsedData) => {
+          onParsed={(parsedData, _warnings, _detectedSourceType, extras) => {
             setFormData((prev) => ({ ...prev, ...parsedData }));
+            // LCT-010: apply the loop's signal and commentary decisions
+            if (extras?.signal) setSignal(extras.signal);
+            if (extras?.commentaryBefore) setCommentaryBefore(extras.commentaryBefore);
+            if (extras?.commentaryAfter) setCommentaryAfter(extras.commentaryAfter);
             setSuccessMessage(null);
           }}
           onOverride={(text) => {

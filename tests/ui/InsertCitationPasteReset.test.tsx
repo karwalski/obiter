@@ -25,7 +25,7 @@ const mockParseCitationText = jest.fn(async () => ({
   sourceType: "case.reported",
   data: {
     party1: "Mabo",
-    party2: "Queensland (No 2)",
+    party2: "Queensland [No 2]",
     year: 1992,
     volume: 175,
     reportSeries: "CLR",
@@ -34,6 +34,8 @@ const mockParseCitationText = jest.fn(async () => ({
   confidence: 0.95,
   standard: "aglc4",
   shortTitle: "Mabo",
+  warnings: [],
+  notes: [],
 }));
 jest.mock("../../src/llm/parseCitation", () => ({
   parseCitationText: (...args: unknown[]): Promise<unknown> =>

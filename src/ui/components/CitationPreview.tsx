@@ -5,16 +5,33 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { FormattedRun } from "../../types/formattedRun";
-import type { SourceType, SourceData } from "../../types/citation";
+import type { SourceType, SourceData, IntroductorySignal } from "../../types/citation";
 import { loadLlmConfig } from "../../llm/config";
 import { parseWithCorpusFirst } from "../../llm/corpusEnhancedParse";
 import { checkCorpusAvailable } from "../../api/corpus/corpusDownload";
+import ParseFindings from "./ParseFindings";
+
+/**
+ * LCT-010: what the AI verification loop decided beyond the data fields.
+ * Each value is present only when the loop found one.
+ */
+export interface ParseExtras {
+  signal?: IntroductorySignal;
+  commentaryBefore?: string;
+  commentaryAfter?: string;
+  notes?: string[];
+}
 
 export interface CitationPreviewProps {
   runs: FormattedRun[];
   sourceType?: SourceType;
   /** Called when the user edits the preview text and fields are parsed out. */
-  onParsed?: (data: Partial<SourceData>, warnings: string[], detectedSourceType?: string) => void;
+  onParsed?: (
+    data: Partial<SourceData>,
+    warnings: string[],
+    detectedSourceType?: string,
+    extras?: ParseExtras,
+  ) => void;
   /** Called when the user's manual text should be used as-is for insertion. */
   onOverride?: (text: string) => void;
   /** Called when AI parsing detects a different source type than currently selected. */
@@ -195,6 +212,7 @@ export default function CitationPreview({
   const [editing, setEditing] = useState(false);
   const [manualText, setManualText] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string[]>([]);
   const [overrideMode, setOverrideMode] = useState(false);
   const [aiParsing, setAiParsing] = useState(false);
   const [aiMessage, setAiMessage] = useState<string | null>(null);
@@ -214,6 +232,7 @@ export default function CitationPreview({
     if (!editing) {
       setManualText(formattedText);
       setWarnings([]);
+      setNotes([]);
       setOverrideMode(false);
     }
   }, [formattedText, editing]);
@@ -225,6 +244,7 @@ export default function CitationPreview({
 
       const { data, warnings: w } = parseCitationText(value, sourceType);
       setWarnings(w);
+      setNotes([]);
 
       if (Object.keys(data).length > 0) {
         onParsed(data, w);
@@ -267,9 +287,15 @@ export default function CitationPreview({
       } else {
         setWarnings([]);
       }
+      setNotes(result.notes ?? []);
 
       if (fieldCount > 0) {
-        onParsed(result.data as Partial<SourceData>, result.warnings, result.detectedSourceType);
+        onParsed(result.data as Partial<SourceData>, result.warnings, result.detectedSourceType, {
+          signal: result.signal,
+          commentaryBefore: result.commentaryBefore,
+          commentaryAfter: result.commentaryAfter,
+          notes: result.notes,
+        });
         setParseSource(result.source);
 
         const sourceLabel =
@@ -392,18 +418,17 @@ export default function CitationPreview({
             placeholder="Type or paste a formatted citation..."
             aria-label="Edit citation text"
           />
-          {warnings.length > 0 && !overrideMode && (
-            <div className="citation-preview-warnings">
-              {warnings.map((w, i) => (
-                <div key={i} className="citation-preview-warning">
-                  {w}
+          {!overrideMode && (
+            <ParseFindings
+              warnings={warnings}
+              notes={notes}
+              warningHint={
+                <div className="citation-preview-warning-hint">
+                  Parsing problems never block insertion — choose &lsquo;Insert as
+                  manual citation&rsquo; to keep the text exactly as typed.
                 </div>
-              ))}
-              <div className="citation-preview-warning-hint">
-                Parsing problems never block insertion — choose &lsquo;Insert as
-                manual citation&rsquo; to keep the text exactly as typed.
-              </div>
-            </div>
+              }
+            />
           )}
           {overrideMode && (
             <div className="citation-preview-override-active">

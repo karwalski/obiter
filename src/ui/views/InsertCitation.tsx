@@ -17,6 +17,7 @@ import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getFormattedPreview, formatCitation } from "../../engine/engine";
 import type { CitationContext as CitationFormatContext } from "../../engine/engine";
 import CitationPreview from "../components/CitationPreview";
+import ParseFindings from "../components/ParseFindings";
 import FieldHelp from "../components/FieldHelp";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
@@ -1180,11 +1181,16 @@ export default function InsertCitation(): JSX.Element {
     setPasteCitationLoading(true);
     setPasteCitationResult(null);
     setPasteCitationError(null);
-    announce("Reading the citation…");
+    announce("Reading the citation, then checking it against AGLC4…");
     try {
       const result = await parseCitationText(pasteCitationText.trim(), llmConfig);
       setPasteCitationResult(result);
-      announce("Citation parsed. Review the fields before inserting.", "success");
+      announce(
+        result.warnings.length > 0
+          ? `Citation parsed with ${result.warnings.length} ${result.warnings.length === 1 ? "problem" : "problems"} to check.`
+          : "Citation parsed and checked. Review the fields before inserting.",
+        result.warnings.length > 0 ? "error" : "success"
+      );
 
       // Auto-select category and source type in the dropdowns
       const match = findCategoryForSourceType(result.sourceType);
@@ -1222,10 +1228,10 @@ export default function InsertCitation(): JSX.Element {
         setShortTitleTouched(false);
       }
 
-      // Reset signals and commentary
-      setSignal("");
-      setCommentaryBefore("");
-      setCommentaryAfter("");
+      // LCT-010: the verification loop decides the signal and commentary
+      setSignal(result.signal ?? "");
+      setCommentaryBefore(result.commentaryBefore ?? "");
+      setCommentaryAfter(result.commentaryAfter ?? "");
       setFeedback(null);
     } catch (err: unknown) {
       const message =
@@ -1610,8 +1616,16 @@ export default function InsertCitation(): JSX.Element {
                     )}
                   </div>
                   <div className="ic-paste-citation-note">
+                    {pasteCitationResult.verification &&
+                      (pasteCitationResult.verification.confirmed
+                        ? "Checked against AGLC4 and confirmed. "
+                        : "Checked against AGLC4 but not confirmed. ")}
                     Review the populated fields before inserting.
                   </div>
+                  <ParseFindings
+                    warnings={pasteCitationResult.warnings}
+                    notes={pasteCitationResult.notes}
+                  />
                 </div>
               )}
               {pasteCitationError && (
@@ -2007,7 +2021,12 @@ export default function InsertCitation(): JSX.Element {
           <CitationPreview
             runs={previewRuns}
             sourceType={selectedSourceType as SourceType}
-            onParsed={(parsedData, _warnings, detectedSourceType) => {
+            onParsed={(parsedData, _warnings, detectedSourceType, extras) => {
+              // LCT-010: apply the loop's signal and commentary decisions,
+              // never clearing a value the user already set
+              if (extras?.signal) setSignal(extras.signal);
+              if (extras?.commentaryBefore) setCommentaryBefore(extras.commentaryBefore);
+              if (extras?.commentaryAfter) setCommentaryAfter(extras.commentaryAfter);
               // Use detected source type if available (selectedSourceType may be stale due to React batching)
               const st = detectedSourceType ?? selectedSourceType;
               // Coerce objects/arrays to strings FIRST, before field mapping

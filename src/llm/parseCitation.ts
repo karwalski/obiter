@@ -13,6 +13,8 @@
 import { SourceType } from "../types/citation";
 import { LLMConfig } from "./config";
 import { callLlm } from "./client";
+import { verifyParse, type VerificationSummary } from "./parseVerification";
+import type { IntroductorySignal } from "../types/citation";
 
 /** All SourceType literal values, kept in sync with the union. */
 const SOURCE_TYPES: SourceType[] = [
@@ -122,8 +124,8 @@ FIELD MAPPING BY SOURCE TYPE:
 Reported cases (case.reported):
   party1, party2, yearType ("round" or "square"), year, volume, reportSeries, startingPage, pinpoint, courtId
   parallelCitations: array of { yearType, year, volume?, reportSeries, startingPage }
-  Example: "Mabo v Queensland (No 2) (1992) 175 CLR 1" ->
-    { party1: "Mabo", party2: "Queensland (No 2)", yearType: "round", year: "1992", volume: "175", reportSeries: "CLR", startingPage: "1" }
+  Example: "Mabo v Queensland [No 2] (1992) 175 CLR 1" ->
+    { party1: "Mabo", party2: "Queensland [No 2]", yearType: "round", year: "1992", volume: "175", reportSeries: "CLR", startingPage: "1" }
 
 Unreported cases with MNC (case.unreported.mnc):
   party1, party2, year, courtId, mnc (medium-neutral citation number), pinpoint
@@ -161,6 +163,8 @@ Foreign jurisdictions (foreign.canada, foreign.uk, foreign.usa, foreign.new_zeal
   Example: "*Tsleil-Waututh Nation v Canada (Attorney General)* 2018 FCA 153, [558]–[561]" ->
     { title: "Tsleil-Waututh Nation v Canada (Attorney General)", citationDetails: "2018 FCA 153", court: "FCA", year: "2018", foreignSubType: "case", pinpoint: "[558]–[561]" }
 
+Never invent a value. Leave a field out if its value is not in the citation, and never take a year, volume or page from your own knowledge. Each number in the citation fills at most one field: a number written once is the starting page, not also the pinpoint.
+
 Also extract a suggested shortTitle where appropriate (e.g. first party name for cases, abbreviated title for legislation).
 
 Respond with ONLY valid JSON in this exact shape (no markdown fencing):
@@ -178,6 +182,15 @@ export interface ParsedCitation {
   confidence: number;
   standard?: "aglc4" | "oscola" | "nzlsg";
   shortTitle?: string;
+  /** LCT-010: the verification loop's decisions and findings. */
+  signal?: IntroductorySignal;
+  commentaryBefore?: string;
+  commentaryAfter?: string;
+  /** Problems to fix or check before inserting. */
+  warnings: string[];
+  /** Non-blocking notes for the user. */
+  notes: string[];
+  verification?: VerificationSummary;
 }
 
 /**
@@ -186,10 +199,17 @@ export interface ParsedCitation {
  * Returns the identified source type, extracted field data matching the
  * Citation.data shape, a confidence score, and optionally the detected
  * citation standard and a suggested short title.
+ *
+ * LCT-010: the first answer then goes through the verification loop
+ * (parseVerification.ts): Obiter checks and renders it, and the model
+ * confirms or corrects it against the type's field contract and AGLC4
+ * notes, deciding the pinpoint, signal and commentary. Pass
+ * `{ verify: false }` to skip the loop (one model call only).
  */
 export async function parseCitationText(
   rawText: string,
-  config: LLMConfig
+  config: LLMConfig,
+  options: { verify?: boolean } = {}
 ): Promise<ParsedCitation> {
   const userPrompt = `Parse this formatted citation into structured fields:\n\n${rawText}`;
 
@@ -220,11 +240,28 @@ export async function parseCitationText(
     ? (parsed.standard as "aglc4" | "oscola" | "nzlsg")
     : undefined;
 
-  return {
+  const initial = {
     sourceType: parsed.sourceType as SourceType,
-    data: parsed.data ?? {},
+    data: parsed.data && typeof parsed.data === "object" ? parsed.data : {},
+    shortTitle: typeof parsed.shortTitle === "string" ? parsed.shortTitle : undefined,
+  };
+
+  if (options.verify === false) {
+    return { ...initial, confidence, standard, warnings: [], notes: [] };
+  }
+
+  const verified = await verifyParse(rawText, initial, config);
+  return {
+    sourceType: verified.sourceType,
+    data: verified.data,
     confidence,
     standard,
-    shortTitle: typeof parsed.shortTitle === "string" ? parsed.shortTitle : undefined,
+    shortTitle: verified.shortTitle,
+    signal: verified.signal,
+    commentaryBefore: verified.commentaryBefore,
+    commentaryAfter: verified.commentaryAfter,
+    warnings: verified.warnings,
+    notes: verified.notes,
+    verification: verified.verification,
   };
 }

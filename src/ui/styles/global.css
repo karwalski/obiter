@@ -2311,6 +2311,14 @@ body {
   margin-bottom: var(--space-xs);
 }
 
+/* LCT-010: non-blocking notes from the AI parse-verification loop */
+.ai-parse-notes {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+  color: var(--colour-text-secondary);
+  font-size: var(--text-xs);
+}
+
 /* BUG-002: non-blocking hint beneath parse warnings pointing to the manual-citation escape hatch */
 .citation-preview-warning-hint {
   color: var(--colour-text-secondary);
