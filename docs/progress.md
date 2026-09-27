@@ -1748,3 +1748,26 @@ DECISION-040. Ships as a patch.
 | STD-027 | Word for the web: footnote rebuild used search-and-wrap for child content controls, which on Word Online duplicated or dropped them on every rebuild; the rebuild now deletes the old children and wraps the range `insertHtml` returns, as the insert path does (1 sync per chunk); shipped as 1.17.3 | Live test in Word Online | FIX | IN PROGRESS |
 | STD-028 | Word for the web: a brand-new document refused the first custom XML part write with `ItemNotFound`, so every new document opened the pane with the red "citation store could not be loaded" banner; the write is retried and first-use init degrades to an empty in-memory library | Live test in Word Online | FIX | IN PROGRESS |
 
+
+## EPIC: LCT — Lessons from legal-citation-tool
+
+**Phase:** Post-backlog | **Stories:** 14 | **Completed:** 2 on branch `feat/lct-verification-loop` (not merged)
+
+Seeded 2026-09-27 from the read-only review in `docs/research/legal-citation-tool-review.md`. The full stories are in `../footnote-backlog.md` under Epic LCT.
+
+| ID | Title | Rule / Source | Type | Status |
+|----|-------|---------------|------|--------|
+| LCT-001 | Grounding check for AI-parsed citations (span expansion, overused numbers) | 2.2.5 | FEATURE | DONE (in LCT-010) |
+| LCT-002 | Parser: report series vs MNC, MNC with pinpoint, lettered sections | 2.2, 2.3.1, 3.1.4 | BUG | TODO |
+| LCT-003 | Wire same-author disambiguation; lower-case mid-footnote ibid | 1.4.1, 1.4.3 | BUG | TODO |
+| LCT-004 | Field-rendering sweep test and LLM schema drift fixes (74/323) | — | BUG | TODO |
+| LCT-005 | Crown and `[No n]` in case names; fix Obiter's `(No 2)` examples | 2.1.4, 2.1.13 | BUG | TODO |
+| LCT-006 | Obiter-owned messy-essay Scan & Repair benchmark | — | TEST | TODO |
+| LCT-007 | Spike: tracked changes during Scan & Repair apply | — | SPIKE | TODO |
+| LCT-008 | Opt-in AI-assisted repair of verbatim notes | — | FEATURE | TODO |
+| LCT-009 | Replay-real-output regression fixtures for AI parse | — | TEST | PARTIAL |
+| LCT-010 | Parse-verification feedback loop (paste, corpus and Preview paths) | 1.1.6, 1.1.7, 1.2, 2.2.5 | FEATURE | DONE (branch) |
+| LCT-011 | DECISION-042: publisher words, organisation as web author, ibid after another citation | 6.3.1, 7.15, 1.4.3 | DOCS | TODO |
+| LCT-012 | Live-model check of LCT-010, then release 1.18.0 | — | RELEASE | TODO |
+| LCT-013 | Review and improve the CSL AGLC style upstream (non-overlapping with PR #8140) | core AGLC4 | SHARE | IN PROGRESS |
+| LCT-014 | NZLSG 4th edition watch | — | RESEARCH | WATCH |

@@ -754,3 +754,27 @@ Library guides checked live on 24 September 2026. They copy the UQ template, so 
     - 21 Australian guides: Monash, UNSW, Sydney, RMIT, UTS, La Trobe and others.
     - VUW, Otago, Waikato and AUT.
     - The NZ Law Foundation.
+
+## DECISION-042: Publisher words, organisation as web page author, and ibid after another citation (LCT review)
+
+**Status:** OPEN (awaits researchers)
+**Raised:** 2026-09-27 (LCT-011; evidence in `docs/research/legal-citation-tool-review.md` §2.6 and §3 row 11)
+
+These three points came up when comparing legal-citation-tool's normalisation rules with Obiter's. In each case the derived rule reference (`../aglc4-rule-reference.md`) doesn't settle the point, so Obiter doesn't change its behaviour until a researcher decides. Nothing below transcribes the guide.
+
+**(a) Publisher names, r 6.3.1.**
+- **What the rule says (derived notes):** drop corporate-status abbreviations ("Pty", "Ltd", "Co", etc) from publisher names, and *generally* drop geographic designations such as "Australia".
+- **What Obiter does:** drops `Pty`, `Ltd`, `Co`, `Inc` and a leading `The` (`src/engine/rules/v4/secondary/authors.ts`, `books.ts`). It keeps spelled-out `Limited` and `Company`, and keeps `Australia`.
+- **Question:**
+  - Does the "abbreviations … etc" wording cover the spelled-out words?
+  - How strictly does "generally" apply to geographic designations?
+
+**(b) An organisation as the author of a web page, r 7.15.**
+- **What the rule says (derived notes):** give an author only when the page itself indicates one. One of the guide's examples puts a body in the title position rather than as author.
+- **What Obiter does:** renders whatever the user enters as author (`High Court of Australia, 'Current Justices' (Web Page) <…>`).
+- **Question:** should Obiter warn when a body is entered as the author of a web page, or leave the choice with the user? A keyword heuristic like the other tool's was judged too guessy to adopt.
+
+**(c) Ibid after another citation in the same footnote, r 1.4.3.**
+- **What the rule says (derived notes):** ibid is capitalised only when it opens a footnote. The notes don't say whether ibid may refer back to the last source of the *previous* footnote when another citation comes before it in the current footnote (`Smith (n 1); ibid`).
+- **What Obiter does:** Obiter emits the ibid. LCT-003 will lower-case it mid-footnote either way.
+- **Question:** is ibid permitted in that position, or must a short reference be used instead?
