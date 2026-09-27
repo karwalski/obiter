@@ -401,10 +401,8 @@ export function formatAuthorSurname(author: Author): string {
  * suffixes (Rules 4.1.2, 4.1.3).
  *
  * AGLC4 Rule 4.1.2: Where a source has two or three authors, all should
- * be listed with 'and' before the last author.
- *
- * AGLC4 Rule 4.1.3: Where a source has four or more authors, cite the
- * first-listed author followed by 'et al'.
+ * be listed with 'and' before the last author. Where it has more than
+ * three, cite the first-listed author followed by 'et al'.
  *
  * If the authors are editors, append '(ed)' for a single editor or
  * '(eds)' for multiple editors.

@@ -77,6 +77,7 @@ export type ParseIssueKind =
   | "pinpoint_format"
   | "series_court_mixup"
   | "uncovered_text"
+  | "et_al_authors"
   | "invalid_signal";
 
 export interface ParseIssue {
@@ -284,6 +285,8 @@ Deciding signals and commentary (AGLC4 r 1.2):
 
 Short title (AGLC4 r 1.4.4):
 - Always suggest one in "shortTitle", even if the input has none. Obiter decides when the "('…')" appears in the output, so never remove a short title and don't write notes about whether it appears.
+
+Authors: if the input shows "et al", list only the author(s) it names. Never supply the missing authors, even if you know them; Obiter asks the user.
 
 Never invent. Leave a field out if its value is not in the input. Every number you use must come from the input, and each occurrence of a number in the input fills at most one field.`;
 
@@ -573,8 +576,22 @@ export function checkParse(
       ...words(c.commentaryAfter ?? ""),
       ...(c.omitted ?? []).flatMap((o) => words(o.text)),
     ]);
+    // "et al" in the input means the source has more than three authors
+    // (AGLC4 r 4.1.2). The record can't hold authors the input doesn't name,
+    // and the engine writes "et al" only once there are four, so tell the
+    // user what to add instead of reporting two stray words.
+    const etAl = /\bet\.?\s+al\b/i.test(input.replace(/[*_]/g, "")) && !/\bet al\b/.test(r.text);
+    if (etAl) {
+      push({
+        kind: "et_al_authors",
+        field: "authors",
+        severity: "warning",
+        message:
+          "The citation says 'et al', so the source has more than three authors (AGLC4 r 4.1.2). Add the other authors from the source; Obiter shows the first author and 'et al' once four are listed.",
+      });
+    }
     const uncovered = [...new Set(words(input))].filter(
-      (x) => !accounted.has(x) && !NOISE_WORDS.has(x)
+      (x) => !accounted.has(x) && !NOISE_WORDS.has(x) && !(etAl && (x === "et" || x === "al"))
     );
     if (uncovered.length > 0) {
       push({

@@ -172,6 +172,39 @@ describe("checkParse", () => {
     expect(kinds(full, "Smith v Jones [2020] HCA 20")).not.toContain("overused_number");
   });
 
+  it("asks for the other authors when the input says 'et al' (r 4.1.2), without a stray-words warning", () => {
+    const input =
+      "Geoffrey J Leonardelli et al, 'Multiple Equivalent Simultaneous Offers (MESOs) Reduce the Negotiator Dilemma: How a Choice of First Offers Increases Economic and Relational Outcomes' (2019) 152 Organizational Behavior and Human Decision Processes 64.";
+    const c: ParseCandidate = {
+      sourceType: "journal.article",
+      data: {
+        authors: [{ givenNames: "Geoffrey J", surname: "Leonardelli" }],
+        title:
+          "Multiple Equivalent Simultaneous Offers (MESOs) Reduce the Negotiator Dilemma: How a Choice of First Offers Increases Economic and Relational Outcomes",
+        year: "2019",
+        volume: "152",
+        journal: "Organizational Behavior and Human Decision Processes",
+        startingPage: "64",
+      },
+    };
+    const issues = checkParse(input, c).issues;
+    expect(issues.map((i) => i.kind)).toContain("et_al_authors");
+    expect(issues.map((i) => i.kind)).not.toContain("uncovered_text");
+    const four = {
+      ...c,
+      data: {
+        ...c.data,
+        authors: [
+          { givenNames: "Geoffrey J", surname: "Leonardelli" },
+          { givenNames: "A", surname: "Two" },
+          { givenNames: "B", surname: "Three" },
+          { givenNames: "C", surname: "Four" },
+        ],
+      },
+    };
+    expect(kinds(four, input)).not.toContain("et_al_authors");
+  });
+
   it("reports input text that reached no field, signal or commentary", () => {
     const input = `See ${MABO} (emphasis added)`;
     const c: ParseCandidate = { sourceType: "case.reported", data: maboData };
