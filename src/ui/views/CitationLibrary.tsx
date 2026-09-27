@@ -32,6 +32,13 @@ import { getStandardConfig, resolveDocumentConfig } from "../../engine/standards
 import { getDevicePref } from "../../store/devicePreferences";
 import { RECOVERY_VIEW_ENABLED } from "../featureFlags";
 import { userTags } from "../../engine/tags";
+import { toText } from "../../engine/rules/v4/general/coerce";
+import {
+  formatAuthorSurname,
+  formatFreeTextAuthorLead,
+  joinAuthorNames,
+  normaliseAuthorList,
+} from "../../engine/rules/v4/secondary/authors";
 import { pinpointFromTitleString } from "../../engine/rules/v4/general/pinpoints";
 import UpdateFromSourceDialog from "../components/UpdateFromSourceDialog";
 import { canUpdateFromSource } from "../../api/updateFromSource";
@@ -143,6 +150,31 @@ export function getCitationLabel(citation: Citation): string {
   );
 }
 
+/**
+ * The citation's authors as later references write them (AGLC4 rr 1.4.1,
+ * 4.1.2): "Alexander, Howieson and Fox", "Leonardelli et al". Shown on the
+ * library card so a short title can be matched against the "Author (n X)"
+ * references in the document. Empty for sources with no author (cases,
+ * legislation).
+ */
+export function getCitationAuthors(citation: Citation): string {
+  const d = citation.data as Record<string, unknown>;
+  for (const key of ["authors", "chapterAuthors"]) {
+    const list = normaliseAuthorList(d[key]);
+    if (list.length > 0) return joinAuthorNames(list.map(formatAuthorSurname));
+  }
+  const editors = normaliseAuthorList(d.editors);
+  if (editors.length > 0) {
+    return `${joinAuthorNames(editors.map(formatAuthorSurname))} (${editors.length === 1 ? "ed" : "eds"})`;
+  }
+  const text =
+    asString(d.author) ||
+    asString(d.institutionalAuthor) ||
+    asString(d.speaker) ||
+    asString(d.issuingBody);
+  return text ? formatFreeTextAuthorLead(text) : "";
+}
+
 /** Get a second line of detail for the citation card. */
 function getCitationDetail(citation: Citation): string {
   const d = citation.data;
@@ -152,16 +184,13 @@ function getCitationDetail(citation: Citation): string {
   parts.push(getSourceTypeBadge(citation.sourceType));
 
   // Year
-  const year = asString(d.year) || asString(d.date);
+  // toText: a year typed string can come back from the XML store as a number.
+  const year = toText(d.year) || asString(d.date);
   if (year) parts.push(year.length > 4 ? year : `(${year})`);
 
   // Jurisdiction
   const jurisdiction = asString(d.jurisdiction);
   if (jurisdiction) parts.push(jurisdiction);
-
-  // Author (if not already in the label)
-  const author = asString(d.author) ?? asString(d.institutionalAuthor) ?? asString(d.speaker) ?? asString(d.issuingBody);
-  if (author && author !== citation.shortTitle) parts.push(author);
 
   // Court
   const court = asString(d.court) ?? asString(d.courtId);
@@ -460,7 +489,7 @@ export default function CitationLibrary(): JSX.Element {
         const label = getCitationLabel(c).toLowerCase();
         const shortTitle = (c.shortTitle ?? "").toLowerCase();
         const title = asString(c.data.title).toLowerCase();
-        const author = asString(c.data.author).toLowerCase();
+        const author = `${asString(c.data.author)} ${getCitationAuthors(c)}`.toLowerCase();
         const partyA = (
           asString(c.data.applicant) ||
           asString(c.data.plaintiff) ||
@@ -1347,6 +1376,9 @@ export default function CitationLibrary(): JSX.Element {
               <div className="library-card-title">
                 {getCitationLabel(citation)}
               </div>
+              {getCitationAuthors(citation) && (
+                <div className="library-card-authors">{getCitationAuthors(citation)}</div>
+              )}
               <div style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "2px 0" }}>
                 {getCitationDetail(citation)}
               </div>

@@ -1208,6 +1208,14 @@ body {
   margin: 2px 0 6px;
 }
 
+/* Authors as later references write them, so a short title can be matched
+   against "Author (n X)" in the document. */
+.library-card-authors {
+  font-size: var(--text-xs);
+  color: var(--colour-ink);
+  margin-top: 1px;
+}
+
 /* Wraps at the default Word for Mac pane width (~320px) rather than
    squeezing labels onto several lines and pushing Delete off the card. */
 .library-card-actions {

@@ -10,7 +10,7 @@ import * as React from "react";
 import { render, fireEvent, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { axe } from "jest-axe";
-import CitationLibrary from "../../src/ui/views/CitationLibrary";
+import CitationLibrary, { getCitationAuthors } from "../../src/ui/views/CitationLibrary";
 import type { Citation } from "../../src/types/citation";
 
 const mockTriggerRefresh = jest.fn();
@@ -490,5 +490,38 @@ describe("CitationLibrary card actions (ENP-007)", () => {
     expect(mockAnnounce).toHaveBeenCalledWith("Updated 1 field from Mock Adapter.", "success");
     expect(screen.getByText("Updated 1 field from Mock Adapter.")).toBeInTheDocument();
     expect(document.activeElement).toBe(button);
+  });
+});
+
+describe("library card authors (matching short titles to 'Author (n X)')", () => {
+  const base = { id: "a", aglcVersion: "4", tags: [], createdAt: "", modifiedAt: "" };
+  it("writes authors as later references do (rr 1.4.1, 4.1.2)", () => {
+    const three = {
+      ...base,
+      sourceType: "book",
+      shortTitle: "Negotiation",
+      data: {
+        authors: [
+          { givenNames: "Nadja", surname: "Alexander" },
+          { givenNames: "Jill", surname: "Howieson" },
+          { givenNames: "Kenneth", surname: "Fox" },
+        ],
+        title: "Negotiation: Strategy Style Skills",
+        year: 2015,
+      },
+    } as unknown as Citation;
+    expect(getCitationAuthors(three)).toBe("Alexander, Howieson and Fox");
+    const five = {
+      ...three,
+      data: {
+        authors: ["Leonardelli", "Gu", "McRuer", "Medvec", "Galinsky"].map((surname) => ({
+          givenNames: "X",
+          surname,
+        })),
+      },
+    } as unknown as Citation;
+    expect(getCitationAuthors(five)).toBe("Leonardelli et al");
+    const noAuthor = { ...base, sourceType: "legislation.statute", data: { title: "Crimes Act" } } as unknown as Citation;
+    expect(getCitationAuthors(noAuthor)).toBe("");
   });
 });
