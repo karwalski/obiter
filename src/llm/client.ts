@@ -110,6 +110,59 @@ async function resolveVaultAuth(config: LLMConfig): Promise<VaultAuth | null> {
 }
 
 /**
+ * Fail clearly when there is no key to use. A key stored in the account vault
+ * is only usable while signed in. Without a session and without a local key,
+ * the direct call would go out with an empty key and surface as a bare
+ * network error ("Load failed") in the Word webview.
+ */
+/** Pause before retrying a request that never connected. */
+const NETWORK_RETRY_DELAY_MS = 800;
+
+/**
+ * fetch() with one retry when the request fails to connect at all. In the
+ * Word webview that surfaces as a bare TypeError ("Load failed"): a dropped
+ * connection, or a Cloudflare error or challenge page, which carries no CORS
+ * headers. On 27 Sep 2026 a proxy call failed this way and the user's manual
+ * retry succeeded, and the request never reached the origin. HTTP error
+ * responses are not retried.
+ */
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  provider: string,
+  viaObiter: boolean
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err: unknown) {
+      lastErr = err;
+      if (attempt === 0) await new Promise((res) => setTimeout(res, NETWORK_RETRY_DELAY_MS));
+    }
+  }
+  const msg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  throw new Error(
+    viaObiter
+      ? `Couldn't reach the Obiter server to contact ${provider} (tried twice). Check your connection and try again. Error: ${msg}`
+      : `Cannot reach ${provider} API (tried twice). This may be a network or CORS restriction — ` +
+          `browser-based add-ins cannot always connect directly to LLM APIs. Error: ${msg}`
+  );
+}
+
+function assertKeyAvailable(config: LLMConfig, vaultAuth: VaultAuth | null): void {
+  if (vaultAuth || config.endpoint || (config.apiKey ?? "").trim()) return;
+  if (hasVaultKey(config.provider)) {
+    throw new Error(
+      "Your AI key is stored in your Obiter account, and this panel isn't signed in. Sign in under Settings > Account, then try again."
+    );
+  }
+  throw new Error(
+    "No AI key is set. Add one under Settings > AI, or sign in to use a key stored in your account."
+  );
+}
+
+/**
  * Request body for the Obiter LLM proxy (`POST /api/proxy/llm`,
  * website/server/index.js). The proxy relays the request server-side and
  * returns `{ text }` or `{ error }`; nothing is logged or retained.
@@ -235,6 +288,7 @@ export async function callLlm(
   const isAnthropic = config.provider === "anthropic";
   // ACCT-005: signed-in + vaulted key -> proxy injects the key, we send none.
   const vaultAuth = await resolveVaultAuth(config);
+  assertKeyAvailable(config, vaultAuth);
   const endpoint = vaultAuth
     ? { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true as const }
     : resolveEndpoint(config);
@@ -275,18 +329,7 @@ export async function callLlm(
     init = req.init;
   }
 
-  let response: Response;
-  try {
-    response = await fetch(url, init);
-  } catch (fetchErr: unknown) {
-    // Network error — likely CORS block or no connectivity
-    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-    throw new Error(
-      `Cannot reach ${config.provider} API. This may be a CORS restriction — ` +
-        `browser-based add-ins cannot always connect directly to LLM APIs. ` +
-        `Error: ${msg}`
-    );
-  }
+  const response = await fetchWithRetry(url, init, config.provider, url.startsWith(WEBSITE_URL));
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "");
@@ -325,6 +368,7 @@ export async function callLlmMultiTurn(
   const isAnthropic = config.provider === "anthropic";
   // ACCT-005: signed-in + vaulted key -> proxy injects the key, we send none.
   const vaultAuth = await resolveVaultAuth(config);
+  assertKeyAvailable(config, vaultAuth);
   const endpoint = vaultAuth
     ? { url: `${WEBSITE_URL}/api/proxy/llm`, useProxy: true as const }
     : resolveEndpoint(config);
@@ -405,13 +449,7 @@ export async function callLlmMultiTurn(
     };
   }
 
-  let response: Response;
-  try {
-    response = await fetch(url, init);
-  } catch (fetchErr: unknown) {
-    const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
-    throw new Error(`Cannot reach ${config.provider} API. Error: ${msg}`);
-  }
+  const response = await fetchWithRetry(url, init, config.provider, url.startsWith(WEBSITE_URL));
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "");

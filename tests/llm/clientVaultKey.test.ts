@@ -17,7 +17,7 @@
 
 import { callLlm } from "../../src/llm/client";
 import type { LLMConfig } from "../../src/llm/config";
-import { setSession } from "../../src/api/authClient";
+import { setSession, clearSession } from "../../src/api/authClient";
 import { setVaultKeyProviders, setLocalKeyOverride, clearVaultMode } from "../../src/llm/vaultMode";
 
 const mockFetch = jest.fn() as jest.Mock;
@@ -139,5 +139,48 @@ describe("signed in with a vaulted key", () => {
     expect(String(url)).toContain("api.deepseek.com");
     const headers = (init as RequestInit).headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer ds-local");
+  });
+});
+
+describe("network failures and missing keys (27 Sep 2026 field report)", () => {
+  const anthropicOk = {
+    ok: true,
+    status: 200,
+    json: async () => ({ content: [{ type: "text", text: "ok" }] }),
+    text: async () => "",
+  } as unknown as Response;
+
+  it("retries once when the request never connects ('Load failed')", async () => {
+    mockFetch
+      .mockRejectedValueOnce(new TypeError("Load failed"))
+      .mockResolvedValueOnce(anthropicOk);
+    await expect(callLlm(BASE, "sys", "user")).resolves.toBe("ok");
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after the second failed connection with a clear message", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Load failed"));
+    await expect(callLlm(BASE, "sys", "user")).rejects.toThrow(/tried twice/);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry an HTTP error response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+      text: async () => "unauthorised",
+    } as unknown as Response);
+    await expect(callLlm(BASE, "sys", "user")).rejects.toThrow(/401/);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("says to sign in when the key is in the account vault and there is no session", async () => {
+    clearSession();
+    setVaultKeyProviders(["anthropic"]);
+    await expect(callLlm({ ...BASE, apiKey: "" }, "sys", "user")).rejects.toThrow(
+      /stored in your Obiter account/
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });
