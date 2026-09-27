@@ -205,6 +205,32 @@ describe("checkParse", () => {
     expect(kinds(four, input)).not.toContain("et_al_authors");
   });
 
+  it("flags RePEc's '(C)' volume placeholder stored as an issue", () => {
+    const input =
+      'Leonardelli, Geoffrey J. & Gu, Jun & McRuer, Geordie & Medvec, Victoria Husted & Galinsky, Adam D., 2019. "Multiple equivalent simultaneous offers (MESOs) reduce the negotiator dilemma: How a choice of first offers increases economic and relational outcomes," Organizational Behavior and Human Decision Processes, Elsevier, vol. 152(C), pages 64-83.';
+    const data = {
+      authors: [
+        { givenNames: "Geoffrey J", surname: "Leonardelli" },
+        { givenNames: "Jun", surname: "Gu" },
+        { givenNames: "Geordie", surname: "McRuer" },
+        { givenNames: "Victoria Husted", surname: "Medvec" },
+        { givenNames: "Adam D", surname: "Galinsky" },
+      ],
+      title:
+        "Multiple Equivalent Simultaneous Offers (MESOs) Reduce the Negotiator Dilemma: How a Choice of First Offers Increases Economic and Relational Outcomes",
+      year: "2019",
+      volume: "152",
+      journal: "Organizational Behavior and Human Decision Processes",
+      startingPage: "64",
+    };
+    expect(
+      kinds({ sourceType: "journal.article", data: { ...data, issue: "C" } }, input)
+    ).toContain("placeholder_issue");
+    expect(kinds({ sourceType: "journal.article", data }, input)).not.toContain(
+      "placeholder_issue"
+    );
+  });
+
   it("reports input text that reached no field, signal or commentary", () => {
     const input = `See ${MABO} (emphasis added)`;
     const c: ParseCandidate = { sourceType: "case.reported", data: maboData };

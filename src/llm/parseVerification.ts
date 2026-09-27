@@ -78,6 +78,7 @@ export type ParseIssueKind =
   | "series_court_mixup"
   | "uncovered_text"
   | "et_al_authors"
+  | "placeholder_issue"
   | "invalid_signal";
 
 export interface ParseIssue {
@@ -282,6 +283,10 @@ Deciding signals and commentary (AGLC4 r 1.2):
 - A leading introductory signal belongs in "signal". Use exactly one of: ${INTRODUCTORY_SIGNALS.map((s) => `"${s}"`).join(", ")}, or null.
 - Prose before the citation goes in "commentaryBefore"; prose after it (eg "(emphasis added)", "and the cases cited there") goes in "commentaryAfter". Do not put them in data fields.
 - Text AGLC4 deliberately drops (eg "Pty Ltd" in a publisher, "p" before a page, a trailing full stop) goes in "omitted" with a short reason.
+
+Input in another style (APA, Harvard, RePEc/IDEAS, BibTeX or a publisher export): convert it to AGLC4 rather than copying it.
+- For a journal article, leave out the publisher, "vol." and "pages", and the end page of a page range (AGLC4 uses the starting page). Leave out RePEc's "(C)" after a volume: it means there is no issue number. List what you drop in "omitted".
+- Rebuild names ("Leonardelli, Geoffrey J." becomes given names "Geoffrey J", surname "Leonardelli") and title-case the title.
 
 Short title (AGLC4 r 1.4.4):
 - Always suggest one in "shortTitle", even if the input has none. Obiter decides when the "('…')" appears in the output, so never remove a short title and don't write notes about whether it appears.
@@ -521,6 +526,19 @@ export function checkParse(
       field: "reportSeries",
       severity: "warning",
       message: `"${series}" is a court identifier, not a report series, so this is probably a medium neutral citation (case.unreported.mnc).`,
+    });
+  }
+
+  // RePEc/IDEAS exports write "vol. 152(C)" for an Elsevier volume with no
+  // issue number. "C" is the index's placeholder, not an issue.
+  const issue = typeof c.data.issue === "string" ? c.data.issue.trim() : "";
+  if (/^\(?C\)?$/.test(issue) && /\d\s*\(C\)/.test(input)) {
+    push({
+      kind: "placeholder_issue",
+      field: "issue",
+      severity: "warning",
+      message:
+        'Issue "C" is the RePEc/IDEAS placeholder for a volume with no issue number, not a real issue. Leave the issue out.',
     });
   }
 
