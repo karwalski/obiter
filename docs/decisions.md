@@ -783,3 +783,33 @@ These three points came up when comparing legal-citation-tool's normalisation ru
 - **What the rule says (derived notes):** capitalise every word of a title except articles, conjunctions and prepositions. "In" is one of the rule's examples of a preposition.
 - **What Obiter does:** Obiter lowercases every listed word. So *Getting to Yes: Negotiating Agreement without Giving in* comes out with a lower-case "in". Here "in" belongs to the verb "give in", not a preposition.
 - **Question:** should a particle that is part of a phrasal verb keep its capital ("Giving In")? Or does the word list apply regardless of grammar? A lower-case "without" is correct under the rule, even though the book's cover capitalises it.
+
+## DECISION-043: Court interoperability (COURT epic, October 2026 research)
+
+**Status:** PARTLY DECIDED (owner, 6 Oct 2026). Items 1–4 are decided; items 5–14 are open.
+**Raised:** 2026-10-06. The evidence is in `docs/research/court-interop/` (EVIDENCE-REGISTER.md, STORY-PLAN.md, R01–R08).
+
+**Decided:**
+
+1. **Document metadata (COURT-102).** Obiter writes only `Obiter.Version` and the document's actual citation standard. It never writes a person's name: an `Obiter.Author` property already in a document is removed the next time the document is opened. `Obiter.CreatedDate` is set once and never overwritten.
+2. **Ibid in court mode (Q2).** Keep the current court-mode ibid suppression unchanged. No instrument read mentions ibid, so the research records it as an Obiter preference, but the owner chose to keep the behaviour and its labels as they are.
+3. **Parallel-citation order (Q1, Q3).**
+   - Where a court's instrument is silent, or only gives an example, the preset follows that court's own example.
+     - MNC first: FCA (GPN-AUTH), Tasmania (PD 3/2014), WA and AIJA.
+     - Report first: where observed practice shows it (NSW judgments).
+     - Report first: otherwise, as now.
+   - Each default records its source.
+4. **Existing documents (Q5).** Corrected presets apply to new documents. An existing court-mode document keeps its current behaviour until the user accepts a per-document "Update court profile" prompt that shows what will change.
+
+**Open (from STORY-PLAN.md):**
+
+5. NSW/Qld report-plus-paragraph pinpoint form: `1 [45]`, `1, [45]` or `1 at [45]`. No instrument gives an example.
+6. The first document type to ship under the document-type axis: submissions only, or reasons too.
+7. Which ZIP library to use for clean-copy export and OOXML fixtures, and whether its licence is compatible with GPLv3.
+8. Whether automatic AGLC4 styles should still be created on new blank academic documents. Restyling on pane open is removed regardless (COURT-101).
+9. Re-read VSCA SC CA 3 (reissued 10 March 2026) for its record-locator wording.
+10. Confirm by hand that FCA GPN-AUTH has not been reissued since 7 May 2025, and read APP 2 (1 December 2025). The site blocks automated access.
+11. Whether court-published DOCX files may be kept as private test inputs. Until this is answered, only synthetic fixtures and derived counts are committed.
+12. Eye-check the OCR of ACT PD 2/2022 and NSW SC CCA 1.
+13. WA eCourts terms of use, and manual downloads from AustLII and the NT, for the missing corpus courts.
+14. Whether to keep `Obiter.Website` as an attribution property. For now it is dropped under item 1.

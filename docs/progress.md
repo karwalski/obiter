@@ -1771,3 +1771,9 @@ Seeded 2026-09-27 from the read-only review in `docs/research/legal-citation-too
 | LCT-012 | Release as v1.17.5 (patch, web deploy; no manifest change) on 2026-09-27; live-model check of LCT-010 still owed | — | RELEASE | DONE (check owed) |
 | LCT-013 | Review and improve the CSL AGLC style upstream (non-overlapping with PR #8140); PR #8344 opened | core AGLC4 | SHARE | IN REVIEW (upstream) |
 | LCT-014 | NZLSG 4th edition watch | — | RESEARCH | WATCH |
+
+## EPIC: COURT — Court citation and document interoperability
+
+**Phase:** Post-backlog | **Stories:** 44 (22 implement now, 10 ready, 4 research-gated, 4 placeholders, 4 closed by research)
+
+Seeded 2026-10-06 from deep research run `wf_ee0648f6-a13`, which produced the reports and evidence register in `docs/research/court-interop/` and `STORY-PLAN.md`. The stories are in `../footnote-backlog.md` under Epic COURT, and the decisions are in DECISION-043. The implement-now wave is in progress.
