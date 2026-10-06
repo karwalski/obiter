@@ -477,6 +477,8 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
     expect(store.getCourtToggles()).toEqual({
       parallelCitations: "off",
       parallelOrder: "report-first",
+      // COURT-111: the MNC was always given before the toggle existed.
+      reportedCaseMnc: "include",
       pinpointStyle: "page-only",
       pinpointConnector: "aglc",
       authorisedReportHierarchy: "CLR",

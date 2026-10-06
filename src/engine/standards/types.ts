@@ -139,6 +139,13 @@ export interface CitationConfig {
    */
   parallelOrder?: ParallelOrder;
   /**
+   * COURT-111: in court mode, "omit" leaves a reported case's MNC out (the
+   * report replaces it; Vic SC Gen 3 cl 5.2, FCFCOA FAM-APPEALS cl 5.8, ACT
+   * SC PD 2 of 2022, NT SC PD 2 of 2007; also AGLC4 r 2.2.7). Absent means
+   * the MNC is given with the report, as before COURT-111.
+   */
+  reportedCaseMnc?: "include" | "omit";
+  /**
    * STD-013: The jurisdiction's authorised report hierarchy in court mode
    * (most preferred first, e.g. `["NSWLR", "CLR", "ALR"]`), from the court
    * toggles (comma-separated) or the jurisdiction preset. Absent in

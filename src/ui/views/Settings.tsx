@@ -22,6 +22,7 @@ import {
   type LoaType,
   type ParallelOrder,
   type PinpointConnector,
+  type ReportedCaseMnc,
 } from "../../engine/court/presets";
 import {
   applyProfileUpdate,
@@ -224,6 +225,12 @@ export default function Settings(): JSX.Element {
      * did; selecting a court writes the preset's value.
      */
     pinpointConnector?: PinpointConnector;
+    /**
+     * COURT-111: whether a reported case's MNC is given. Absent means
+     * "include", so a court document saved before COURT-111 renders as it
+     * did; selecting a court writes the preset's value.
+     */
+    reportedCaseMnc?: ReportedCaseMnc;
     /**
      * COURT-106: the report hierarchy frozen into the document
      * (comma-separated). Absent only on a record built before COURT-106.
@@ -1493,6 +1500,20 @@ export default function Settings(): JSX.Element {
                   </select>
                 </label>
                 <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="parallelOrder" profile={courtProfile} />
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  MNC of a reported case
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.reportedCaseMnc ?? "include"}
+                    onChange={(e) => handleToggleOverride("reportedCaseMnc", e.target.value as ReportedCaseMnc)}
+                  >
+                    <option value="include">Given with the report</option>
+                    <option value="omit">Omitted (the report replaces it)</option>
+                  </select>
+                </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="reportedCaseMnc" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Pinpoint style

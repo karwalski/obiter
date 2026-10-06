@@ -28,6 +28,7 @@ export type { CourtToggleKey };
 export const COURT_TOGGLE_KEYS: readonly CourtToggleKey[] = [
   "parallelCitations",
   "parallelOrder",
+  "reportedCaseMnc",
   "pinpointStyle",
   "pinpointConnector",
   "authorisedReportHierarchy",
@@ -40,6 +41,7 @@ export const COURT_TOGGLE_KEYS: readonly CourtToggleKey[] = [
 export const COURT_TOGGLE_LABELS: Record<CourtToggleKey, string> = {
   parallelCitations: "Parallel citations",
   parallelOrder: "Parallel citation order",
+  reportedCaseMnc: "MNC of a reported case",
   pinpointStyle: "Pinpoint style",
   pinpointConnector: "Pinpoint connector",
   authorisedReportHierarchy: "Authorised-report hierarchy",
@@ -57,6 +59,8 @@ const VALUE_LABELS: Record<string, string> = {
   warn: "Warn",
   "report-first": "Authorised report first",
   "mnc-first": "Medium neutral citation first",
+  include: "Given with the report",
+  omit: "Omitted (the report replaces it)",
   "page-only": "Page only",
   "para-only": "Paragraph only",
   "para-and-page": "Paragraph and page",
@@ -101,6 +105,7 @@ export function getPresetToggles(
   return {
     parallelCitations: preset.parallelCitations,
     parallelOrder: preset.parallelOrder ?? "report-first",
+    reportedCaseMnc: preset.reportedCaseMnc ?? "include",
     pinpointStyle: preset.pinpointStyle,
     pinpointConnector: preset.pinpointConnector ?? "aglc",
     authorisedReportHierarchy: preset.authorisedReportHierarchy.join(","),
@@ -133,8 +138,8 @@ export function createCourtProfile(
  * Mirrors `buildDocumentConfig` exactly: a stored value wins; a missing core
  * toggle falls back to the standard's base config (NOT the preset — that is
  * how such a document renders today); a missing hierarchy comes from the
- * preset; a missing order is report-first and a missing connector is the
- * AGLC form. Stored keys are kept as they are, including keys this build
+ * preset; a missing order is report-first, a missing connector is the
+ * AGLC form and a missing MNC toggle gives the MNC (COURT-111). Stored keys are kept as they are, including keys this build
  * does not know (opaque bag rule).
  *
  * @param base - the standard's own config (`getStandardConfig(standardId)`).
@@ -151,6 +156,8 @@ export function freezeEffectiveToggles(
     ...t,
     parallelCitations: t.parallelCitations ?? base.parallelCitationMode,
     parallelOrder: t.parallelOrder ?? base.parallelOrder ?? "report-first",
+    // COURT-111: every document before the toggle existed gave the MNC.
+    reportedCaseMnc: t.reportedCaseMnc ?? "include",
     pinpointStyle: t.pinpointStyle ?? base.pinpointStyle,
     pinpointConnector: t.pinpointConnector ?? "aglc",
     authorisedReportHierarchy:
@@ -221,8 +228,21 @@ export interface CourtProfileChange {
 }
 
 /**
+ * The engine default a toggle takes when the document does not store it
+ * (see `buildCourtConfig`). A document frozen before a toggle existed
+ * renders with this value, so it is not a difference from a preset that
+ * sets the same value.
+ */
+const ABSENT_TOGGLE_DEFAULTS: Partial<Record<CourtToggleKey, string>> = {
+  parallelOrder: "report-first",
+  pinpointConnector: "aglc",
+  reportedCaseMnc: "include",
+};
+
+/**
  * COURT-106: every toggle whose frozen value differs from the current
  * preset. Empty when the document already matches, or for an unknown court.
+ * A toggle the document does not store counts as its engine default.
  */
 export function diffCourtProfile(
   toggles: Record<string, string> | undefined,
@@ -235,7 +255,8 @@ export function diffCourtProfile(
   const t = toggles ?? {};
   const changes: CourtProfileChange[] = [];
   for (const key of COURT_TOGGLE_KEYS) {
-    if (t[key] !== preset[key]) {
+    const effective = t[key] ?? ABSENT_TOGGLE_DEFAULTS[key];
+    if (effective !== preset[key]) {
       changes.push({
         key,
         label: COURT_TOGGLE_LABELS[key],
@@ -290,7 +311,9 @@ export function applyProfileUpdate(
       if (key in preset) next[key] = preset[key];
     }
   }
-  const overridden = preset ? COURT_TOGGLE_KEYS.filter((k) => next[k] !== preset[k]) : [];
+  const overridden = preset
+    ? COURT_TOGGLE_KEYS.filter((k) => (next[k] ?? ABSENT_TOGGLE_DEFAULTS[k]) !== preset[k])
+    : [];
   // Keep unknown keys a later build wrote; drop only the fields this step owns.
   const rest: Record<string, unknown> = { ...(profile ?? {}) };
   delete rest.declinedVersion;

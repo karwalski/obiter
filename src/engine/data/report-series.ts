@@ -469,6 +469,16 @@ export const REPORT_SERIES: ReportSeriesEntry[] = [
     yearOrganised: true,
     source: "Court website",
   },
+  {
+    // COURT-119: WA sentencing-remarks identifier (WA SC Consolidated
+    // Practice Directions PD 8.2.2; register WA-1, O-R19).
+    abbreviation: "WASCSR",
+    fullName: "Supreme Court of Western Australia (sentencing remarks)",
+    jurisdiction: "WA",
+    type: "medium_neutral",
+    yearOrganised: true,
+    source: "Court website",
+  },
 
   // --- South Australia ---
   {

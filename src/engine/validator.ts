@@ -21,9 +21,10 @@ import type {
 } from "./standards/types";
 import {
   type CourtJurisdiction as PresetCourtJurisdiction,
-  QLD_JURISDICTIONS,
+  getSubsequentTreatmentSource,
   isCourtJurisdiction as isCourtJurisdictionPreset,
 } from "./court/presets";
+import { pickPreferredSeries } from "./court/reportHierarchy";
 import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
 import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
 import { parseTitleMarkup } from "./rules/v4/general/titleMarkup";
@@ -61,28 +62,11 @@ export type UnreportedGate = "off" | "warn";
 
 /**
  * Court jurisdictional preset identifier used by court mode validation.
+ * COURT-114: the preset ids themselves; the validator once used its own
+ * keys ("NSW_DISTRICT", "VIC_COUNTY", "QLD_DISTRICT") that no preset had,
+ * so those courts' issues carried no practice-direction label.
  */
-export type CourtJurisdiction =
-  | "HCA"
-  | "FCA"
-  | "FCFCOA"
-  | "NSWCA"
-  | "NSWSC"
-  | "NSW_DISTRICT"
-  | "VSCA"
-  | "VSC"
-  | "VIC_COUNTY"
-  | "QCA"
-  | "QSC"
-  | "QLD_DISTRICT"
-  | "WASC"
-  | "SASC"
-  | "TASSC"
-  | "ACTSC"
-  | "NTSC"
-  | "ART"
-  | "FWC"
-  | "STATE_TRIBUNAL";
+export type CourtJurisdiction = PresetCourtJurisdiction;
 
 /**
  * Configuration for court mode validation, derived from the jurisdictional
@@ -162,6 +146,11 @@ export interface ValidateDocumentOptions {
   ibidSuppressionMode?: IbidSuppressionMode;
   /** COURT-007 unreported-judgment gate toggle. */
   unreportedGateMode?: UnreportedGateMode;
+  /**
+   * COURT-111: the document's authorised-report hierarchy (most preferred
+   * first), from the frozen court toggles. Drives the preferred-report info.
+   */
+  authorisedReportHierarchy?: readonly string[];
   /** Built-in heading entries for the AGLC r 1.12.2 heading check. */
   headings?: HeadingEntry[];
 }
@@ -335,14 +324,20 @@ function validateDocumentWithOptions(
       allIssues.push(...checkUnreportedJudgments(citations, pdSource));
     }
 
-    // COURT-010: Queensland subsequent-treatment validation
-    // Flags case citations where subsequent treatment is blank in Qld mode
-    if (
-      options.courtJurisdiction &&
-      isCourtJurisdictionPreset(options.courtJurisdiction) &&
-      QLD_JURISDICTIONS.has(options.courtJurisdiction as PresetCourtJurisdiction)
-    ) {
-      allIssues.push(...checkSubsequentTreatment(citations));
+    // COURT-010 / COURT-119: subsequent-treatment validation (Qld SC PD 1
+    // of 2024 cl 4(c), Qld MC PD 7 of 2024, Tas SC PD 3 of 2014 cl 3(f)).
+    const treatmentSource = options.courtJurisdiction
+      ? getSubsequentTreatmentSource(options.courtJurisdiction)
+      : undefined;
+    if (treatmentSource) {
+      allIssues.push(...checkSubsequentTreatment(citations, treatmentSource));
+    }
+
+    // COURT-111: the court's report hierarchy, as an information prompt.
+    if (options.authorisedReportHierarchy && options.authorisedReportHierarchy.length > 0) {
+      allIssues.push(
+        ...checkPreferredReportSeries(citations, options.authorisedReportHierarchy, pdSource)
+      );
     }
   }
 
@@ -2296,12 +2291,20 @@ export function checkNzlsgRules(citations: Citation[], footnoteTexts: string[]):
 
 /**
  * Checks that all case citations have the subsequentTreatment field populated
- * when in Queensland court mode.
+ * when in Queensland or Tasmanian court mode.
  *
- * @remarks Qld SC PD 1/2024 cl 4(c) requires practitioners to confirm whether
- * cited authorities have been subsequently doubted or not followed.
+ * @remarks Qld SC PD 1/2024 cl 4(c) (and Qld MC PD 7 of 2024) and Tas SC
+ * PD 3 of 2014 cl 3(f) (COURT-119) require a party to cite any later
+ * judgment that has doubted, or not followed, a cited case.
+ *
+ * @param ruleNumber - The instrument requiring the check (from
+ *   `getSubsequentTreatmentSource`); defaults to the Qld Supreme Court PD.
  */
-export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue[] {
+export function checkSubsequentTreatment(
+  citations: Citation[],
+  ruleNumber: string = "Qld SC PD 1/2024 cl 4(c)"
+): ValidationIssue[] {
+  const tasmanian = ruleNumber.startsWith("Tas");
   const issues: ValidationIssue[] = [];
 
   for (const citation of citations) {
@@ -2310,11 +2313,11 @@ export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue
     const label = getCitationLabel(citation);
     const treatment = citation.data.subsequentTreatment as string | undefined;
 
-    if (!treatment || treatment.trim() === "") {
+    if (!treatment || toText(treatment).trim() === "") {
       issues.push({
-        ruleNumber: "Qld SC PD 1/2024 cl 4(c)",
+        ruleNumber,
         message:
-          `Case '${label}': Subsequent treatment not recorded. Queensland practice ` +
+          `Case '${label}': Subsequent treatment not recorded. ${tasmanian ? "Tasmanian" : "Queensland"} practice ` +
           `directions require confirmation of whether cited authorities have been ` +
           `subsequently doubted or not followed.`,
         severity: "info",
@@ -2324,6 +2327,56 @@ export function checkSubsequentTreatment(citations: Citation[]): ValidationIssue
     }
   }
 
+  return issues;
+}
+
+// ─── COURT-111: Preferred report series (court hierarchy) ────────────────────
+
+/**
+ * Court mode: notes a reported case cited from a series the court's
+ * authorised-report hierarchy ranks below another series recorded on the
+ * same citation (its parallel citations).
+ *
+ * @remarks AGLC4 r 2.2.2 (PDF p 77): cite the authorised report where
+ * available, then the next most authoritative version. Court mode applies
+ * the court's own ordering (the document's frozen
+ * `authorisedReportHierarchy`, eg NSW SC Gen 20 cl 3; Vic SC Gen 3
+ * cl 5.2). Information only: the user decides which report to cite.
+ *
+ * @param hierarchy - Report series, most preferred first.
+ * @param ruleNumber - The practice-direction label for the court.
+ */
+export function checkPreferredReportSeries(
+  citations: Citation[],
+  hierarchy: readonly string[],
+  ruleNumber: string = "Court practice direction"
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.reported") continue;
+    const primary = toText(citation.data.reportSeries).trim();
+    if (!primary) continue;
+    const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
+    if (!Array.isArray(parallels) || parallels.length === 0) continue;
+    const others = parallels
+      .map((p) => toText(p?.reportSeries).trim())
+      .filter((series) => series.length > 0 && series !== primary);
+    if (others.length === 0) continue;
+    const preferred = pickPreferredSeries(hierarchy, [primary, ...others]);
+    if (preferred && preferred !== primary) {
+      issues.push({
+        ruleNumber,
+        message:
+          `Case '${getCitationLabel(citation)}': the court's report hierarchy ` +
+          `(${hierarchy.join(", ")}) ranks the ${preferred} report above ${primary}. ` +
+          `Consider citing the ${preferred} report first.`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+        citationId: citation.id,
+      });
+    }
+  }
   return issues;
 }
 
@@ -2494,21 +2547,11 @@ export function checkMncYearValidity(citations: Citation[]): ValidationIssue[] {
 const _UNREPORTED_GATE_JURISDICTIONS_DEPRECATED: ReadonlySet<CourtJurisdiction> = new Set([
   "NSWCA",
   "NSWSC",
-  "NSW_DISTRICT",
+  "NSW_DISTRICT_LOCAL",
   "QCA",
   "QSC",
-  "QLD_DISTRICT",
+  "QLD_DISTRICT_MAG",
   "TASSC",
-]);
-
-/**
- * Jurisdictions where subsequent treatment recording is required.
- * Source: Qld SC PD 1/2024 cl 4(c).
- */
-const SUBSEQUENT_TREATMENT_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set([
-  "QCA",
-  "QSC",
-  "QLD_DISTRICT",
 ]);
 
 /**
@@ -2527,22 +2570,32 @@ function getPracticeDirectionSource(jurisdiction: CourtJurisdiction): string {
       // FAM-APPEALS practice direction, updated 10 Jun 2025
       return "FCFCOA FAM-APPEALS (10 Jun 2025)";
     case "NSWCA":
+    case "NSWCCA":
     case "NSWSC":
-    case "NSW_DISTRICT":
       return "NSW SC PN Gen 20 (Oct 2023)";
+    case "NSW_DISTRICT_LOCAL":
+      // COURT-119: no District or Local Court citation instrument found
+      // (register NSW-4, O-R18).
+      return "NSW District / Local Court: no citation instrument found";
     case "VSCA":
     case "VSC":
-    case "VIC_COUNTY":
       // SC Gen 3 reissued 1 Dec 2025 (replaces 30 Jan 2017)
       return "Vic SC PN Gen 3 (1 Dec 2025)";
+    case "VIC_COUNTY_MAG":
+      // No County or Magistrates' Court instrument is in the register.
+      return "Vic County / Magistrates' Court: no citation instrument found";
     case "QCA":
     case "QSC":
-    case "QLD_DISTRICT":
       return "Qld SC PD 1 of 2024";
+    case "QLD_DISTRICT_MAG":
+      // Register QLD-3; no District Court instrument found (O-R18).
+      return "Qld MC PD 7 of 2024";
     case "WASC":
-      // Consolidated Practice Directions updated 20 Jun 2025
-      return "WA SC Consolidated PD 8.2.2 (20 Jun 2025)";
+      // Consolidated Practice Directions updated 23 Sep 2026; PD 8.2.2
+      // unchanged since 2022.
+      return "WA SC Consolidated PD 8.2.2";
     case "SASC":
+    case "SA_DISTRICT_MAG_CIVIL":
       // Uniform Civil Rules 2020 r 217.8, current to 15 Mar 2026
       return "SA Uniform Civil Rules 2020 r 217.8";
     case "TASSC":
@@ -2640,29 +2693,10 @@ export function validateCourtMode(
     allIssues.push(...checkUnreportedJudgments(citations, pdSource));
   }
 
-  // ── Info: subsequent treatment not recorded (Qld only) ─────────────
-  if (SUBSEQUENT_TREATMENT_JURISDICTIONS.has(config.jurisdiction)) {
-    for (const citation of citations) {
-      if (!citation.sourceType.startsWith("case.")) {
-        continue;
-      }
-
-      const label = getCitationLabel(citation);
-      const treatment = citation.data.subsequentTreatment as string | undefined;
-
-      if (!treatment || treatment.trim() === "") {
-        allIssues.push({
-          ruleNumber: "Qld SC PD 1 of 2024 cl 4(c)",
-          message:
-            `Case '${label}': Subsequent treatment not recorded — Qld practice ` +
-            `directions require confirmation of whether cited authorities have ` +
-            `been subsequently doubted or not followed`,
-          severity: "info",
-          offset: 0,
-          length: 0,
-        });
-      }
-    }
+  // ── Info: subsequent treatment not recorded (Qld, Tas) ─────────────
+  const treatmentSource = getSubsequentTreatmentSource(config.jurisdiction);
+  if (treatmentSource) {
+    allIssues.push(...checkSubsequentTreatment(citations, treatmentSource));
   }
 
   // ── Info: more than 30 authorities cited (proportionality) ─────────

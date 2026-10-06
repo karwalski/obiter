@@ -46,8 +46,8 @@ function expectPreset(
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("COURT-002: Jurisdictional preset structure", () => {
-  test("COURT_PRESETS contains exactly 20 jurisdictions", () => {
-    expect(Object.keys(COURT_PRESETS)).toHaveLength(20);
+  test("COURT_PRESETS contains exactly 22 jurisdictions (COURT-119 added NSWCCA and SA District / Magistrates civil)", () => {
+    expect(Object.keys(COURT_PRESETS)).toHaveLength(22);
   });
 
   test("every jurisdiction has a non-empty label and a valid group", () => {
@@ -75,7 +75,7 @@ describe("COURT-002: Jurisdictional preset structure", () => {
 
   test("getJurisdictionsByGroup returns correct NSW courts", () => {
     const nsw = getJurisdictionsByGroup("New South Wales");
-    expect(nsw).toEqual(["NSWCA", "NSWSC", "NSW_DISTRICT_LOCAL"]);
+    expect(nsw).toEqual(["NSWCA", "NSWCCA", "NSWSC", "NSW_DISTRICT_LOCAL"]);
   });
 
   test("getJurisdictionsByGroup returns correct Vic courts", () => {
@@ -90,7 +90,7 @@ describe("COURT-002: Jurisdictional preset structure", () => {
 
   test("getJurisdictionsByGroup returns correct Other States/Territories", () => {
     const other = getJurisdictionsByGroup("Other States/Territories");
-    expect(other).toEqual(["WASC", "SASC", "TASSC", "ACTSC", "NTSC"]);
+    expect(other).toEqual(["WASC", "SASC", "SA_DISTRICT_MAG_CIVIL", "TASSC", "ACTSC", "NTSC"]);
   });
 
   test("getJurisdictionsByGroup returns correct Tribunals", () => {
@@ -146,28 +146,35 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("FCA: mandatory parallel, para-and-page, FCR > CLR > ALR, no unreported gate, ibid on, Part A-B", () => {
+  test("FCA: mandatory parallel (MNC first), para-and-page, FCR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+    // COURT-111: GPN-AUTH cl 2.5 example is MNC first (register FCA-1,
+    // O-R2; DECISION-043 item 3); the 7 May 2025 reissue has no Part A / B
+    // (O-R1), so a simple list until COURT-117.
     expectPreset("FCA", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["FCR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "part-ab",
+      loaType: "simple",
     });
+    expect(COURT_PRESETS.FCA.parallelOrder).toBe("mnc-first");
   });
 
-  test("FCFCOA: mandatory parallel, para-and-page, FamCAFC > FLC > ALR, no unreported gate, ibid on, two-part LOA", () => {
+  test("FCFCOA: no parallel (report replaces MNC), para-and-page, FLC > ALR, no unreported gate, ibid on, two-part LOA", () => {
     // FCFCOA FAM-APPEALS (updated 10 Jun 2025): appeals LOA is two parts —
     // Part 1 cited in argument, Part 2 possibly referred but not cited.
+    // COURT-111: cl 5.8 cites the report; the MNC only for unreported
+    // judgments (register FCF-1, O-R6). FamCAFC is an MNC identifier.
     expectPreset("FCFCOA", {
-      parallelCitations: "mandatory",
+      parallelCitations: "off",
       pinpointStyle: "para-and-page",
-      authorisedReportHierarchy: ["FamCAFC", "FLC", "ALR"],
+      authorisedReportHierarchy: ["FLC", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
       loaType: "two-part-read",
     });
+    expect(COURT_PRESETS.FCFCOA.reportedCaseMnc).toBe("omit");
   });
 
   // ── New South Wales ─────────────────────────────────────────────────────
@@ -183,6 +190,18 @@ describe("COURT-003: Jurisdictional default mappings", () => {
       unreportedGate: "warn",
       ibidSuppression: "on",
       loaType: "part-ab",
+    });
+  });
+
+  test("NSWCCA (COURT-119): preferred parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, single list", () => {
+    // SC Gen 20 cl 3–4 (register NSW-1) and SC CCA 1 cl 27–28 (NSW-3).
+    expectPreset("NSWCCA", {
+      parallelCitations: "preferred",
+      pinpointStyle: "para-only",
+      authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
+      unreportedGate: "warn",
+      ibidSuppression: "on",
+      loaType: "simple",
     });
   });
 
@@ -210,12 +229,14 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── Victoria ────────────────────────────────────────────────────────────
 
-  test("VSCA: mandatory parallel, para-and-page, VR > CLR > ALR, no unreported gate, ibid on, Part A-B-C", () => {
+  test("VSCA: no parallel (report replaces MNC), para-and-page, VR > CLR > ALR, no unreported gate, ibid on, Part A-B-C", () => {
     // Vic SC PN CA 3 (reissued 10 Mar 2026): Court of Appeal civil LOA is
     // three parts — A read from at hearing, B referred to but not read
     // from, C textbooks/articles/extrinsic materials.
+    // COURT-111: SC CA 3 cl 14.4, SC Gen 3 cl 5.2 (register VIC-1, VIC-2, O-R5).
+    expect(COURT_PRESETS.VSCA.reportedCaseMnc).toBe("omit");
     expectPreset("VSCA", {
-      parallelCitations: "mandatory",
+      parallelCitations: "off",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["VR", "CLR", "ALR"],
       unreportedGate: "off",
@@ -224,9 +245,11 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("VSC: mandatory parallel, para-and-page, VR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("VSC: no parallel (report replaces MNC), para-and-page, VR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+    // COURT-111: SC Gen 3 cl 5.2 (register VIC-1, O-R5).
+    expect(COURT_PRESETS.VSC.reportedCaseMnc).toBe("omit");
     expectPreset("VSC", {
-      parallelCitations: "mandatory",
+      parallelCitations: "off",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["VR", "CLR", "ALR"],
       unreportedGate: "off",
@@ -273,9 +296,11 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("Qld District/Mag: mandatory parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+  test("Qld District/Mag: preferred parallel, para-only, Qd R > CLR > ALR, warn unreported, ibid on, simple LOA", () => {
+    // COURT-111: Magistrates Courts PD 7 of 2024 cl 3 "should, as far as
+    // possible" (register QLD-3, O-R11).
     expectPreset("QLD_DISTRICT_MAG", {
-      parallelCitations: "mandatory",
+      parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
       unreportedGate: "warn",
@@ -300,12 +325,25 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     expect(COURT_PRESETS.WASC.parallelOrder).toBe("mnc-first");
   });
 
-  test("SASC: preferred parallel, para-and-page, SASR > CLR > ALR, no unreported gate, ibid on, two-part LOA", () => {
+  test("SASC: mandatory parallel, para-and-page, SASR > CLR > ALR, no unreported gate, ibid on, two-part LOA", () => {
     // SA Uniform Civil Rules 2020 r 217.8 (current to 15 Mar 2026):
     // appeals LOA is two parts — expected to be read / not expected
-    // to be read (Form 91).
+    // to be read (Form 91). COURT-111: r 217.8(3), r 101.8(4) — report and
+    // MNC "must" both be given (register SA-1, O-R7).
     expectPreset("SASC", {
-      parallelCitations: "preferred",
+      parallelCitations: "mandatory",
+      pinpointStyle: "para-and-page",
+      authorisedReportHierarchy: ["SASR", "CLR", "ALR"],
+      unreportedGate: "off",
+      ibidSuppression: "on",
+      loaType: "two-part-read",
+    });
+  });
+
+  test("SA District/Mag civil (COURT-119): the Uniform Civil Rules apply, so the SASC values", () => {
+    // Register SA-1, O-R7.
+    expectPreset("SA_DISTRICT_MAG_CIVIL", {
+      parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["SASR", "CLR", "ALR"],
       unreportedGate: "off",
@@ -328,9 +366,11 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("ACTSC: preferred parallel, para-and-page, ACTLR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("ACTSC: no parallel (report only), para-and-page, ACTLR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+    // COURT-111: PD 2 of 2022 cl 3–4, silent on the MNC (register ACT-1, O-R10).
+    expect(COURT_PRESETS.ACTSC.reportedCaseMnc).toBe("omit");
     expectPreset("ACTSC", {
-      parallelCitations: "preferred",
+      parallelCitations: "off",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["ACTLR", "CLR", "ALR"],
       unreportedGate: "off",
@@ -339,9 +379,11 @@ describe("COURT-003: Jurisdictional default mappings", () => {
     });
   });
 
-  test("NTSC: preferred parallel, para-and-page, NTLR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("NTSC: no parallel (report only), para-and-page, NTLR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+    // COURT-111: PD 2 of 2007 "is to be cited", no MNC (register NT-1, O-R10).
+    expect(COURT_PRESETS.NTSC.reportedCaseMnc).toBe("omit");
     expectPreset("NTSC", {
-      parallelCitations: "preferred",
+      parallelCitations: "off",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["NTLR", "CLR", "ALR"],
       unreportedGate: "off",
@@ -403,7 +445,7 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
 
   test("unreported gate warn is active for NSW, Qld, and Tas courts only", () => {
     const warnJurisdictions = new Set<CourtJurisdiction>([
-      "NSWCA", "NSWSC", "NSW_DISTRICT_LOCAL",
+      "NSWCA", "NSWCCA", "NSWSC", "NSW_DISTRICT_LOCAL",
       "QCA", "QSC", "QLD_DISTRICT_MAG",
       "TASSC",
     ]);
@@ -416,9 +458,10 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
     }
   });
 
-  test("Part A-B LOA is used by HCA, FCA, NSWCA, and QCA only", () => {
+  test("Part A-B LOA is used by HCA, NSWCA, and QCA only", () => {
     // VSCA moved to "part-abc" per Vic SC PN CA 3 (reissued 10 Mar 2026).
-    const partAbJurisdictions = new Set<CourtJurisdiction>(["HCA", "FCA", "NSWCA", "QCA"]);
+    // COURT-111: FCA left Part A-B (GPN-AUTH 7 May 2025; register O-R1).
+    const partAbJurisdictions = new Set<CourtJurisdiction>(["HCA", "NSWCA", "QCA"]);
     for (const [id, preset] of Object.entries(COURT_PRESETS)) {
       if (partAbJurisdictions.has(id as CourtJurisdiction)) {
         expect(preset.loaType).toBe("part-ab");
@@ -438,9 +481,25 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
     expect(COURT_PRESETS.TASSC.loaType).toBe("three-part-tas");
   });
 
-  test("parallelOrder: only WASC uses mnc-first (WA Consolidated PD 8.2.2, 20 Jun 2025)", () => {
+  test("COURT-111: the report replaces the MNC exactly where an instrument says so", () => {
+    // VIC-1 cl 5.2, VIC-2 cl 14.4, FCF-1 cl 5.8, ACT-1 cl 3–4, NT-1 (O-R5,
+    // O-R6, O-R10). Every other preset keeps the MNC (absent = include).
+    const omit = Object.entries(COURT_PRESETS)
+      .filter(([, p]) => p.reportedCaseMnc === "omit")
+      .map(([id]) => id)
+      .sort();
+    expect(omit).toEqual(["ACTSC", "FCFCOA", "NTSC", "VSC", "VSCA"]);
+    for (const id of omit) {
+      expect(COURT_PRESETS[id as CourtJurisdiction].parallelCitations).toBe("off");
+    }
+  });
+
+  test("parallelOrder: mnc-first where the court's instrument shows it (DECISION-043 item 3)", () => {
+    // WA CPD PD 8.2.2 cl 4 (WA-1), FCA GPN-AUTH cl 2.5 (FCA-1), Tas PD 3 of
+    // 2014 cl 3(a) (TAS-1).
+    const mncFirst = new Set(["WASC", "FCA", "TASSC"]);
     for (const [id, preset] of Object.entries(COURT_PRESETS)) {
-      if (id === "WASC") {
+      if (mncFirst.has(id)) {
         expect(preset.parallelOrder).toBe("mnc-first");
       } else {
         // Omitted parallelOrder means report-first (authorised report,

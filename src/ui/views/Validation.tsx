@@ -220,6 +220,8 @@ export default function Validation(): JSX.Element {
         parallelCitationMode: currentConfig.parallelCitationMode,
         ibidSuppressionMode: currentConfig.ibidSuppressionMode,
         unreportedGateMode: currentConfig.unreportedGateMode,
+        // COURT-111: the frozen report hierarchy drives an information prompt.
+        authorisedReportHierarchy: currentConfig.authorisedReportHierarchy,
       });
 
       // Run standard-specific validation rules

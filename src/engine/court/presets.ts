@@ -26,7 +26,16 @@
  * documents are offered the change (DECISION-043 item 4). A test fails if a
  * preset lacks provenance for any toggle.
  *
- * Sources (verified against primary court sources 2026-07-21):
+ * COURT-111 / COURT-119 (6 Oct 2026): values corrected against the
+ * court-interop evidence register (R02 §5) and DECISION-043 item 3
+ * (parallel order follows the court's own example where the instrument is
+ * silent or only gives one). Corrected values reach NEW documents; an
+ * existing document keeps its frozen values until the user accepts the
+ * "Update court profile" prompt (DECISION-043 item 4). provenance.ts
+ * records the instrument, clause and check date for every value.
+ *
+ * Sources (verified against primary court sources 2026-07-21; re-checked
+ * against the evidence register 2026-10-06):
  *   - Federal Court GPN-AUTH (reissued 7 May 2025)
  *   - HCA PD 2 of 2024
  *   - NSW SC PN Gen 20 (Oct 2023)
@@ -34,7 +43,8 @@
  *   - Vic SC PN CA 3 (reissued 10 Mar 2026) — Court of Appeal civil LOA
  *   - Qld SC PD 1 of 2024
  *   - Qld MC PD 7 of 2024
- *   - WA SC Consolidated Practice Directions (updated 20 Jun 2025), PD 2.1 and PD 8.2.2
+ *   - NSW SC PN SC CCA 1 (22 Jul 2021) — Court of Criminal Appeal list
+ *   - WA SC Consolidated Practice Directions (updated 23 Sep 2026), PD 2.1 and PD 8.2.2
  *   - SA Uniform Civil Rules 2020 r 217.8 (current to 15 Mar 2026)
  *   - Tas SC PD 3 of 2014 (citation) and PD 3 of 2022 (lists of authorities)
  *   - ACT SC PD 2 of 2022 (26 May 2022)
@@ -68,7 +78,9 @@ export type IbidSuppression = "off" | "on";
  * - "off" — no LOA generated
  * - "simple" — flat Cases/Legislation list
  * - "part-ab" — Part A (read from) / Part B (referred to) split
- *   (FCA GPN-AUTH cl 2.1; HCA PD 2 of 2024; NSWCA; QCA)
+ *   (QCA: Qld SC PD 3 of 2013). The HCA and NSWCA presets still use it
+ *   pending their instrument layouts (COURT-117); FCA GPN-AUTH dropped
+ *   Part A / Part B in its 7 May 2025 reissue (register O-R1).
  * - "part-abc" — Part A (read from at hearing) / Part B (referred to,
  *   not read from) / Part C (textbooks, articles, extrinsic materials),
  *   with "None" stated under unused parts (Vic SC PN CA 3, reissued
@@ -96,13 +108,38 @@ export type LoaType =
  *   jurisdictions.
  * - "mnc-first" — medium neutral citation first, then the report
  *   (e.g. "Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]")
- *   per WA SC Consolidated Practice Directions PD 8.2.2 (updated
- *   20 Jun 2025).
+ *   per WA SC Consolidated Practice Directions PD 8.2.2; also the
+ *   instrument example for FCA GPN-AUTH cl 2.5 and Tas SC PD 3 of 2014
+ *   cl 3(a) (DECISION-043 item 3).
  */
 export type ParallelOrder = "report-first" | "mnc-first";
 
-// ─── COURT-010: Subsequent Treatment (Qld) ─────────────────────────────────
+/**
+ * COURT-111: whether court mode adds a reported case's MNC after (or
+ * before) the report.
+ *
+ * - "include" — the report and the MNC are both given (a parallel
+ *   citation). The default, and how every court document saved before
+ *   COURT-111 renders.
+ * - "omit" — the report replaces the MNC; the MNC is cited only for an
+ *   unreported judgment. This is also AGLC4 r 2.2.7 (parallel citations
+ *   are not given for Australian cases). Set where the instrument says the
+ *   report is cited instead of the MNC: Vic SC Gen 3 cl 5.2, SC CA 3
+ *   cl 14.4, FCFCOA FAM-APPEALS cl 5.8, ACT SC PD 2 of 2022 cl 3–4 and NT
+ *   SC PD 2 of 2007.
+ *
+ * Parallels the user recorded on the citation are never removed.
+ */
+export type ReportedCaseMnc = "include" | "omit";
 
+// ─── COURT-010 / COURT-119: Subsequent Treatment (Qld, Tas) ─────────────────
+
+/**
+ * Subsequent treatment of a cited case. "distinguished" and "overruled"
+ * are kept so citations saved with them still load; the prompt no longer
+ * offers them (COURT-119: the instruments ask only whether the case was
+ * doubted or not followed).
+ */
 export type SubsequentTreatment =
   | ""
   | "not-affected"
@@ -112,18 +149,41 @@ export type SubsequentTreatment =
   | "overruled"
   | "unknown";
 
+/**
+ * COURT-119: the treatment options offered, narrowed to the wording of Qld
+ * SC PD 1 of 2024 cl 4(c) and Tas SC PD 3 of 2014 cl 3(f): whether a later
+ * judgment has "doubted, or not followed" the case.
+ */
 export const SUBSEQUENT_TREATMENT_OPTIONS: ReadonlyArray<{
   value: SubsequentTreatment;
   label: string;
 }> = [
   { value: "", label: "Select..." },
-  { value: "not-affected", label: "Not affected" },
-  { value: "distinguished", label: "Distinguished" },
+  { value: "not-affected", label: "Neither doubted nor not followed" },
   { value: "doubted", label: "Doubted" },
   { value: "not-followed", label: "Not followed" },
-  { value: "overruled", label: "Overruled" },
   { value: "unknown", label: "Unknown \u2014 check" },
 ];
+
+/** Labels for treatment values saved before COURT-119 narrowed the options. */
+const LEGACY_TREATMENT_LABELS: Partial<Record<SubsequentTreatment, string>> = {
+  distinguished: "Distinguished (earlier option)",
+  overruled: "Overruled (earlier option)",
+};
+
+/**
+ * COURT-119: the options to show for a citation. A value saved from an
+ * earlier option list is kept and shown, so editing the citation does not
+ * silently change it.
+ */
+export function getSubsequentTreatmentOptions(
+  current: string | undefined
+): ReadonlyArray<{ value: SubsequentTreatment; label: string }> {
+  const legacy = current ? LEGACY_TREATMENT_LABELS[current as SubsequentTreatment] : undefined;
+  return legacy
+    ? [...SUBSEQUENT_TREATMENT_OPTIONS, { value: current as SubsequentTreatment, label: legacy }]
+    : SUBSEQUENT_TREATMENT_OPTIONS;
+}
 
 /** Treatment values that indicate a negative subsequent history. */
 export const NEGATIVE_TREATMENTS: ReadonlySet<SubsequentTreatment> = new Set([
@@ -141,6 +201,7 @@ export type CourtJurisdiction =
   | "FCFCOA"
   // New South Wales
   | "NSWCA"
+  | "NSWCCA"
   | "NSWSC"
   | "NSW_DISTRICT_LOCAL"
   // Victoria
@@ -154,6 +215,7 @@ export type CourtJurisdiction =
   // Other States/Territories
   | "WASC"
   | "SASC"
+  | "SA_DISTRICT_MAG_CIVIL"
   | "TASSC"
   | "ACTSC"
   | "NTSC"
@@ -195,6 +257,12 @@ export interface CourtPreset {
    * (DECISION-043 item 4).
    */
   pinpointConnector?: PinpointConnector;
+  /**
+   * COURT-111: whether a reported case's MNC is added in court mode.
+   * Optional — omitted means "include". A document saved without the
+   * toggle keeps including it (DECISION-043 item 4).
+   */
+  reportedCaseMnc?: ReportedCaseMnc;
 }
 
 export type CourtGroup =
@@ -225,6 +293,11 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // report pages. Parallel citations remain the default expectation, so
   // the toggle stays "mandatory"; the relaxation is documented in the
   // court reference guide.
+  // COURT-111: cl 2.5 gives the MNC first ("D'Arcy v Myriad Genetics Inc
+  // [2014] FCAFC 115; (2014) 224 FCR 479"), so the order is MNC first
+  // (DECISION-043 item 3; register FCA-1, O-R2). The 2025 reissue has no
+  // Part A / Part B list (O-R1): a simple list until COURT-117 adds the
+  // GPN-eBOOKS cl 7.2 layout.
   FCA: {
     label: "Federal Court of Australia",
     group: "Federal",
@@ -233,7 +306,8 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     authorisedReportHierarchy: ["FCR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
-    loaType: "part-ab",
+    loaType: "simple",
+    parallelOrder: "mnc-first",
     // COURT-112: GPN-AUTH cl 2.6 (7 May 2025; register FCA-1, O-R2)
     // shows pinpoints as "at [29]" and "at 481". Provenance: official
     // (instrument example).
@@ -243,15 +317,20 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // Part 1 authorities cited in argument, Part 2 authorities possibly
   // referred to but not cited; filed with the summary of argument at
   // least 28 days before the sittings.
+  // COURT-111: cl 5.8 — cite the report; the MNC is for unreported
+  // judgments only, so no parallel citation (register FCF-1, O-R6).
+  // FamCAFC dropped from the hierarchy: it is a medium neutral court
+  // identifier (AGLC4 r 2.3.1), not a report series.
   FCFCOA: {
     label: "Federal Circuit and Family Court",
     group: "Federal",
-    parallelCitations: "mandatory",
+    parallelCitations: "off",
     pinpointStyle: "para-and-page",
-    authorisedReportHierarchy: ["FamCAFC", "FLC", "ALR"],
+    authorisedReportHierarchy: ["FLC", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "two-part-read",
+    reportedCaseMnc: "omit",
   },
 
   // ── New South Wales ─────────────────────────────────────────────────────
@@ -272,6 +351,23 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     ibidSuppression: "on",
     loaType: "part-ab",
   },
+  // COURT-119: NSW SC Practice Note SC CCA 1 (22 Jul 2021; register NSW-3,
+  // O-R12): a single list of only the authorities the Court is expected to
+  // be taken to in oral argument (cl 27); an authority on Caselaw with an
+  // MNC "is not considered to be a reported judgment", and a copy of an
+  // unreported judgment is attached (cl 28). Citation of authority follows
+  // SC Gen 20, which applies to every division including the CCA (NSW-1).
+  // "simple" stands for the single list until COURT-117 adds its layout.
+  NSWCCA: {
+    label: "NSW Court of Criminal Appeal",
+    group: "New South Wales",
+    parallelCitations: "preferred",
+    pinpointStyle: "para-only",
+    authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
+    unreportedGate: "warn",
+    ibidSuppression: "on",
+    loaType: "simple",
+  },
   NSWSC: {
     label: "NSW Supreme Court",
     group: "New South Wales",
@@ -282,6 +378,9 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     ibidSuppression: "on",
     loaType: "simple",
   },
+  // COURT-119: no District or Local Court citation instrument was found
+  // (register NSW-4, O-R18). Labelled "no instrument found; AGLC4
+  // fallback" in provenance; the values are unchanged.
   NSW_DISTRICT_LOCAL: {
     label: "NSW District / Local Court",
     group: "New South Wales",
@@ -302,29 +401,36 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // style per SC Gen 3 (reissued 1 Dec 2025): reported over unreported,
   // pinpoint = paragraph and (if reported) commencing page, e.g.
   // "(2023) 72 VR 394, 410 [60]".
+  // COURT-111: SC CA 3 cl 14.4 requires the authorised report and SC Gen 3
+  // cl 5.2 cites the report "instead of" the unreported version: no
+  // parallel citation (register VIC-1, VIC-2, O-R5; AGLC4 r 2.2.7).
   VSCA: {
     label: "Vic Court of Appeal",
     group: "Victoria",
-    parallelCitations: "mandatory",
+    parallelCitations: "off",
     pinpointStyle: "para-and-page",
     authorisedReportHierarchy: ["VR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "part-abc",
+    reportedCaseMnc: "omit",
   },
   // Vic SC PN Gen 3 (reissued 1 Dec 2025, replacing the 30 Jan 2017
   // issue): the Court uses the AGLC as the basis of its citation
   // practice and parties are invited to follow it; authorised over
   // unauthorised reports; reported must be cited over unreported.
+  // COURT-111: cl 5.2 — "that report must be included instead of the
+  // unreported version": no parallel citation (register VIC-1, O-R5).
   VSC: {
     label: "Vic Supreme Court",
     group: "Victoria",
-    parallelCitations: "mandatory",
+    parallelCitations: "off",
     pinpointStyle: "para-and-page",
     authorisedReportHierarchy: ["VR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "simple",
+    reportedCaseMnc: "omit",
   },
   VIC_COUNTY_MAG: {
     label: "Vic County / Magistrates' Court",
@@ -362,10 +468,14 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     ibidSuppression: "on",
     loaType: "simple",
   },
+  // COURT-111: Magistrates Courts PD 7 of 2024 cl 3 uses the same "should,
+  // as far as possible" wording as PD 1 of 2024 (register QLD-3, O-R11).
+  // COURT-119: no District Court citation instrument was found (O-R18);
+  // the District part is labelled "no instrument found; AGLC4 fallback".
   QLD_DISTRICT_MAG: {
     label: "Qld District / Magistrates Court",
     group: "Queensland",
-    parallelCitations: "mandatory",
+    parallelCitations: "preferred",
     pinpointStyle: "para-only",
     authorisedReportHierarchy: ["Qd R", "CLR", "ALR"],
     unreportedGate: "warn",
@@ -374,8 +484,8 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   },
 
   // ── Other States/Territories ────────────────────────────────────────────
-  // WA SC Consolidated Practice Directions (updated 20 Jun 2025)
-  // PD 8.2.2: parallel citation required when a case is reported, with
+  // WA SC Consolidated Practice Directions (updated 23 Sep 2026; PD 2.1
+  // and PD 8.2.2 unchanged since 2022 and 2025) PD 8.2.2: parallel citation required when a case is reported, with
   // the MNC first and the report second, e.g. "Lee v The Queen [1999]
   // WASCA 14; (1999) 18 WAR 23, 34 [15]". PD 2.1: LOA lists all and
   // only authorities in the outline; cases to be read are marked with
@@ -395,10 +505,27 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // appeals LOA is two parts (authorities expected to be read / not
   // expected to be read — Form 91); citation hierarchy is authorised
   // report, then other published report, then MNC (post-1997).
+  // COURT-111: r 217.8(3) and r 101.8(4) say the highest authorised report
+  // AND the MNC (for a decision after 1997 available online) "must" be
+  // given, so parallel citation is mandatory (register SA-1, O-R7). The
+  // order is not stated: report first (DECISION-043 item 3).
   SASC: {
     label: "SA Supreme Court",
     group: "Other States/Territories",
-    parallelCitations: "preferred",
+    parallelCitations: "mandatory",
+    pinpointStyle: "para-and-page",
+    authorisedReportHierarchy: ["SASR", "CLR", "ALR"],
+    unreportedGate: "off",
+    ibidSuppression: "on",
+    loaType: "two-part-read",
+  },
+  // COURT-119: the Uniform Civil Rules 2020 apply to the civil
+  // jurisdictions of the Supreme, District and Magistrates Courts (register
+  // SA-1, O-R7), so this preset carries the SASC values.
+  SA_DISTRICT_MAG_CIVIL: {
+    label: "SA District / Magistrates Court (civil)",
+    group: "Other States/Territories",
+    parallelCitations: "mandatory",
     pinpointStyle: "para-and-page",
     authorisedReportHierarchy: ["SASR", "CLR", "ALR"],
     unreportedGate: "off",
@@ -419,6 +546,10 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     unreportedGate: "warn",
     ibidSuppression: "on",
     loaType: "three-part-tas",
+    // COURT-111: PD 3 of 2014 cl 3(a) gives the MNC first ("Jackson v
+    // Building Appeal Board [2010] TASSC 29; (2010) 20 Tas R 1"; register
+    // TAS-1, O-R8; DECISION-043 item 3).
+    parallelOrder: "mnc-first",
     // COURT-112: PD 3 of 2014 cl 3 (21 Feb 2014; register TAS-1, O-R8)
     // shows "Smith v Brown [1997] TASSC 161 at [15]". Provenance:
     // official (instrument example).
@@ -427,31 +558,39 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // ACT SC PD 2 of 2022 (26 May 2022): authorised-series citation
   // should be used where one exists, with no express dispensation for
   // MNC paragraph pinpoints; where copies are provided, provide the
-  // cited report version. Toggle kept at "preferred" pending
-  // confirmation of enforcement severity.
+  // cited report version.
+  // COURT-111: cl 3–4 require the authorised (then another) report and the
+  // direction is silent on the MNC, so no parallel citation (register
+  // ACT-1, O-R10; the scan was re-read on 6 Oct 2026; the owner's eye check,
+  // DECISION-043 item 12, is pending).
   ACTSC: {
     label: "ACT Supreme Court",
     group: "Other States/Territories",
-    parallelCitations: "preferred",
+    parallelCitations: "off",
     pinpointStyle: "para-and-page",
     authorisedReportHierarchy: ["ACTLR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "simple",
+    reportedCaseMnc: "omit",
   },
   // NT SC PD 1 of 2025 (1 Jan 2025, replacing PD 4 of 2016): lists of
   // authorities are required whenever authorities are relied on —
   // single judge at least 24 hours before the hearing, Full Court 28
-  // days. Citation of unreported cases remains governed by PD 2 of 2007.
+  // days. Citation of authorities is governed by PD 2 of 2007.
+  // COURT-111: PD 2 of 2007 (Citation of Authorities) says the authorised
+  // report "is to be cited" and does not mention the MNC, so no parallel
+  // citation (register NT-1, O-R10).
   NTSC: {
     label: "NT Supreme Court",
     group: "Other States/Territories",
-    parallelCitations: "preferred",
+    parallelCitations: "off",
     pinpointStyle: "para-and-page",
     authorisedReportHierarchy: ["NTLR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "simple",
+    reportedCaseMnc: "omit",
   },
 
   // ── Tribunals ───────────────────────────────────────────────────────────
@@ -498,18 +637,45 @@ export const UNREPORTED_GATE_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new
 
 // ─── COURT-010: Queensland subsequent-treatment helpers ──────────────────────
 
-/** Jurisdictions where subsequent treatment prompting is active (Qld). */
+/** Queensland jurisdictions (selectivity reminder and treatment prompt). */
 export const QLD_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set<CourtJurisdiction>([
   "QCA",
   "QSC",
   "QLD_DISTRICT_MAG",
 ]);
 
+/**
+ * COURT-010 / COURT-119: the instrument behind the "doubted or not
+ * followed" prompt, by jurisdiction. Each requires a party to cite any
+ * later judgment that doubted or did not follow a cited case.
+ */
+const SUBSEQUENT_TREATMENT_SOURCES: Partial<Record<CourtJurisdiction, string>> = {
+  QCA: "Qld SC PD 1/2024 cl 4(c)",
+  QSC: "Qld SC PD 1/2024 cl 4(c)",
+  // Register QLD-3: same wording as PD 1 of 2024.
+  QLD_DISTRICT_MAG: "Qld MC PD 7/2024",
+  // COURT-119: register TAS-1, O-R8.
+  TASSC: "Tas SC PD 3/2014 cl 3(f)",
+};
+
+/** Jurisdictions where the subsequent-treatment prompt is active (Qld, Tas). */
+export const SUBSEQUENT_TREATMENT_JURISDICTIONS: ReadonlySet<CourtJurisdiction> =
+  new Set<CourtJurisdiction>(Object.keys(SUBSEQUENT_TREATMENT_SOURCES) as CourtJurisdiction[]);
+
+/**
+ * COURT-119: the instrument (and clause) requiring the treatment prompt for
+ * a jurisdiction, or undefined where none applies.
+ */
+export function getSubsequentTreatmentSource(jurisdictionId: string): string | undefined {
+  return SUBSEQUENT_TREATMENT_SOURCES[jurisdictionId as CourtJurisdiction];
+}
+
 // ─── COURT-011 / COURT-012: Jurisdiction group helpers ──────────────────────
 
 /** Jurisdictions in the NSW group (for selectivity duty reminder). */
 export const NSW_JURISDICTIONS: ReadonlySet<CourtJurisdiction> = new Set<CourtJurisdiction>([
   "NSWCA",
+  "NSWCCA",
   "NSWSC",
   "NSW_DISTRICT_LOCAL",
 ]);

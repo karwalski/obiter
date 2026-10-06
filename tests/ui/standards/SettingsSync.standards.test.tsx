@@ -234,6 +234,7 @@ jest.mock("../../../src/debug", () => ({
 const HCA_TOGGLES = {
   parallelCitations: "mandatory",
   parallelOrder: "report-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "CLR",
@@ -244,6 +245,7 @@ const HCA_TOGGLES = {
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
   parallelOrder: "mnc-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "WAR,CLR,ALR",

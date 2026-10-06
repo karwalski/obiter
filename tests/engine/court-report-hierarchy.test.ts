@@ -17,6 +17,12 @@ import {
 } from "../../src/engine/court/reportHierarchy";
 import type { ReportJurisdiction } from "../../src/engine/court/reportHierarchy";
 import { getReportSeriesPreference } from "../../src/engine/rules/v4/domestic/cases";
+import { pickPreferredSeries } from "../../src/engine/court/reportHierarchy";
+import { checkPreferredReportSeries, validateDocument } from "../../src/engine/validator";
+import { getByCode as getCourtIdentifier } from "../../src/engine/data/court-identifiers";
+import { getByAbbreviation } from "../../src/engine/data/report-series";
+import { tokeniseMNC } from "../../src/api/citationParser";
+import type { Citation } from "../../src/types/citation";
 
 // ─── Hierarchy Data Tests ────────────────────────────────────────────────────
 
@@ -362,5 +368,116 @@ describe("COURT-006: getReportSeriesPreference with jurisdiction parameter", () 
     expect(getReportSeriesPreference("CLR", "UNKNOWN")).toBe(1);
     expect(getReportSeriesPreference("ALR", "UNKNOWN")).toBe(2);
     expect(getReportSeriesPreference("MNC", "UNKNOWN")).toBe(4);
+  });
+});
+
+// ─── COURT-111 / COURT-119 ───────────────────────────────────────────────────
+
+describe("COURT-111: the document's report hierarchy drives a court validation prompt", () => {
+  const nswHierarchy = ["NSWLR", "CLR", "ALR"];
+
+  function reported(series: string, parallels: string[]): Citation {
+    return {
+      id: `rh-${series}`,
+      aglcVersion: "4",
+      sourceType: "case.reported",
+      data: {
+        party1: "Pape",
+        party2: "Commissioner of Taxation",
+        yearType: "round",
+        year: 2009,
+        volume: 238,
+        reportSeries: series,
+        startingPage: 1,
+        parallelCitations: parallels.map((s) => ({
+          yearType: "round",
+          year: 2009,
+          volume: 257,
+          reportSeries: s,
+          startingPage: 33,
+        })),
+      },
+      shortTitle: "Pape",
+      tags: [],
+      createdAt: "2026-10-06T00:00:00Z",
+      modifiedAt: "2026-10-06T00:00:00Z",
+    } as Citation;
+  }
+
+  test("pickPreferredSeries ranks by the given hierarchy (AGLC4 r 2.2.2 fallback for unlisted series)", () => {
+    expect(pickPreferredSeries(nswHierarchy, ["ALR", "CLR"])).toBe("CLR");
+    expect(pickPreferredSeries(nswHierarchy, ["A Crim R", "ALR"])).toBe("ALR");
+    expect(pickPreferredSeries(nswHierarchy, ["NSWSC", "A Crim R"])).toBe("A Crim R");
+    expect(pickPreferredSeries(nswHierarchy, [])).toBeUndefined();
+  });
+
+  test("suggestPreferredReport is unchanged by the refactor", () => {
+    expect(suggestPreferredReport("HCA", ["ALR", "CLR", "ALJR"])).toBe("CLR");
+  });
+
+  test("a case cited from ALR with a recorded CLR parallel gets an information prompt", () => {
+    const issues = checkPreferredReportSeries(
+      [reported("ALR", ["CLR"])],
+      nswHierarchy,
+      "NSW SC PN Gen 20 (Oct 2023)"
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("info");
+    expect(issues[0].ruleNumber).toBe("NSW SC PN Gen 20 (Oct 2023)");
+    expect(issues[0].message).toContain("ranks the CLR report above ALR");
+  });
+
+  test("no prompt when the cited series is already the most preferred, or nothing else is recorded", () => {
+    expect(checkPreferredReportSeries([reported("CLR", ["ALR"])], nswHierarchy)).toEqual([]);
+    expect(checkPreferredReportSeries([reported("ALR", [])], nswHierarchy)).toEqual([]);
+  });
+
+  test("validateDocument runs it in court mode only, from the document's frozen hierarchy", () => {
+    const citations = [reported("ALR", ["CLR"])];
+    const court = validateDocument([], citations, undefined, {
+      standardId: "aglc4",
+      writingMode: "court",
+      courtJurisdiction: "NSWSC",
+      authorisedReportHierarchy: nswHierarchy,
+    });
+    expect(court.info.some((i) => i.message.includes("report hierarchy"))).toBe(true);
+    const academic = validateDocument([], citations, undefined, {
+      standardId: "aglc4",
+      writingMode: "academic",
+      authorisedReportHierarchy: nswHierarchy,
+    });
+    expect(academic.info.some((i) => i.message.includes("report hierarchy"))).toBe(false);
+  });
+
+  test("the HCA hierarchy no longer cites the revoked PD 1 of 2019 (register HCA-1)", () => {
+    const fs = require("fs") as typeof import("fs");
+    const path = require("path") as typeof import("path");
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../../src/engine/court/reportHierarchy.ts"),
+      "utf-8"
+    );
+    expect(src).not.toMatch(/^ \* - HCA PD 1 of 2019$/m);
+    expect(src).toContain("HCA PD 2 of 2024");
+  });
+});
+
+describe("COURT-119: WA sentencing remarks MNC ([yyyy] WASCSR n; WA CPD PD 8.2.2, register O-R19)", () => {
+  test("WASCSR is a recognised WA medium neutral identifier", () => {
+    expect(getCourtIdentifier("WASCSR")).toMatchObject({ jurisdiction: "WA" });
+    expect(getByAbbreviation("WASCSR")?.type).toBe("medium_neutral");
+    expect(getPreferredReportOrder("WASCSR")).toEqual(getPreferredReportOrder("WA"));
+  });
+
+  test("[2011] WASCSR 1 parses as a medium neutral citation (WA CPD PD 8.2.2)", () => {
+    expect(tokeniseMNC("R v Smith [2011] WASCSR 1")).toMatchObject({
+      type: "mnc",
+      year: 2011,
+      court: "WASCSR",
+      number: 1,
+    });
+  });
+
+  test("WASCSR ranks with the MNC, below every report series (AGLC4 r 2.2.2)", () => {
+    expect(pickPreferredSeries(["WAR", "CLR", "ALR"], ["WASCSR", "A Crim R"])).toBe("A Crim R");
   });
 });

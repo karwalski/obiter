@@ -30,22 +30,24 @@ Every court profile in Obiter is **experimental**. A profile is checked against 
 | Court | Profile version | Checked against | Last review |
 |---|---|---|---|
 | High Court of Australia (`HCA`) | 2026-10-06 | HCA-1, HCA-2 | 6 Oct 2026 |
-| Federal Court of Australia (`FCA`) | 2026-10-06 | FCA-1 | 6 Oct 2026 |
-| Federal Circuit and Family Court (`FCFCOA`) | 2026-10-06 | FCF-1 | 6 Oct 2026 |
+| Federal Court of Australia (`FCA`) | 2026-10-06.2 | FCA-1 | 6 Oct 2026 |
+| Federal Circuit and Family Court (`FCFCOA`) | 2026-10-06.2 | FCF-1 | 6 Oct 2026 |
 | NSW Court of Appeal (`NSWCA`) | 2026-10-06 | NSW-1, NSW-2 | 6 Oct 2026 |
+| NSW Court of Criminal Appeal (`NSWCCA`) | 2026-10-06.2 | NSW-1, NSW-3 | 6 Oct 2026 |
 | NSW Supreme Court (`NSWSC`) | 2026-10-06 | NSW-1 | 6 Oct 2026 |
 | NSW District / Local Court (`NSW_DISTRICT_LOCAL`) | 2026-10-06 | No instrument found | 6 Oct 2026 |
-| Vic Court of Appeal (`VSCA`) | 2026-10-06 | VIC-1, VIC-2 | 6 Oct 2026 |
-| Vic Supreme Court (`VSC`) | 2026-10-06 | VIC-1 | 6 Oct 2026 |
+| Vic Court of Appeal (`VSCA`) | 2026-10-06.2 | VIC-1, VIC-2 | 6 Oct 2026 |
+| Vic Supreme Court (`VSC`) | 2026-10-06.2 | VIC-1 | 6 Oct 2026 |
 | Vic County / Magistrates' Court (`VIC_COUNTY_MAG`) | 2026-10-06 | No instrument found | Not reviewed |
 | Qld Court of Appeal (`QCA`) | 2026-10-06 | QLD-1, QLD-2 | 6 Oct 2026 |
 | Qld Supreme Court (`QSC`) | 2026-10-06 | QLD-1 | 6 Oct 2026 |
-| Qld District / Magistrates Court (`QLD_DISTRICT_MAG`) | 2026-10-06 | QLD-3 | 6 Oct 2026 |
+| Qld District / Magistrates Court (`QLD_DISTRICT_MAG`) | 2026-10-06.2 | QLD-3 | 6 Oct 2026 |
 | WA Supreme Court (`WASC`) | 2026-10-06 | WA-1 | 6 Oct 2026 |
-| SA Supreme Court (`SASC`) | 2026-10-06 | SA-1 | 6 Oct 2026 |
-| Tas Supreme Court (`TASSC`) | 2026-10-06 | TAS-1, TAS-2 | 6 Oct 2026 |
-| ACT Supreme Court (`ACTSC`) | 2026-10-06 | ACT-1 | 6 Oct 2026 |
-| NT Supreme Court (`NTSC`) | 2026-10-06 | NT-1, NT-2 | 6 Oct 2026 |
+| SA Supreme Court (`SASC`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
+| SA District / Magistrates Court (civil) (`SA_DISTRICT_MAG_CIVIL`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
+| Tas Supreme Court (`TASSC`) | 2026-10-06.2 | TAS-1, TAS-2 | 6 Oct 2026 |
+| ACT Supreme Court (`ACTSC`) | 2026-10-06.2 | ACT-1 | 6 Oct 2026 |
+| NT Supreme Court (`NTSC`) | 2026-10-06.2 | NT-1, NT-2 | 6 Oct 2026 |
 | Administrative Review Tribunal (`ART`) | 2026-10-06 | No instrument found | Not reviewed |
 | Fair Work Commission (`FWC`) | 2026-10-06 | No instrument found | Not reviewed |
 | State/Territory Tribunal (NCAT/VCAT/QCAT/SAT/other) (`STATE_TRIBUNAL`) | 2026-10-06 | No instrument found | Not reviewed |
@@ -62,6 +64,7 @@ Experimental: checked against HCA Practice Direction No 2 of 2024 (Joint Book of
 |---|---|---|---|---|---|
 | Parallel citations | Mandatory | No supporting source | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)); HCA-2 (HCA Form 27A) | 6 Oct 2026 | HCA instruments are silent on parallel citation (register O-R4); value under review (open question Q3). |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | CLR | Court instrument | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) JBA Part C; Form 27A Part IV; HCA-2 (HCA Form 27A) | 6 Oct 2026 |  |
@@ -80,13 +83,14 @@ Experimental: checked against FCA Lists of Authorities and Citations Practice No
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
 | Parallel citations | Mandatory | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.4–2.5 | 6 Oct 2026 |  |
-| Parallel citation order | Authorised report first | No supporting source | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.5 | 6 Oct 2026 | GPN-AUTH cl 2.5 gives the MNC first (register O-R2); MNC-first is decided (DECISION-043 item 3) and pending COURT-111. |
+| Parallel citation order | Medium neutral citation first | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.5; DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Instrument example: “D'Arcy v Myriad Genetics Inc [2014] FCAFC 115; (2014) 224 FCR 479” (register O-R2; DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.4, 2.6 | 6 Oct 2026 |  |
 | Pinpoint connector | “at” before the pinpoint | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.6 | 6 Oct 2026 | Instrument example: “at [29]”, “at 481”. |
 | Authorised-report hierarchy | FCR → CLR → ALR | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) Annexure | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
-| List of Authorities | Part A / Part B | No supporting source | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) | 6 Oct 2026 | GPN-AUTH (7 May 2025) has no Part A / Part B list; the 2022 version did (register O-R1; COURT-111). |
+| List of Authorities | Simple | Obiter default | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) GPN-eBOOKS cl 7.2; FCA-2 (FCA eBooks Practice Note (GPN-eBOOKS)) | 6 Oct 2026 | GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1); a simple list until the GPN-eBOOKS layout (authorities, legislation, bills) is added (COURT-117). |
 
 Known exceptions:
 
@@ -99,11 +103,12 @@ Experimental: checked against FCFCOA FAM-APPEALS Practice Direction (updated 10 
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Mandatory | No supporting source | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 | FAM-APPEALS cl 5.8: the report replaces the MNC; the MNC is for unreported cases only (register O-R6; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Off | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 | The report replaces the MNC; the MNC is for unreported judgments only (register O-R6). |
+| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Omitted (the report replaces it) | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
-| Authorised-report hierarchy | FamCAFC → FLC → ALR | No supporting source | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) | 6 Oct 2026 | FamCAFC is an MNC identifier, not a report series (register O-R6; COURT-111). |
+| Authorised-report hierarchy | FLC → ALR | No supporting source | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) | 6 Oct 2026 | FamCAFC removed: it is an MNC identifier, not a report series (register O-R6). The order of the remaining series is not checked against FAM-APPEALS. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
 | List of Authorities | Two parts (read / not read) | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 |  |
@@ -122,6 +127,7 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 | “should, as far as possible, also be noted”. |
 | Parallel citation order | Authorised report first | Observed practice | O-C5 (Observed practice in published NSW and ACT judgments (evidence register O-C5)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Observed in published NSW judgments (register O-C5); adopted by DECISION-043 item 3. |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
@@ -134,6 +140,28 @@ Known exceptions:
 - Report-plus-paragraph pinpoint form is open (DECISION-043 item 5).
 - Record locators (SC CA 1 cl 31) are not modelled (COURT-129).
 
+#### NSW Court of Criminal Appeal (`NSWCCA`)
+
+Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Criminal Appeal Practice Note SC CCA 1 (General) (22 Jul 2021) on 6 Oct 2026; not endorsed by the court.
+
+| Setting | Value | Kind | Source | Checked | Note |
+|---|---|---|---|---|---|
+| Parallel citations | Preferred | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 | “should, as far as possible, also be noted”. |
+| Parallel citation order | Authorised report first | Observed practice | O-C5 (Observed practice in published NSW and ACT judgments (evidence register O-C5)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Observed in published NSW judgments (register O-C5); adopted by DECISION-043 item 3. |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
+| Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
+| Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
+| Unreported-judgment gate | Warn | No supporting source | NSW-3 (NSW Court of Criminal Appeal Practice Note SC CCA 1 (General)) cl 28 | 6 Oct 2026 | The warning follows the NSW Supreme Court preset. SC CCA 1 cl 28 treats an authority on Caselaw with an MNC as unreported and asks for a copy, but sets no test for citing it. |
+| Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| List of Authorities | Simple | Obiter default | NSW-3 (NSW Court of Criminal Appeal Practice Note SC CCA 1 (General)) cl 27 | 6 Oct 2026 | A single list of only the authorities expected to be referred to in oral argument; a simple list until its layout is added (COURT-117). |
+
+Known exceptions:
+
+- SC CCA 1 cl 21(f) cites “Betts v The Queen [2016] HCA 25; 258 CLR 420 at [2]” (MNC first, “at”); the NSW order stays report first under DECISION-043 item 3 pending an owner decision.
+- Report-plus-paragraph pinpoint form is open (DECISION-043 item 5).
+- SC CCA 1 is a scan; it was re-read against the court's PDF on 6 Oct 2026. The owner's eye check (open question 12) is still pending.
+
 #### NSW Supreme Court (`NSWSC`)
 
 Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023) on 6 Oct 2026; not endorsed by the court.
@@ -142,6 +170,7 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 | “should, as far as possible, also be noted”. |
 | Parallel citation order | Authorised report first | Observed practice | O-C5 (Observed practice in published NSW and ACT judgments (evidence register O-C5)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Observed in published NSW judgments (register O-C5); adopted by DECISION-043 item 3. |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
@@ -159,18 +188,19 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Preferred | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No District or Local Court citation instrument found (register O-R18); values follow the Supreme Court preset. |
+| Parallel citations | Preferred | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback. No District or Local Court citation instrument was found (register O-R18); the value follows the NSW Supreme Court preset. |
 | Parallel citation order | Authorised report first | Observed practice | O-C5 (Observed practice in published NSW and ACT judgments (evidence register O-C5)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Observed in published NSW judgments (register O-C5); adopted by DECISION-043 item 3. |
-| Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
+| Pinpoint style | Paragraph only | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
-| Authorised-report hierarchy | NSWLR → CLR → ALR | No supporting source | None | No | Not checked against a court instrument. |
-| Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
+| Authorised-report hierarchy | NSWLR → CLR → ALR | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
+| Unreported-judgment gate | Warn | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
-| List of Authorities | Off | No supporting source | None | No | Not checked against a court instrument. |
+| List of Authorities | Off | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 
 Known exceptions:
 
-- No citation instrument found for the District or Local Court (register NSW-4).
+- No instrument found; AGLC4 fallback. No citation instrument was found for the District or Local Court (register NSW-4).
 
 ### Victoria
 
@@ -180,8 +210,9 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Mandatory | No supporting source | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2; VIC-2 (Vic Court of Appeal Practice Note SC CA 3) | 6 Oct 2026 | SC Gen 3 cl 5.2 and SC CA 3 cl 14.4: the report is cited instead of the unreported version (register O-R5; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Off | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2; VIC-2 (Vic Court of Appeal Practice Note SC CA 3) | 6 Oct 2026 | SC Gen 3 cl 5.2 and SC CA 3 cl 14.4: the report is cited instead of the unreported version (register O-R5). |
+| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Omitted (the report replaces it) | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2; VIC-2 (Vic Court of Appeal Practice Note SC CA 3) | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.5 | 6 Oct 2026 | Example: “(2023) 72 VR 394, 410 [60]”. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
@@ -200,8 +231,9 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Mandatory | No supporting source | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 | SC Gen 3 cl 5.2: the report is cited instead of the unreported version (register O-R5; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Off | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 | “that report must be included instead of the unreported version” (register O-R5). |
+| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Omitted (the report replaces it) | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.5 | 6 Oct 2026 | Example: “(2023) 72 VR 394, 410 [60]”. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
@@ -217,6 +249,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | No supporting source | None | No | Not checked against a court instrument. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | VR → CLR → ALR | No supporting source | None | No | Not checked against a court instrument. |
@@ -238,6 +271,7 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 | “should, as far as possible, also be noted”. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 4(a)–(b) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
@@ -257,6 +291,7 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 | “should, as far as possible, also be noted”. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 4(a)–(b) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
@@ -274,8 +309,9 @@ Experimental: checked against Qld Magistrates Court Practice Direction 7 of 2024
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Mandatory | No supporting source | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 | Magistrates PD 7 of 2024 cl 3 says “should, as far as possible” (register O-R11; COURT-111). |
+| Parallel citations | Preferred | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 | “should, as far as possible, also be noted” (register O-R11). Magistrates Court only. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) | 6 Oct 2026 |  |
@@ -285,7 +321,7 @@ Experimental: checked against Qld Magistrates Court Practice Direction 7 of 2024
 
 Known exceptions:
 
-- No District Court citation instrument found (register O-R18).
+- District Court: no instrument found; AGLC4 fallback. The values come from the Magistrates Court direction (register O-R18).
 
 ### Other States/Territories
 
@@ -297,6 +333,7 @@ Experimental: checked against WA SC Consolidated Practice Directions (PD 2.1, PD
 |---|---|---|---|---|---|
 | Parallel citations | Mandatory | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14; PD 8.2.2 | 6 Oct 2026 |  |
 | Parallel citation order | Medium neutral citation first | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 8.2.2 cl 4 | 6 Oct 2026 | Example: “Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]”. |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 7(a); PD 8.2.2 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | WAR → CLR → ALR | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14 | 6 Oct 2026 |  |
@@ -307,7 +344,6 @@ Experimental: checked against WA SC Consolidated Practice Directions (PD 2.1, PD
 Known exceptions:
 
 - Later references by case name only (PD 2.1 cl 14) are not modelled (COURT-113).
-- WASCSR sentencing remarks are not recognised (COURT-119).
 
 #### SA Supreme Court (`SASC`)
 
@@ -315,8 +351,9 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Preferred | No supporting source | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 217.8(3) | 6 Oct 2026 | r 217.8(3) and r 101.8(4): the authorised report and the MNC (post-1997) must both be given (register O-R7; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Mandatory | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 217.8(3) | 6 Oct 2026 | r 217.8(3) and r 101.8(4): the authorised report and the MNC (for a decision after 1997 available online) must both be given (register O-R7). |
+| Parallel citation order | Authorised report first | Obiter default | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Instrument requires both but states no order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
@@ -327,7 +364,28 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 Known exceptions:
 
 - Hyperlink rules (r 217.8(4)–(10)) are not modelled (COURT-136).
-- SA District and Magistrates (civil) courts have no preset (COURT-119).
+- The MNC is required only for decisions after 1997; the validator does not yet check the year.
+
+#### SA District / Magistrates Court (civil) (`SA_DISTRICT_MAG_CIVIL`)
+
+Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026) on 6 Oct 2026; not endorsed by the court.
+
+| Setting | Value | Kind | Source | Checked | Note |
+|---|---|---|---|---|---|
+| Parallel citations | Mandatory | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 | The Uniform Civil Rules apply across the SA civil courts: the authorised report and the MNC (after 1997) must both be given (register O-R7). |
+| Parallel citation order | Authorised report first | Obiter default | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Instrument requires both but states no order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
+| Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
+| Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
+| Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
+| Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| List of Authorities | Two parts (read / not read) | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 217.8; Form 91 | 6 Oct 2026 | Form 91 is the appeal list of authorities. |
+
+Known exceptions:
+
+- Hyperlink rules (r 217.8(4)–(10)) are not modelled (COURT-136).
+- Criminal proceedings are outside the Uniform Civil Rules and are not covered.
 
 #### Tas Supreme Court (`TASSC`)
 
@@ -336,7 +394,8 @@ Experimental: checked against Tas SC Practice Direction 3 of 2014 (Citation of J
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
 | Parallel citations | Preferred | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3(a), 3(d) | 6 Oct 2026 |  |
-| Parallel citation order | Authorised report first | No supporting source | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3(a) | 6 Oct 2026 | PD 3 of 2014 cl 3(a) gives the MNC first (register O-R8); MNC-first is decided (DECISION-043 item 3) and pending COURT-111. |
+| Parallel citation order | Medium neutral citation first | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3(a); DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) | 6 Oct 2026 | Instrument example: “Jackson v Building Appeal Board [2010] TASSC 29; (2010) 20 Tas R 1” (register O-R8; DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 |  |
 | Pinpoint connector | “at” before the pinpoint | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 | Instrument example: “[1997] TASSC 161 at [15]”. |
 | Authorised-report hierarchy | Tas R → CLR → ALR | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 |  |
@@ -346,7 +405,7 @@ Experimental: checked against Tas SC Practice Direction 3 of 2014 (Citation of J
 
 Known exceptions:
 
-- Doubted or not-followed treatment (cl 3(f)) is not prompted (COURT-119).
+- Paragraph pinpoints for reports with numbered paragraphs (cl 3) and page-and-line references in appeal submissions (PD 3 of 2022 cl 2.2.4) are not modelled.
 
 #### ACT Supreme Court (`ACTSC`)
 
@@ -354,8 +413,9 @@ Experimental: checked against ACT SC Practice Direction 2 of 2022 (Citation of A
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Preferred | No supporting source | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) | 6 Oct 2026 | PD 2 of 2022 requires the authorised report and is silent on the MNC (register O-R10; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Off | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 | The authorised report “should be used”; the direction is silent on the MNC (register O-R10). |
+| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Omitted (the report replaces it) | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | ACTLR → CLR → ALR | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 |  |
@@ -365,7 +425,7 @@ Experimental: checked against ACT SC Practice Direction 2 of 2022 (Citation of A
 
 Known exceptions:
 
-- PD 2 of 2022 was read by OCR (open question 12).
+- PD 2 of 2022 is a scan; clauses 3 to 5 were re-read against the court's PDF on 6 Oct 2026. The owner's eye check (open question 12) is still pending.
 
 #### NT Supreme Court (`NTSC`)
 
@@ -373,8 +433,9 @@ Experimental: checked against NT SC Practice Direction 2 of 2007 (Citation of Au
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
-| Parallel citations | Preferred | No supporting source | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 | PD 2 of 2007 requires the authorised report and does not mention the MNC (register O-R10; COURT-111). |
-| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| Parallel citations | Off | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 | The authorised report “is to be cited”; the direction does not mention the MNC (register O-R10). |
+| Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Omitted (the report replaces it) | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | NTLR → CLR → ALR | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 |  |
@@ -396,6 +457,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 |---|---|---|---|---|---|
 | Parallel citations | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
@@ -415,6 +477,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 |---|---|---|---|---|---|
 | Parallel citations | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
@@ -434,6 +497,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 |---|---|---|---|---|---|
 | Parallel citations | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Parallel citation order | Authorised report first | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 3 | 6 Oct 2026 | Instrument silent on order; report first by default (DECISION-043 item 3). |
+| MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
@@ -452,9 +516,11 @@ Known exceptions:
 | HCA-1 | HCA Practice Direction No 2 of 2024 (Joint Book of Authorities) | 20 Dec 2024 | https://www.hcourt.gov.au/sites/default/files/assets/registry/practice-directions/Practice_Direction_No_2_of_2024__Joint_Book_of_Authorities_20_December_2024.pdf |
 | HCA-2 | HCA Form 27A | 2024 | https://www.hcourt.gov.au/sites/default/files/assets/registry/Forms2024/FORM_27A_2024.pdf |
 | FCA-1 | FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) | 7 May 2025 | https://www.fedcourt.gov.au/law-and-practice/practice-documents/practice-notes/gpn-auth |
+| FCA-2 | FCA eBooks Practice Note (GPN-eBOOKS) | 11 Jun 2026 | https://www.fedcourt.gov.au/law-and-practice/practice-documents/practice-notes/gpn-ebooks |
 | FCF-1 | FCFCOA FAM-APPEALS Practice Direction | updated 10 Jun 2025 | https://www.fcfcoa.gov.au/fl/pd/fam-appeals |
 | NSW-1 | NSW SC Practice Note SC Gen 20 (Citation of Authority) | 1 Oct 2023 | https://supremecourt.nsw.gov.au/content/dam/dcj/ctsd/supreme-court/documents/Practice-and-Procedure/Practice-Notes/general/current/20230912_SC_Gen_20_Citation_of_Authority.pdf |
 | NSW-2 | NSW Court of Appeal Practice Note SC CA 1 | 8 May 2023 | https://supremecourt.nsw.gov.au/content/dam/dcj/ctsd/supreme-court/documents/Practice-and-Procedure/Practice-Notes/court-of-appeal-practice-notes/current/2023_05_08_PN_SC_CA_1_-_Court_of_Appeal.pdf |
+| NSW-3 | NSW Court of Criminal Appeal Practice Note SC CCA 1 (General) | 22 Jul 2021 | https://supremecourt.nsw.gov.au/documents/Practice-and-Procedure/Practice-Notes/cca-practice-notes/current/2021_07_22_SC_CCA_1_General.pdf |
 | NSW-4 | NSW District and Local Court practice-note indexes (no citation instrument found) | checked 6 Oct 2026 | https://districtcourt.nsw.gov.au/practice-procedures-publications/practice-and-procedure/practice-notes.html |
 | VIC-1 | Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) | 1 Dec 2025 | https://www.supremecourt.vic.gov.au/sites/default/files/2026-03/SC%20Gen%203%20-%20citation%20of%20authorities%20and%20legislation.pdf |
 | VIC-2 | Vic Court of Appeal Practice Note SC CA 3 | 10 Mar 2026 | https://www.supremecourt.vic.gov.au/sites/default/files/2026-03/CA%203%20-%20Civil%20applications%20and%20appeals.pdf |

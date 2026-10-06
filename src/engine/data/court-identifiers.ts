@@ -312,6 +312,16 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     mncFrom: 1999,
   },
   {
+    // COURT-119: sentencing remarks of the Supreme Court of Western
+    // Australia, cited "[2011] WASCSR 1" from 1 Feb 2011 (WA SC
+    // Consolidated Practice Directions PD 8.2.2; register WA-1, O-R19).
+    // Not in the AGLC4 r 2.3.1 table, so no mncFrom is recorded.
+    code: "WASCSR",
+    fullName: "Supreme Court of Western Australia (sentencing remarks)",
+    jurisdiction: "WA",
+    level: "state_supreme",
+  },
+  {
     code: "WADC",
     fullName: "District Court of Western Australia",
     jurisdiction: "WA",

@@ -204,6 +204,8 @@ function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
     parallelOrder: p.parallelOrder ?? "report-first",
     pinpointStyle: p.pinpointStyle,
     pinpointConnector: p.pinpointConnector ?? "aglc",
+    // COURT-111: absent means the MNC is given with the report.
+    reportedCaseMnc: p.reportedCaseMnc ?? "include",
     authorisedReportHierarchy: p.authorisedReportHierarchy.join(","),
     unreportedGate: p.unreportedGate,
     ibidSuppression: p.ibidSuppression,
@@ -214,6 +216,7 @@ function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
 const HCA_TOGGLES = {
   parallelCitations: "mandatory",
   parallelOrder: "report-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "CLR",
@@ -224,6 +227,7 @@ const HCA_TOGGLES = {
 const NSWCA_TOGGLES = {
   parallelCitations: "preferred",
   parallelOrder: "report-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-only",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "NSWLR,CLR,ALR",
@@ -234,6 +238,7 @@ const NSWCA_TOGGLES = {
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
   parallelOrder: "mnc-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "WAR,CLR,ALR",
@@ -244,6 +249,7 @@ const WASC_TOGGLES = {
 const STATE_TRIBUNAL_TOGGLES = {
   parallelCitations: "off",
   parallelOrder: "report-first",
+  reportedCaseMnc: "include",
   pinpointStyle: "para-only",
   pinpointConnector: "aglc",
   authorisedReportHierarchy: "",
@@ -603,6 +609,37 @@ describe("STD-011 — toggle overrides persist to the document store", () => {
 
 // ─── 3. New controls (STD-022) ──────────────────────────────────────────────
 
+describe("COURT-111 — MNC of a reported case control", () => {
+  beforeEach(() => {
+    mockStore.getWritingMode.mockReturnValue("court");
+  });
+
+  test("VSC (Vic SC Gen 3 cl 5.2) writes 'omit'; the user can choose to give the MNC", async () => {
+    await renderSettings();
+    fireEvent.change(jurisdictionSelect(), { target: { value: "VSC" } });
+    await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenCalledWith(presetToggles("VSC")));
+    const control = screen.getByLabelText("MNC of a reported case") as HTMLSelectElement;
+    expect(control).toHaveValue("omit");
+    expect(Array.from(control.options).map((o) => o.value)).toEqual(["include", "omit"]);
+    fireEvent.change(control, { target: { value: "include" } });
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({
+        ...presetToggles("VSC"),
+        reportedCaseMnc: "include",
+      })
+    );
+  });
+
+  test("a document saved without the toggle shows the MNC as given (its current behaviour)", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("HCA");
+    const { reportedCaseMnc: _omitted, ...stored } = HCA_TOGGLES;
+    mockStore.getCourtToggles.mockReturnValue(stored);
+    await renderSettings();
+    expect(await screen.findByLabelText("MNC of a reported case")).toHaveValue("include");
+    expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
+  });
+});
+
 describe("STD-022 — Parallel citation order control", () => {
   beforeEach(() => {
     mockStore.getWritingMode.mockReturnValue("court");
@@ -804,7 +841,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
     await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith(presetToggles("FCA")));
     expect(mockStore.setCourtProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06", origin: "selected", overridden: [] }),
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06.2", origin: "selected", overridden: [] }),
       { persist: false }
     );
     // Staged before the writes, so no extra store write.
@@ -826,7 +863,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     mockStore.getCourtToggles.mockReturnValue(presetToggles("FCA"));
     mockStore.getCourtProfile.mockReturnValue({
       presetId: "FCA",
-      presetVersion: "2026-10-06",
+      presetVersion: "2026-10-06.2",
       origin: "selected",
       frozenAt: "2026-10-06T00:00:00.000Z",
       overridden: [],
@@ -874,7 +911,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
       expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...FCA_LEGACY_TOGGLES, pinpointConnector: "at" })
     );
     expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
-      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06", origin: "updated", overridden: [] }),
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06.2", origin: "updated", overridden: [] }),
       { persist: false }
     );
     expect(mockTriggerRefresh).toHaveBeenCalled();
@@ -914,7 +951,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     fireEvent.click(within(prompt).getByRole("button", { name: "Keep current settings" }));
     await waitFor(() =>
       expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
-        expect.objectContaining({ declinedVersion: "2026-10-06" })
+        expect.objectContaining({ declinedVersion: "2026-10-06.2" })
       )
     );
     expect(mockStore.setCourtToggles).not.toHaveBeenCalled();

@@ -15,7 +15,9 @@
  *
  * Court mode extends this with per-jurisdiction ordering derived from
  * practice directions:
- * - HCA PD 1 of 2019
+ * - HCA PD 2 of 2024 (Joint Book of Authorities: CLR, then other report
+ *   series), which revoked PD 1 of 2019 on 20 Dec 2024 (COURT-111;
+ *   register HCA-1)
  * - FCA GPN-AUTH cl 2.5
  * - State authorised report lists
  *
@@ -122,6 +124,8 @@ const COURT_TO_JURISDICTION: Record<string, ReportJurisdiction> = {
   // Western Australia
   WASCA: "WA",
   WASC: "WA",
+  // COURT-119: WA sentencing remarks (WA SC Consolidated PD 8.2.2).
+  WASCSR: "WA",
   WADC: "WA",
 
   // South Australia
@@ -219,6 +223,24 @@ export function suggestPreferredReport(
     )[0];
   }
 
+  return pickPreferredSeries(hierarchy, availableSeries);
+}
+
+/**
+ * COURT-111: the highest-preference series from `availableSeries` under an
+ * explicit hierarchy (most preferred first), such as the one frozen into a
+ * court-mode document. Series not in the hierarchy rank after every named
+ * series (AGLC4 r 2.2.2); a medium neutral identifier ranks last. On a tie
+ * the earlier series in `availableSeries` wins.
+ *
+ * @example
+ *   pickPreferredSeries(["NSWLR", "CLR", "ALR"], ["ALR", "CLR"])
+ *   // => "CLR"
+ */
+export function pickPreferredSeries(
+  hierarchy: readonly string[],
+  availableSeries: readonly string[]
+): string | undefined {
   // Score each available series by its position in the hierarchy.
   // Series not in the hierarchy get a rank just before MNC.
   let bestSeries: string | undefined;

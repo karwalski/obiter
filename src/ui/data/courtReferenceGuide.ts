@@ -53,10 +53,12 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     practiceDirection: {
       name: "HCA Practice Direction No 2 of 2024",
       number: "PD 2/2024",
-      date: "2024",
+      date: "20 December 2024",
     },
     citationRequirements: [
-      "Parallel citations are mandatory: authorised report first, then MNC (e.g. (2009) 238 CLR 1; [2009] HCA 23).",
+      // COURT-111: PD 2 of 2024 and Form 27A are silent on parallel citation
+      // (register O-R4); the value is unchanged pending open question Q3.
+      "Not specified by the Court: Obiter gives the authorised report first, then the MNC (e.g. (2009) 238 CLR 1; [2009] HCA 23). The Court's instruments do not address parallel citation.",
       "CLR is the preferred report series. Cite CLR over ALJR or ALR where available.",
       "Pinpoint style is para-and-page: starting page from authorised report, then paragraph from MNC.",
       "Ibid and (n X) cross-references are not used in court submissions.",
@@ -80,7 +82,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     courtName: "Federal Court of Australia",
     group: "Federal",
     practiceDirection: {
-      name: "GPN-AUTH — Citation of Authorities and Provision of Lists of Authorities",
+      name: "GPN-AUTH — Lists of Authorities and Citations Practice Note",
       number: "GPN-AUTH",
       date: "Reissued 7 May 2025",
     },
@@ -91,6 +93,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       // paragraph pinpoints expressly sufficient). Parallel-citation rule is
       // cl 2.4(b); cl 2.6 is the paragraph-over-page pinpoint preference.
       "Cite the medium neutral citation where available; add the authorised report citation if possible (cl 2.4(b)).",
+      // COURT-111: DECISION-043 item 3 (register FCA-1, O-R2).
+      "Order: MNC first, then the authorised report, as in the cl 2.5 example: D'Arcy v Myriad Genetics Inc [2014] FCAFC 115; (2014) 224 FCR 479. Applies to new documents; existing documents keep their setting until updated.",
       "MNC paragraph pinpoints are expressly sufficient in lieu of report page references (cl 2.4).",
       "Preferred report hierarchy: FCR, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
@@ -99,7 +103,10 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       "Point-in-time date should be specified for legislation where relevant.",
     ],
     loaRequirements: [
-      "Part A / Part B LOA required: Part A for authorities from which passages are to be read; Part B for authorities to which reference may be made.",
+      // COURT-111: the 7 May 2025 reissue removed the Part A / Part B list
+      // (register O-R1); GPN-eBOOKS cl 7.2 splits the eBook (FCA-2).
+      "GPN-AUTH (reissued 7 May 2025) no longer divides the list into Part A and Part B. Obiter produces a simple list for new documents.",
+      "The eBook of authorities is in three sections, each alphabetical: authorities; legislation; bills and explanatory material (GPN-eBOOKS cl 7.2).",
       "LOA must be filed as a text-searchable (OCR) PDF via eLodgment.",
     ],
     filingProcedures: [
@@ -120,8 +127,9 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       date: "Updated 10 June 2025",
     },
     citationRequirements: [
-      "Authorised report cited first, with page pinpoints; unreported decisions cited by MNC with paragraph pinpoints.",
-      "Preferred report hierarchy: FamCAFC, then FLC, then ALR.",
+      "Cite the report where the case is reported; the MNC is cited only for an unreported judgment, with paragraph pinpoints (cl 5.8). No parallel citation.",
+      // COURT-111: FamCAFC is a medium neutral identifier, not a report series.
+      "Preferred report hierarchy: FLC, then ALR.",
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
@@ -169,6 +177,31 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     ],
   },
   {
+    // COURT-119: register NSW-1 and NSW-3 (SC CCA 1, 22 July 2021).
+    jurisdiction: "NSWCCA",
+    courtName: "NSW Court of Criminal Appeal",
+    group: "New South Wales",
+    practiceDirection: {
+      name: "SC CCA 1 — Court of Criminal Appeal: General, with SC Gen 20 — Citation of Authority",
+      number: "SC CCA 1",
+      date: "22 July 2021",
+    },
+    citationRequirements: [
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be noted (SC Gen 20).",
+      "Preferred report hierarchy: NSWLR, then CLR, then ALR.",
+      "Pinpoint style is para-only: paragraph numbers are sufficient and appropriate (SC Gen 20).",
+      "An authority published on Caselaw with a medium neutral citation is not considered to be a reported judgment (SC CCA 1 cl 28).",
+      "Ibid and (n X) cross-references are not used.",
+    ],
+    loaRequirements: [
+      "A single list containing only the authorities the Court is expected to be referred to in oral argument; authorities cited in submissions but unlikely to be referred to orally are left out (cl 27).",
+      "Attach a copy of any unreported judgment to be referred to (cl 28).",
+    ],
+    filingProcedures: [
+      "Email the list and unreported judgments to the Registry by 10.00 am on the working day before the hearing; no hard copy is needed if emailed (cl 29).",
+    ],
+  },
+  {
     jurisdiction: "NSWSC",
     courtName: "NSW Supreme Court",
     group: "New South Wales",
@@ -193,15 +226,18 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     filingProcedures: ["LOA filed with written submissions via the NSW Online Registry."],
   },
   {
-    jurisdiction: "NSW_DIST_LOCAL",
+    // COURT-114: key unified with the preset id (was "NSW_DIST_LOCAL").
+    // COURT-119: no citation instrument found (register NSW-4, O-R18).
+    jurisdiction: "NSW_DISTRICT_LOCAL",
     courtName: "NSW District / Local Court",
     group: "New South Wales",
     practiceDirection: {
-      name: "SC Gen 20 (applied by convention)",
-      number: "SC Gen 20",
-      date: "October 2023",
+      name: "No instrument found; AGLC4 fallback",
+      number: "None found",
+      date: "Indexes checked 6 October 2026",
     },
     citationRequirements: [
+      "No District or Local Court citation practice note was found. Obiter falls back to AGLC4, with the court-mode values of the NSW Supreme Court profile.",
       "Parallel citations are preferred (not mandatory).",
       "Preferred report hierarchy: NSWLR, then CLR, then ALR.",
       "Pinpoint style is para-only.",
@@ -224,6 +260,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     citationRequirements: [
       "AGLC compliance is mandatory: authorities must be referenced in accordance with the current edition of the AGLC (SC CA 3).",
       "Citation of the authorised report is mandatory where one exists.",
+      // COURT-111: register VIC-1, VIC-2, O-R5.
+      "No parallel citation: the report is cited instead of the unreported version, and the MNC only for an unreported judgment (SC Gen 3 cl 5.2; SC CA 3 cl 14.4).",
       "Pinpoints are mandatory for every authority.",
       "Reported versions must be cited over unreported; authorised over unauthorised (SC Gen 3).",
       "Pinpoint style is para-and-page: paragraph and, if reported, commencing page, e.g. (2023) 72 VR 394, 410 [60].",
@@ -248,6 +286,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     citationRequirements: [
       "The Court uses the AGLC as the basis of its citation practice; parties are invited to follow it.",
       "Authorised reports must be cited over unauthorised; reported must be cited over unreported.",
+      // COURT-111: register VIC-1, O-R5.
+      "No parallel citation: the report is cited instead of the unreported version, and the MNC only for an unreported judgment (cl 5.2).",
       "Pinpoint style is para-and-page: paragraph and, if reported, commencing page, e.g. (2023) 72 VR 394, 410 [60].",
       "Preferred report hierarchy: VR, then CLR, then ALR.",
       "Ibid and (n X) cross-references are not used.",
@@ -323,16 +363,20 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     filingProcedures: ["LOA filed via the Queensland Courts eFiling system."],
   },
   {
-    jurisdiction: "QLD_DIST_MAG",
+    // COURT-114: key unified with the preset id (was "QLD_DIST_MAG").
+    jurisdiction: "QLD_DISTRICT_MAG",
     courtName: "Queensland District / Magistrates Court",
     group: "Queensland",
     practiceDirection: {
-      name: "PD 7/2024 — Citation of Authority (Magistrates Court)",
+      name: "PD 7/2024 — Citation of Authority (Magistrates Courts)",
       number: "PD 7/2024",
-      date: "2024",
+      date: "7 June 2024",
     },
     citationRequirements: [
-      "Parallel citations are mandatory.",
+      // COURT-119: register O-R18.
+      "District Court: no citation practice direction was found; AGLC4 fallback, with the Magistrates Courts values.",
+      // COURT-111: register QLD-3, O-R11.
+      "Parallel citations are preferred: the authorised report should, as far as possible, also be cited (PD 7/2024 cl 3).",
       "Preferred report hierarchy: Qd R, then CLR, then ALR.",
       "Pinpoint style is para-only.",
       "Unreported judgment gate applies.",
@@ -348,14 +392,16 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     courtName: "WA Supreme Court",
     group: "Other States/Territories",
     practiceDirection: {
-      name: "Consolidated Practice Directions — PD 2.1 (Lists of Authorities) and PD 8.2.2 (Citation of Authorities)",
+      name: "Consolidated Practice Directions — PD 2.1 (Outlines and Lists of Authorities) and PD 8.2.2 (Medium Neutral Citation)",
       number: "PD 2.1; PD 8.2.2",
-      date: "Updated 20 June 2025",
+      date: "Updated 23 September 2026",
     },
     citationRequirements: [
       "Parallel citation is required when a case is reported (PD 8.2.2).",
       "Citation order is MNC first, then the report: Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15].",
       "Preferred report hierarchy: WAR, then CLR, then ALR.",
+      // COURT-119: register WA-1, O-R19.
+      "Sentencing remarks have their own identifier: [2011] WASCSR 1 (PD 8.2.2).",
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
     ],
@@ -382,7 +428,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     },
     citationRequirements: [
       "Citation hierarchy: authorised report, then other published report, then MNC (for decisions after 1997).",
-      "Parallel citations are preferred.",
+      // COURT-111: register SA-1, O-R7.
+      "Parallel citations are required: the highest authorised report and, for a decision after 1997 available online, the MNC must both be given (r 217.8(3); r 101.8(4)).",
       "Preferred report hierarchy: SASR, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",
@@ -393,6 +440,29 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     ],
     filingProcedures: ["LOA filed with written submissions per Form 91."],
   },
+  {
+    // COURT-119: the Uniform Civil Rules apply across the SA civil courts
+    // (register SA-1, O-R7).
+    jurisdiction: "SA_DISTRICT_MAG_CIVIL",
+    courtName: "SA District / Magistrates Court (civil)",
+    group: "Other States/Territories",
+    practiceDirection: {
+      name: "Uniform Civil Rules 2020 rr 101.8, 217.8",
+      number: "UCR r 101.8",
+      date: "Current to 15 March 2026",
+    },
+    citationRequirements: [
+      "The Uniform Civil Rules apply to the civil jurisdictions of the District and Magistrates Courts as well as the Supreme Court.",
+      "Parallel citations are required: the highest authorised report and, for a decision after 1997 available online, the MNC must both be given (r 101.8(4)).",
+      "Preferred report hierarchy: SASR, then CLR, then ALR.",
+      "Pinpoint style is para-and-page.",
+      "Ibid and (n X) cross-references are not used.",
+    ],
+    loaRequirements: [
+      "Appeal lists of authorities in two parts (Form 91): authorities expected to be read, and authorities not expected to be read.",
+    ],
+    filingProcedures: ["Lists filed with written submissions per Form 91."],
+  },
 
   // ── Tasmania ───────────────────────────────────────────────────────────────
   {
@@ -400,13 +470,17 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     courtName: "Tasmanian Supreme Court",
     group: "Other States/Territories",
     practiceDirection: {
-      name: "PD 3 of 2022 — Lists of Authorities; PD 3 of 2014 — Citation of Authorities",
+      name: "PD 3 of 2022 — Appeal Books, Lists of Authorities and Written Submissions; PD 3 of 2014 — Citation of Judgments",
       number: "PD 3/2022; PD 3/2014",
-      date: "2022; 2014",
+      date: "24 August 2022; 21 February 2014",
     },
     citationRequirements: [
       "Citation practice remains governed by PD 3 of 2014.",
-      "Parallel citations are preferred.",
+      "Parallel citations are preferred: where an MNC is given, the authorised citation must be given too (PD 3 of 2014 cl 3).",
+      // COURT-111: register TAS-1, O-R8; DECISION-043 item 3.
+      "Order: MNC first, then the authorised report, as in the cl 3(a) example: Jackson v Building Appeal Board [2010] TASSC 29; (2010) 20 Tas R 1. Applies to new documents; existing documents keep their setting until updated.",
+      // COURT-119: register TAS-1, O-R8.
+      "Cite any later judgment that has doubted, or not followed, a cited case (PD 3 of 2014 cl 3(f)).",
       "Preferred report hierarchy: Tas R, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
       "Pinpoints follow 'at', eg 'Smith v Brown [1997] TASSC 161 at [15]' (PD 3 of 2014 cl 3). Applies to new documents; existing documents keep their setting.",
@@ -425,12 +499,14 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     courtName: "ACT Supreme Court",
     group: "Other States/Territories",
     practiceDirection: {
-      name: "PD 2 of 2022 — Citation of Authorities",
+      name: "PD 2 of 2022 — Citation of Authority",
       number: "PD 2/2022",
       date: "26 May 2022",
     },
     citationRequirements: [
       "The authorised report citation should be used where one exists (PD 2 of 2022).",
+      // COURT-111: register ACT-1, O-R10.
+      "No parallel citation: PD 2 of 2022 does not mention the MNC, so the report is cited alone.",
       "No express dispensation for MNC paragraph pinpoints: PD 2 of 2022 is stricter than the federal practice notes.",
       "Where copies of authorities are provided, provide the version of the report cited.",
       "Preferred report hierarchy: ACTLR, then CLR, then ALR.",
@@ -447,13 +523,14 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     courtName: "NT Supreme Court",
     group: "Other States/Territories",
     practiceDirection: {
-      name: "PD 1 of 2025 — Lists of Authorities; PD 2 of 2007 — Citation of Unreported Cases",
+      name: "PD 1 of 2025 — Lists of Authorities and Summaries of Submissions; PD 2 of 2007 — Citation of Authorities",
       number: "PD 1/2025; PD 2/2007",
-      date: "1 January 2025; 2007",
+      date: "1 January 2025; 25 May 2007",
     },
     citationRequirements: [
-      "Citation of unreported cases remains governed by PD 2 of 2007.",
-      "Parallel citations are preferred.",
+      "Citation of authorities is governed by PD 2 of 2007: the authorised report is to be cited, then an unauthorised report, then a copy of the judgment.",
+      // COURT-111: register NT-1, O-R10.
+      "No parallel citation: PD 2 of 2007 does not mention the MNC, so the report is cited alone.",
       "Preferred report hierarchy: NTLR, then CLR, then ALR.",
       "Pinpoint style is para-and-page.",
       "Ibid and (n X) cross-references are not used.",

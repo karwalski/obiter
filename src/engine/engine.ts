@@ -519,7 +519,15 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
   // FIRST, then the report ("Lee v The Queen [1999] WASCA 14; (1999) 18
   // WAR 23, 34 [15]") — config.parallelOrder "mnc-first" selects that
   // order; all other jurisdictions emit report-first.
-  if (config?.writingMode === "court" && !parallelCitations?.length) {
+  //
+  // COURT-111: a profile whose instrument cites the report instead of the
+  // MNC (config.reportedCaseMnc "omit": Vic SC Gen 3 cl 5.2, FCFCOA
+  // FAM-APPEALS cl 5.8, ACT SC PD 2 of 2022 cl 3–4, NT SC PD 2 of 2007)
+  // gives the report alone, as AGLC4 r 2.2.7 does (no parallel citations
+  // for Australian cases). The MNC is kept when no report series
+  // is recorded, and parallels the user recorded are never removed.
+  const omitMnc = config?.reportedCaseMnc === "omit" && toStr(d.reportSeries).trim().length > 0;
+  if (config?.writingMode === "court" && !parallelCitations?.length && !omitMnc) {
     const mnc = d.mnc as string | undefined;
     if (mnc && mnc.trim()) {
       const mncFirst = config?.parallelOrder === "mnc-first";

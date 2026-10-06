@@ -292,6 +292,8 @@ describe("Settings — legacy device toggles adopted into the document store", (
         ibidSuppression: "on",
         parallelCitations: "off",
         parallelOrder: "report-first",
+        // COURT-111: the MNC was always given before the toggle existed.
+        reportedCaseMnc: "include",
         pinpointStyle: "page-only",
         pinpointConnector: "aglc",
         authorisedReportHierarchy: "CLR",

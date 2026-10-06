@@ -60,6 +60,8 @@ describe("COURT-106: v2 -> v3 migration", () => {
     expect(migrated.metadata.courtToggles).toEqual({
       parallelCitations: "off",
       parallelOrder: "report-first",
+      // COURT-111: the MNC was always given before the toggle existed.
+      reportedCaseMnc: "include",
       pinpointStyle: "page-only",
       pinpointConnector: "aglc",
       authorisedReportHierarchy: "WAR,CLR,ALR",

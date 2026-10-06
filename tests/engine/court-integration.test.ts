@@ -29,6 +29,7 @@ import {
   checkSubsequentTreatment,
 } from "../../src/engine/validator";
 import {
+  AI_PRACTICE_DIRECTION_LINKS,
   PRACTICE_DIRECTION_LINKS,
   getPracticeDirectionsForJurisdiction,
   getAllPracticeDirections,
@@ -41,6 +42,9 @@ import {
   VIC_JURISDICTIONS,
   SUBSEQUENT_TREATMENT_OPTIONS,
   NEGATIVE_TREATMENTS,
+  getSubsequentTreatmentOptions,
+  getSubsequentTreatmentSource,
+  isCourtJurisdiction,
   type CourtJurisdiction,
 } from "../../src/engine/court/presets";
 import {
@@ -316,10 +320,8 @@ describe("Engine Integration — getFormattedPreview with court mode", () => {
 describe("Practice Directions — data completeness", () => {
   const allJurisdictions = Object.keys(COURT_PRESETS) as CourtJurisdiction[];
 
-  // The practice directions module uses jurisdiction keys that may differ
-  // slightly from preset IDs (e.g., "QLD_DIST_MAG" vs "QLD_DISTRICT_MAG",
-  // "NSW_DISTRICT_LOCAL" has no entry). We check that a reasonable set of
-  // jurisdictions have links.
+  // COURT-114: every link is keyed by a preset id (the old "QLD_DIST_MAG"
+  // and "NSW_DIST_LOCAL" keys are gone; register O-R17).
 
   test("getAllPracticeDirections returns the full PRACTICE_DIRECTION_LINKS array", () => {
     const all = getAllPracticeDirections();
@@ -342,10 +344,61 @@ describe("Practice Directions — data completeness", () => {
     }
   });
 
-  test("every practice direction link has a valid lastVerified ISO date", () => {
-    for (const pd of PRACTICE_DIRECTION_LINKS) {
-      expect(pd.lastVerified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  test("every practice direction link has a valid lastVerified ISO date, or null when never checked directly", () => {
+    for (const pd of [...PRACTICE_DIRECTION_LINKS, ...AI_PRACTICE_DIRECTION_LINKS]) {
+      if (pd.lastVerified === null) {
+        // COURT-114: only a site that refuses automated checks may lack a date.
+        expect(pd.status).toBe("bot-challenge");
+        expect(pd.note).toBeTruthy();
+      } else {
+        expect(pd.lastVerified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      }
     }
+  });
+
+  test("COURT-114: every link is keyed by a preset id (register O-R17)", () => {
+    for (const pd of [...PRACTICE_DIRECTION_LINKS, ...AI_PRACTICE_DIRECTION_LINKS]) {
+      expect(isCourtJurisdiction(pd.jurisdiction)).toBe(true);
+    }
+    expect(getPracticeDirectionsForJurisdiction("QLD_DISTRICT_MAG")[0].name).toContain(
+      "PD 7 of 2024"
+    );
+    expect(getPracticeDirectionsForJurisdiction("NSW_DISTRICT_LOCAL").length).toBeGreaterThan(0);
+  });
+
+  test("COURT-114: links the register found broken are replaced (R02 §5 link table)", () => {
+    const urls = [...PRACTICE_DIRECTION_LINKS, ...AI_PRACTICE_DIRECTION_LINKS].map((pd) => pd.url);
+    const broken = [
+      "hcourt.gov.au/registry/practice-directions",
+      "court-of-appeal-practice-notes/sc-ca-1.html",
+      "courts.qld.gov.au/court-users/",
+      "supremecourt.wa.gov.au/P/practice_directions.aspx",
+      "courts.sa.gov.au/rules-and-practice-directions/",
+      "supremecourt.tas.gov.au/practice_directions/",
+      "courts.act.gov.au/supreme/practice-and-procedure/practice-directions",
+      "www.supremecourt.nt.gov.au",
+      "fcfcoa.gov.au/practice-directions",
+      "general-practice-notes/sc-gen-23.html",
+      "qcat.qld.gov.au/practice-directions",
+      "fwc.gov.au/disputes-at-work",
+    ];
+    for (const fragment of broken) {
+      expect(urls.filter((u) => u.includes(fragment))).toEqual([]);
+    }
+  });
+
+  test("COURT-114: titles and versions corrected (GPN-AUTH, NT PD 2 of 2007, WA CPD, WA PD 9.21)", () => {
+    expect(getPracticeDirectionsForJurisdiction("FCA")[0].name).toContain(
+      "Lists of Authorities and Citations Practice Note"
+    );
+    const nt = getPracticeDirectionsForJurisdiction("NTSC")
+      .map((pd) => pd.name)
+      .join(" ");
+    expect(nt).toContain("PD 2 of 2007 — Citation of Authorities");
+    expect(nt).not.toContain("Unreported Cases");
+    expect(getPracticeDirectionsForJurisdiction("WASC")[0].name).toContain("23 September 2026");
+    const waAi = AI_PRACTICE_DIRECTION_LINKS.find((pd) => pd.jurisdiction === "WASC")!;
+    expect(waAi.name).toContain("9.21");
   });
 
   test("getPracticeDirectionsForJurisdiction returns correct entries for HCA", () => {
@@ -442,9 +495,11 @@ describe("Preset Helper Sets — QLD_JURISDICTIONS", () => {
 });
 
 describe("Preset Helper Sets — NSW_JURISDICTIONS", () => {
-  test("contains exactly NSWCA, NSWSC, NSW_DISTRICT_LOCAL", () => {
-    expect(NSW_JURISDICTIONS.size).toBe(3);
+  test("contains exactly NSWCA, NSWCCA, NSWSC, NSW_DISTRICT_LOCAL", () => {
+    expect(NSW_JURISDICTIONS.size).toBe(4);
     expect(NSW_JURISDICTIONS.has("NSWCA")).toBe(true);
+    // COURT-119: SC CCA 1 (register NSW-3).
+    expect(NSW_JURISDICTIONS.has("NSWCCA")).toBe(true);
     expect(NSW_JURISDICTIONS.has("NSWSC")).toBe(true);
     expect(NSW_JURISDICTIONS.has("NSW_DISTRICT_LOCAL")).toBe(true);
   });
@@ -460,8 +515,10 @@ describe("Preset Helper Sets — VIC_JURISDICTIONS", () => {
 });
 
 describe("Preset Helper Sets — SUBSEQUENT_TREATMENT_OPTIONS", () => {
-  test("has exactly 7 entries", () => {
-    expect(SUBSEQUENT_TREATMENT_OPTIONS).toHaveLength(7);
+  // COURT-119: narrowed to the wording of Qld SC PD 1 of 2024 cl 4(c) and
+  // Tas SC PD 3 of 2014 cl 3(f) ("doubted, or not followed").
+  test("has exactly 5 entries", () => {
+    expect(SUBSEQUENT_TREATMENT_OPTIONS).toHaveLength(5);
   });
 
   test("first entry is the empty 'Select...' placeholder", () => {
@@ -473,11 +530,19 @@ describe("Preset Helper Sets — SUBSEQUENT_TREATMENT_OPTIONS", () => {
     const values = SUBSEQUENT_TREATMENT_OPTIONS.map((o) => o.value);
     expect(values).toContain("");
     expect(values).toContain("not-affected");
-    expect(values).toContain("distinguished");
     expect(values).toContain("doubted");
     expect(values).toContain("not-followed");
-    expect(values).toContain("overruled");
     expect(values).toContain("unknown");
+    expect(values).not.toContain("distinguished");
+    expect(values).not.toContain("overruled");
+  });
+
+  test("a value saved from the earlier list is still offered, so editing does not change it", () => {
+    const values = (v: string | undefined) => getSubsequentTreatmentOptions(v).map((o) => o.value);
+    expect(values("overruled")).toContain("overruled");
+    expect(values("distinguished")).toContain("distinguished");
+    expect(values("doubted")).toEqual(SUBSEQUENT_TREATMENT_OPTIONS.map((o) => o.value));
+    expect(values(undefined)).toEqual(SUBSEQUENT_TREATMENT_OPTIONS.map((o) => o.value));
   });
 
   test("every option has a non-empty label", () => {
@@ -617,6 +682,23 @@ describe("Validator Orchestration — validateDocument court mode routing", () =
     const result = validateDocument([], [incompleteCitation], undefined, "court");
     const completenessIssues = result.errors.filter((e) => e.ruleNumber === "2.2");
     expect(completenessIssues.length).toBeGreaterThan(0);
+  });
+});
+
+describe("COURT-119: the treatment prompt extends to Tasmania (PD 3 of 2014 cl 3(f))", () => {
+  test("the prompt applies in Qld and Tas courts only, each citing its instrument", () => {
+    expect(getSubsequentTreatmentSource("QSC")).toBe("Qld SC PD 1/2024 cl 4(c)");
+    expect(getSubsequentTreatmentSource("QLD_DISTRICT_MAG")).toBe("Qld MC PD 7/2024");
+    expect(getSubsequentTreatmentSource("TASSC")).toBe("Tas SC PD 3/2014 cl 3(f)");
+    expect(getSubsequentTreatmentSource("NSWCA")).toBeUndefined();
+    expect(getSubsequentTreatmentSource("FCA")).toBeUndefined();
+  });
+
+  test("validateDocument flags a case without treatment in Tasmanian court mode", () => {
+    const result = validateDocument([], [reportedCase], undefined, "court", "TASSC");
+    const tas = result.info.filter((i) => i.ruleNumber === "Tas SC PD 3/2014 cl 3(f)");
+    expect(tas).toHaveLength(1);
+    expect(tas[0].message).toContain("Tasmanian practice directions");
   });
 });
 

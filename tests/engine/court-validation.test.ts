@@ -13,6 +13,7 @@
 import {
   validateCourtMode,
   checkSubmissionFormatting,
+  validateDocument,
 } from "../../src/engine/validator";
 import type {
   CourtModeConfig,
@@ -368,7 +369,8 @@ describe("COURT-VALID-001: Court mode validation ruleset", () => {
     test("Qld subsequent treatment references Qld SC PD 1 of 2024 cl 4(c)", () => {
       const result = validateCourtMode([], [caseWithoutTreatment], makeQldConfig());
       const infos = result.info.filter((i) => i.message.includes("Subsequent treatment"));
-      expect(infos[0].ruleNumber).toBe("Qld SC PD 1 of 2024 cl 4(c)");
+      // COURT-119: one label for the check, shared with validateDocument.
+      expect(infos[0].ruleNumber).toBe("Qld SC PD 1/2024 cl 4(c)");
     });
   });
 });
@@ -732,5 +734,32 @@ describe("COURT-VALID-003: Submission formatting checks", () => {
       const issues = checkSubmissionFormatting(makeFcaConfig(), {});
       expect(issues).toHaveLength(0);
     });
+  });
+});
+
+// ─── COURT-114: validator keys are the preset ids ───────────────────────────
+
+describe("COURT-114: court-mode issues carry each court's own instrument label", () => {
+  test.each([
+    // Register NSW-4, O-R18: no District or Local Court citation instrument.
+    ["NSW_DISTRICT_LOCAL", "NSW District / Local Court: no citation instrument found"],
+    // Register QLD-3.
+    ["QLD_DISTRICT_MAG", "Qld MC PD 7 of 2024"],
+    // Register NSW-1 (SC Gen 20 covers the CCA).
+    ["NSWCCA", "NSW SC PN Gen 20 (Oct 2023)"],
+    // Register SA-1.
+    ["SA_DISTRICT_MAG_CIVIL", "SA Uniform Civil Rules 2020 r 217.8"],
+  ])("%s issues are labelled '%s'", (jurisdiction, label) => {
+    const result = validateDocument(["Ibid."], [], undefined, {
+      standardId: "aglc4",
+      writingMode: "court",
+      courtJurisdiction: jurisdiction,
+      ibidSuppressionMode: "on",
+    });
+    const ibid = [...result.warnings, ...result.info, ...result.errors].filter((i) =>
+      i.message.includes("'Ibid' detected")
+    );
+    expect(ibid.length).toBeGreaterThan(0);
+    expect(ibid[0].ruleNumber).toBe(label);
   });
 });

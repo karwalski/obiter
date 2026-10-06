@@ -229,7 +229,7 @@ describe("COURT-106: freezing a pre-v3 court document changes nothing it renders
 // ─── Selection (new documents) ───────────────────────────────────────────────
 
 describe("COURT-106: selecting a court freezes the full preset toggle set", () => {
-  test("every preset yields all eight toggles, engine defaults written out", () => {
+  test("every preset yields all nine toggles, engine defaults written out", () => {
     for (const id of JURISDICTIONS) {
       const toggles = getPresetToggles(id)!;
       expect(Object.keys(toggles).sort()).toEqual([...COURT_TOGGLE_KEYS].sort());
@@ -359,13 +359,145 @@ describe("COURT-106: the Update court profile prompt", () => {
   });
 });
 
+// ─── COURT-111: corrected presets and existing documents ────────────────────
+
+/** A V1 (2026-10-06) frozen record, as COURT-106 wrote it (no reportedCaseMnc key). */
+function v1Record(values: string): Record<string, string> {
+  const keys = [
+    "parallelCitations",
+    "parallelOrder",
+    "pinpointStyle",
+    "pinpointConnector",
+    "authorisedReportHierarchy",
+    "unreportedGate",
+    "ibidSuppression",
+    "loaType",
+  ];
+  const parts = values.split("|");
+  return Object.fromEntries(keys.map((k, i) => [k, parts[i]]));
+}
+
+const V1_PROFILE = (id: string) => ({
+  ...createCourtProfile(id, NOW),
+  presetVersion: "2026-10-06",
+});
+
+describe("COURT-111: corrected presets reach new documents; existing documents keep their output", () => {
+  const pape = SAMPLES[2];
+  const papeWithMnc = citation(
+    "case.reported",
+    { ...pape.data, mnc: "[2009] HCA 23", pinpoint: undefined },
+    "Pape"
+  );
+  const first = context(true, false);
+
+  test("VSC (Vic SC Gen 3 cl 5.2): a new document cites the report alone, as AGLC4 r 2.2.7 does", () => {
+    const out = text(
+      formatCitation(papeWithMnc, first, configAfter("VSC", getPresetToggles("VSC")!))
+    );
+    expect(out).toContain("(2009) 238 CLR 1");
+    expect(out).not.toContain("HCA 23");
+  });
+
+  test.each(["VSCA", "FCFCOA", "ACTSC", "NTSC"])(
+    "%s: a new document cites the report alone (VIC-2 cl 14.4, FCF-1 cl 5.8, ACT-1 cl 3–4, NT-1)",
+    (id) => {
+      const out = text(formatCitation(papeWithMnc, first, configAfter(id, getPresetToggles(id)!)));
+      expect(out).not.toContain("HCA 23");
+    }
+  );
+
+  test("a parallel the user recorded is never removed under 'omit' (Vic SC Gen 3 cl 5.2)", () => {
+    const withParallel = citation(
+      "case.reported",
+      {
+        ...papeWithMnc.data,
+        parallelCitations: [{ volume: 257, reportSeries: "ALR", startingPage: 1 }],
+      },
+      "Pape"
+    );
+    const out = text(
+      formatCitation(withParallel, first, configAfter("VSC", getPresetToggles("VSC")!))
+    );
+    expect(out).toContain("(2009) 238 CLR 1");
+    expect(out).toContain("257 ALR 1");
+  });
+
+  test("an MNC-only (unreported) case keeps its MNC under 'omit'", () => {
+    const out = text(
+      formatCitation(SAMPLES[1], first, configAfter("VSC", getPresetToggles("VSC")!))
+    );
+    expect(out).toContain("[1997] TASSC 161");
+  });
+
+  test("a VSC document frozen at 2026-10-06 keeps the MNC until the user accepts the update", () => {
+    const stored = v1Record("mandatory|report-first|para-and-page|aglc|VR,CLR,ALR|off|on|simple");
+    const before = text(formatCitation(papeWithMnc, first, configAfter("VSC", stored)));
+    expect(before).toContain("(2009) 238 CLR 1; [2009] HCA 23");
+
+    const profile = V1_PROFILE("VSC");
+    const diff = diffCourtProfile(stored, profile, "VSC");
+    expect(diff.map((d) => [d.key, d.current, d.proposed])).toEqual([
+      ["parallelCitations", "mandatory", "off"],
+      ["reportedCaseMnc", undefined, "omit"],
+    ]);
+    expect(isProfileUpdateAvailable(stored, profile, "VSC")).toBe(true);
+
+    const accepted = applyProfileUpdate(
+      stored,
+      profile,
+      "VSC",
+      diff.map((d) => d.key),
+      NOW
+    );
+    expect(accepted.profile.overridden).toEqual([]);
+    const after = text(formatCitation(papeWithMnc, first, configAfter("VSC", accepted.toggles)));
+    expect(after).not.toContain("HCA 23");
+  });
+
+  test("FCA (GPN-AUTH cl 2.5): new documents put the MNC first; a 2026-10-06 document is offered the change", () => {
+    const fresh = text(
+      formatCitation(papeWithMnc, first, configAfter("FCA", getPresetToggles("FCA")!))
+    );
+    expect(fresh.indexOf("[2009] HCA 23")).toBeLessThan(fresh.indexOf("238 CLR"));
+
+    const stored = v1Record("mandatory|report-first|para-and-page|at|FCR,CLR,ALR|off|on|part-ab");
+    const old = text(formatCitation(papeWithMnc, first, configAfter("FCA", stored)));
+    expect(old.indexOf("238 CLR")).toBeLessThan(old.indexOf("[2009] HCA 23"));
+    expect(diffCourtProfile(stored, V1_PROFILE("FCA"), "FCA").map((d) => d.key)).toEqual([
+      "parallelOrder",
+      "loaType",
+    ]);
+  });
+
+  test("TASSC (PD 3 of 2014 cl 3(a)): new documents put the MNC first", () => {
+    const out = text(
+      formatCitation(papeWithMnc, first, configAfter("TASSC", getPresetToggles("TASSC")!))
+    );
+    expect(out.indexOf("[2009] HCA 23")).toBeLessThan(out.indexOf("238 CLR"));
+  });
+
+  test("a document frozen before the MNC toggle existed is not prompted for it alone", () => {
+    const stored = v1Record("mandatory|report-first|para-and-page|aglc|CLR|off|on|part-ab");
+    expect(diffCourtProfile(stored, V1_PROFILE("HCA"), "HCA")).toEqual([]);
+    expect(isProfileUpdateAvailable(stored, V1_PROFILE("HCA"), "HCA")).toBe(false);
+  });
+
+  test("academic AGLC4 output is unchanged by the MNC toggle (r 2.2.7)", () => {
+    const academic = buildDocumentConfig({ standardId: "aglc4", writingMode: "academic" });
+    const out = text(formatCitation(papeWithMnc, first, { ...academic, reportedCaseMnc: "omit" }));
+    expect(out).toBe(text(formatCitation(papeWithMnc, first, academic)));
+  });
+});
+
 // ─── Provenance (COURT-106 typed data; COURT-115 display) ───────────────────
 
 describe("COURT-106 / COURT-115: typed provenance for every preset value", () => {
-  test("every preset has provenance for all eight toggles, with known source ids", () => {
+  test("every preset has provenance for all nine toggles, with known source ids", () => {
     for (const id of JURISDICTIONS) {
       const prov = COURT_PRESET_PROVENANCE[id];
-      expect(prov.version).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      // A date, with an optional same-day revision (COURT-111: "2026-10-06.2").
+      expect(prov.version).toMatch(/^\d{4}-\d{2}-\d{2}(\.\d+)?$/);
       for (const key of COURT_TOGGLE_KEYS) {
         const field = prov.fields[key];
         expect(field).toBeDefined();
@@ -409,15 +541,51 @@ describe("COURT-106 / COURT-115: typed provenance for every preset value", () =>
   });
 
   test("values the register found contradicted are not labelled official", () => {
-    // Vic SC Gen 3 cl 5.2 (VIC-1, O-R5): report instead of MNC.
-    expect(COURT_PRESET_PROVENANCE.VSC.fields.parallelCitations.kind).toBe("unsourced");
-    // FCA GPN-AUTH 2025 has no Part A / B (O-R1).
-    expect(COURT_PRESET_PROVENANCE.FCA.fields.loaType.kind).toBe("unsourced");
-    // HCA PD 2 of 2024 five-part JBA (O-R3).
+    // HCA PD 2 of 2024 five-part JBA (O-R3); awaits COURT-117.
     expect(COURT_PRESET_PROVENANCE.HCA.fields.loaType.kind).toBe("unsourced");
-    // FCA cl 2.5 example is MNC first (O-R2); the current report-first value awaits COURT-111.
-    expect(COURT_PRESETS.FCA.parallelOrder ?? "report-first").toBe("report-first");
-    expect(COURT_PRESET_PROVENANCE.FCA.fields.parallelOrder.kind).toBe("unsourced");
+    // HCA instruments are silent on parallel citation (O-R4; Q3): unchanged.
+    expect(COURT_PRESETS.HCA.parallelCitations).toBe("mandatory");
+    expect(COURT_PRESET_PROVENANCE.HCA.fields.parallelCitations.kind).toBe("unsourced");
+    // NSW SC CA 1 cl 37 four categories (O-R12); awaits COURT-117.
+    expect(COURT_PRESET_PROVENANCE.NSWCA.fields.loaType.kind).toBe("unsourced");
+  });
+
+  test("COURT-111: corrected values now cite their instrument", () => {
+    // Vic SC Gen 3 cl 5.2 (VIC-1, O-R5): report instead of MNC.
+    expect(COURT_PRESETS.VSC.parallelCitations).toBe("off");
+    expect(COURT_PRESET_PROVENANCE.VSC.fields.parallelCitations).toMatchObject({
+      kind: "official",
+      sourceIds: ["VIC-1"],
+      clause: "cl 5.2",
+    });
+    expect(COURT_PRESET_PROVENANCE.VSC.fields.reportedCaseMnc.kind).toBe("official");
+    // FCA GPN-AUTH cl 2.5 example is MNC first (FCA-1, O-R2; DECISION-043 item 3).
+    expect(COURT_PRESETS.FCA.parallelOrder).toBe("mnc-first");
+    expect(COURT_PRESET_PROVENANCE.FCA.fields.parallelOrder).toMatchObject({
+      kind: "official",
+      clause: "cl 2.5",
+    });
+    // FCA GPN-AUTH 2025 has no Part A / B (O-R1): a simple list is an Obiter default.
+    expect(COURT_PRESETS.FCA.loaType).toBe("simple");
+    expect(COURT_PRESET_PROVENANCE.FCA.fields.loaType.kind).toBe("preference");
+    // Tas SC PD 3 of 2014 cl 3(a) example is MNC first (TAS-1, O-R8).
+    expect(COURT_PRESET_PROVENANCE.TASSC.fields.parallelOrder).toMatchObject({
+      kind: "official",
+      clause: "cl 3(a)",
+    });
+    // SA UCR r 217.8(3) (SA-1, O-R7): report and MNC both required; order unstated.
+    expect(COURT_PRESET_PROVENANCE.SASC.fields.parallelCitations.kind).toBe("official");
+    expect(COURT_PRESET_PROVENANCE.SASC.fields.parallelOrder.kind).toBe("preference");
+  });
+
+  test("COURT-119: courts with no instrument are labelled 'no instrument found; AGLC4 fallback'", () => {
+    const nsw = COURT_PRESET_PROVENANCE.NSW_DISTRICT_LOCAL;
+    expect(nsw.fields.parallelCitations.kind).toBe("unsourced");
+    expect(nsw.fields.parallelCitations.note).toContain("No instrument found; AGLC4 fallback");
+    expect(nsw.exceptions.join(" ")).toContain("No instrument found; AGLC4 fallback");
+    expect(COURT_PRESET_PROVENANCE.QLD_DISTRICT_MAG.exceptions.join(" ")).toContain(
+      "District Court: no instrument found; AGLC4 fallback"
+    );
   });
 
   test("every court shows an experimental label naming its instrument and check date", () => {
@@ -463,38 +631,80 @@ describe("COURT-115: docs/court-profiles.md is generated from the preset data", 
 
 /**
  * The values each preset had at version 2026-10-06, in key order
- * parallelCitations | parallelOrder | pinpointStyle | pinpointConnector |
- * hierarchy | unreportedGate | ibidSuppression | loaType. A preset whose
+ * parallelCitations | parallelOrder | reportedCaseMnc | pinpointStyle |
+ * pinpointConnector | hierarchy | unreportedGate | ibidSuppression |
+ * loaType. (reportedCaseMnc was added by COURT-111 with "include", the
+ * value every preset had in effect.) A preset whose
  * values change must bump its version in provenance.ts (and update this
  * table), so existing documents are offered the change (DECISION-043 item 4).
  */
 const VALUES_AT_2026_10_06: Record<string, string> = {
-  HCA: "mandatory|report-first|para-and-page|aglc|CLR|off|on|part-ab",
-  FCA: "mandatory|report-first|para-and-page|at|FCR,CLR,ALR|off|on|part-ab",
-  FCFCOA: "mandatory|report-first|para-and-page|aglc|FamCAFC,FLC,ALR|off|on|two-part-read",
-  NSWCA: "preferred|report-first|para-only|aglc|NSWLR,CLR,ALR|warn|on|part-ab",
-  NSWSC: "preferred|report-first|para-only|aglc|NSWLR,CLR,ALR|warn|on|simple",
-  NSW_DISTRICT_LOCAL: "preferred|report-first|para-only|aglc|NSWLR,CLR,ALR|warn|on|off",
-  VSCA: "mandatory|report-first|para-and-page|aglc|VR,CLR,ALR|off|on|part-abc",
-  VSC: "mandatory|report-first|para-and-page|aglc|VR,CLR,ALR|off|on|simple",
-  VIC_COUNTY_MAG: "preferred|report-first|para-and-page|aglc|VR,CLR,ALR|off|on|off",
-  QCA: "preferred|report-first|para-only|aglc|Qd R,CLR,ALR|warn|on|part-ab",
-  QSC: "preferred|report-first|para-only|aglc|Qd R,CLR,ALR|warn|on|simple",
-  QLD_DISTRICT_MAG: "mandatory|report-first|para-only|aglc|Qd R,CLR,ALR|warn|on|simple",
-  WASC: "mandatory|mnc-first|para-and-page|aglc|WAR,CLR,ALR|off|on|simple",
-  SASC: "preferred|report-first|para-and-page|aglc|SASR,CLR,ALR|off|on|two-part-read",
-  TASSC: "preferred|report-first|para-and-page|at|Tas R,CLR,ALR|warn|on|three-part-tas",
-  ACTSC: "preferred|report-first|para-and-page|aglc|ACTLR,CLR,ALR|off|on|simple",
-  NTSC: "preferred|report-first|para-and-page|aglc|NTLR,CLR,ALR|off|on|simple",
-  ART: "off|report-first|para-only|aglc||off|on|off",
-  FWC: "off|report-first|para-only|aglc||off|on|off",
-  STATE_TRIBUNAL: "off|report-first|para-only|aglc||off|on|off",
+  HCA: "mandatory|report-first|include|para-and-page|aglc|CLR|off|on|part-ab",
+  FCA: "mandatory|report-first|include|para-and-page|at|FCR,CLR,ALR|off|on|part-ab",
+  FCFCOA: "mandatory|report-first|include|para-and-page|aglc|FamCAFC,FLC,ALR|off|on|two-part-read",
+  NSWCA: "preferred|report-first|include|para-only|aglc|NSWLR,CLR,ALR|warn|on|part-ab",
+  NSWSC: "preferred|report-first|include|para-only|aglc|NSWLR,CLR,ALR|warn|on|simple",
+  NSW_DISTRICT_LOCAL: "preferred|report-first|include|para-only|aglc|NSWLR,CLR,ALR|warn|on|off",
+  VSCA: "mandatory|report-first|include|para-and-page|aglc|VR,CLR,ALR|off|on|part-abc",
+  VSC: "mandatory|report-first|include|para-and-page|aglc|VR,CLR,ALR|off|on|simple",
+  VIC_COUNTY_MAG: "preferred|report-first|include|para-and-page|aglc|VR,CLR,ALR|off|on|off",
+  QCA: "preferred|report-first|include|para-only|aglc|Qd R,CLR,ALR|warn|on|part-ab",
+  QSC: "preferred|report-first|include|para-only|aglc|Qd R,CLR,ALR|warn|on|simple",
+  QLD_DISTRICT_MAG: "mandatory|report-first|include|para-only|aglc|Qd R,CLR,ALR|warn|on|simple",
+  WASC: "mandatory|mnc-first|include|para-and-page|aglc|WAR,CLR,ALR|off|on|simple",
+  SASC: "preferred|report-first|include|para-and-page|aglc|SASR,CLR,ALR|off|on|two-part-read",
+  TASSC: "preferred|report-first|include|para-and-page|at|Tas R,CLR,ALR|warn|on|three-part-tas",
+  ACTSC: "preferred|report-first|include|para-and-page|aglc|ACTLR,CLR,ALR|off|on|simple",
+  NTSC: "preferred|report-first|include|para-and-page|aglc|NTLR,CLR,ALR|off|on|simple",
+  ART: "off|report-first|include|para-only|aglc||off|on|off",
+  FWC: "off|report-first|include|para-only|aglc||off|on|off",
+  STATE_TRIBUNAL: "off|report-first|include|para-only|aglc||off|on|off",
+};
+
+/**
+ * COURT-111 / COURT-119: the values at version 2026-10-06.2 (same key
+ * order), each with its register evidence. A further change bumps the
+ * version again.
+ */
+const VALUES_AT_2026_10_06_2: Record<string, string> = {
+  // FCA-1 cl 2.5 (MNC first, DECISION-043 item 3); O-R1 (no Part A / B).
+  FCA: "mandatory|mnc-first|include|para-and-page|at|FCR,CLR,ALR|off|on|simple",
+  // FCF-1 cl 5.8 (report replaces MNC); FamCAFC is an MNC identifier (O-R6).
+  FCFCOA: "off|report-first|omit|para-and-page|aglc|FLC,ALR|off|on|two-part-read",
+  // NSW-1 (SC Gen 20 covers the CCA), NSW-3 cl 27–28 (COURT-119).
+  NSWCCA: "preferred|report-first|include|para-only|aglc|NSWLR,CLR,ALR|warn|on|simple",
+  // VIC-1 cl 5.2, VIC-2 cl 14.4 (O-R5).
+  VSCA: "off|report-first|omit|para-and-page|aglc|VR,CLR,ALR|off|on|part-abc",
+  VSC: "off|report-first|omit|para-and-page|aglc|VR,CLR,ALR|off|on|simple",
+  // QLD-3 cl 3 (O-R11).
+  QLD_DISTRICT_MAG: "preferred|report-first|include|para-only|aglc|Qd R,CLR,ALR|warn|on|simple",
+  // SA-1 r 217.8(3), r 101.8(4) (O-R7); order unstated, report first.
+  SASC: "mandatory|report-first|include|para-and-page|aglc|SASR,CLR,ALR|off|on|two-part-read",
+  SA_DISTRICT_MAG_CIVIL:
+    "mandatory|report-first|include|para-and-page|aglc|SASR,CLR,ALR|off|on|two-part-read",
+  // TAS-1 cl 3(a) (MNC first, DECISION-043 item 3; O-R8).
+  TASSC: "preferred|mnc-first|include|para-and-page|at|Tas R,CLR,ALR|warn|on|three-part-tas",
+  // ACT-1 cl 3–4, NT-1 (O-R10).
+  ACTSC: "off|report-first|omit|para-and-page|aglc|ACTLR,CLR,ALR|off|on|simple",
+  NTSC: "off|report-first|omit|para-and-page|aglc|NTLR,CLR,ALR|off|on|simple",
 };
 
 describe("COURT-106: a preset value change must bump the preset version", () => {
   test.each(JURISDICTIONS)("%s", (id) => {
-    if (getPresetVersion(id) !== "2026-10-06") return; // bumped: a newer table applies
+    const version = getPresetVersion(id);
+    const table =
+      version === "2026-10-06"
+        ? VALUES_AT_2026_10_06
+        : version === "2026-10-06.2"
+          ? VALUES_AT_2026_10_06_2
+          : undefined;
+    if (!table) return; // bumped again: a newer table applies
     const t = getPresetToggles(id)!;
-    expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_06[id]);
+    expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(table[id]);
+  });
+
+  test("COURT-111: the corrected presets moved to the new version; the others did not", () => {
+    const bumped = JURISDICTIONS.filter((id) => getPresetVersion(id) === "2026-10-06.2").sort();
+    expect(bumped).toEqual(Object.keys(VALUES_AT_2026_10_06_2).sort());
   });
 });

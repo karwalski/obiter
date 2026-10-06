@@ -53,9 +53,10 @@ import { writeErrorMessage } from "../../word/documentAccess";
 import {
   type CourtJurisdiction,
   type SubsequentTreatment,
-  SUBSEQUENT_TREATMENT_OPTIONS,
   NEGATIVE_TREATMENTS,
   QLD_JURISDICTIONS,
+  getSubsequentTreatmentOptions,
+  getSubsequentTreatmentSource,
   NSW_JURISDICTIONS,
   VIC_JURISDICTIONS,
   isCourtJurisdiction,
@@ -840,6 +841,10 @@ export default function InsertCitation(): JSX.Element {
     courtConfig.unreportedGateMode === "warn";
   const isQldMode = courtJurisdiction !== null &&
     QLD_JURISDICTIONS.has(courtJurisdiction);
+  // COURT-119: the treatment prompt applies in Queensland and Tasmania.
+  const treatmentSource = courtJurisdiction !== null
+    ? getSubsequentTreatmentSource(courtJurisdiction)
+    : undefined;
   const isNswMode = courtJurisdiction !== null &&
     NSW_JURISDICTIONS.has(courtJurisdiction);
   const isVicMode = courtJurisdiction !== null &&
@@ -1809,15 +1814,15 @@ export default function InsertCitation(): JSX.Element {
         </div>
       )}
 
-      {/* COURT-010: Queensland subsequent-treatment field (AGLC only) */}
-      {isAglcStandard && selectedSourceType && selectedSourceType.startsWith("case.") && isQldMode && (
+      {/* COURT-010 / COURT-119: subsequent-treatment field, Qld and Tas (AGLC only) */}
+      {isAglcStandard && selectedSourceType && selectedSourceType.startsWith("case.") && treatmentSource && (
         <div className="ic-field">
           <label className="ic-label" htmlFor="ic-subsequent-treatment">
             Subsequent Treatment
             <FieldHelp
-              ruleNumber="PD 1/2024 cl 4(c)"
-              description="Queensland practice directions require practitioners to confirm whether cited authorities have been subsequently doubted or not followed."
-              example="Not affected"
+              ruleNumber={treatmentSource}
+              description="The court's practice direction requires you to cite any later judgment that has doubted, or not followed, a cited case."
+              example="Neither doubted nor not followed"
             />
           </label>
           <select
@@ -1826,7 +1831,7 @@ export default function InsertCitation(): JSX.Element {
             value={(formData.subsequentTreatment as string) || ""}
             onChange={(e) => updateField("subsequentTreatment", e.target.value)}
           >
-            {SUBSEQUENT_TREATMENT_OPTIONS.map((opt) => (
+            {getSubsequentTreatmentOptions(formData.subsequentTreatment as string | undefined).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

@@ -290,13 +290,13 @@ describe("COURT-112: 'at' pinpoint connector", () => {
     expect(text(runs)).toContain("[2014] FCAFC 115; (2014) 224 FCR 479 at 481");
   });
 
-  test("FCA preset (report-first until COURT-111): '479 at 481'", () => {
+  test("FCA preset (COURT-111: MNC first per GPN-AUTH cl 2.5; DECISION-043 item 3): '479 at 481'", () => {
     const runs = formatCitation(
       darcy,
       firstContext({ type: "page", value: "481" }),
       courtConfigFor("FCA")
     );
-    expect(text(runs)).toContain("(2014) 224 FCR 479 at 481; [2014] FCAFC 115");
+    expect(text(runs)).toContain("[2014] FCAFC 115; (2014) 224 FCR 479 at 481");
   });
 
   const smithBrown = makeCitation(

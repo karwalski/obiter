@@ -41,6 +41,7 @@ import {
 import {
   getPracticeDirectionsForJurisdiction,
   getAllPracticeDirections,
+  type PracticeDirectionLink,
 } from "../../engine/court/practiceDirections";
 import { getSharedStore } from "../../store/singleton";
 import { getStandardConfig } from "../../engine/standards";
@@ -620,7 +621,7 @@ function CourtGuideCard({
                       {link.name}
                     </a>
                     <span className="guide-pd-verified">
-                      {" "}(verified {link.lastVerified})
+                      {" "}({linkCheckLabel(link)})
                     </span>
                   </li>
                 ))}
@@ -735,6 +736,23 @@ function CourtGuideTab({
   );
 }
 
+/**
+ * COURT-114: how a practice-direction link was last checked, in plain words.
+ */
+function linkCheckLabel(link: PracticeDirectionLink): string {
+  const checked = link.lastVerified ? `checked ${link.lastVerified}` : "not checked directly";
+  switch (link.status) {
+    case "index":
+      return `index page, ${checked}`;
+    case "bot-challenge":
+      return `site blocks automated checks, ${checked}`;
+    case "not-located":
+      return `instrument not located, ${checked}`;
+    default:
+      return link.lastVerified ? `verified ${link.lastVerified}` : "not checked directly";
+  }
+}
+
 // ─── Practice Directions Tab (COURT-GUIDE-002) ──────────────────────────────
 
 function PracticeDirectionsTab(): JSX.Element {
@@ -794,7 +812,7 @@ function PracticeDirectionsTab(): JSX.Element {
                       {link.name}
                     </a>
                   </td>
-                  <td>{link.lastVerified}</td>
+                  <td>{linkCheckLabel(link)}</td>
                 </tr>
               ))}
             </tbody>
