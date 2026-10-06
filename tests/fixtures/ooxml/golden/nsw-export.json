@@ -1,0 +1,98 @@
+{
+  "parts": [
+    "/_rels/.rels",
+    "/docProps/core.xml",
+    "/word/_rels/document.xml.rels",
+    "/word/document.xml",
+    "/word/footnotes.xml",
+    "/word/settings.xml",
+    "/word/styles.xml"
+  ],
+  "styles": [
+    "Normal (Normal)",
+    "ExportHeading1 (Export Heading 1)",
+    "ExportBody (Export Body)",
+    "ExportQuote (Export Quote)",
+    "FootnoteText (footnote text)"
+  ],
+  "paragraphStyles": {
+    "ExportHeading1": 1,
+    "ExportBody": 4,
+    "ExportQuote": 1
+  },
+  "directNumbering": 0,
+  "fields": {
+    "body": [],
+    "footnotes": []
+  },
+  "bookmarks": {
+    "body": [],
+    "footnotes": []
+  },
+  "hyperlinkAnchors": [
+    "_Toc300001",
+    "_Ref300001",
+    "_Ref300002"
+  ],
+  "danglingAnchors": [
+    "_Toc300001",
+    "_Ref300001",
+    "_Ref300002"
+  ],
+  "controls": [],
+  "docVars": [],
+  "customXml": [],
+  "customProperties": [],
+  "revisions": {
+    "insertions": 0,
+    "deletions": 0
+  },
+  "comments": 0,
+  "footnotes": [
+    {
+      "id": "1",
+      "text": "Example Pty Ltd v Sample Council (2001) 1 CLR 1; [2001] HCA 1 at [20].",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "2",
+      "text": "T 12.5; Exhibit A at 3.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "3",
+      "text": "The witness was not cross-examined on this point.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "4",
+      "text": "That approach was not followed in Fictional Holdings Ltd v Placeholder [2002] NSWCA 2 at [8], for the reasons given there.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    }
+  ],
+  "nbsp": 0
+}

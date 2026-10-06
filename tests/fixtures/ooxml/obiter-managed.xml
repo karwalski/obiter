@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<!--
+  COURT-105 synthetic OOXML fixture (Flat OPC; Word opens this file directly).
+  A document Obiter has worked on (O-F9: obiter-fn controls, the
+  urn:obiter:aglc store part, Obiter.* custom properties) next to the
+  foreign structures R03 observed in court documents:
+   - fn 1: plain managed footnote (rebuilt by a refresh);
+   - fn 2: managed footnote holding a REF _Ref \r \h field and a _Ref
+           bookmark (O-C3; COURT-109 skips it);
+   - fn 3: managed footnote inside a pending tracked insertion (COURT-108
+           skips it);
+   - fn 4: managed footnote holding a content control from another tool
+           (O-F2; COURT-109 skips it);
+   - fn 5: unmanaged citation with split italic runs and an NBSP (O-C9;
+           Scan & Repair candidate);
+   - fn 6: unmanaged note holding an ADDIN field (preserved, not adopted);
+   - fn 7: unmanaged prose-only note (O-C6).
+  Custom properties include the legacy Obiter.Author and Obiter.Website
+  keys earlier releases wrote (O-K2) and a property from another tool, for
+  the COURT-122 review. The legacy author value is a placeholder, not a
+  name. Synthetic content only: no court text, no real parties.
+-->
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+        <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+        <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" Target="../customXml/item1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:body>
+          <w:p w:rsidR="00E50001"><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Synthetic submissions fixture</w:t></w:r></w:p>
+          <w:p w:rsidR="00E50001"><w:bookmarkStart w:id="10" w:name="_Ref400001"/><w:r><w:t xml:space="preserve">1. The first submission.</w:t></w:r><w:bookmarkEnd w:id="10"/><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="1"/></w:r></w:p>
+          <w:p w:rsidR="00E50002"><w:commentRangeStart w:id="0"/><w:r><w:t xml:space="preserve">2. The second submission.</w:t></w:r><w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="2"/></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="3"/></w:r></w:p>
+          <w:p w:rsidR="00E50003"><w:r><w:t xml:space="preserve">3. The third submission.</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="4"/></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="5"/></w:r></w:p>
+          <w:p w:rsidR="00E50004"><w:r><w:t xml:space="preserve">4. The fourth submission.</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="6"/></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="7"/></w:r></w:p>
+          <w:sectPr/>
+        </w:body>
+      </w:document>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/footnotes.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml">
+    <pkg:xmlData>
+      <w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+        <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+        <w:footnote w:id="1"><w:p w:rsidR="00F60001"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r>
+          <w:sdt><w:sdtPr><w:alias w:val="Obiter Footnote"/><w:tag w:val="obiter-fn"/><w:id w:val="3001"/></w:sdtPr><w:sdtContent>
+            <w:sdt><w:sdtPr><w:alias w:val="Citation:auto"/><w:tag w:val="cit-1"/><w:id w:val="3101"/></w:sdtPr><w:sdtContent><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd v Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1 CLR 1</w:t></w:r></w:sdtContent></w:sdt>
+            <w:r><w:t>.</w:t></w:r>
+          </w:sdtContent></w:sdt>
+        </w:p></w:footnote>
+        <w:footnote w:id="2"><w:p w:rsidR="00F60002"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r>
+          <w:sdt><w:sdtPr><w:alias w:val="Obiter Footnote"/><w:tag w:val="obiter-fn"/><w:id w:val="3002"/></w:sdtPr><w:sdtContent>
+            <w:sdt><w:sdtPr><w:alias w:val="Citation:auto"/><w:tag w:val="cit-2"/><w:id w:val="3102"/></w:sdtPr><w:sdtContent><w:r><w:rPr><w:i/></w:rPr><w:t>Fictional Holdings Ltd v Placeholder</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1 CLR 1</w:t></w:r></w:sdtContent></w:sdt>
+            <w:r><w:t xml:space="preserve">; see submission [</w:t></w:r>
+            <w:bookmarkStart w:id="11" w:name="_Ref400002"/>
+            <w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> REF _Ref400001 \r \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>
+            <w:bookmarkEnd w:id="11"/>
+            <w:r><w:t>].</w:t></w:r>
+          </w:sdtContent></w:sdt>
+        </w:p></w:footnote>
+        <w:footnote w:id="3"><w:p w:rsidR="00F60003"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r>
+          <w:sdt><w:sdtPr><w:alias w:val="Obiter Footnote"/><w:tag w:val="obiter-fn"/><w:id w:val="3003"/></w:sdtPr><w:sdtContent>
+            <w:sdt><w:sdtPr><w:alias w:val="Citation:auto"/><w:tag w:val="cit-1"/><w:id w:val="3103"/></w:sdtPr><w:sdtContent><w:ins w:id="201" w:author="Reviewer" w:date="2026-01-03T00:00:00Z"><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd</w:t></w:r></w:ins></w:sdtContent></w:sdt>
+            <w:ins w:id="202" w:author="Reviewer" w:date="2026-01-03T00:00:00Z"><w:r><w:t>.</w:t></w:r></w:ins>
+          </w:sdtContent></w:sdt>
+        </w:p></w:footnote>
+        <w:footnote w:id="4"><w:p w:rsidR="00F60004"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r>
+          <w:sdt><w:sdtPr><w:alias w:val="Obiter Footnote"/><w:tag w:val="obiter-fn"/><w:id w:val="3004"/></w:sdtPr><w:sdtContent>
+            <w:sdt><w:sdtPr><w:alias w:val="Citation:auto"/><w:tag w:val="cit-2"/><w:id w:val="3104"/></w:sdtPr><w:sdtContent><w:r><w:rPr><w:i/></w:rPr><w:t>Fictional Holdings Ltd</w:t></w:r></w:sdtContent></w:sdt>
+            <w:r><w:t xml:space="preserve"> (record </w:t></w:r>
+            <w:sdt><w:sdtPr><w:alias w:val="Vendor reference"/><w:tag w:val="VendorRef"/><w:id w:val="3201"/><w:text/></w:sdtPr><w:sdtContent><w:r><w:t>EX-42</w:t></w:r></w:sdtContent></w:sdt>
+            <w:r><w:t>).</w:t></w:r>
+          </w:sdtContent></w:sdt>
+        </w:p></w:footnote>
+        <w:footnote w:id="5"><w:p w:rsidR="00F60005"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r w:rsidR="00F60005"><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">Another Example Ltd v </w:t></w:r><w:r w:rsidR="00F60006"><w:rPr><w:i/></w:rPr><w:t>Test Authority</w:t></w:r><w:r><w:t xml:space="preserve"> (2003) 3&#160;CLR 30.</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="6"><w:p w:rsidR="00F60007"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ADDIN EXAMPLE.CITE {"synthetic":true} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>Placeholder Report (2020) 4.</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p></w:footnote>
+        <w:footnote w:id="7"><w:p w:rsidR="00F60008"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> The point was conceded below.</w:t></w:r></w:p></w:footnote>
+      </w:footnotes>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/comments.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml">
+    <pkg:xmlData>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:comment w:id="0" w:author="Reviewer" w:date="2026-01-03T00:00:00Z" w:initials="R"><w:p><w:r><w:t>Synthetic review comment.</w:t></w:r></w:p></w:comment>
+      </w:comments>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+    <pkg:xmlData>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>
+      </w:styles>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+    <pkg:xmlData>
+      <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:trackRevisions/>
+        <w:footnotePr><w:footnote w:id="-1"/><w:footnote w:id="0"/></w:footnotePr>
+        <w:rsids><w:rsidRoot w:val="00E50001"/><w:rsid w:val="00E50001"/><w:rsid w:val="00F60001"/></w:rsids>
+      </w:settings>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/item1.xml" pkg:contentType="application/xml">
+    <pkg:xmlData>
+      <obiter:citationStore xmlns:obiter="urn:obiter:aglc" version="2" aglcVersion="4" standardId="aglc4" writingMode="academic" ccModel="parent-child">
+        <obiter:generator name="Obiter" version="1.17.7" standard="aglc4" mode="academic"/>
+        <obiter:citation id="cit-1" sourceType="case.reported" aglcVersion="4" shortTitle="Example Pty Ltd" createdAt="2026-01-01T00:00:00.000Z" modifiedAt="2026-01-01T00:00:00.000Z">
+          <obiter:field name="party1">Example Pty Ltd</obiter:field>
+          <obiter:field name="party2">Sample Council</obiter:field>
+          <obiter:field name="yearType">round</obiter:field>
+          <obiter:field name="year">2001</obiter:field>
+          <obiter:field name="volume">1</obiter:field>
+          <obiter:field name="reportSeries">CLR</obiter:field>
+          <obiter:field name="startingPage">1</obiter:field>
+        </obiter:citation>
+        <obiter:citation id="cit-2" sourceType="case.reported" aglcVersion="4" shortTitle="Fictional Holdings Ltd" createdAt="2026-01-01T00:00:00.000Z" modifiedAt="2026-01-01T00:00:00.000Z">
+          <obiter:field name="party1">Fictional Holdings Ltd</obiter:field>
+          <obiter:field name="party2">Placeholder</obiter:field>
+          <obiter:field name="yearType">round</obiter:field>
+          <obiter:field name="year">2001</obiter:field>
+          <obiter:field name="volume">1</obiter:field>
+          <obiter:field name="reportSeries">CLR</obiter:field>
+          <obiter:field name="startingPage">1</obiter:field>
+        </obiter:citation>
+      </obiter:citationStore>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/_rels/item1.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" Target="itemProps1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/itemProps1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.customXmlProperties+xml">
+    <pkg:xmlData>
+      <ds:datastoreItem ds:itemID="{33333333-4444-5555-6666-777777777777}" xmlns:ds="http://schemas.openxmlformats.org/officeDocument/2006/customXml"><ds:schemaRefs><ds:schemaRef ds:uri="urn:obiter:aglc"/></ds:schemaRefs></ds:datastoreItem>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+    <pkg:xmlData>
+      <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <cp:revision>4</cp:revision>
+        <dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created>
+        <dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-03T00:00:00Z</dcterms:modified>
+      </cp:coreProperties>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/custom.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.custom-properties+xml">
+    <pkg:xmlData>
+      <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="Obiter.Version"><vt:lpwstr>1.17.7</vt:lpwstr></property>
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="3" name="Obiter.CitationStyle"><vt:lpwstr>aglc4</vt:lpwstr></property>
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="4" name="Obiter.CreatedDate"><vt:lpwstr>2026-01-01T00:00:00.000Z</vt:lpwstr></property>
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="5" name="Obiter.Author"><vt:lpwstr>[legacy placeholder]</vt:lpwstr></property>
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="6" name="Obiter.Website"><vt:lpwstr>obiter.com.au</vt:lpwstr></property>
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="7" name="ClientMatter"><vt:lpwstr>EX-0001</vt:lpwstr></property>
+      </Properties>
+    </pkg:xmlData>
+  </pkg:part>
+</pkg:package>

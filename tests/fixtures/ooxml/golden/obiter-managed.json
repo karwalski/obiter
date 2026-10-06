@@ -1,0 +1,207 @@
+{
+  "parts": [
+    "/_rels/.rels",
+    "/customXml/_rels/item1.xml.rels",
+    "/customXml/item1.xml",
+    "/customXml/itemProps1.xml",
+    "/docProps/core.xml",
+    "/docProps/custom.xml",
+    "/word/_rels/document.xml.rels",
+    "/word/comments.xml",
+    "/word/document.xml",
+    "/word/footnotes.xml",
+    "/word/settings.xml",
+    "/word/styles.xml"
+  ],
+  "styles": [
+    "Normal (Normal)",
+    "Heading1 (heading 1)",
+    "FootnoteText (footnote text)",
+    "FootnoteReference (footnote reference)"
+  ],
+  "paragraphStyles": {
+    "Heading1": 1,
+    "": 4
+  },
+  "directNumbering": 0,
+  "fields": {
+    "body": [],
+    "footnotes": [
+      "REF _Ref400001 \\r \\h",
+      "ADDIN EXAMPLE.CITE {\"synthetic\":true}"
+    ]
+  },
+  "bookmarks": {
+    "body": [
+      "_Ref400001"
+    ],
+    "footnotes": [
+      "_Ref400002"
+    ]
+  },
+  "hyperlinkAnchors": [],
+  "danglingAnchors": [],
+  "controls": [
+    {
+      "location": "footnotes",
+      "tag": "obiter-fn",
+      "alias": "Obiter Footnote"
+    },
+    {
+      "location": "footnotes",
+      "tag": "cit-1",
+      "alias": "Citation:auto"
+    },
+    {
+      "location": "footnotes",
+      "tag": "obiter-fn",
+      "alias": "Obiter Footnote"
+    },
+    {
+      "location": "footnotes",
+      "tag": "cit-2",
+      "alias": "Citation:auto"
+    },
+    {
+      "location": "footnotes",
+      "tag": "obiter-fn",
+      "alias": "Obiter Footnote"
+    },
+    {
+      "location": "footnotes",
+      "tag": "cit-1",
+      "alias": "Citation:auto"
+    },
+    {
+      "location": "footnotes",
+      "tag": "obiter-fn",
+      "alias": "Obiter Footnote"
+    },
+    {
+      "location": "footnotes",
+      "tag": "cit-2",
+      "alias": "Citation:auto"
+    },
+    {
+      "location": "footnotes",
+      "tag": "VendorRef",
+      "alias": "Vendor reference"
+    }
+  ],
+  "docVars": [],
+  "customXml": [
+    "urn:obiter:aglc"
+  ],
+  "customProperties": [
+    "Obiter.Version = 1.17.7",
+    "Obiter.CitationStyle = aglc4",
+    "Obiter.CreatedDate = 2026-01-01T00:00:00.000Z",
+    "Obiter.Author = [legacy placeholder]",
+    "Obiter.Website = obiter.com.au",
+    "ClientMatter = EX-0001"
+  ],
+  "revisions": {
+    "insertions": 2,
+    "deletions": 0
+  },
+  "comments": 1,
+  "footnotes": [
+    {
+      "id": "1",
+      "text": "Example Pty Ltd v Sample Council (2001) 1 CLR 1.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": true,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": [
+        "obiter-fn",
+        "cit-1"
+      ]
+    },
+    {
+      "id": "2",
+      "text": "Fictional Holdings Ltd v Placeholder (2001) 1 CLR 1; see submission [1].",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": true,
+      "fields": [
+        "REF"
+      ],
+      "bookmarks": [
+        "_Ref400002"
+      ],
+      "revisions": 0,
+      "controls": [
+        "obiter-fn",
+        "cit-2"
+      ]
+    },
+    {
+      "id": "3",
+      "text": "Example Pty Ltd.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": true,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 2,
+      "controls": [
+        "obiter-fn",
+        "cit-1"
+      ]
+    },
+    {
+      "id": "4",
+      "text": "Fictional Holdings Ltd (record EX-42).",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": true,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": [
+        "obiter-fn",
+        "cit-2",
+        "VendorRef"
+      ]
+    },
+    {
+      "id": "5",
+      "text": "Another Example Ltd v Test Authority (2003) 3 CLR 30.",
+      "nbsp": 1,
+      "splitItalics": 1,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "6",
+      "text": "Placeholder Report (2020) 4.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [
+        "ADDIN"
+      ],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "7",
+      "text": "The point was conceded below.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    }
+  ],
+  "nbsp": 1
+}

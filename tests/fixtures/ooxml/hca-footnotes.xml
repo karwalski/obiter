@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<!--
+  COURT-105 synthetic OOXML fixture (Flat OPC; Word opens this file directly).
+  Modelled on the STRUCTURE observed in R03 federal §3 (HCA samples H01-H04):
+  citations in footnotes, style-linked paragraph numbering, REF _Ref \r \h
+  fields inside footnotes pointing at _Ref bookmarks on numbered paragraphs
+  (O-C3), report-only repeat citations, a TOC field, split italic runs and
+  NBSPs (R03 §4, O-C9). Synthetic content only: no court text, no real
+  parties, no personal names. Tracked revisions and a comment are added
+  for COURT-108 / COURT-122 coverage (O-P1); none was observed in HCA files.
+-->
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+        <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+        <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:body>
+          <w:p w:rsidR="00A10001" w:rsidRDefault="00A10001"><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>Synthetic reasons fixture</w:t></w:r></w:p>
+          <w:p w:rsidR="00A10001">
+            <w:r><w:fldChar w:fldCharType="begin"/></w:r>
+            <w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText></w:r>
+            <w:r><w:fldChar w:fldCharType="separate"/></w:r>
+            <w:hyperlink w:anchor="_Toc200001"><w:r><w:t>Background</w:t></w:r></w:hyperlink>
+            <w:r><w:fldChar w:fldCharType="end"/></w:r>
+          </w:p>
+          <w:p w:rsidR="00A10002"><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:bookmarkStart w:id="1" w:name="_Toc200001"/><w:r><w:t>Background</w:t></w:r><w:bookmarkEnd w:id="1"/></w:p>
+          <w:p w:rsidR="00A10002"><w:pPr><w:pStyle w:val="ParaList"/></w:pPr><w:bookmarkStart w:id="2" w:name="_Ref100001"/><w:r><w:t xml:space="preserve">The first numbered paragraph states a synthetic proposition.</w:t></w:r><w:bookmarkEnd w:id="2"/><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="1"/></w:r></w:p>
+          <w:p w:rsidR="00A10003"><w:pPr><w:pStyle w:val="ParaList"/></w:pPr><w:bookmarkStart w:id="3" w:name="_Ref100002"/><w:commentRangeStart w:id="0"/><w:r><w:t xml:space="preserve">The second numbered paragraph refers back to the first.</w:t></w:r><w:commentRangeEnd w:id="0"/><w:r><w:commentReference w:id="0"/></w:r><w:bookmarkEnd w:id="3"/><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="2"/></w:r></w:p>
+          <w:p w:rsidR="00A10003"><w:pPr><w:pStyle w:val="ParaList"/></w:pPr><w:r><w:t xml:space="preserve">A third paragraph carries two notes.</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="3"/></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="4"/></w:r></w:p>
+          <w:p w:rsidR="00A10004"><w:pPr><w:pStyle w:val="ParaList"/></w:pPr><w:r><w:t xml:space="preserve">A fourth paragraph repeats an authority.</w:t></w:r><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteReference w:id="5"/></w:r></w:p>
+          <w:p w:rsidR="00A10004"><w:pPr><w:pStyle w:val="OrdersCentre"/></w:pPr><w:r><w:t>Synthetic orders heading</w:t></w:r></w:p>
+          <w:sectPr><w:footnotePr><w:numFmt w:val="decimal"/></w:footnotePr></w:sectPr>
+        </w:body>
+      </w:document>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/footnotes.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml">
+    <pkg:xmlData>
+      <w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+        <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+        <w:footnote w:id="1"><w:p w:rsidR="00B20001"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r w:rsidR="00B20001"><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">Example Pty Ltd v </w:t></w:r><w:r w:rsidR="00B20002"><w:rPr><w:i/></w:rPr><w:t>Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1&#160;CLR 1 at 5&#160;[12].</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="2"><w:p w:rsidR="00B20003"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> See above at [</w:t></w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> REF _Ref100001 \r \h </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r><w:r><w:t>].</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="3"><w:p w:rsidR="00B20004"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> The point was left open in </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">Example Pty Ltd v Sample </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Council</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1 CLR 1; cf </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Fictional Holdings Ltd v Placeholder</w:t></w:r><w:r><w:t xml:space="preserve"> (2002) 2 CLR 20. See [</w:t></w:r><w:fldSimple w:instr=" REF _Ref100002 \r \h "><w:r><w:t>2</w:t></w:r></w:fldSimple><w:r><w:t>] above.</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="4"><w:p w:rsidR="00B20005"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> The parties did not press this ground</w:t></w:r><w:ins w:id="101" w:author="Reviewer" w:date="2026-01-02T00:00:00Z"><w:r><w:t xml:space="preserve"> on appeal</w:t></w:r></w:ins><w:del w:id="102" w:author="Reviewer" w:date="2026-01-02T00:00:00Z"><w:r><w:delText xml:space="preserve"> at all</w:delText></w:r></w:del><w:r><w:t>.</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="5"><w:p w:rsidR="00B20006"><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:rPr><w:rStyle w:val="FootnoteReference"/></w:rPr><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd v Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1 CLR 1 at 7 [15].</w:t></w:r></w:p></w:footnote>
+      </w:footnotes>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/comments.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml">
+    <pkg:xmlData>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:comment w:id="0" w:author="Reviewer" w:date="2026-01-02T00:00:00Z" w:initials="R"><w:p><w:r><w:t>Synthetic review comment.</w:t></w:r></w:p></w:comment>
+      </w:comments>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+    <pkg:xmlData>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="ParaList"><w:name w:val="ParaList"/><w:basedOn w:val="Normal"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="OrdersCentre"><w:name w:val="Orders Centre"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>
+      </w:styles>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/numbering.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml">
+    <pkg:xmlData>
+      <w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:pStyle w:val="ParaList"/><w:lvlText w:val="%1"/></w:lvl></w:abstractNum>
+        <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+      </w:numbering>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+    <pkg:xmlData>
+      <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:footnotePr><w:footnote w:id="-1"/><w:footnote w:id="0"/></w:footnotePr>
+        <w:rsids><w:rsidRoot w:val="00A10001"/><w:rsid w:val="00A10001"/><w:rsid w:val="00B20001"/></w:rsids>
+      </w:settings>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+    <pkg:xmlData>
+      <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <dc:title>Synthetic reasons fixture</dc:title>
+        <cp:revision>3</cp:revision>
+        <dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created>
+        <dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-02T00:00:00Z</dcterms:modified>
+      </cp:coreProperties>
+    </pkg:xmlData>
+  </pkg:part>
+</pkg:package>

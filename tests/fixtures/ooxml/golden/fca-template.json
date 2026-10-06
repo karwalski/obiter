@@ -1,0 +1,69 @@
+{
+  "parts": [
+    "/_rels/.rels",
+    "/customXml/_rels/item1.xml.rels",
+    "/customXml/item1.xml",
+    "/customXml/itemProps1.xml",
+    "/docProps/core.xml",
+    "/docProps/custom.xml",
+    "/word/_rels/document.xml.rels",
+    "/word/_rels/settings.xml.rels",
+    "/word/document.xml",
+    "/word/numbering.xml",
+    "/word/settings.xml",
+    "/word/styles.xml"
+  ],
+  "styles": [
+    "Normal (Normal)",
+    "ParaNumbering (ParaNumbering) numId=1",
+    "Orders (Orders) numId=2",
+    "quotation2 (Quotation 2)"
+  ],
+  "paragraphStyles": {
+    "": 3,
+    "Orders": 1,
+    "ParaNumbering": 3,
+    "quotation2": 1
+  },
+  "directNumbering": 0,
+  "fields": {
+    "body": [
+      "DOCPROPERTY CaseNumber \\* MERGEFORMAT",
+      "MACROBUTTON NoMacro [Click to insert judge]",
+      "ADDIN EXAMPLE.CITE {\"synthetic\":true}"
+    ],
+    "footnotes": []
+  },
+  "bookmarks": {
+    "body": [],
+    "footnotes": []
+  },
+  "hyperlinkAnchors": [],
+  "danglingAnchors": [],
+  "controls": [
+    {
+      "location": "body",
+      "tag": "MNC",
+      "alias": "Medium Neutral Citation",
+      "binding": "/ns0:Judgment[1]/ns0:MNC[1] @ {11111111-2222-3333-4444-555555555555}"
+    }
+  ],
+  "docVars": [
+    "ExampleJudgeCount",
+    "ExamplePartyCount",
+    "ExampleRegistry"
+  ],
+  "customXml": [
+    "urn:example:synthetic-template-vendor"
+  ],
+  "customProperties": [
+    "CaseNumber = EXA 1 of 2026"
+  ],
+  "revisions": {
+    "insertions": 0,
+    "deletions": 0
+  },
+  "comments": 0,
+  "footnotes": [],
+  "nbsp": 1
+}

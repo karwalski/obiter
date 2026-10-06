@@ -5,8 +5,11 @@ Standard library only. Opens the package as a ZIP; never executes macros, never
 resolves external relationships. Personal identifiers (creator, lastModifiedBy,
 revision authors, comment authors, file paths) are redacted.
 
-Usage: python3 inspect_ooxml.py FILE [FILE ...] [--out DIR]
+Usage: python3 inspect_ooxml.py FILE [FILE ...] [--out DIR] [--text]
 Emits one JSON document per file (stdout, or DIR/<basename>.json).
+Footnote text is left out by default (--no-text, COURT-105), so the JSON can
+be kept without copying document content. --text includes it for private,
+local analysis only; never commit JSON produced with --text.
 Non-OOXML inputs (e.g. RTF) get a minimal record with a format note.
 """
 import hashlib
@@ -443,7 +446,7 @@ def inspect_ooxml(path):
         stats, mnc_courts = note_stats(notes)
         rec["footnote_citation_stats"] = stats
         rec["footnote_mnc_courts"] = mnc_courts
-        rec["_footnotes_text"] = notes  # stripped by --no-text
+        rec["_footnotes_text"] = notes  # kept only with --text
     return rec
 
 
@@ -461,7 +464,7 @@ def inspect_rtf(path):
 
 def main(argv):
     out_dir = None
-    keep_text = True
+    keep_text = False  # COURT-105: --no-text is the default
     files = []
     i = 0
     while i < len(argv):
@@ -471,6 +474,10 @@ def main(argv):
             continue
         if argv[i] == "--no-text":
             keep_text = False
+            i += 1
+            continue
+        if argv[i] == "--text":
+            keep_text = True
             i += 1
             continue
         files.append(argv[i])

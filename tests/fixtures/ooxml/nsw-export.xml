@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<!--
+  COURT-105 synthetic OOXML fixture (Flat OPC; Word opens this file directly).
+  Modelled on the STRUCTURE observed in R03 state §4.1 (NSW Caselaw exports,
+  O-C6, O-C7): a platform template with one style family, no live fields,
+  real footnotes that mix record references, prose and report-first
+  parallel citations, and flattened hyperlinks to _Ref / _Toc bookmarks
+  that no longer exist in the file. Synthetic content only: no court text,
+  no real parties, no personal names.
+-->
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:body>
+          <w:p><w:pPr><w:pStyle w:val="ExportHeading1"/></w:pPr><w:r><w:t>Synthetic export fixture</w:t></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="ExportBody"/></w:pPr><w:r><w:t xml:space="preserve">Contents: </w:t></w:r><w:hyperlink w:anchor="_Toc300001"><w:r><w:t>Background</w:t></w:r></w:hyperlink></w:p>
+          <w:p><w:pPr><w:pStyle w:val="ExportBody"/></w:pPr><w:r><w:t xml:space="preserve">1 The first paragraph states a synthetic proposition.</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:footnoteReference w:id="1"/></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="ExportBody"/></w:pPr><w:r><w:t xml:space="preserve">2 As noted at [</w:t></w:r><w:hyperlink w:anchor="_Ref300001"><w:r><w:t>1</w:t></w:r></w:hyperlink><w:r><w:t xml:space="preserve">] above, and see note </w:t></w:r><w:hyperlink w:anchor="_Ref300002"><w:r><w:t>2</w:t></w:r></w:hyperlink><w:r><w:t>.</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:footnoteReference w:id="2"/></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="ExportBody"/></w:pPr><w:r><w:t xml:space="preserve">3 The evidence is summarised below.</w:t></w:r><w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:footnoteReference w:id="3"/></w:r><w:r><w:rPr><w:vertAlign w:val="superscript"/></w:rPr><w:footnoteReference w:id="4"/></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="ExportQuote"/></w:pPr><w:r><w:t>A synthetic block quotation.</w:t></w:r></w:p>
+          <w:sectPr/>
+        </w:body>
+      </w:document>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/footnotes.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml">
+    <pkg:xmlData>
+      <w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+        <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+        <w:footnote w:id="1"><w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd v Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> (2001) 1 CLR 1; [2001] HCA 1 at [20].</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="2"><w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> T 12.5; Exhibit A at 3.</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="3"><w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> The witness was not cross-examined on this point.</w:t></w:r></w:p></w:footnote>
+        <w:footnote w:id="4"><w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr><w:r><w:footnoteRef/></w:r><w:r><w:t xml:space="preserve"> That approach was not followed in </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Fictional Holdings Ltd v Placeholder</w:t></w:r><w:r><w:t xml:space="preserve"> [2002] NSWCA 2 at [8], for the reasons given there.</w:t></w:r></w:p></w:footnote>
+      </w:footnotes>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+    <pkg:xmlData>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="ExportHeading1"><w:name w:val="Export Heading 1"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="ExportBody"><w:name w:val="Export Body"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="ExportQuote"><w:name w:val="Export Quote"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/></w:style>
+      </w:styles>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+    <pkg:xmlData>
+      <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:footnotePr><w:footnote w:id="-1"/><w:footnote w:id="0"/></w:footnotePr>
+      </w:settings>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+    <pkg:xmlData>
+      <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <cp:revision>1</cp:revision>
+        <dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created>
+        <dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:modified>
+      </cp:coreProperties>
+    </pkg:xmlData>
+  </pkg:part>
+</pkg:package>

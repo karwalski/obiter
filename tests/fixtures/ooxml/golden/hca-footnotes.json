@@ -1,0 +1,122 @@
+{
+  "parts": [
+    "/_rels/.rels",
+    "/docProps/core.xml",
+    "/word/_rels/document.xml.rels",
+    "/word/comments.xml",
+    "/word/document.xml",
+    "/word/footnotes.xml",
+    "/word/numbering.xml",
+    "/word/settings.xml",
+    "/word/styles.xml"
+  ],
+  "styles": [
+    "Normal (Normal)",
+    "Title (Title)",
+    "Heading1 (heading 1)",
+    "ParaList (ParaList) numId=1",
+    "OrdersCentre (Orders Centre)",
+    "FootnoteText (footnote text)",
+    "FootnoteReference (footnote reference)"
+  ],
+  "paragraphStyles": {
+    "Title": 1,
+    "": 1,
+    "Heading1": 1,
+    "ParaList": 4,
+    "OrdersCentre": 1
+  },
+  "directNumbering": 0,
+  "fields": {
+    "body": [
+      "TOC \\o \"1-3\" \\h \\z \\u"
+    ],
+    "footnotes": [
+      "REF _Ref100001 \\r \\h",
+      "REF _Ref100002 \\r \\h"
+    ]
+  },
+  "bookmarks": {
+    "body": [
+      "_Toc200001",
+      "_Ref100001",
+      "_Ref100002"
+    ],
+    "footnotes": []
+  },
+  "hyperlinkAnchors": [
+    "_Toc200001"
+  ],
+  "danglingAnchors": [],
+  "controls": [],
+  "docVars": [],
+  "customXml": [],
+  "customProperties": [],
+  "revisions": {
+    "insertions": 1,
+    "deletions": 1
+  },
+  "comments": 1,
+  "footnotes": [
+    {
+      "id": "1",
+      "text": "Example Pty Ltd v Sample Council (2001) 1 CLR 1 at 5 [12].",
+      "nbsp": 2,
+      "splitItalics": 1,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "2",
+      "text": "See above at [1].",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [
+        "REF"
+      ],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "3",
+      "text": "The point was left open in Example Pty Ltd v Sample Council (2001) 1 CLR 1; cf Fictional Holdings Ltd v Placeholder (2002) 2 CLR 20. See [2] above.",
+      "nbsp": 0,
+      "splitItalics": 1,
+      "managed": false,
+      "fields": [
+        "REF"
+      ],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    },
+    {
+      "id": "4",
+      "text": "The parties did not press this ground on appeal.",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 2,
+      "controls": []
+    },
+    {
+      "id": "5",
+      "text": "Example Pty Ltd v Sample Council (2001) 1 CLR 1 at 7 [15].",
+      "nbsp": 0,
+      "splitItalics": 0,
+      "managed": false,
+      "fields": [],
+      "bookmarks": [],
+      "revisions": 0,
+      "controls": []
+    }
+  ],
+  "nbsp": 2
+}

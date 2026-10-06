@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<!--
+  COURT-105 synthetic OOXML fixture (Flat OPC; Word opens this file directly).
+  Modelled on the STRUCTURE observed in R03 federal §3 (FCA samples F01-F05,
+  O-F2): an institutional template with docVars, DOCPROPERTY cover fields, a
+  MACROBUTTON remnant, style-linked paragraph numbering (ParaNumbering-like),
+  orders and quotation styles, and one content control bound to a vendor
+  custom XML part. Citations sit in the body, neutral citation first
+  (R03 federal §4; FCA-1 cl 2.5). No footnotes. An ADDIN field is added to
+  cover citation-manager preservation (COURT-109); none was observed.
+  Synthetic content only: the docVar names, custom XML namespace and every
+  party name are invented; no court text, no personal names.
+-->
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+        <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" Target="../customXml/item1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:body>
+          <w:p w:rsidR="00C30001"><w:r><w:t xml:space="preserve">Matter: </w:t></w:r><w:fldSimple w:instr=" DOCPROPERTY  CaseNumber  \* MERGEFORMAT "><w:r><w:t>EXA 1 of 2026</w:t></w:r></w:fldSimple></w:p>
+          <w:p w:rsidR="00C30001">
+            <w:r><w:t xml:space="preserve">Citation: </w:t></w:r>
+            <w:sdt>
+              <w:sdtPr><w:alias w:val="Medium Neutral Citation"/><w:tag w:val="MNC"/><w:id w:val="1001"/><w:dataBinding w:prefixMappings="xmlns:ns0='urn:example:synthetic-template-vendor'" w:xpath="/ns0:Judgment[1]/ns0:MNC[1]" w:storeItemID="{11111111-2222-3333-4444-555555555555}"/><w:text/></w:sdtPr>
+              <w:sdtContent><w:r><w:t>[2026] EXA 1</w:t></w:r></w:sdtContent>
+            </w:sdt>
+          </w:p>
+          <w:p w:rsidR="00C30002"><w:fldSimple w:instr=" MACROBUTTON NoMacro [Click to insert judge] "><w:r><w:t>[Click to insert judge]</w:t></w:r></w:fldSimple></w:p>
+          <w:p w:rsidR="00C30002"><w:pPr><w:pStyle w:val="Orders"/></w:pPr><w:r><w:t>Synthetic order one.</w:t></w:r></w:p>
+          <w:p w:rsidR="00C30003"><w:pPr><w:pStyle w:val="ParaNumbering"/></w:pPr><w:r><w:t xml:space="preserve">The applicant relies on </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">Example Pty Ltd v </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> [2014] FCAFC 1; (2014) 1&#160;FCR 1 at [29].</w:t></w:r></w:p>
+          <w:p w:rsidR="00C30003"><w:pPr><w:pStyle w:val="ParaNumbering"/></w:pPr><w:r><w:t xml:space="preserve">The respondent cites a source managed elsewhere: </w:t></w:r><w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ADDIN EXAMPLE.CITE {"synthetic":true} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>(Placeholder 2020)</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r><w:r><w:t>.</w:t></w:r></w:p>
+          <w:p w:rsidR="00C30004"><w:pPr><w:pStyle w:val="quotation2"/></w:pPr><w:r><w:t>A synthetic indented quotation.</w:t></w:r></w:p>
+          <w:p w:rsidR="00C30004"><w:pPr><w:pStyle w:val="ParaNumbering"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t>Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> at [31].</w:t></w:r></w:p>
+          <w:sectPr/>
+        </w:body>
+      </w:document>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+    <pkg:xmlData>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="ParaNumbering"><w:name w:val="ParaNumbering"/><w:basedOn w:val="Normal"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="Orders"><w:name w:val="Orders"/><w:basedOn w:val="Normal"/><w:pPr><w:numPr><w:numId w:val="2"/></w:numPr></w:pPr></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="quotation2"><w:name w:val="Quotation 2"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="1440"/></w:pPr></w:style>
+      </w:styles>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/numbering.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml">
+    <pkg:xmlData>
+      <w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:pStyle w:val="ParaNumbering"/><w:lvlText w:val="%1"/></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="(%2)"/></w:lvl></w:abstractNum>
+        <w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:pStyle w:val="Orders"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>
+        <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+        <w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num>
+      </w:numbering>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+    <pkg:xmlData>
+      <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:attachedTemplate r:id="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+        <w:docVars>
+          <w:docVar w:name="ExampleJudgeCount" w:val="1"/>
+          <w:docVar w:name="ExamplePartyCount" w:val="2"/>
+          <w:docVar w:name="ExampleRegistry" w:val="Synthetic"/>
+        </w:docVars>
+        <w:rsids><w:rsidRoot w:val="00C30001"/><w:rsid w:val="00C30001"/></w:rsids>
+      </w:settings>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/settings.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate" Target="Synthetic.dotx" TargetMode="External"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/item1.xml" pkg:contentType="application/xml">
+    <pkg:xmlData>
+      <ns0:Judgment xmlns:ns0="urn:example:synthetic-template-vendor"><ns0:MNC>[2026] EXA 1</ns0:MNC></ns0:Judgment>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/_rels/item1.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" Target="itemProps1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/itemProps1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.customXmlProperties+xml">
+    <pkg:xmlData>
+      <ds:datastoreItem ds:itemID="{11111111-2222-3333-4444-555555555555}" xmlns:ds="http://schemas.openxmlformats.org/officeDocument/2006/customXml"><ds:schemaRefs><ds:schemaRef ds:uri="urn:example:synthetic-template-vendor"/></ds:schemaRefs></ds:datastoreItem>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+    <pkg:xmlData>
+      <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <dc:title>Synthetic template fixture</dc:title>
+        <cp:revision>7</cp:revision>
+        <dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created>
+        <dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-05T00:00:00Z</dcterms:modified>
+      </cp:coreProperties>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/custom.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.custom-properties+xml">
+    <pkg:xmlData>
+      <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+        <property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="2" name="CaseNumber"><vt:lpwstr>EXA 1 of 2026</vt:lpwstr></property>
+      </Properties>
+    </pkg:xmlData>
+  </pkg:part>
+</pkg:package>

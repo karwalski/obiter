@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Word.Document"?>
+<!--
+  COURT-105 synthetic OOXML fixture (Flat OPC; Word opens this file directly).
+  Modelled on the STRUCTURE observed in R03 state §4.2 (ACT Supreme Court
+  published DOCX, template family A, O-F6): a fresh Word save on the Normal
+  template with coversheet content controls, a house style family (numbered
+  paragraphs, orders, quotations, a coverpage authorities list), third-party
+  document variables, one PAGE field, an empty bibliography Sources part and
+  no footnotes. Citations are in the body, neutral citation first with no
+  report year (R03 state finding 5). Synthetic content only: style, docVar
+  and party names are invented; no court text, no personal names.
+-->
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/_rels/document.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+        <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+        <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" Target="../customXml/item1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData>
+      <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:body>
+          <w:sdt><w:sdtPr><w:alias w:val="Medium Neutral Citation"/><w:id w:val="2001"/><w:text/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>[2026] EXSC 1</w:t></w:r></w:p></w:sdtContent></w:sdt>
+          <w:sdt><w:sdtPr><w:alias w:val="Before:"/><w:id w:val="2002"/><w:text/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>Synthetic Bench</w:t></w:r></w:p></w:sdtContent></w:sdt>
+          <w:p><w:pPr><w:pStyle w:val="CoverpageAuthorities"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd v Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> [2001] HCA 1; 1 CLR 1</w:t></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="OrdersNumbered"/></w:pPr><w:r><w:t>Synthetic order one.</w:t></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="NumPara"/></w:pPr><w:r><w:t xml:space="preserve">The principle in </w:t></w:r><w:r><w:rPr><w:i/></w:rPr><w:t>Example Pty Ltd v Sample Council</w:t></w:r><w:r><w:t xml:space="preserve"> [2001] HCA 1; 1 CLR 1 at [20] applies.</w:t></w:r></w:p>
+          <w:p><w:pPr><w:pStyle w:val="Quote2"/></w:pPr><w:r><w:t>A synthetic quotation.</w:t></w:r></w:p>
+          <w:p><w:r><w:t xml:space="preserve">Page </w:t></w:r><w:fldSimple w:instr=" PAGE "><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p>
+          <w:sectPr/>
+        </w:body>
+      </w:document>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/styles.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml">
+    <pkg:xmlData>
+      <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="NumPara"><w:name w:val="NumPara"/><w:basedOn w:val="Normal"/><w:pPr><w:numPr><w:numId w:val="1"/></w:numPr></w:pPr></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="OrdersNumbered"><w:name w:val="Orders (1)"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="Quote2"><w:name w:val="Quote2"/><w:basedOn w:val="Normal"/></w:style>
+        <w:style w:type="paragraph" w:customStyle="1" w:styleId="CoverpageAuthorities"><w:name w:val="Coverpage Authorities"/><w:basedOn w:val="Normal"/></w:style>
+      </w:styles>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/numbering.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml">
+    <pkg:xmlData>
+      <w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:pStyle w:val="NumPara"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>
+        <w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>
+      </w:numbering>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/settings.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml">
+    <pkg:xmlData>
+      <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:docVars>
+          <w:docVar w:name="example-dictation-docGUID" w:val="{00000000-0000-0000-0000-000000000001}"/>
+          <w:docVar w:name="example-dictation-eventsink" w:val="0"/>
+        </w:docVars>
+        <w:rsids><w:rsidRoot w:val="00D40001"/><w:rsid w:val="00D40001"/></w:rsids>
+      </w:settings>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/item1.xml" pkg:contentType="application/xml">
+    <pkg:xmlData>
+      <b:Sources xmlns:b="http://schemas.openxmlformats.org/officeDocument/2006/bibliography" xmlns="http://schemas.openxmlformats.org/officeDocument/2006/bibliography" SelectedStyle="" StyleName=""/>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/_rels/item1.xml.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" Target="itemProps1.xml"/>
+      </Relationships>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/customXml/itemProps1.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.customXmlProperties+xml">
+    <pkg:xmlData>
+      <ds:datastoreItem ds:itemID="{22222222-3333-4444-5555-666666666666}" xmlns:ds="http://schemas.openxmlformats.org/officeDocument/2006/customXml"><ds:schemaRefs><ds:schemaRef ds:uri="http://schemas.openxmlformats.org/officeDocument/2006/bibliography"/></ds:schemaRefs></ds:datastoreItem>
+    </pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/docProps/core.xml" pkg:contentType="application/vnd.openxmlformats-package.core-properties+xml">
+    <pkg:xmlData>
+      <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <cp:revision>1</cp:revision>
+        <dcterms:created xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:created>
+        <dcterms:modified xsi:type="dcterms:W3CDTF">2026-01-01T00:00:00Z</dcterms:modified>
+      </cp:coreProperties>
+    </pkg:xmlData>
+  </pkg:part>
+</pkg:package>

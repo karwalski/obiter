@@ -1,0 +1,68 @@
+{
+  "parts": [
+    "/_rels/.rels",
+    "/customXml/_rels/item1.xml.rels",
+    "/customXml/item1.xml",
+    "/customXml/itemProps1.xml",
+    "/docProps/core.xml",
+    "/word/_rels/document.xml.rels",
+    "/word/document.xml",
+    "/word/numbering.xml",
+    "/word/settings.xml",
+    "/word/styles.xml"
+  ],
+  "styles": [
+    "Normal (Normal)",
+    "NumPara (NumPara) numId=1",
+    "OrdersNumbered (Orders (1))",
+    "Quote2 (Quote2)",
+    "CoverpageAuthorities (Coverpage Authorities)"
+  ],
+  "paragraphStyles": {
+    "": 3,
+    "CoverpageAuthorities": 1,
+    "OrdersNumbered": 1,
+    "NumPara": 1,
+    "Quote2": 1
+  },
+  "directNumbering": 0,
+  "fields": {
+    "body": [
+      "PAGE"
+    ],
+    "footnotes": []
+  },
+  "bookmarks": {
+    "body": [],
+    "footnotes": []
+  },
+  "hyperlinkAnchors": [],
+  "danglingAnchors": [],
+  "controls": [
+    {
+      "location": "body",
+      "tag": "",
+      "alias": "Medium Neutral Citation"
+    },
+    {
+      "location": "body",
+      "tag": "",
+      "alias": "Before:"
+    }
+  ],
+  "docVars": [
+    "example-dictation-docGUID",
+    "example-dictation-eventsink"
+  ],
+  "customXml": [
+    "http://schemas.openxmlformats.org/officeDocument/2006/bibliography"
+  ],
+  "customProperties": [],
+  "revisions": {
+    "insertions": 0,
+    "deletions": 0
+  },
+  "comments": 0,
+  "footnotes": [],
+  "nbsp": 0
+}
