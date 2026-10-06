@@ -19,6 +19,9 @@ import type { Author } from "../../../../types/citation";
 import type { CitationConfig, LoaType, WritingMode } from "../../../standards/types";
 import { generateTableOfCases, generateTableOfLegislation } from "../../oscola/tables";
 import type { CaseEntry, LegislationEntry } from "../../oscola/tables";
+import { toText } from "./coerce";
+import { formatLegislationVersion, hasLegislationVersion } from "../../../court/legislationVersion";
+import { LOA_READ_PASSAGES_FIELD } from "../../../court/loaLayouts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1921,11 +1924,23 @@ function jbaLegislationGroupRank(citation: Citation): number {
  * @param caseDetails - HCA case metadata for the title page.
  * @returns A JbaResult containing all JBA components and validation warnings.
  */
-export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails): JbaResult {
-  const warnings: LoaValidationWarning[] = [];
-  const deduplicated = deduplicateById(citations);
+/** HCA PD 2 of 2024: the citations in each Joint Book part, sorted. */
+interface JbaPartCitations {
+  principalLegislation: Citation[];
+  otherLegislation: Citation[];
+  clrCases: Citation[];
+  otherCases: Citation[];
+  otherMaterials: Citation[];
+}
 
-  // ── Part A / Part B: legislation, split by the jbaPrincipal flag ──
+/**
+ * Splits deduplicated citations into the five Joint Book parts (HCA PD 2 of
+ * 2024): principal legislation (the `jbaPrincipal` flag), other legislation
+ * (Commonwealth, then States and Territories, then overseas), CLR cases,
+ * cases from other series, and other materials. Shared by `generateJBA` and
+ * the "hca-jba-five-part" List of Authorities layout (COURT-117).
+ */
+function classifyJbaParts(deduplicated: Citation[]): JbaPartCitations {
   const legislation = deduplicated.filter((c) => c.sourceType.startsWith("legislation."));
   const isPrincipal = (c: Citation): boolean =>
     c.data.jbaPrincipal === true || c.data.jbaPrincipal === "true";
@@ -1938,6 +1953,28 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
     if (rankDiff !== 0) return rankDiff;
     return getSortKey(a).localeCompare(getSortKey(b));
   });
+
+  const cases = deduplicated.filter((c) => c.sourceType.startsWith("case."));
+  const isClr = (c: Citation): boolean => toText(c.data.reportSeries) === "CLR";
+  const clrCases = cases.filter(isClr);
+  clrCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+  const otherCases = cases.filter((c) => !isClr(c));
+  otherCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+
+  const otherMaterials = deduplicated.filter(
+    (c) => !c.sourceType.startsWith("case.") && !c.sourceType.startsWith("legislation.")
+  );
+  otherMaterials.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+
+  return { principalLegislation, otherLegislation, clrCases, otherCases, otherMaterials };
+}
+
+export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails): JbaResult {
+  const warnings: LoaValidationWarning[] = [];
+  const deduplicated = deduplicateById(citations);
+  const { principalLegislation, otherLegislation, clrCases, otherCases, otherMaterials } =
+    classifyJbaParts(deduplicated);
+  const cases = deduplicated.filter((c) => c.sourceType.startsWith("case."));
 
   const partA: BibliographySection[] =
     principalLegislation.length > 0
@@ -1959,16 +1996,6 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
       : [];
 
   // ── Part C / Part D: cases, split by CLR report series ──
-  const cases = deduplicated.filter((c) => c.sourceType.startsWith("case."));
-  const clrCases = cases.filter(
-    (c) => ((c.data.reportSeries as string | undefined) ?? "").trim() === "CLR"
-  );
-  clrCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
-  const otherCases = cases.filter(
-    (c) => ((c.data.reportSeries as string | undefined) ?? "").trim() !== "CLR"
-  );
-  otherCases.sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
-
   const partC: BibliographySection[] =
     clrCases.length > 0
       ? [
@@ -1989,10 +2016,6 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
       : [];
 
   // ── Part E: other materials ──
-  const otherMaterials = deduplicated.filter(
-    (c) => !c.sourceType.startsWith("case.") && !c.sourceType.startsWith("legislation.")
-  );
-  otherMaterials.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
   const partE: BibliographySection[] =
     otherMaterials.length > 0
       ? [
@@ -2118,6 +2141,371 @@ export function generateJBA(citations: Citation[], caseDetails: JbaCaseDetails):
   };
 }
 
+// ─── COURT-117: Instrument-backed List of Authorities layouts ──────────────
+
+/** Sections and validation warnings of one court List of Authorities. */
+export interface CourtLoaResult {
+  sections: BibliographySection[];
+  warnings: LoaValidationWarning[];
+}
+
+/**
+ * COURT-118: a legislation entry with its version statement appended in
+ * parentheses, eg "Civil Liability Act 2002 (NSW) (as at 15 December 2019)".
+ * Used only by the layouts that require the version; every other list and
+ * every footnote keeps the AGLC4 r 3.1 form.
+ */
+function formatLegislationEntryWithVersion(
+  citation: Citation,
+  includeNote = false
+): FormattedRun[] {
+  const entry = formatBibliographyEntry(citation);
+  const version = formatLegislationVersion(citation.data, includeNote);
+  return version ? [...entry, { text: ` (${version})` }] : entry;
+}
+
+/** COURT-118: an info warning naming legislation with no recorded version. */
+function missingVersionWarning(
+  legislation: Citation[],
+  level: LoaValidationWarning["level"],
+  instrument: string
+): LoaValidationWarning[] {
+  const missing = legislation.filter((c) => !hasLegislationVersion(c.data)).length;
+  if (missing === 0) return [];
+  return [
+    {
+      level,
+      code: "LOA_LEGISLATION_VERSION_MISSING",
+      message:
+        `${missing} piece(s) of legislation have no version date. ${instrument} ` +
+        "asks the list to state the version of legislation relied on. Add it in " +
+        "Edit Citation (Legislation version).",
+    },
+  ];
+}
+
+/** Bills and explanatory material, kept apart from enacted legislation. */
+function isBillOrExplanatory(citation: Citation): boolean {
+  return (
+    citation.sourceType === "legislation.bill" || citation.sourceType === "legislation.explanatory"
+  );
+}
+
+/** Enacted legislation (statutes, delegated legislation, constitutions). */
+function isEnactedLegislation(citation: Citation): boolean {
+  return citation.sourceType.startsWith("legislation.") && !isBillOrExplanatory(citation);
+}
+
+/**
+ * COURT-117: the High Court Joint Book of Authorities as a list, in the five
+ * parts of HCA PD 2 of 2024 (register HCA-1, O-R3): A principal legislation;
+ * B other legislation (Commonwealth, then States and Territories, then
+ * overseas); C cases in the CLR; D cases in other series; E other materials.
+ * Each legislation entry carries its version where recorded (the
+ * legislation-version column; HCA Form 27A annexure, HCA-2), with the reason
+ * note. Empty parts are left out. The title page, certificate and volume
+ * index of the full book stay with `generateJBA`.
+ *
+ * @param citations - All citations referenced in the document.
+ */
+export function generateHcaJbaListOfAuthorities(citations: Citation[]): CourtLoaResult {
+  const deduplicated = deduplicateById(citations);
+  const parts = classifyJbaParts(deduplicated);
+  const sections: BibliographySection[] = [];
+  const push = (heading: string, entries: FormattedRun[][]): void => {
+    if (entries.length > 0) sections.push({ heading, entries });
+  };
+  push(
+    "Part A — Principal legislation",
+    parts.principalLegislation.map((c) => formatLegislationEntryWithVersion(c, true))
+  );
+  push(
+    "Part B — Other legislation",
+    parts.otherLegislation.map((c) => formatLegislationEntryWithVersion(c, true))
+  );
+  push(
+    "Part C — Cases reported in the Commonwealth Law Reports",
+    parts.clrCases.map((c) => formatLoaCaseEntry(c))
+  );
+  push(
+    "Part D — Cases from other report series",
+    parts.otherCases.map((c) => formatLoaCaseEntry(c))
+  );
+  push(
+    "Part E — Other materials",
+    parts.otherMaterials.map((c) => formatBibliographyEntry(c))
+  );
+
+  const warnings: LoaValidationWarning[] = [];
+  const casesNotForReading = [...parts.clrCases, ...parts.otherCases].filter(
+    (c) => c.loaPart !== "A"
+  ).length;
+  if (casesNotForReading > 0) {
+    warnings.push({
+      level: "info",
+      code: "JBA_CASES_NOT_FOR_READING",
+      message:
+        `${casesNotForReading} case(s) are not marked as authorities counsel will ` +
+        "take the Court to. HCA PD 2 of 2024 asks the joint book to contain only those cases.",
+    });
+  }
+  warnings.push(
+    ...missingVersionWarning(
+      [...parts.principalLegislation, ...parts.otherLegislation],
+      "info",
+      "HCA PD 2 of 2024 (legislation-version column) and Form 27A"
+    )
+  );
+  return { sections, warnings };
+}
+
+/** NSW SC CA 1 cl 37(2)(a): report series in the first group of cases read. */
+const NSWCA_PRINCIPAL_SERIES: ReadonlySet<string> = new Set(["CLR", "NSWLR"]);
+
+/** NSW SC CA 1 cl 37(2)(a): CLR and NSWLR cases read, without leave. */
+export const NSWCA_PRINCIPAL_SERIES_CAP = 10;
+
+/** NSW SC CA 1 cl 37(2)(b): cases read from other reports. */
+export const NSWCA_OTHER_REPORTS_CAP = 5;
+
+/**
+ * COURT-117: the NSW Court of Appeal list of authorities in the four
+ * categories of NSW SC CA 1 cl 37 (8 May 2023; register NSW-2, O-R12):
+ *
+ * 1. legislation, with the date or version to be applied (cl 37(1); the
+ *    version fields of COURT-118);
+ * 2. cases from which passages will be read (`loaPart` "A"), in three
+ *    groups: (a) cases in the CLR and NSWLR, at most 10 without leave;
+ *    (b) up to five cases from other reports; (c) other cases, reported or
+ *    unreported (cl 37(2)). Cases with no report series go in (c);
+ * 3. cases cited but not read (cl 37(3));
+ * 4. other secondary sources, which by the clause's examples include
+ *    explanatory notes and second reading speeches (cl 37(4)).
+ *
+ * The caps are reported as warnings; nothing is moved. Empty categories are
+ * left out. Cl 37 has no key-authority asterisk, so `isKeyAuthority` is not
+ * printed: the read / not read categories carry that information. The party's name and contact details at the foot of the list
+ * (cl 38) are not generated.
+ *
+ * @param citations - All citations referenced in the document.
+ */
+export function generateNswcaFourCategoryListOfAuthorities(citations: Citation[]): CourtLoaResult {
+  const deduplicated = deduplicateById(citations);
+  const byCase = (a: Citation, b: Citation): number =>
+    getLoaSortKey(a).localeCompare(getLoaSortKey(b));
+  const byTitle = (a: Citation, b: Citation): number => getSortKey(a).localeCompare(getSortKey(b));
+
+  const legislation = deduplicated.filter(isEnactedLegislation).sort(byTitle);
+  const cases = deduplicated.filter((c) => c.sourceType.startsWith("case."));
+  const read = cases.filter((c) => c.loaPart === "A");
+  const series = (c: Citation): string => toText(c.data.reportSeries);
+  const readPrincipal = read.filter((c) => NSWCA_PRINCIPAL_SERIES.has(series(c))).sort(byCase);
+  const readOtherReports = read
+    .filter((c) => series(c) !== "" && !NSWCA_PRINCIPAL_SERIES.has(series(c)))
+    .sort(byCase);
+  const readOther = read.filter((c) => series(c) === "").sort(byCase);
+  const notRead = cases.filter((c) => c.loaPart !== "A").sort(byCase);
+  const secondary = deduplicated
+    .filter((c) => !c.sourceType.startsWith("case.") && !isEnactedLegislation(c))
+    .sort(byTitle);
+
+  const sections: BibliographySection[] = [];
+  if (legislation.length > 0) {
+    sections.push({
+      heading: "1 Legislation",
+      entries: legislation.map((c) => formatLegislationEntryWithVersion(c)),
+    });
+  }
+  if (read.length > 0) {
+    sections.push(partHeadingSection("2 Cases from which passages will be read"));
+    const groups: Array<[string, Citation[]]> = [
+      ["(a) Cases reported in the CLR and NSWLR", readPrincipal],
+      ["(b) Cases from other reports", readOtherReports],
+      ["(c) Other cases", readOther],
+    ];
+    for (const [heading, group] of groups) {
+      if (group.length > 0) {
+        sections.push({ heading, entries: group.map((c) => formatLoaCaseEntry(c)) });
+      }
+    }
+  }
+  if (notRead.length > 0) {
+    sections.push({
+      heading: "3 Cases cited but not read",
+      entries: notRead.map((c) => formatLoaCaseEntry(c)),
+    });
+  }
+  if (secondary.length > 0) {
+    sections.push({
+      heading: "4 Secondary sources",
+      entries: secondary.map((c) => formatBibliographyEntry(c)),
+    });
+  }
+
+  const warnings: LoaValidationWarning[] = [
+    ...missingVersionWarning(legislation, "warning", "NSW SC CA 1 cl 37(1)"),
+  ];
+  if (readPrincipal.length > NSWCA_PRINCIPAL_SERIES_CAP) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_NSWCA_PRINCIPAL_CAP",
+      message:
+        `${readPrincipal.length} CLR and NSWLR cases are marked to be read. NSW SC CA 1 ` +
+        `cl 37(2)(a) allows ${NSWCA_PRINCIPAL_SERIES_CAP} without leave.`,
+    });
+  }
+  if (readOtherReports.length > NSWCA_OTHER_REPORTS_CAP) {
+    warnings.push({
+      level: "warning",
+      code: "LOA_NSWCA_OTHER_REPORTS_CAP",
+      message:
+        `${readOtherReports.length} cases from other reports are marked to be read. ` +
+        `NSW SC CA 1 cl 37(2)(b) allows up to ${NSWCA_OTHER_REPORTS_CAP}.`,
+    });
+  }
+  return { sections, warnings };
+}
+
+/**
+ * COURT-117: the Federal Court list in the three sections of an eBook of
+ * authorities (FCA GPN-eBOOKS cl 7.2, from 11 Jun 2026; register FCA-2,
+ * O-R1): authorities, legislation, and bills and explanatory material, each
+ * alphabetical. GPN-AUTH (7 May 2025) has no Part A / Part B, so `loaPart`
+ * is not used. Legislation states the version in force where recorded
+ * (GPN-eBOOKS cl 7.4; GPN-AUTH cl 2.3). Cases and the other cited
+ * materials (texts, articles) are listed together under "Authorities".
+ * Neither instrument marks key authorities, so `isKeyAuthority` is not
+ * printed.
+ *
+ * @param citations - All citations referenced in the document.
+ */
+export function generateFcaEbookListOfAuthorities(citations: Citation[]): CourtLoaResult {
+  const deduplicated = deduplicateById(citations);
+  const key = (c: Citation): string =>
+    c.sourceType.startsWith("case.") ? getLoaSortKey(c) : getSortKey(c);
+  const byKey = (a: Citation, b: Citation): number => key(a).localeCompare(key(b));
+
+  const authorities = deduplicated
+    .filter((c) => !c.sourceType.startsWith("legislation."))
+    .sort(byKey);
+  const legislation = deduplicated.filter(isEnactedLegislation).sort(byKey);
+  const extrinsic = deduplicated.filter(isBillOrExplanatory).sort(byKey);
+
+  const sections: BibliographySection[] = [];
+  if (authorities.length > 0) {
+    sections.push({
+      heading: "Authorities",
+      entries: authorities.map((c) =>
+        c.sourceType.startsWith("case.") ? formatLoaCaseEntry(c) : formatBibliographyEntry(c)
+      ),
+    });
+  }
+  if (legislation.length > 0) {
+    sections.push({
+      heading: "Legislation",
+      entries: legislation.map((c) => formatLegislationEntryWithVersion(c)),
+    });
+  }
+  if (extrinsic.length > 0) {
+    sections.push({
+      heading: "Bills and explanatory material",
+      entries: extrinsic.map((c) => formatBibliographyEntry(c)),
+    });
+  }
+  return {
+    sections,
+    warnings: missingVersionWarning(legislation, "info", "FCA GPN-eBOOKS cl 7.4"),
+  };
+}
+
+/** WA PD 2.1 cl 13: the statement when counsel will not read from any case. */
+export const WA_NO_CASES_READ_STATEMENT =
+  "Counsel do not intend to read from any of the cases listed.";
+
+/**
+ * COURT-117: the Western Australian list of authorities (WA SC Consolidated
+ * Practice Directions PD 2.1 cl 11–13, updated 23 Sep 2026; register WA-1):
+ * cases in alphabetical order, separate from legislation in alphabetical
+ * order by short title (cl 12); cases counsel intends to read from marked
+ * with an asterisk, followed by the pages or paragraphs to be read where
+ * recorded (cl 13; `loaPart` "A" or `isKeyAuthority`, and the
+ * `loaReadPassages` field); and a closing statement when no case will be
+ * read (cl 13). The statement is a section with no heading.
+ *
+ * @param citations - All citations referenced in the document.
+ */
+export function generateWaOutlineListOfAuthorities(citations: Citation[]): CourtLoaResult {
+  const deduplicated = deduplicateById(citations);
+  const cases = deduplicated
+    .filter((c) => c.sourceType.startsWith("case."))
+    .sort((a, b) => getLoaSortKey(a).localeCompare(getLoaSortKey(b)));
+  const legislation = deduplicated
+    .filter((c) => c.sourceType.startsWith("legislation."))
+    .sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+  const isRead = (c: Citation): boolean => c.loaPart === "A" || c.isKeyAuthority === true;
+
+  const sections: BibliographySection[] = [];
+  if (cases.length > 0) {
+    sections.push({
+      heading: "Cases",
+      entries: cases.map((c) => {
+        const entry = formatLoaCaseEntry(c);
+        if (!isRead(c)) return entry;
+        const passages = toText(c.data[LOA_READ_PASSAGES_FIELD]);
+        return [
+          { text: "* " },
+          ...entry,
+          ...(passages ? [{ text: ` (to be read: ${passages})` }] : []),
+        ];
+      }),
+    });
+  }
+  if (legislation.length > 0) {
+    sections.push({
+      heading: "Legislation",
+      entries: legislation.map((c) => formatBibliographyEntry(c)),
+    });
+  }
+  if (cases.length > 0 && !cases.some(isRead)) {
+    sections.push({ heading: "", entries: [[{ text: WA_NO_CASES_READ_STATEMENT }]] });
+  }
+  return { sections, warnings: [] };
+}
+
+/**
+ * COURT-116 / COURT-117: the List of Authorities for a court layout, with the
+ * layout's validation warnings (shown in the List of Authorities view).
+ * "off" gives nothing; "simple" gives the flat list with no warnings.
+ *
+ * @param citations - All citations referenced in the document.
+ * @param loaType - The document's List of Authorities layout.
+ * @param includeSecondary - Part A / Part B only: add secondary sources to Part B.
+ */
+export function generateCourtListOfAuthorities(
+  citations: Citation[],
+  loaType: LoaType,
+  includeSecondary = false
+): CourtLoaResult {
+  switch (loaType) {
+    case "off":
+      return { sections: [], warnings: [] };
+    case "simple":
+      return { sections: generateListOfAuthorities(citations), warnings: [] };
+    case "hca-jba-five-part":
+      return generateHcaJbaListOfAuthorities(citations);
+    case "nswca-four-category":
+      return generateNswcaFourCategoryListOfAuthorities(citations);
+    case "fca-ebook-sections":
+      return generateFcaEbookListOfAuthorities(citations);
+    case "wa-outline-asterisk":
+      return generateWaOutlineListOfAuthorities(citations);
+    default: {
+      const result = combineCourtLoaSections(citations, loaType, includeSecondary);
+      return { sections: result.sections, warnings: result.warnings };
+    }
+  }
+}
+
 // ─── LOA-005: LOA Export Formats ─────────────────────────────────────────────
 
 /**
@@ -2206,6 +2594,28 @@ export function generateLoaWithOptions(
     return result;
   }
 
+  // COURT-117 instrument-backed layouts.
+  if (
+    options.loaType === "hca-jba-five-part" ||
+    options.loaType === "nswca-four-category" ||
+    options.loaType === "fca-ebook-sections" ||
+    options.loaType === "wa-outline-asterisk"
+  ) {
+    const layout = generateCourtListOfAuthorities(citations, options.loaType);
+    const result: LoaResult = {
+      sections: layout.sections,
+      exportTarget: options.exportTarget,
+      warnings: layout.warnings,
+    };
+    if (options.exportTarget === "pdf") {
+      result.pdfExportNote =
+        "Use Word's built-in Save As PDF to produce a text-searchable PDF " +
+        "suitable for eLodgment filing. Hyperlinks in LOA entries will be " +
+        "preserved in the PDF output.";
+    }
+    return result;
+  }
+
   // Multi-part modes (part-ab, part-abc, two-part-read, three-part-tas):
   // the combined sections carry the variant's part headings.
   const variantResult = combineCourtLoaSections(
@@ -2245,8 +2655,10 @@ export function generateLoaWithOptions(
  * @param writingMode - Optional writing mode; "court" generates a List of Authorities.
  * @param loaType - Optional LoA format for court mode: "off" (no LoA), "simple"
  *   (flat list), "part-ab" (Part A / Part B split), "part-abc" (Vic SC PN CA 3),
- *   "two-part-read" (SA UCR 2020 r 217.8 / FCFCOA FAM-APPEALS) or
- *   "three-part-tas" (Tas SC PD 3 of 2022). Defaults to "simple".
+ *   "two-part-read" (SA UCR 2020 r 217.8 / FCFCOA FAM-APPEALS),
+ *   "three-part-tas" (Tas SC PD 3 of 2022), or a COURT-117 layout
+ *   ("hca-jba-five-part", "nswca-four-category", "fca-ebook-sections",
+ *   "wa-outline-asterisk"). Defaults to "simple".
  * @param config - STD-018: the document's citation config, passed to the
  *   OSCOLA and NZLSG generators so entries render in that standard.
  * @returns An array of BibliographySection objects appropriate to the standard/mode.
@@ -2274,6 +2686,16 @@ export function generateBibliographyForStandard(
       effectiveLoaType === "three-part-tas"
     ) {
       return combineCourtLoaSections(citations, effectiveLoaType).sections;
+    }
+
+    // COURT-117: instrument-backed layouts.
+    if (
+      effectiveLoaType === "hca-jba-five-part" ||
+      effectiveLoaType === "nswca-four-category" ||
+      effectiveLoaType === "fca-ebook-sections" ||
+      effectiveLoaType === "wa-outline-asterisk"
+    ) {
+      return generateCourtListOfAuthorities(citations, effectiveLoaType).sections;
     }
 
     // Default: "simple" — flat list of authorities

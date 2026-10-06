@@ -54,6 +54,7 @@
 
 import type {
   CrossReferenceSuppressionMode,
+  LoaType as StandardsLoaType,
   PinpointConnector,
   SubsequentForm,
 } from "../standards/types";
@@ -96,9 +97,9 @@ export type { SubsequentForm };
  * - "off" — no LOA generated
  * - "simple" — flat Cases/Legislation list
  * - "part-ab" — Part A (read from) / Part B (referred to) split
- *   (QCA: Qld SC PD 3 of 2013). The HCA and NSWCA presets still use it
- *   pending their instrument layouts (COURT-117); FCA GPN-AUTH dropped
- *   Part A / Part B in its 7 May 2025 reissue (register O-R1).
+ *   (QCA: Qld SC PD 3 of 2013). The HCA and NSWCA presets moved to their
+ *   instrument layouts in COURT-117; FCA GPN-AUTH dropped Part A / Part B
+ *   in its 7 May 2025 reissue (register O-R1).
  * - "part-abc" — Part A (read from at hearing) / Part B (referred to,
  *   not read from) / Part C (textbooks, articles, extrinsic materials),
  *   with "None" stated under unused parts (Vic SC PN CA 3, reissued
@@ -109,14 +110,13 @@ export type { SubsequentForm };
  * - "three-part-tas" — Part 1 authorities counsel intends to cite /
  *   Part 2 authorities that might be referred to but not cited /
  *   Part 3 legislation with sections (Tas SC PD 3 of 2022)
+ * - COURT-117: "hca-jba-five-part" (HCA PD 2 of 2024),
+ *   "nswca-four-category" (NSW SC CA 1 cl 37), "fca-ebook-sections"
+ *   (FCA GPN-eBOOKS cl 7.2) and "wa-outline-asterisk" (WA PD 2.1
+ *   cl 11–13). The type is shared with the engine config
+ *   (standards/types.ts), which documents each value.
  */
-export type LoaType =
-  | "off"
-  | "simple"
-  | "part-ab"
-  | "part-abc"
-  | "two-part-read"
-  | "three-part-tas";
+export type LoaType = StandardsLoaType;
 
 /**
  * Parallel citation emission order for reported cases in court mode.
@@ -316,7 +316,9 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     authorisedReportHierarchy: ["CLR"],
     unreportedGate: "off",
     ibidSuppression: "on",
-    loaType: "part-ab",
+    // COURT-117: HCA PD 2 of 2024 Joint Book of Authorities, Parts A to E,
+    // with the legislation version (register HCA-1, HCA-2, O-R3).
+    loaType: "hca-jba-five-part",
   },
   // FCA GPN-AUTH (reissued 7 May 2025, replacing Dec 2024): the
   // authorised citation need not be given when not reasonably
@@ -327,8 +329,10 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // COURT-111: cl 2.5 gives the MNC first ("D'Arcy v Myriad Genetics Inc
   // [2014] FCAFC 115; (2014) 224 FCR 479"), so the order is MNC first
   // (DECISION-043 item 3; register FCA-1, O-R2). The 2025 reissue has no
-  // Part A / Part B list (O-R1): a simple list until COURT-117 adds the
-  // GPN-eBOOKS cl 7.2 layout.
+  // Part A / Part B list (O-R1).
+  // COURT-117: the GPN-eBOOKS cl 7.2 sections (authorities, legislation,
+  // bills and explanatory material), with the legislation version in force
+  // (cl 7.4; register FCA-2).
   FCA: {
     label: "Federal Court of Australia",
     group: "Federal",
@@ -337,7 +341,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     authorisedReportHierarchy: ["FCR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
-    loaType: "simple",
+    loaType: "fca-ebook-sections",
     parallelOrder: "mnc-first",
     // COURT-112: GPN-AUTH cl 2.6 (7 May 2025; register FCA-1, O-R2)
     // shows pinpoints as "at [29]" and "at 481". Provenance: official
@@ -372,6 +376,8 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // List of Authorities derives from the Court of Appeal note SC CA 1, not
   // SC Gen 20; loaType stays "part-ab" (the attribution is corrected in the
   // court reference guide and practice-direction links).
+  // COURT-117: SC CA 1 cl 37 sets four categories, not Part A / Part B
+  // (register NSW-2, O-R12): "nswca-four-category".
   NSWCA: {
     label: "NSW Court of Appeal",
     group: "New South Wales",
@@ -380,7 +386,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
     unreportedGate: "warn",
     ibidSuppression: "on",
-    loaType: "part-ab",
+    loaType: "nswca-four-category",
   },
   // COURT-119: NSW SC Practice Note SC CCA 1 (22 Jul 2021; register NSW-3,
   // O-R12): a single list of only the authorities the Court is expected to
@@ -521,6 +527,8 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
   // WASCA 14; (1999) 18 WAR 23, 34 [15]". PD 2.1: LOA lists all and
   // only authorities in the outline; cases to be read are marked with
   // an asterisk (isKeyAuthority) with pages/paras to be read.
+  // COURT-117: "wa-outline-asterisk" models PD 2.1 cl 11–13, including the
+  // statement required when no case will be read.
   WASC: {
     label: "WA Supreme Court",
     group: "Other States/Territories",
@@ -529,7 +537,7 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     authorisedReportHierarchy: ["WAR", "CLR", "ALR"],
     unreportedGate: "off",
     ibidSuppression: "on",
-    loaType: "simple",
+    loaType: "wa-outline-asterisk",
     parallelOrder: "mnc-first",
     // COURT-113: PD 2.1 cl 14, later references by case name only
     // (register WA-1, O-R9).

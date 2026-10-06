@@ -110,11 +110,17 @@ const V1 = "2026-10-06";
  */
 const V2 = "2026-10-06.2";
 
-/**
- * COURT-113: WA later references by case name (PD 2.1 cl 14). A preset at
- * this version changed a value from V1 or V2.
+/*
+ * "2026-10-07" (COURT-113: WA later references by case name, PD 2.1 cl 14)
+ * was WASC's version until COURT-117 moved it on; no preset is at it now.
  */
-const V3 = "2026-10-07";
+
+/**
+ * COURT-117: List of Authorities layouts backed by the instrument (HCA, FCA,
+ * NSWCA, WASC). A preset at this version changed its `loaType` from V1, V2
+ * or V3; existing documents are offered the change (DECISION-043 item 4).
+ */
+const V4 = "2026-10-07.2";
 
 /**
  * The instruments and decisions preset values cite. Titles, dates and URLs
@@ -423,7 +429,7 @@ function allNotChecked(): Record<CourtToggleKey, FieldProvenance> {
 export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProvenance> = {
   // ── Federal ─────────────────────────────────────────────────────────────
   HCA: {
-    version: V1,
+    version: V4,
     checkedAgainst: ["HCA-1", "HCA-2"],
     reviewed: REGISTER_CHECKED,
     fields: {
@@ -433,18 +439,20 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
         ["HCA-1", "HCA-2"]
       ),
       authorisedReportHierarchy: official(["HCA-1", "HCA-2"], "JBA Part C; Form 27A Part IV"),
-      loaType: unsourced(
-        "PD 2 of 2024 requires a five-part Joint Book of Authorities (Parts A to E), not Part A / Part B (register O-R3; COURT-117).",
-        ["HCA-1"]
+      loaType: official(
+        ["HCA-1", "HCA-2"],
+        "PD 2 of 2024; Form 27A annexure",
+        "Joint Book of Authorities Parts A to E (principal legislation; other legislation; CLR cases; other report series; other materials), with the legislation version (register O-R3, O-R15)."
       ),
     },
     exceptions: [
-      "Joint Book of Authorities Parts A to E and the legislation-version column are not modelled (COURT-117, COURT-118).",
+      "The list gives the Joint Book parts and the legislation version; the volume index, page numbers and counsel's certificate are not generated.",
+      "Principal legislation (Part A) is chosen by the user in Edit Citation; it cannot be inferred.",
     ],
   },
   FCA: {
-    version: V2,
-    checkedAgainst: ["FCA-1"],
+    version: V4,
+    checkedAgainst: ["FCA-1", "FCA-2"],
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
@@ -457,17 +465,15 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       pinpointStyle: official(["FCA-1"], "cl 2.4, 2.6"),
       pinpointConnector: official(["FCA-1"], "cl 2.6", "Instrument example: “at [29]”, “at 481”."),
       authorisedReportHierarchy: official(["FCA-1"], "Annexure"),
-      loaType: {
-        sourceIds: ["FCA-1", "FCA-2"],
-        clause: "GPN-eBOOKS cl 7.2",
-        kind: "preference",
-        checked: REGISTER_CHECKED,
-        note: "GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1); a simple list until the GPN-eBOOKS layout (authorities, legislation, bills) is added (COURT-117).",
-      },
+      loaType: official(
+        ["FCA-2", "FCA-1"],
+        "GPN-eBOOKS cl 7.2, 7.4",
+        "Authorities, legislation, and bills and explanatory material, each alphabetical; legislation states the version in force. GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1)."
+      ),
     },
     exceptions: [
       "GPN-AUTH not re-checked live since the 5 Dec 2025 capture (open question 10).",
-      "GPN-eBOOKS eBook layout not modelled (COURT-117).",
+      "GPN-eBOOKS was read from a 29 Sep 2026 capture; the eBook bookmarks and hyperlinks are not generated.",
     ],
   },
   FCFCOA: {
@@ -495,7 +501,7 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
 
   // ── New South Wales ─────────────────────────────────────────────────────
   NSWCA: {
-    version: V1,
+    version: V4,
     checkedAgainst: ["NSW-1", "NSW-2"],
     reviewed: REGISTER_CHECKED,
     fields: {
@@ -508,15 +514,16 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       parallelOrder: REPORT_FIRST_NSW,
       pinpointStyle: official(["NSW-1"], "cl 4"),
       authorisedReportHierarchy: official(["NSW-1"], "cl 3"),
-      loaType: unsourced(
-        "SC CA 1 cl 37 sets four categories (legislation with version date; cases read; cited not read; secondary), not Part A / Part B (register O-R12; COURT-117).",
+      loaType: official(
         ["NSW-2"],
-        "cl 37"
+        "cl 37",
+        "Four categories: legislation with its version date; cases from which passages will be read (CLR and NSWLR, at most 10 without leave; up to five from other reports; other cases); cases cited but not read; secondary sources (register O-R12)."
       ),
     },
     exceptions: [
       "Report-plus-paragraph pinpoint form is open (DECISION-043 item 5).",
       "Record locators (SC CA 1 cl 31) are not modelled (COURT-129).",
+      "The party's name and contact details at the foot of the list (SC CA 1 cl 38) are not generated.",
     ],
   },
   NSWCCA: {
@@ -618,7 +625,7 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       loaType: official(["VIC-2"], "cl 14.1–14.2"),
     },
     exceptions: [
-      "“None” under an empty part and the amended-list mark-up (cl 14.2, 14.6) are not modelled.",
+      "The amended-list mark-up and clean copy (cl 14.6) are not modelled; “None” under an empty part (cl 14.2) is.",
       "Record-locator wording in the 2026 reissue not yet re-read (open question 9).",
     ],
   },
@@ -703,7 +710,7 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
 
   // ── Other States/Territories ────────────────────────────────────────────
   WASC: {
-    version: V3,
+    version: V4,
     checkedAgainst: ["WA-1"],
     reviewed: REGISTER_CHECKED,
     fields: {
@@ -724,7 +731,7 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       loaType: official(
         ["WA-1"],
         "PD 2.1 cl 11–13",
-        "A simple list approximates the combined outline; cases to be read are marked as key authorities."
+        "Cases and legislation listed separately and alphabetically; cases counsel intends to read from marked with an asterisk and the pages or paragraphs to be read; a statement when no case will be read."
       ),
     },
     exceptions: [

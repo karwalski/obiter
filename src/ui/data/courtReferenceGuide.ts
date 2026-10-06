@@ -65,6 +65,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     ],
     loaRequirements: [
       "Joint Book of Authorities (JBA) in five parts: Part A principal legislation (the whole Act unless voluminous); Part B other legislation (extracts, alphabetical, grouped Commonwealth, then States and Territories, then overseas); Part C cases reported in the CLR (alphabetical); Part D cases from other report series; Part E other materials.",
+      // COURT-117 / COURT-118: the "hca-jba-five-part" layout.
+      "Obiter lists authorities in these five parts for new documents, with the legislation version (Form 27A annexure). Mark principal legislation and record the version in Edit Citation.",
       "The JBA contains only cases counsel will take the Court to.",
       "Counsel's certificate is the first document in the book.",
       "Full index cross-referenced to the paragraphs of the parties' submissions.",
@@ -105,8 +107,10 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     loaRequirements: [
       // COURT-111: the 7 May 2025 reissue removed the Part A / Part B list
       // (register O-R1); GPN-eBOOKS cl 7.2 splits the eBook (FCA-2).
-      "GPN-AUTH (reissued 7 May 2025) no longer divides the list into Part A and Part B. Obiter produces a simple list for new documents.",
-      "The eBook of authorities is in three sections, each alphabetical: authorities; legislation; bills and explanatory material (GPN-eBOOKS cl 7.2).",
+      "GPN-AUTH (reissued 7 May 2025) no longer divides the list into Part A and Part B.",
+      // COURT-117: the "fca-ebook-sections" layout.
+      "The eBook of authorities is in three sections, each alphabetical: authorities; legislation; bills and explanatory material (GPN-eBOOKS cl 7.2). Obiter uses these sections for new documents; existing documents keep their layout until the court profile is updated.",
+      "Legislation states the version in force (GPN-eBOOKS cl 7.4). Record it in Edit Citation under Legislation version.",
       "LOA must be filed as a text-searchable (OCR) PDF via eLodgment.",
     ],
     filingProcedures: [
@@ -166,8 +170,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     loaRequirements: [
       // CRIT-004 §4 sign-off: the Part A/B List of Authorities derives from
       // the Court of Appeal note SC CA 1, not SC Gen 20.
-      "Part A / Part B LOA required (SC CA 1).",
-      "Key authority marker available (up to 5 cases marked with asterisk).",
+      // COURT-117: SC CA 1 cl 37 (register NSW-2, O-R12).
+      "The list has four categories (SC CA 1 cl 37): legislation with the date or version to be applied; cases from which passages will be read (CLR and NSWLR, at most 10 without leave; up to five from other reports; other cases); cases cited but not read; secondary sources. Obiter uses these categories for new documents; existing documents keep their layout until the court profile is updated.",
       "Secondary sources requiring hardcopy lodgement should be separately identified.",
     ],
     filingProcedures: [
@@ -410,7 +414,7 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
     loaRequirements: [
       "The list contains all and only the authorities cited in the written outline (PD 2.1).",
       "Cases from which passages will be read are marked with an asterisk, together with the pages or paragraphs to be read; otherwise an express statement that no cases will be read from.",
-      "Mark authorities to be read using the key authority marker; they render with an asterisk prefix.",
+      "Mark cases to be read in Edit Citation or the Library; they render with an asterisk and any pages or paragraphs recorded. When none is marked, Obiter adds the statement that no cases will be read from.",
     ],
     filingProcedures: [
       "LOA filed via the WA eLodgment system.",

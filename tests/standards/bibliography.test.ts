@@ -258,12 +258,24 @@ const COURT_SET: Citation[] = [
 const PART_A_HEADING = "Part A — Authorities from which passages are to be read";
 const PART_B_HEADING = "Part B — Authorities to which reference may be made";
 
+/**
+ * COURT-117: HCA and NSWCA presets now give their instrument layouts, and
+ * WASC its PD 2.1 list. The Part A / B and simple-list tests below pin those
+ * layouts as an existing document frozen before COURT-117 still renders them
+ * (DECISION-043 item 4).
+ */
+const FROZEN_PART_AB = { loaType: "part-ab" };
+const FROZEN_SIMPLE = { loaType: "simple" };
+
 describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
   test("HCA (part-ab): Part A holds the authorities marked for reading, Part B the rest, cases before legislation", () => {
     const cited = COURT_SET.map((c) =>
       c.id === maboReported.id ? { ...c, loaPart: "A" as const } : c
     );
-    const sections = renderBibliography(cited, "aglc4", { preset: "HCA" });
+    const sections = renderBibliography(cited, "aglc4", {
+      preset: "HCA",
+      overrides: FROZEN_PART_AB,
+    });
     const all = headings(sections);
     expect(all).toEqual([PART_A_HEADING, "Cases", PART_B_HEADING, "Cases", "Legislation"]);
     const partACases = sections[1].entries.map(runsToPlainText);
@@ -278,7 +290,10 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
   });
 
   test("HCA (part-ab): secondary sources are excluded from both parts", () => {
-    const sections = renderBibliography(COURT_SET, "aglc4", { preset: "HCA" });
+    const sections = renderBibliography(COURT_SET, "aglc4", {
+      preset: "HCA",
+      overrides: FROZEN_PART_AB,
+    });
     const texts = bibliographyTexts(sections);
     expect(texts.some((t) => t.includes("Luntz"))).toBe(false);
     expect(texts.some((t) => t.includes("Due Deference"))).toBe(false);
@@ -288,7 +303,10 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
     const cited = COURT_SET.map((c) =>
       c.id === maboReported.id ? { ...c, loaPart: "A" as const, isKeyAuthority: true } : c
     );
-    const sections = renderBibliography(cited, "aglc4", { preset: "NSWCA" });
+    const sections = renderBibliography(cited, "aglc4", {
+      preset: "NSWCA",
+      overrides: FROZEN_PART_AB,
+    });
     expect(headings(sections)[0]).toBe(PART_A_HEADING);
     const partACases = sections[1].entries.map(runsToPlainText);
     expect(partACases).toEqual(["* Mabo v Queensland (1992) 175 CLR 1; [1992] HCA 23"]);
@@ -297,12 +315,18 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
   });
 
   test("NSWCA (part-ab): without a key-authority flag no entry carries the asterisk", () => {
-    const sections = renderBibliography(COURT_SET, "aglc4", { preset: "NSWCA" });
+    const sections = renderBibliography(COURT_SET, "aglc4", {
+      preset: "NSWCA",
+      overrides: FROZEN_PART_AB,
+    });
     expect(bibliographyTexts(sections).every((t) => !t.startsWith("* "))).toBe(true);
   });
 
   test("WASC (simple): a flat Cases then Legislation list, MNC first in the parallel citation (PD 8.2.2)", () => {
-    const sections = renderBibliography(COURT_SET, "aglc4", { preset: "WASC" });
+    const sections = renderBibliography(COURT_SET, "aglc4", {
+      preset: "WASC",
+      overrides: FROZEN_SIMPLE,
+    });
     expect(headings(sections)).toEqual(["Cases", "Legislation"]);
     const cases = entriesOf(sections, "Cases");
     expect(cases[0].startsWith("Brooker")).toBe(true);
@@ -314,7 +338,10 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
 
   test("WASC (simple): the key-authority asterisk is honoured (WA PD 2.1)", () => {
     const cited = COURT_SET.map((c) => (c.id === ukCorr.id ? { ...c, isKeyAuthority: true } : c));
-    const sections = renderBibliography(cited, "aglc4", { preset: "WASC" });
+    const sections = renderBibliography(cited, "aglc4", {
+      preset: "WASC",
+      overrides: FROZEN_SIMPLE,
+    });
     const cases = entriesOf(sections, "Cases");
     expect(cases.some((t) => t.startsWith("* Corr v IBC Vehicles Ltd"))).toBe(true);
     expect(cases.filter((t) => t.startsWith("* ")).length).toBe(1);
@@ -420,7 +447,10 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
       exportTarget: "pdf",
     };
     const direct = generateLoaWithOptions(COURT_SET, options);
-    const viaConfig = renderBibliography(COURT_SET, "aglc4", { preset: "WASC" });
+    const viaConfig = renderBibliography(COURT_SET, "aglc4", {
+      preset: "WASC",
+      overrides: FROZEN_SIMPLE,
+    });
     expect(bibliographyTexts(direct.sections)).toEqual(bibliographyTexts(viaConfig));
     expect(direct.pdfExportNote).toContain("Save As PDF");
   });

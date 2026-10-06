@@ -41,6 +41,11 @@ const LOA_TYPES = new Set([
   "part-abc",
   "two-part-read",
   "three-part-tas",
+  // COURT-117 instrument layouts (HCA-1, NSW-2 cl 37, FCA-2 cl 7.2, WA-1 PD 2.1).
+  "hca-jba-five-part",
+  "nswca-four-category",
+  "fca-ebook-sections",
+  "wa-outline-asterisk",
 ]);
 
 const JURISDICTIONS = Object.keys(COURT_PRESETS) as CourtJurisdiction[];
@@ -179,14 +184,15 @@ describe("CRIT-004: court-practice validation matrix", () => {
   // CRIT-004 (SC Gen 20; PD 1 of 2024). The Part A/B LOA is unchanged
   // (NSW Part A/B is re-sourced to SC CA 1, but loaType stays "part-ab").
   // COURT-111 applied the same wording to QLD_DISTRICT_MAG (QLD-3 cl 3).
+  // COURT-117 moved NSWCA to the SC CA 1 cl 37 four categories (NSW-2, O-R12).
   describe("A5-CM-2: softened parallelCitations presets", () => {
     test.each([
-      ["NSWCA", "part-ab"],
+      ["NSWCA", "nswca-four-category"],
       ["NSWSC", "simple"],
       ["QCA", "part-ab"],
       ["QSC", "simple"],
     ] as [CourtJurisdiction, string][])(
-      "%s parallelCitations is 'preferred' (loaType %s unchanged)",
+      "%s parallelCitations is 'preferred' (loaType %s)",
       (jurisdiction, expectedLoa) => {
         expect(COURT_PRESETS[jurisdiction].parallelCitations).toBe("preferred");
         expect(COURT_PRESETS[jurisdiction].loaType).toBe(expectedLoa);

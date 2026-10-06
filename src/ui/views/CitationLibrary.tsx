@@ -44,6 +44,7 @@ import UpdateFromSourceDialog from "../components/UpdateFromSourceDialog";
 import { canUpdateFromSource } from "../../api/updateFromSource";
 import type { SourceUpdateResult } from "../../api/updateFromSource";
 import { writeErrorMessage } from "../../word/documentAccess";
+import { getLoaCitationControls, isLoaPartA } from "../../engine/court/loaLayouts";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -844,6 +845,40 @@ export default function CitationLibrary(): JSX.Element {
       : getStandardConfig(standardId);
   }, [standardId]);
 
+  // COURT-116: the document's List of Authorities layout (court mode only).
+  // Layouts that place authorities by part get a "to be read" switch on
+  // each card, so Part A can be set without opening every citation.
+  const loaType = useMemo(() => {
+    const config = courtConfigForPreview();
+    return config.writingMode === "court" ? config.loaType : undefined;
+    // `citations` is a dependency so the layout is read again once the store has loaded.
+  }, [courtConfigForPreview, citations]);
+
+  const handleLoaPartChange = useCallback(
+    async (citation: Citation, toBeRead: boolean): Promise<void> => {
+      const updated: Citation = {
+        ...citation,
+        loaPart: toBeRead ? "A" : "B",
+        modifiedAt: new Date().toISOString(),
+      };
+      // WA: the older key-authority flag also means "to be read", so moving
+      // the authority out of Part A clears it (the WA layout has no separate
+      // key-authority control).
+      if (!toBeRead && loaType === "wa-outline-asterisk" && updated.isKeyAuthority) {
+        updated.isKeyAuthority = undefined;
+      }
+      try {
+        // The part affects only the List of Authorities, never a footnote,
+        // so no document refresh is needed.
+        await store.update(updated);
+        setCitations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      } catch (err: unknown) {
+        setError(writeErrorMessage(err, "The List of Authorities placement could not be saved."));
+      }
+    },
+    [loaType]
+  );
+
   const renderCitationText = useCallback(
     (citation: Citation): string =>
       getFormattedPreview(citation, courtConfigForPreview())
@@ -1430,6 +1465,24 @@ export default function CitationLibrary(): JSX.Element {
                       </div>
                     )}
                   </div>
+                );
+              })()}
+              {(() => {
+                const part = getLoaCitationControls(loaType, citation.sourceType).part;
+                if (!part) return null;
+                return (
+                  <label
+                    className="settings-toggle"
+                    style={{ fontSize: "var(--text-min)", margin: "2px 0" }}
+                    title={`List of Authorities placement (${part.source})`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isLoaPartA(loaType, citation.loaPart, citation.isKeyAuthority)}
+                      onChange={(e) => void handleLoaPartChange(citation, e.target.checked)}
+                    />
+                    <span className="settings-toggle-label">{part.a}</span>
+                  </label>
                 );
               })()}
               <div className="library-card-actions">

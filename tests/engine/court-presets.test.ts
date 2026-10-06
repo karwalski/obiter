@@ -135,28 +135,29 @@ describe("COURT-002: isCourtJurisdiction type guard", () => {
 describe("COURT-003: Jurisdictional default mappings", () => {
   // ── Federal ─────────────────────────────────────────────────────────────
 
-  test("HCA: mandatory parallel, para-and-page, CLR first, no unreported gate, ibid on, Part A-B (JBA)", () => {
+  test("HCA: mandatory parallel, para-and-page, CLR first, no unreported gate, ibid on, JBA Parts A-E", () => {
+    // COURT-117: HCA PD 2 of 2024 five-part Joint Book (register HCA-1, O-R3).
     expectPreset("HCA", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["CLR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "part-ab",
+      loaType: "hca-jba-five-part",
     });
   });
 
-  test("FCA: mandatory parallel (MNC first), para-and-page, FCR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("FCA: mandatory parallel (MNC first), para-and-page, FCR > CLR > ALR, no unreported gate, ibid on, eBook sections", () => {
     // COURT-111: GPN-AUTH cl 2.5 example is MNC first (register FCA-1,
     // O-R2; DECISION-043 item 3); the 7 May 2025 reissue has no Part A / B
-    // (O-R1), so a simple list until COURT-117.
+    // (O-R1). COURT-117: GPN-eBOOKS cl 7.2 sections (register FCA-2).
     expectPreset("FCA", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["FCR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "simple",
+      loaType: "fca-ebook-sections",
     });
     expect(COURT_PRESETS.FCA.parallelOrder).toBe("mnc-first");
   });
@@ -182,14 +183,15 @@ describe("COURT-003: Jurisdictional default mappings", () => {
   // CRIT-004 §4 sign-off (2026-07-23): NSWCA/NSWSC parallelCitations softened
   // "mandatory" -> "preferred" to match SC Gen 20's "should, as far as
   // possible" wording. Part A/B LOA re-sourced to SC CA 1 (loaType unchanged).
-  test("NSWCA: preferred parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, Part A-B (SC CA 1)", () => {
+  test("NSWCA: preferred parallel, para-only, NSWLR > CLR > ALR, warn unreported, ibid on, four categories (SC CA 1 cl 37)", () => {
+    // COURT-117: SC CA 1 cl 37 four categories (register NSW-2, O-R12).
     expectPreset("NSWCA", {
       parallelCitations: "preferred",
       pinpointStyle: "para-only",
       authorisedReportHierarchy: ["NSWLR", "CLR", "ALR"],
       unreportedGate: "warn",
       ibidSuppression: "on",
-      loaType: "part-ab",
+      loaType: "nswca-four-category",
     });
   });
 
@@ -311,16 +313,17 @@ describe("COURT-003: Jurisdictional default mappings", () => {
 
   // ── Other States/Territories ────────────────────────────────────────────
 
-  test("WASC: mandatory parallel (MNC first), para-and-page, WAR > CLR > ALR, no unreported gate, ibid on, simple LOA", () => {
+  test("WASC: mandatory parallel (MNC first), para-and-page, WAR > CLR > ALR, no unreported gate, ibid on, asterisk list", () => {
     // WA SC Consolidated Practice Directions (updated 20 Jun 2025)
     // PD 8.2.2: parallel citation required when reported, MNC first.
+    // COURT-117: PD 2.1 cl 11–13 list (register WA-1).
     expectPreset("WASC", {
       parallelCitations: "mandatory",
       pinpointStyle: "para-and-page",
       authorisedReportHierarchy: ["WAR", "CLR", "ALR"],
       unreportedGate: "off",
       ibidSuppression: "on",
-      loaType: "simple",
+      loaType: "wa-outline-asterisk",
     });
     expect(COURT_PRESETS.WASC.parallelOrder).toBe("mnc-first");
   });
@@ -458,10 +461,12 @@ describe("COURT-003: Cross-cutting toggle invariants", () => {
     }
   });
 
-  test("Part A-B LOA is used by HCA, NSWCA, and QCA only", () => {
+  test("Part A-B LOA is used by QCA only", () => {
     // VSCA moved to "part-abc" per Vic SC PN CA 3 (reissued 10 Mar 2026).
     // COURT-111: FCA left Part A-B (GPN-AUTH 7 May 2025; register O-R1).
-    const partAbJurisdictions = new Set<CourtJurisdiction>(["HCA", "NSWCA", "QCA"]);
+    // COURT-117: HCA (HCA-1) and NSWCA (NSW-2 cl 37) moved to their
+    // instrument layouts; QCA keeps Part A / B (Qld PD 3 of 2013, QLD-2).
+    const partAbJurisdictions = new Set<CourtJurisdiction>(["QCA"]);
     for (const [id, preset] of Object.entries(COURT_PRESETS)) {
       if (partAbJurisdictions.has(id as CourtJurisdiction)) {
         expect(preset.loaType).toBe("part-ab");

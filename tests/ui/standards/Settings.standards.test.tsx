@@ -227,7 +227,8 @@ const HCA_TOGGLES = {
   ibidSuppression: "on",
   crossReferenceSuppression: "on",
   subsequentForm: "short-title",
-  loaType: "part-ab",
+  // COURT-117: HCA-1 Joint Book Parts A to E.
+  loaType: "hca-jba-five-part",
 };
 const NSWCA_TOGGLES = {
   parallelCitations: "preferred",
@@ -240,7 +241,8 @@ const NSWCA_TOGGLES = {
   ibidSuppression: "on",
   crossReferenceSuppression: "on",
   subsequentForm: "short-title",
-  loaType: "part-ab",
+  // COURT-117: NSW-2 SC CA 1 cl 37.
+  loaType: "nswca-four-category",
 };
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
@@ -253,7 +255,8 @@ const WASC_TOGGLES = {
   ibidSuppression: "on",
   crossReferenceSuppression: "on",
   subsequentForm: "case-name",
-  loaType: "simple",
+  // COURT-117: WA-1 PD 2.1 cl 11–13.
+  loaType: "wa-outline-asterisk",
 };
 const STATE_TRIBUNAL_TOGGLES = {
   parallelCitations: "off",
@@ -852,7 +855,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
     await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith(presetToggles("FCA")));
     expect(mockStore.setCourtProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06.2", origin: "selected", overridden: [] }),
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-07.2", origin: "selected", overridden: [] }),
       { persist: false }
     );
     // Staged before the writes, so no extra store write.
@@ -865,7 +868,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     await renderSettings();
     fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
     expect(await screen.findByTestId("court-experimental-label")).toHaveTextContent(
-      "Experimental: checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025) on 6 Oct 2026; not endorsed by the court."
+      "Experimental: checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025); FCA eBooks Practice Note (GPN-eBOOKS) (11 Jun 2026) on 6 Oct 2026; not endorsed by the court."
     );
   });
 
@@ -874,7 +877,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     mockStore.getCourtToggles.mockReturnValue(presetToggles("FCA"));
     mockStore.getCourtProfile.mockReturnValue({
       presetId: "FCA",
-      presetVersion: "2026-10-06.2",
+      presetVersion: "2026-10-07.2",
       origin: "selected",
       frozenAt: "2026-10-06T00:00:00.000Z",
       overridden: [],
@@ -904,6 +907,29 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     expect(screen.queryByRole("group", { name: "Update court profile" })).toBeNull();
   });
 
+  // COURT-117 / DECISION-043 item 4: an existing HCA document keeps its
+  // Part A / Part B list until the user accepts the update, which names the
+  // change (HCA PD 2 of 2024, register HCA-1).
+  test("COURT-117: an existing HCA document is offered the Joint Book layout and keeps Part A / B until it accepts", async () => {
+    const legacy = { ...presetToggles("HCA"), loaType: "part-ab" };
+    mockStore.getCourtJurisdiction.mockReturnValue("HCA");
+    mockStore.getCourtToggles.mockReturnValue(legacy);
+    mockStore.getCourtProfile.mockReturnValue(migratedProfile("HCA"));
+    await renderSettings();
+
+    const prompt = await screen.findByRole("group", { name: "Update court profile" });
+    expect(
+      within(prompt).getByLabelText(/List of Authorities: Part A \/ Part B to Joint Book Parts A to E \(HCA\)/)
+    ).toBeChecked();
+    expect(screen.getByLabelText("List of Authorities")).toHaveValue("part-ab");
+    expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
+
+    fireEvent.click(within(prompt).getByRole("button", { name: "Apply update" }));
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...legacy, loaType: "hca-jba-five-part" })
+    );
+  });
+
   test("an existing document is offered the update with the change listed, and Apply writes it", async () => {
     mockStore.getCourtJurisdiction.mockReturnValue("FCA");
     mockStore.getCourtToggles.mockReturnValue(FCA_LEGACY_TOGGLES);
@@ -922,7 +948,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
       expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...FCA_LEGACY_TOGGLES, pinpointConnector: "at" })
     );
     expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
-      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06.2", origin: "updated", overridden: [] }),
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-07.2", origin: "updated", overridden: [] }),
       { persist: false }
     );
     expect(mockTriggerRefresh).toHaveBeenCalled();
@@ -962,7 +988,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     fireEvent.click(within(prompt).getByRole("button", { name: "Keep current settings" }));
     await waitFor(() =>
       expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
-        expect.objectContaining({ declinedVersion: "2026-10-06.2" })
+        expect.objectContaining({ declinedVersion: "2026-10-07.2" })
       )
     );
     expect(mockStore.setCourtToggles).not.toHaveBeenCalled();

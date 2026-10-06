@@ -109,6 +109,18 @@ export type UnreportedGateMode = "off" | "warn";
  *   FAM-APPEALS, updated 10 Jun 2025)
  * - "three-part-tas" — cite / might refer / legislation split
  *   (Tas SC PD 3 of 2022)
+ *
+ * COURT-117 instrument-backed layouts (register O-R1, O-R3, O-R12; WA-1):
+ * - "hca-jba-five-part" — Joint Book of Authorities Parts A to E, with
+ *   the legislation version (HCA PD 2 of 2024; Form 27A)
+ * - "nswca-four-category" — legislation with version date; cases to be
+ *   read (CLR/NSWLR, other reports, other cases); cases cited but not
+ *   read; secondary sources (NSW SC CA 1 cl 37)
+ * - "fca-ebook-sections" — authorities, legislation, bills and
+ *   explanatory material, each alphabetical (FCA GPN-eBOOKS cl 7.2, 7.4)
+ * - "wa-outline-asterisk" — cases and legislation, cases to be read
+ *   marked with an asterisk and the passages to be read, and a statement
+ *   when no case will be read (WA PD 2.1 cl 11–13)
  */
 export type LoaType =
   | "off"
@@ -116,7 +128,11 @@ export type LoaType =
   | "part-ab"
   | "part-abc"
   | "two-part-read"
-  | "three-part-tas";
+  | "three-part-tas"
+  | "hca-jba-five-part"
+  | "nswca-four-category"
+  | "fca-ebook-sections"
+  | "wa-outline-asterisk";
 
 /**
  * Parallel citation emission order for reported cases in court mode.

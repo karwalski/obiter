@@ -82,7 +82,8 @@ describe("buildDocumentConfig", () => {
       pinpointStyle: "para-and-page",
       ibidSuppressionMode: "on",
       unreportedGateMode: "off",
-      loaType: "part-ab",
+      // COURT-117: HCA PD 2 of 2024 Joint Book Parts A to E (HCA-1).
+      loaType: "hca-jba-five-part",
       authorisedReportHierarchy: ["CLR"],
     });
     expect(config.courtModeIgnored).toBeUndefined();

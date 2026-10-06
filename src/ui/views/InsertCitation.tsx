@@ -19,6 +19,8 @@ import type { CitationContext as CitationFormatContext } from "../../engine/engi
 import CitationPreview from "../components/CitationPreview";
 import ParseFindings from "../components/ParseFindings";
 import FieldHelp from "../components/FieldHelp";
+import { LegislationVersionFields } from "../components/LoaCitationFields";
+import { getLoaCitationControls } from "../../engine/court/loaLayouts";
 import TypeaheadInput from "../components/TypeaheadInput";
 import { useCitationContext } from "../context/CitationContext";
 import { useInsertCitationContext, type AuthorEntry } from "../context/InsertCitationContext";
@@ -1845,6 +1847,21 @@ export default function InsertCitation(): JSX.Element {
           )}
         </div>
       )}
+
+      {/* COURT-118: legislation version ("as at") for court lists that state it (AGLC only) */}
+      {isAglcStandard &&
+        courtJurisdiction &&
+        selectedSourceType &&
+        getLoaCitationControls(courtConfig.loaType, selectedSourceType).legislationVersion && (
+          <div className="ic-form-fields" data-testid="ic-legislation-version">
+            <LegislationVersionFields
+              data={formData}
+              onDataChange={(key, value) => updateField(key, value)}
+              variant="insert"
+              idPrefix="ic"
+            />
+          </div>
+        )}
 
       {/* COURT-011: Qld / NSW selectivity duty reminder (AGLC only) */}
       {isAglcStandard && courtJurisdiction && !courtGuideReminderDismissed && (isQldMode || isNswMode) && (

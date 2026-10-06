@@ -478,9 +478,24 @@ describe("COURT-111: corrected presets reach new documents; existing documents k
   });
 
   test("a document frozen before the MNC toggle existed is not prompted for it alone", () => {
+    // QCA is unchanged since 2026-10-06 (HCA moved its layout in COURT-117).
+    const stored = v1Record("preferred|report-first|para-only|aglc|Qd R,CLR,ALR|warn|on|part-ab");
+    expect(diffCourtProfile(stored, V1_PROFILE("QCA"), "QCA")).toEqual([]);
+    expect(isProfileUpdateAvailable(stored, V1_PROFILE("QCA"), "QCA")).toBe(false);
+  });
+
+  test("COURT-117: an existing HCA document keeps Part A / B until it accepts the update (DECISION-043 item 4)", () => {
     const stored = v1Record("mandatory|report-first|para-and-page|aglc|CLR|off|on|part-ab");
-    expect(diffCourtProfile(stored, V1_PROFILE("HCA"), "HCA")).toEqual([]);
-    expect(isProfileUpdateAvailable(stored, V1_PROFILE("HCA"), "HCA")).toBe(false);
+    const diff = diffCourtProfile(stored, V1_PROFILE("HCA"), "HCA");
+    expect(diff.map((d) => [d.key, d.current, d.proposed])).toEqual([
+      ["loaType", "part-ab", "hca-jba-five-part"],
+    ]);
+    expect(isProfileUpdateAvailable(stored, V1_PROFILE("HCA"), "HCA")).toBe(true);
+    expect(configAfter("HCA", stored).loaType).toBe("part-ab");
+    const accepted = applyProfileUpdate(stored, V1_PROFILE("HCA"), "HCA", ["loaType"], NOW);
+    expect(configAfter("HCA", accepted.toggles).loaType).toBe("hca-jba-five-part");
+    // New documents take the instrument layout (HCA-1).
+    expect(getPresetToggles("HCA")!.loaType).toBe("hca-jba-five-part");
   });
 
   test("academic AGLC4 output is unchanged by the MNC toggle (r 2.2.7)", () => {
@@ -541,13 +556,33 @@ describe("COURT-106 / COURT-115: typed provenance for every preset value", () =>
   });
 
   test("values the register found contradicted are not labelled official", () => {
-    // HCA PD 2 of 2024 five-part JBA (O-R3); awaits COURT-117.
-    expect(COURT_PRESET_PROVENANCE.HCA.fields.loaType.kind).toBe("unsourced");
     // HCA instruments are silent on parallel citation (O-R4; Q3): unchanged.
     expect(COURT_PRESETS.HCA.parallelCitations).toBe("mandatory");
     expect(COURT_PRESET_PROVENANCE.HCA.fields.parallelCitations.kind).toBe("unsourced");
-    // NSW SC CA 1 cl 37 four categories (O-R12); awaits COURT-117.
-    expect(COURT_PRESET_PROVENANCE.NSWCA.fields.loaType.kind).toBe("unsourced");
+  });
+
+  test("COURT-117: the instrument layouts cite their instrument", () => {
+    // HCA PD 2 of 2024 five-part JBA (HCA-1, O-R3).
+    expect(COURT_PRESETS.HCA.loaType).toBe("hca-jba-five-part");
+    expect(COURT_PRESET_PROVENANCE.HCA.fields.loaType).toMatchObject({
+      kind: "official",
+      sourceIds: ["HCA-1", "HCA-2"],
+    });
+    // NSW SC CA 1 cl 37 four categories (NSW-2, O-R12).
+    expect(COURT_PRESETS.NSWCA.loaType).toBe("nswca-four-category");
+    expect(COURT_PRESET_PROVENANCE.NSWCA.fields.loaType).toMatchObject({
+      kind: "official",
+      clause: "cl 37",
+    });
+    // FCA GPN-eBOOKS cl 7.2 (FCA-2, O-R1).
+    expect(COURT_PRESETS.FCA.loaType).toBe("fca-ebook-sections");
+    expect(COURT_PRESET_PROVENANCE.FCA.fields.loaType.kind).toBe("official");
+    // WA PD 2.1 cl 11–13 (WA-1).
+    expect(COURT_PRESETS.WASC.loaType).toBe("wa-outline-asterisk");
+    expect(COURT_PRESET_PROVENANCE.WASC.fields.loaType).toMatchObject({
+      kind: "official",
+      clause: "PD 2.1 cl 11–13",
+    });
   });
 
   test("COURT-111: corrected values now cite their instrument", () => {
@@ -565,9 +600,8 @@ describe("COURT-106 / COURT-115: typed provenance for every preset value", () =>
       kind: "official",
       clause: "cl 2.5",
     });
-    // FCA GPN-AUTH 2025 has no Part A / B (O-R1): a simple list is an Obiter default.
-    expect(COURT_PRESETS.FCA.loaType).toBe("simple");
-    expect(COURT_PRESET_PROVENANCE.FCA.fields.loaType.kind).toBe("preference");
+    // FCA GPN-AUTH 2025 has no Part A / B (O-R1); COURT-117 gives the eBook sections.
+    expect(COURT_PRESETS.FCA.loaType).not.toBe("part-ab");
     // Tas SC PD 3 of 2014 cl 3(a) example is MNC first (TAS-1, O-R8).
     expect(COURT_PRESET_PROVENANCE.TASSC.fields.parallelOrder).toMatchObject({
       kind: "official",
@@ -699,6 +733,25 @@ const VALUES_AT_2026_10_07: Record<string, string> = {
 };
 
 /**
+ * COURT-117: the values at version 2026-10-07.2 (full key order). Only the
+ * List of Authorities layout changed, each to its instrument layout.
+ */
+const VALUES_AT_2026_10_07_2: Record<string, string> = {
+  // HCA-1 PD 2 of 2024 Joint Book Parts A to E; HCA-2 Form 27A (O-R3).
+  HCA: "mandatory|report-first|include|para-and-page|aglc|CLR|off|on|on|short-title|hca-jba-five-part",
+  // FCA-2 GPN-eBOOKS cl 7.2, 7.4 (O-R1).
+  FCA: "mandatory|mnc-first|include|para-and-page|at|FCR,CLR,ALR|off|on|on|short-title|fca-ebook-sections",
+  // NSW-2 SC CA 1 cl 37 (O-R12).
+  NSWCA:
+    "preferred|report-first|include|para-only|aglc|NSWLR,CLR,ALR|warn|on|on|short-title|nswca-four-category",
+  // WA-1 PD 2.1 cl 11–13.
+  WASC: "mandatory|mnc-first|include|para-and-page|aglc|WAR,CLR,ALR|off|on|on|case-name|wa-outline-asterisk",
+};
+
+/** Presets bumped again after a table was written (no longer at that version). */
+const MOVED_TO_2026_10_07_2 = Object.keys(VALUES_AT_2026_10_07_2);
+
+/**
  * The toggle keys the 2026-10-06 and 2026-10-06.2 tables list. The COURT-107
  * and COURT-113 keys did not exist then; a preset still at those versions
  * must leave them at their engine defaults (checked below).
@@ -715,6 +768,10 @@ describe("COURT-106: a preset value change must bump the preset version", () => 
       expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07[id]);
       return;
     }
+    if (version === "2026-10-07.2") {
+      expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07_2[id]);
+      return;
+    }
     const table =
       version === "2026-10-06"
         ? VALUES_AT_2026_10_06
@@ -728,13 +785,26 @@ describe("COURT-106: a preset value change must bump the preset version", () => 
     expect(t.subsequentForm).toBe("short-title");
   });
 
-  test("COURT-113: only WASC moved to 2026-10-07", () => {
+  test("COURT-113: only WASC moved to 2026-10-07 (and on to 2026-10-07.2 with COURT-117)", () => {
     const bumped = JURISDICTIONS.filter((id) => getPresetVersion(id) === "2026-10-07").sort();
-    expect(bumped).toEqual(Object.keys(VALUES_AT_2026_10_07).sort());
+    expect(bumped).toEqual(
+      Object.keys(VALUES_AT_2026_10_07)
+        .filter((id) => !MOVED_TO_2026_10_07_2.includes(id))
+        .sort()
+    );
   });
 
   test("COURT-111: the corrected presets moved to the new version; the others did not", () => {
     const bumped = JURISDICTIONS.filter((id) => getPresetVersion(id) === "2026-10-06.2").sort();
-    expect(bumped).toEqual(Object.keys(VALUES_AT_2026_10_06_2).sort());
+    expect(bumped).toEqual(
+      Object.keys(VALUES_AT_2026_10_06_2)
+        .filter((id) => !MOVED_TO_2026_10_07_2.includes(id))
+        .sort()
+    );
+  });
+
+  test("COURT-117: only HCA, FCA, NSWCA and WASC moved to 2026-10-07.2", () => {
+    const bumped = JURISDICTIONS.filter((id) => getPresetVersion(id) === "2026-10-07.2").sort();
+    expect(bumped).toEqual([...MOVED_TO_2026_10_07_2].sort());
   });
 });

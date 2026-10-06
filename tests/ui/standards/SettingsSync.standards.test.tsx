@@ -242,7 +242,8 @@ const HCA_TOGGLES = {
   ibidSuppression: "on",
   crossReferenceSuppression: "on",
   subsequentForm: "short-title",
-  loaType: "part-ab",
+  // COURT-117: HCA-1 Joint Book Parts A to E.
+  loaType: "hca-jba-five-part",
 };
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
@@ -256,7 +257,8 @@ const WASC_TOGGLES = {
   crossReferenceSuppression: "on",
   // COURT-113: WA PD 2.1 cl 14, later references by case name.
   subsequentForm: "case-name",
-  loaType: "simple",
+  // COURT-117: WA-1 PD 2.1 cl 11–13.
+  loaType: "wa-outline-asterisk",
 };
 
 const mockOpenAuthDialog = openAuthDialog as unknown as jest.Mock;

@@ -29,10 +29,10 @@ Every court profile in Obiter is **experimental**. A profile is checked against 
 
 | Court | Profile version | Checked against | Last review |
 |---|---|---|---|
-| High Court of Australia (`HCA`) | 2026-10-06 | HCA-1, HCA-2 | 6 Oct 2026 |
-| Federal Court of Australia (`FCA`) | 2026-10-06.2 | FCA-1 | 6 Oct 2026 |
+| High Court of Australia (`HCA`) | 2026-10-07.2 | HCA-1, HCA-2 | 6 Oct 2026 |
+| Federal Court of Australia (`FCA`) | 2026-10-07.2 | FCA-1, FCA-2 | 6 Oct 2026 |
 | Federal Circuit and Family Court (`FCFCOA`) | 2026-10-06.2 | FCF-1 | 6 Oct 2026 |
-| NSW Court of Appeal (`NSWCA`) | 2026-10-06 | NSW-1, NSW-2 | 6 Oct 2026 |
+| NSW Court of Appeal (`NSWCA`) | 2026-10-07.2 | NSW-1, NSW-2 | 6 Oct 2026 |
 | NSW Court of Criminal Appeal (`NSWCCA`) | 2026-10-06.2 | NSW-1, NSW-3 | 6 Oct 2026 |
 | NSW Supreme Court (`NSWSC`) | 2026-10-06 | NSW-1 | 6 Oct 2026 |
 | NSW District / Local Court (`NSW_DISTRICT_LOCAL`) | 2026-10-06 | No instrument found | 6 Oct 2026 |
@@ -42,7 +42,7 @@ Every court profile in Obiter is **experimental**. A profile is checked against 
 | Qld Court of Appeal (`QCA`) | 2026-10-06 | QLD-1, QLD-2 | 6 Oct 2026 |
 | Qld Supreme Court (`QSC`) | 2026-10-06 | QLD-1 | 6 Oct 2026 |
 | Qld District / Magistrates Court (`QLD_DISTRICT_MAG`) | 2026-10-06.2 | QLD-3 | 6 Oct 2026 |
-| WA Supreme Court (`WASC`) | 2026-10-07 | WA-1 | 6 Oct 2026 |
+| WA Supreme Court (`WASC`) | 2026-10-07.2 | WA-1 | 6 Oct 2026 |
 | SA Supreme Court (`SASC`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
 | SA District / Magistrates Court (civil) (`SA_DISTRICT_MAG_CIVIL`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
 | Tas Supreme Court (`TASSC`) | 2026-10-06.2 | TAS-1, TAS-2 | 6 Oct 2026 |
@@ -72,15 +72,16 @@ Experimental: checked against HCA Practice Direction No 2 of 2024 (Joint Book of
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
 | (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
 | Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
-| List of Authorities | Part A / Part B | No supporting source | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) | 6 Oct 2026 | PD 2 of 2024 requires a five-part Joint Book of Authorities (Parts A to E), not Part A / Part B (register O-R3; COURT-117). |
+| List of Authorities | Joint Book Parts A to E (HCA) | Court instrument | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) PD 2 of 2024; Form 27A annexure; HCA-2 (HCA Form 27A) | 6 Oct 2026 | Joint Book of Authorities Parts A to E (principal legislation; other legislation; CLR cases; other report series; other materials), with the legislation version (register O-R3, O-R15). |
 
 Known exceptions:
 
-- Joint Book of Authorities Parts A to E and the legislation-version column are not modelled (COURT-117, COURT-118).
+- The list gives the Joint Book parts and the legislation version; the volume index, page numbers and counsel's certificate are not generated.
+- Principal legislation (Part A) is chosen by the user in Edit Citation; it cannot be inferred.
 
 #### Federal Court of Australia (`FCA`)
 
-Experimental: checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025) on 6 Oct 2026; not endorsed by the court.
+Experimental: checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025); FCA eBooks Practice Note (GPN-eBOOKS) (11 Jun 2026) on 6 Oct 2026; not endorsed by the court.
 
 | Setting | Value | Kind | Source | Checked | Note |
 |---|---|---|---|---|---|
@@ -94,12 +95,12 @@ Experimental: checked against FCA Lists of Authorities and Citations Practice No
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
 | (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
 | Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
-| List of Authorities | Simple | Obiter default | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) GPN-eBOOKS cl 7.2; FCA-2 (FCA eBooks Practice Note (GPN-eBOOKS)) | 6 Oct 2026 | GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1); a simple list until the GPN-eBOOKS layout (authorities, legislation, bills) is added (COURT-117). |
+| List of Authorities | eBook sections (Federal Court) | Court instrument | FCA-2 (FCA eBooks Practice Note (GPN-eBOOKS)) GPN-eBOOKS cl 7.2, 7.4; FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) | 6 Oct 2026 | Authorities, legislation, and bills and explanatory material, each alphabetical; legislation states the version in force. GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1). |
 
 Known exceptions:
 
 - GPN-AUTH not re-checked live since the 5 Dec 2025 capture (open question 10).
-- GPN-eBOOKS eBook layout not modelled (COURT-117).
+- GPN-eBOOKS was read from a 29 Sep 2026 capture; the eBook bookmarks and hyperlinks are not generated.
 
 #### Federal Circuit and Family Court (`FCFCOA`)
 
@@ -141,12 +142,13 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
 | (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
 | Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
-| List of Authorities | Part A / Part B | No supporting source | NSW-2 (NSW Court of Appeal Practice Note SC CA 1) cl 37 | 6 Oct 2026 | SC CA 1 cl 37 sets four categories (legislation with version date; cases read; cited not read; secondary), not Part A / Part B (register O-R12; COURT-117). |
+| List of Authorities | Four categories (NSW Court of Appeal) | Court instrument | NSW-2 (NSW Court of Appeal Practice Note SC CA 1) cl 37 | 6 Oct 2026 | Four categories: legislation with its version date; cases from which passages will be read (CLR and NSWLR, at most 10 without leave; up to five from other reports; other cases); cases cited but not read; secondary sources (register O-R12). |
 
 Known exceptions:
 
 - Report-plus-paragraph pinpoint form is open (DECISION-043 item 5).
 - Record locators (SC CA 1 cl 31) are not modelled (COURT-129).
+- The party's name and contact details at the foot of the list (SC CA 1 cl 38) are not generated.
 
 #### NSW Court of Criminal Appeal (`NSWCCA`)
 
@@ -238,7 +240,7 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 
 Known exceptions:
 
-- “None” under an empty part and the amended-list mark-up (cl 14.2, 14.6) are not modelled.
+- The amended-list mark-up and clean copy (cl 14.6) are not modelled; “None” under an empty part (cl 14.2) is.
 - Record-locator wording in the 2026 reissue not yet re-read (open question 9).
 
 #### Vic Supreme Court (`VSC`)
@@ -367,7 +369,7 @@ Experimental: checked against WA SC Consolidated Practice Directions (PD 2.1, PD
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
 | (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
 | Subsequent references to cases | Case name and pinpoint | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14 | 6 Oct 2026 | Later references give the case name only, unless names are duplicated or popular. A case whose name is shared by another cited case keeps its short title. |
-| List of Authorities | Simple | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 11–13 | 6 Oct 2026 | A simple list approximates the combined outline; cases to be read are marked as key authorities. |
+| List of Authorities | Cases read marked with an asterisk (WA) | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 11–13 | 6 Oct 2026 | Cases and legislation listed separately and alphabetically; cases counsel intends to read from marked with an asterisk and the pages or paragraphs to be read; a statement when no case will be read. |
 
 Known exceptions:
 

@@ -1668,6 +1668,10 @@ export default function Settings(): JSX.Element {
                     <option value="part-abc">Part A / B / C (Vic Court of Appeal)</option>
                     <option value="two-part-read">Two parts (read / not read)</option>
                     <option value="three-part-tas">Three parts (Tas, legislation separate)</option>
+                    <option value="hca-jba-five-part">Joint Book Parts A to E (HCA PD 2 of 2024)</option>
+                    <option value="nswca-four-category">Four categories (NSW SC CA 1 cl 37)</option>
+                    <option value="fca-ebook-sections">eBook sections (FCA GPN-eBOOKS cl 7.2)</option>
+                    <option value="wa-outline-asterisk">Cases read marked with an asterisk (WA PD 2.1)</option>
                   </select>
                 </label>
                 <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="loaType" profile={courtProfile} />

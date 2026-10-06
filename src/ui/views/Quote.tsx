@@ -23,7 +23,11 @@ import {
   insertCitationFootnote,
 } from "../../word/footnoteManager";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
-import { insertPlainParagraph, insertQuotation } from "../../word/quotationInserter";
+import {
+  insertPlainParagraph,
+  insertQuotation,
+  type NoteParagraphStyle,
+} from "../../word/quotationInserter";
 import { writeErrorMessage } from "../../word/documentAccess";
 import { loadLlmConfig } from "../../llm/config";
 import {
@@ -299,6 +303,9 @@ export default function Quote(): JSX.Element {
   const [aiBusy, setAiBusy] = useState<"summarise" | "ask" | null>(null);
   const [aiProgress, setAiProgress] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<string | null>(null);
+  // COURT-116: the note paragraph style. Court documents keep the cursor
+  // paragraph's style by default; academic documents keep Normal, as before.
+  const [noteStyleChoice, setNoteStyle] = useState<NoteParagraphStyle | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   useEffect(() => {
@@ -355,6 +362,9 @@ export default function Quote(): JSX.Element {
         : getStandardConfig(standardId),
     [store, standardId]
   );
+
+  const noteStyle: NoteParagraphStyle =
+    noteStyleChoice ?? (courtConfig.writingMode === "court" ? "inherit" : "Normal");
 
   const matches = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -559,12 +569,12 @@ export default function Quote(): JSX.Element {
     setAiError(null);
     setAiStatus(null);
     try {
-      await insertPlainParagraph(aiResult);
+      await insertPlainParagraph(aiResult, noteStyle);
       setAiStatus("Note inserted.");
     } catch (err: unknown) {
       setAiError(writeErrorMessage(err, "Failed to insert the note."));
     }
-  }, [aiResult]);
+  }, [aiResult, noteStyle]);
 
   const handleCopyResult = useCallback(async () => {
     if (!aiResult) return;
@@ -903,6 +913,18 @@ export default function Quote(): JSX.Element {
                 <div className="quote-ai-result" aria-live="polite" data-testid="quote-ai-result">
                   {aiResult}
                 </div>
+                <label className="quote-ai-note" htmlFor="quote-note-style">
+                  Note paragraph style{" "}
+                  <select
+                    id="quote-note-style"
+                    className="ic-select"
+                    value={noteStyle}
+                    onChange={(e) => setNoteStyle(e.target.value as NoteParagraphStyle)}
+                  >
+                    <option value="inherit">Same as the paragraph at the cursor</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                </label>
                 <div className="quote-ai-actions">
                   <button
                     type="button"

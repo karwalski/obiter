@@ -9,13 +9,17 @@ import { FormattedRun } from "../../types/formattedRun";
 import { getSharedStore } from "../../store/singleton";
 import {
   generateBibliographyForStandard,
-  BibliographySection,
+  generateCourtListOfAuthorities,
+  type LoaValidationWarning,
 } from "../../engine/rules/v4/general/bibliography";
 import { resolveDocumentConfig } from "../../engine/standards";
 import type { LoaType } from "../../engine/standards";
 import type { CitationConfig } from "../../engine/standards/types";
 import { getDevicePref } from "../../store/devicePreferences";
-import { runsToHtml } from "../../word/formattedRunsHtml";
+import {
+  insertBibliographyIntoDocument,
+  type EntryParagraphStyle,
+} from "../../word/bibliographyInserter";
 import { isNotAllowedError, writeErrorMessage } from "../../word/documentAccess";
 
 // ─── FormattedRun Renderer ──────────────────────────────────────────────────
@@ -52,108 +56,6 @@ function FormattedRuns({ runs }: FormattedRunsProps): JSX.Element {
   );
 }
 
-// ─── Word Insertion ─────────────────────────────────────────────────────────
-
-/**
- * Inserts the bibliography sections into the Word document at the cursor,
- * applying formatting from FormattedRun arrays.
- */
-async function insertBibliographyIntoDocument(
-  sections: BibliographySection[]
-): Promise<void> {
-  await Word.run(async (context) => {
-    const selection = context.document.getSelection();
-
-    // Each paragraph is inserted AFTER the previously inserted one so the
-    // document grows forward. Anchoring every insert against `selection`
-    // stacks paragraphs in reverse order at the cursor.
-    let anchor: Word.Paragraph | null = null;
-    const headingParagraphs: Word.Paragraph[] = [];
-
-    function insertAfter(text: string): Word.Paragraph {
-      return anchor
-        ? anchor.insertParagraph(text, Word.InsertLocation.after)
-        : selection.insertParagraph(text, Word.InsertLocation.after);
-    }
-
-    // Pass 1 — build the full paragraph skeleton (headings with their text,
-    // entries empty). Entry content is deliberately NOT written here: on
-    // Word on the web, `insertHtml(..., "Replace")` invalidates the
-    // paragraph proxy, so a paragraph that has received its content can no
-    // longer serve as the anchor for the next `insertParagraph("After")`
-    // (ItemNotFound). All anchoring therefore happens before any content
-    // write.
-    const entryParagraphs: Array<{ paragraph: Word.Paragraph; runs: FormattedRun[] }> = [];
-    for (const section of sections) {
-      const headingParagraph = insertAfter(section.heading);
-      // Direct formatting mirrors the "AGLC4 Bibliography Heading" style
-      // (Rule 1.13: centred, italic) so the output is correct even when the
-      // AGLC4 styles are not installed in this document. Assigning the named
-      // style throws InvalidArgument on such documents and — because the
-      // batch is not atomic — used to abort the insert after the first
-      // heading; the style is applied as an optional pass below.
-      headingParagraph.alignment = Word.Alignment.centered;
-      headingParagraph.spaceBefore = 18;
-      headingParagraph.spaceAfter = 6;
-      headingParagraph.font.italic = true;
-      headingParagraphs.push(headingParagraph);
-      anchor = headingParagraph;
-
-      for (const entry of section.entries) {
-        const entryParagraph = insertAfter("");
-        // Entries are inserted after the heading paragraph and would
-        // otherwise inherit its centred + italic style. Reset to Normal
-        // and left-align so each entry renders as flowing body text.
-        entryParagraph.style = "Normal";
-        entryParagraph.alignment = Word.Alignment.left;
-        entryParagraphs.push({ paragraph: entryParagraph, runs: entry });
-        anchor = entryParagraph;
-      }
-    }
-    await context.sync();
-
-    // Pass 2 — write each entry's content as one HTML fragment. Word on the
-    // web does not reliably honour font assignments on insertText's
-    // returned ranges (italics leaked across runs); insertHtml applies
-    // inline formatting atomically on both hosts. Each paragraph proxy is
-    // used for the last time here. Entries with no runs are skipped —
-    // insertHtml("") throws InvalidArgument. If the batched write fails
-    // (e.g. one entry's content is rejected), fall back to per-entry writes
-    // so a single bad entry cannot abort the whole bibliography.
-    const writable = entryParagraphs.filter(({ runs }) => runs.length > 0);
-    try {
-      for (const { paragraph, runs } of writable) {
-        paragraph.insertHtml(runsToHtml(runs), Word.InsertLocation.replace);
-      }
-      await context.sync();
-    } catch {
-      let skipped = 0;
-      for (const { paragraph, runs } of writable) {
-        try {
-          paragraph.insertHtml(runsToHtml(runs), Word.InsertLocation.replace);
-          await context.sync();
-        } catch {
-          skipped += 1;
-        }
-      }
-      if (skipped > 0) {
-        console.warn(`[bibliography] ${skipped} entries could not be written`);
-      }
-    }
-
-    // Pass 3 — upgrade headings to the named style where installed; the
-    // direct formatting above already matches the style's appearance.
-    try {
-      for (const headingParagraph of headingParagraphs) {
-        headingParagraph.style = "AGLC4 Bibliography Heading";
-      }
-      await context.sync();
-    } catch {
-      // Style not installed — keep direct formatting.
-    }
-  });
-}
-
 // ─── Bibliography View ──────────────────────────────────────────────────────
 
 /**
@@ -183,6 +85,11 @@ export default function Bibliography(): JSX.Element {
   // STD-018: the document config, so OSCOLA and NZLSG entries render in
   // their own standard.
   const [documentConfig, setDocumentConfig] = useState<CitationConfig | undefined>(undefined);
+  // COURT-116: entry paragraph style. Court lists take the style of the
+  // paragraph at the cursor by default; academic bibliographies keep Normal.
+  const [entryStyle, setEntryStyle] = useState<EntryParagraphStyle | null>(null);
+  const effectiveEntryStyle: EntryParagraphStyle =
+    entryStyle ?? (writingMode === "court" ? "inherit" : "Normal");
 
   // Load citations from the store on mount
   useEffect(() => {
@@ -253,6 +160,13 @@ export default function Bibliography(): JSX.Element {
     [filteredCitations, bibStructure, writingMode, loaType, documentConfig]
   );
 
+  // COURT-116 / COURT-117: the layout's validation warnings (for example an
+  // empty Part A, or legislation with no version date). Court mode only.
+  const loaWarnings = useMemo((): LoaValidationWarning[] => {
+    if (writingMode !== "court") return [];
+    return generateCourtListOfAuthorities(filteredCitations, loaType).warnings;
+  }, [filteredCitations, writingMode, loaType]);
+
   const handleInsert = useCallback(async () => {
     if (sections.length === 0) return;
 
@@ -261,7 +175,7 @@ export default function Bibliography(): JSX.Element {
     setSuccessMessage(null);
 
     try {
-      await insertBibliographyIntoDocument(sections);
+      await insertBibliographyIntoDocument(sections, effectiveEntryStyle);
       setSuccessMessage(`${getBibliographyHeading(writingMode, bibStructure)} inserted successfully.`);
     } catch (err) {
       // A read-only or protected document refuses the write with "NotAllowed",
@@ -280,7 +194,7 @@ export default function Bibliography(): JSX.Element {
     } finally {
       setInserting(false);
     }
-  }, [sections]);
+  }, [sections, effectiveEntryStyle]);
 
   // ── Loading state ──
   if (loading) {
@@ -330,6 +244,29 @@ export default function Bibliography(): JSX.Element {
         </span>
       </label>
 
+      {/* COURT-116: entry paragraph style */}
+      <label className="settings-toggle" style={{ display: "block" }}>
+        <span className="settings-toggle-label">Entry paragraph style</span>
+        <select
+          className="ic-select"
+          style={{ width: "100%", marginTop: 2 }}
+          value={effectiveEntryStyle}
+          onChange={(e) => setEntryStyle(e.target.value as EntryParagraphStyle)}
+        >
+          <option value="inherit">Same as the paragraph at the cursor</option>
+          <option value="Normal">Normal</option>
+        </select>
+      </label>
+
+      {/* COURT-116 / COURT-117: List of Authorities checks */}
+      {loaWarnings.length > 0 && (
+        <ul className="bib-warnings" data-testid="loa-warnings" style={{ fontSize: 11, paddingLeft: 16 }}>
+          {loaWarnings.map((w, i) => (
+            <li key={`${w.code}-${i}`}>{w.message}</li>
+          ))}
+        </ul>
+      )}
+
       {/* Status messages */}
       <div aria-live="polite" role="status">
         {error && <p className="bib-error">Error: {error}</p>}
@@ -353,8 +290,8 @@ export default function Bibliography(): JSX.Element {
       ) : (
         <div className="bib-preview">
           {sections.map((section) => (
-            <div key={section.heading} className="bib-section">
-              <p className="bib-section-heading">{section.heading}</p>
+            <div key={section.heading || "closing-statement"} className="bib-section">
+              {section.heading && <p className="bib-section-heading">{section.heading}</p>}
               {section.entries.map((entry, idx) => (
                 <p key={idx} className="bib-entry">
                   <FormattedRuns runs={entry} />

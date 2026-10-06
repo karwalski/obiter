@@ -39,6 +39,9 @@ class FakeParagraph {
   insertParagraph(text: string, _location: string): FakeParagraph {
     return this.doc.addParagraph(text);
   }
+  load(_props: string): void {
+    // Properties are plain fields on the fake.
+  }
   getRange(_location: string): FakeRange {
     return this.end;
   }
@@ -127,10 +130,37 @@ describe("insertQuotation", () => {
 // ─── ENP-012: plain paragraphs for "Insert as note" ──────────────────────────
 
 describe("insertPlainParagraph", () => {
-  it("inserts one Normal paragraph per line, no quotation style, selection at the end", async () => {
+  it("COURT-116: by default the paragraphs keep the cursor paragraph's style (not forced Normal)", async () => {
     const doc = new FakeDoc(["AGLC4 Block Quote"]);
     installFakeWord(doc);
-    await insertPlainParagraph("Facts\nThe appellant sued.\n\nOrders\nAppeal dismissed [42].");
+    await insertPlainParagraph("Facts\nOrders");
+    expect(doc.paragraphs.map((p) => p.text)).toEqual(["Facts", "Orders"]);
+    // Nothing is reassigned: Word gives each new paragraph the style of the
+    // paragraph it follows (register O-K16).
+    expect(doc.paragraphs.every((p) => p.style === "" && p.styleBuiltIn === undefined)).toBe(true);
+    expect(doc.paragraphs[1].end.selected).toBe(true);
+  });
+
+  it("COURT-116: a note inserted after a block quotation does not keep the AGLC4 r 1.5.1 Block Quote style", async () => {
+    const doc = new FakeDoc(["AGLC4 Block Quote"]);
+    installFakeWord(doc);
+    const add = doc.addParagraph.bind(doc);
+    doc.addParagraph = (text: string): FakeParagraph => {
+      const p = add(text);
+      p.style = "AGLC4 Block Quote"; // inherited from the cursor paragraph
+      return p;
+    };
+    await insertPlainParagraph("Facts\nOrders");
+    expect(doc.paragraphs.every((p) => p.styleBuiltIn === "Normal")).toBe(true);
+  });
+
+  it("inserts one Normal paragraph per line when Normal is chosen, selection at the end", async () => {
+    const doc = new FakeDoc(["AGLC4 Block Quote"]);
+    installFakeWord(doc);
+    await insertPlainParagraph(
+      "Facts\nThe appellant sued.\n\nOrders\nAppeal dismissed [42].",
+      "Normal"
+    );
     expect(doc.paragraphs.map((p) => p.text)).toEqual([
       "Facts",
       "The appellant sued.",

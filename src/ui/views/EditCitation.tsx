@@ -31,6 +31,8 @@ import { getFormattedPreview } from "../../engine/engine";
 import type { FormattedRun } from "../../types/formattedRun";
 import CitationPreview from "../components/CitationPreview";
 import TagEditor from "../components/TagEditor";
+import LoaCitationFields from "../components/LoaCitationFields";
+import type { LoaType } from "../../engine/standards/types";
 import RecordDetails, { formatRecordTime } from "../components/RecordDetails";
 import UpdateFromSourceDialog from "../components/UpdateFromSourceDialog";
 import { canUpdateFromSource } from "../../api/updateFromSource";
@@ -200,6 +202,10 @@ export default function EditCitation(): JSX.Element {
   // Manual override text (bypasses structured formatting)
   const [overrideText, setOverrideText] = useState("");
 
+  // COURT-116: List of Authorities placement and key-authority marker.
+  const [loaPart, setLoaPart] = useState<"A" | "B" | undefined>(undefined);
+  const [isKeyAuthority, setIsKeyAuthority] = useState(false);
+
   // UX-004: Occurrences — footnotes where this citation appears
   const [occurrences, setOccurrences] = useState<CitationFootnoteEntry[]>([]);
   const [occurrencesOpen, setOccurrencesOpen] = useState(false);
@@ -263,6 +269,8 @@ export default function EditCitation(): JSX.Element {
     setCommentaryBefore(found.commentaryBefore ?? "");
     setCommentaryAfter(found.commentaryAfter ?? "");
     setOverrideText(found.overrideText ?? "");
+    setLoaPart(found.loaPart);
+    setIsKeyAuthority(found.isKeyAuthority === true);
     // Restore format preference from data if previously saved
     const savedPref = found.data._formatPreference;
     if (
@@ -305,6 +313,18 @@ export default function EditCitation(): JSX.Element {
   }, [citation, formData, shortTitle, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
 
 
+  // COURT-116: the document's List of Authorities layout (court mode only),
+  // which decides the List of Authorities fields shown below.
+  const loaType = useMemo((): LoaType | undefined => {
+    const store = getSharedStoreIfReady();
+    if (!store) return undefined;
+    const config = resolveDocumentConfig(
+      store,
+      getDevicePref("courtToggles") as Record<string, string> | undefined
+    );
+    return config.writingMode === "court" ? config.loaType : undefined;
+  }, [citation, refreshCounter]);
+
   // Load all citations on mount AND when refresh counter changes (new
   // citations inserted, deleted, or settings changed).
   useEffect(() => {
@@ -339,6 +359,8 @@ export default function EditCitation(): JSX.Element {
       setCommentaryBefore("");
       setCommentaryAfter("");
       setOverrideText("");
+      setLoaPart(undefined);
+      setIsKeyAuthority(false);
       setError(null);
       setLoadError(null);
       setSuccessMessage(null);
@@ -656,6 +678,8 @@ export default function EditCitation(): JSX.Element {
     setSignal("");
     setCommentaryBefore("");
     setCommentaryAfter("");
+    setLoaPart(undefined);
+    setIsKeyAuthority(false);
     setError(null);
     setLoadError(null);
     setSuccessMessage(null);
@@ -684,6 +708,8 @@ export default function EditCitation(): JSX.Element {
         commentaryBefore: commentaryBefore || undefined,
         commentaryAfter: commentaryAfter || undefined,
         overrideText: overrideText || undefined,
+        loaPart,
+        isKeyAuthority: isKeyAuthority || undefined,
         tags,
         modifiedAt: new Date().toISOString(),
       };
@@ -708,7 +734,7 @@ export default function EditCitation(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [citation, formData, shortTitle, tags, formatPreference, signal, commentaryBefore, commentaryAfter, overrideText, standardConfig]);
+  }, [citation, formData, shortTitle, tags, formatPreference, signal, commentaryBefore, commentaryAfter, overrideText, loaPart, isKeyAuthority, standardConfig]);
 
   // ─── ENP-005: Record details (history, provenance, links) ────────────────
 
@@ -1083,6 +1109,25 @@ export default function EditCitation(): JSX.Element {
           />
         </label>
       </div>
+
+      {/* COURT-116 / COURT-118: List of Authorities fields for court layouts */}
+      <LoaCitationFields
+        loaType={loaType}
+        sourceType={citation.sourceType}
+        loaPart={loaPart}
+        isKeyAuthority={isKeyAuthority}
+        data={formData}
+        onPartChange={(part) => {
+          setLoaPart(part);
+          setSuccessMessage(null);
+        }}
+        onKeyAuthorityChange={(value) => {
+          setIsKeyAuthority(value);
+          setSuccessMessage(null);
+        }}
+        onDataChange={handleFieldChange}
+        disabled={loading}
+      />
 
       {/* Manual override — bypasses structured formatting */}
       <fieldset className="settings-section">
