@@ -10,6 +10,11 @@
  * partially corrupted stores. The scan is read-only; results are previewed
  * in a table with per-item checkboxes and NOTHING is modified until the
  * user confirms. Fully offline — only the deterministic parser is used.
+ *
+ * COURT-121: Repair asks for a count confirmation of exactly the selected
+ * items before anything is applied, and says that managed adoptions save the
+ * original footnote text to Recovery first. COURT-109: fields and bookmarks
+ * Obiter did not create are listed as preserved; their notes are not offered.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,21 +23,51 @@ import { getSharedStore } from "../../store/singleton";
 import type { CitationStore } from "../../store";
 import { scanDocument, applyScanPlan } from "../../word/documentScanner";
 import type { ApplyOutcome } from "../../word/documentScanner";
-import { buildScanPlan } from "../../word/scanRepair";
-import type { ScanItem, ScanPlan } from "../../word/scanRepair";
+import { buildScanPlan, describePreserved } from "../../word/scanRepair";
+import type { PreservedEntry, ScanItem, ScanPlan } from "../../word/scanRepair";
 import { refreshAllCitationsNow } from "../../word/citationRefresher";
 import { useCitationContext } from "../context/CitationContext";
 import { createLogger } from "../../debug/logger";
 
 const log = createLogger("ScanRepair");
 
-type Phase = "scanning" | "preview" | "applying" | "done" | "error";
+type Phase = "scanning" | "preview" | "confirm" | "applying" | "done" | "error";
 
-/** Human-readable location for a scan item. */
-function describeLocation(item: ScanItem): string {
+/** Human-readable location for a scan item or preserved entry. */
+function describeLocation(item: Pick<ScanItem, "location" | "noteIndex">): string {
   if (item.location === "footnote") return `Footnote ${item.noteIndex}`;
   if (item.location === "endnote") return `Endnote ${item.noteIndex}`;
   return "Body";
+}
+
+/**
+ * COURT-121: the confirmation summary of exactly the selected items, by what
+ * applying them does. Pure — exported for tests.
+ */
+export function summariseSelection(items: readonly ScanItem[]): string[] {
+  const managed = items.filter((i) => i.wrap === "managed").length;
+  const flat = items.filter((i) => i.wrap === "flat").length;
+  const storeOnly = items.filter((i) => i.wrap === "none").length;
+  const lines: string[] = [];
+  if (managed > 0) {
+    lines.push(
+      `${managed} footnote${managed !== 1 ? "s" : ""} converted to managed citations. ` +
+        `The current text is saved to Recovery first, so it can be restored.`
+    );
+  }
+  if (flat > 0) {
+    lines.push(
+      `${flat} note${flat !== 1 ? "s" : ""} linked in place as manual citations. ` +
+        `The text is not changed.`
+    );
+  }
+  if (storeOnly > 0) {
+    lines.push(
+      `${storeOnly} library entr${storeOnly !== 1 ? "ies" : "y"} rebuilt. ` +
+        `The document is not changed.`
+    );
+  }
+  return lines;
 }
 
 /** Section metadata for the preview table. */
@@ -145,6 +180,12 @@ export default function ScanRepair(): JSX.Element {
     [plan]
   );
 
+  // COURT-121: Repair first shows a count confirmation of the selection.
+  const handleRequestApply = useCallback(() => {
+    if (selectedItems.length === 0) return;
+    setPhase("confirm");
+  }, [selectedItems]);
+
   const handleApply = useCallback(async () => {
     if (!storeRef || selectedItems.length === 0) return;
     setPhase("applying");
@@ -252,8 +293,40 @@ export default function ScanRepair(): JSX.Element {
     );
   }
 
+  if (phase === "confirm") {
+    const lines = summariseSelection(selectedItems);
+    return (
+      <div className="library-panel">
+        <h2>Scan &amp; Repair</h2>
+        <h3 style={{ margin: "8px 0 4px", fontSize: "var(--text-sm, 13px)" }}>
+          Repair {selectedItems.length} selected item{selectedItems.length !== 1 ? "s" : ""}?
+        </h3>
+        <ul style={{ paddingLeft: 18, fontSize: "var(--text-min, 12px)" }}>
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <p style={{ fontSize: "var(--text-min, 12px)", color: "var(--colour-text-secondary)" }}>
+          Only the selected items are changed. Items you did not select are left as they are.
+        </p>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button
+            className="library-btn library-btn--insert"
+            onClick={() => void handleApply()}
+          >
+            {`Confirm repair of ${selectedItems.length} item${selectedItems.length !== 1 ? "s" : ""}`}
+          </button>
+          <button className="library-btn" onClick={() => setPhase("preview")}>
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // phase === "preview" | "applying"
   const items = plan?.items ?? [];
+  const preserved: PreservedEntry[] = plan?.preserved ?? [];
   const counts = plan?.counts;
   const applying = phase === "applying";
 
@@ -366,10 +439,53 @@ export default function ScanRepair(): JSX.Element {
         );
       })}
 
+      {preserved.length > 0 && (
+        <section style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: "8px 0 2px", fontSize: "var(--text-sm, 13px)" }}>
+            Preserved ({preserved.length})
+          </h3>
+          <p
+            style={{
+              margin: "0 0 4px",
+              fontSize: "var(--text-min, 12px)",
+              color: "var(--colour-text-secondary)",
+            }}
+          >
+            Fields and bookmarks that Obiter did not create, such as cross-references and
+            entries from other citation tools. They are left exactly as they are, and the
+            notes that hold them are not adopted.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-min, 12px)" }}
+            >
+              <thead>
+                <tr style={{ textAlign: "left" }}>
+                  <th style={{ padding: "2px 4px" }}>Location</th>
+                  <th style={{ padding: "2px 4px" }}>Preserved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preserved.map((entry) => (
+                  <tr key={entry.key} style={{ borderTop: "1px solid var(--colour-border, #ddd)" }}>
+                    <td style={{ padding: "2px 4px", whiteSpace: "nowrap", verticalAlign: "top" }}>
+                      {describeLocation(entry)}
+                    </td>
+                    <td style={{ padding: "2px 4px", verticalAlign: "top" }}>
+                      {describePreserved(entry)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button
           className="library-btn library-btn--insert"
-          onClick={() => void handleApply()}
+          onClick={handleRequestApply}
           disabled={applying || selectedItems.length === 0}
         >
           {applying

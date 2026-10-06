@@ -58,6 +58,20 @@ import {
 import { hashRenderedText } from "../utils/textHash";
 import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
 import { pinpointFromTitleString } from "../engine/rules/v4/general/pinpoints";
+import { queueRevisionProbe, readRevisionProbe } from "./trackChanges";
+import {
+  anyProbeSupported,
+  describeForeignContent,
+  getForeignProbeSupport,
+  hasForeignContent,
+  isObiterNestedControl,
+  queueForeignContentProbe,
+  readForeignContentProbe,
+} from "./foreignContent";
+import type { ForeignContentProbe } from "./foreignContent";
+import { createLogger } from "../debug/logger";
+
+const log = createLogger("CitationRefresher");
 
 /** Tag used for the parent content control wrapping all citations in a footnote. */
 const PARENT_CC_TAG = "obiter-fn";
@@ -82,6 +96,16 @@ export interface UserEditReport {
   currentText: string;
   /** The text Obiter would have rendered. */
   expectedText: string;
+  /**
+   * Why the footnote was skipped. Absent (or "edited") for a manual text
+   * edit (SAFE-002); "foreign-content" when the footnote holds fields,
+   * bookmarks or content controls Obiter did not create (COURT-109), which
+   * a rebuild would delete. Accepting Obiter's version cannot rebuild a
+   * foreign-content footnote: the refresher keeps skipping it.
+   */
+  reason?: "edited" | "foreign-content";
+  /** Plain description of the foreign content (`1 REF field, 1 bookmark`). */
+  foreignContent?: string;
 }
 
 /** A rebuild chunk that failed part-way through a refresh (SAFE-003). */
@@ -104,12 +128,20 @@ export interface RefreshResult {
   userEdits: UserEditReport[];
   /** Rebuild chunks that failed; the rest of the refresh still completed. */
   failures: RefreshFailure[];
+  /**
+   * COURT-108: footnotes skipped because a managed control sits inside a
+   * pending tracked insertion or deletion (1-based numbers). Set only when
+   * at least one footnote was skipped for that reason.
+   */
+  revisionSkips?: number[];
 }
 
 /** Detail payload of the `obiter:refresh-issues` CustomEvent. */
 export interface RefreshIssuesDetail {
   failures: RefreshFailure[];
   userEdits: UserEditReport[];
+  /** COURT-108: footnotes left alone because they hold pending revisions. */
+  revisionSkips?: number[];
 }
 
 /** An empty {@link RefreshResult} (also the manual-mode early return). */
@@ -184,6 +216,18 @@ export interface FootnoteEntry {
   children: ChildEntry[];
   /** Whether this footnote is locked (frozen) — rebuild is skipped. */
   isLocked: boolean;
+  /**
+   * COURT-108: true when the parent or a citation child sits inside a
+   * pending tracked insertion or deletion (WordApi 1.5
+   * `getByChangeTrackingStates`). Such a footnote is never rebuilt.
+   */
+  inRevision?: boolean;
+  /**
+   * COURT-109: every content control nested in the parent, as scanned, so
+   * the refresher can tell Obiter's children from controls another tool or
+   * template put there (a rebuild would delete those).
+   */
+  nestedControls?: ReadonlyArray<{ tag: string; title: string }>;
 }
 
 /** The rendered format of a citation within a footnote. */
@@ -540,7 +584,28 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
       return childCCs;
     }
   );
-  await context.sync();
+  // COURT-108: in the same sync, find the controls of each managed footnote
+  // that sit inside a pending tracked insertion or deletion (WordApi 1.5).
+  // Queued per footnote but resolved by this one sync, so the scan stays at
+  // a constant number of round trips.
+  let revisionProbes = parentCCs.map((parentCC, i) =>
+    parentCC ? queueRevisionProbe(bodyCCs[i]) : undefined
+  );
+  try {
+    await context.sync();
+  } catch (err) {
+    // A host that rejects the probe still gets the scan it had before
+    // COURT-108: re-read the children without it.
+    if (!revisionProbes.some((probe) => probe !== undefined)) throw err;
+    log.warn("Tracked-change state read failed; refreshing without it", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    revisionProbes = parentCCs.map(() => undefined);
+    for (const childCCs of childCCColls) {
+      childCCs?.load("items/tag,items/text,items/title");
+    }
+    await context.sync();
+  }
 
   // Stage 3: assemble entries — pure, no round trips.
   for (let i = 0; i < fnItems.length; i++) {
@@ -569,6 +634,11 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
     }
 
     if (children.length > 0) {
+      const managedTags = new Set<string>([
+        PARENT_CC_TAG,
+        ...children.map((child) => child.citationId),
+      ]);
+      const inRevision = readRevisionProbe(revisionProbes[i], (tag) => managedTags.has(tag));
       footnoteEntries.push({
         parentCC,
         footnoteNumber,
@@ -576,6 +646,11 @@ async function scanFootnotes(context: Word.RequestContext): Promise<FootnoteEntr
         // Lock state lives on the parent CC title (loaded above via
         // items/tag,items/title). A locked footnote is frozen — see below.
         isLocked: isFootnoteLocked(parentCC.title),
+        nestedControls: (childCCs.items ?? []).map((cc) => ({
+          tag: cc.tag ?? "",
+          title: cc.title ?? "",
+        })),
+        ...(inRevision ? { inRevision: true } : {}),
       });
     }
   }
@@ -689,12 +764,34 @@ async function renderAndRebuild(
   // ONE round trip. (Locked footnotes are never rebuilt, so their text is
   // not needed.) Rebuilding one footnote never changes another footnote's
   // text, so reading everything up-front is equivalent to reading lazily.
+  //
+  // COURT-109: the same sync also reads the fields and bookmarks inside each
+  // parent control (WordApi 1.4), so the foreign-content check adds no round
+  // trip. If a host rejects those reads, the batch is re-read without them
+  // and the refresh behaves as it did before COURT-109.
   const unlockedEntries = footnoteEntries.filter((fnEntry) => !fnEntry.isLocked);
+  const foreignProbes = new Map<FootnoteEntry, ForeignContentProbe>();
   if (unlockedEntries.length > 0) {
+    const probeSupport = getForeignProbeSupport();
     for (const fnEntry of unlockedEntries) {
       fnEntry.parentCC.load("text");
+      if (anyProbeSupported(probeSupport)) {
+        foreignProbes.set(fnEntry, queueForeignContentProbe(fnEntry.parentCC, probeSupport));
+      }
     }
-    await context.sync();
+    try {
+      await context.sync();
+    } catch (err) {
+      if (foreignProbes.size === 0) throw err;
+      log.warn("Field and bookmark read failed; refreshing without the foreign-content check", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      foreignProbes.clear();
+      for (const fnEntry of unlockedEntries) {
+        fnEntry.parentCC.load("text");
+      }
+      await context.sync();
+    }
   }
 
   // Phase 2 + 3: pure render in document order, then classify.
@@ -758,10 +855,39 @@ async function renderAndRebuild(
     const existingText = fnEntry.parentCC.text ?? "";
     const storedHash = parseParentTitle(fnEntry.parentCC.title).renderedHash;
 
-    switch (classifyFootnote(existingText, expectedText, storedHash)) {
-      case "unchanged":
-        result.unchanged += rendered.length;
-        break;
+    const classification = classifyFootnote(existingText, expectedText, storedHash);
+    if (classification === "unchanged") {
+      result.unchanged += rendered.length;
+      continue;
+    }
+
+    // COURT-108: a managed control inside a pending tracked insertion or
+    // deletion is skipped and listed, never rebuilt. Rebuilding would stack
+    // a second revision on top of one the user has not yet reviewed.
+    if (fnEntry.inRevision) {
+      (result.revisionSkips ??= []).push(fnEntry.footnoteNumber);
+      continue;
+    }
+
+    // COURT-109: fields, bookmarks or content controls Obiter did not create
+    // inside the parent would be deleted by a rebuild. Skip and report the
+    // footnote as user-edited, whatever its hash says.
+    const foreign = readForeignContentProbe(
+      foreignProbes.get(fnEntry),
+      foreignNestedControls(fnEntry, store)
+    );
+    if (hasForeignContent(foreign)) {
+      result.userEdits.push({
+        footnoteNumber: fnEntry.footnoteNumber,
+        currentText: existingText,
+        expectedText,
+        reason: "foreign-content",
+        foreignContent: describeForeignContent(foreign),
+      });
+      continue;
+    }
+
+    switch (classification) {
       case "user-edited":
         // The user manually edited this footnote — never clobber it.
         result.userEdits.push({
@@ -813,6 +939,25 @@ async function renderAndRebuild(
   result.failures.push(...rebuildOutcome.failures);
 
   return result;
+}
+
+/**
+ * COURT-109: tags of the content controls nested in a managed footnote that
+ * Obiter did not create (an untagged control reads as "untagged"). Pure.
+ *
+ * Exported for tests.
+ */
+export function foreignNestedControls(
+  fnEntry: Pick<FootnoteEntry, "nestedControls">,
+  store: Pick<CitationStore, "getById">
+): string[] {
+  const foreign: string[] = [];
+  for (const cc of fnEntry.nestedControls ?? []) {
+    if (!isObiterNestedControl(cc.tag, cc.title, (id) => store.getById(id) !== undefined)) {
+      foreign.push(cc.tag.length > 0 ? cc.tag : "untagged");
+    }
+  }
+  return foreign;
 }
 
 /**

@@ -140,6 +140,7 @@ describe("ScanRepair view (BUG-004)", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /Include Footnote 2/ }));
 
     fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm repair of 2 items/ }));
 
     await waitFor(() => expect(mockApplyScanPlan).toHaveBeenCalledTimes(1));
     const [storeArg, itemsArg] = mockApplyScanPlan.mock.calls[0] as [
@@ -155,6 +156,7 @@ describe("ScanRepair view (BUG-004)", () => {
     await screen.findByText(/Found 3/);
 
     fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm repair of 2 items/ }));
 
     await screen.findByText("Repair complete.");
     expect(mockRefreshNow).toHaveBeenCalledWith(fakeStore);
@@ -178,9 +180,54 @@ describe("ScanRepair view (BUG-004)", () => {
     renderView();
     await screen.findByText(/Found 3/);
     fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm repair of 2 items/ }));
 
     await screen.findByText(/1 item could not be fully applied/);
     expect(screen.getByText(/not found in the note to link/)).toBeTruthy();
+  });
+
+  test("COURT-121: Repair asks for a count confirmation before anything is applied", async () => {
+    renderView();
+    await screen.findByText(/Found 3/);
+
+    fireEvent.click(screen.getByRole("button", { name: /Repair 2 items/ }));
+
+    // Nothing applied yet: the confirmation lists exactly the selection.
+    expect(mockApplyScanPlan).not.toHaveBeenCalled();
+    expect(screen.getByText(/Repair 2 selected items\?/)).toBeTruthy();
+    expect(screen.getByText(/1 footnote converted to managed citations/)).toBeTruthy();
+    expect(screen.getByText(/saved to Recovery first/)).toBeTruthy();
+    expect(screen.getByText(/1 library entry rebuilt/)).toBeTruthy();
+
+    // Back returns to the preview with the selection intact.
+    fireEvent.click(screen.getByRole("button", { name: /^Back$/ }));
+    expect(screen.getByRole("button", { name: /Repair 2 items/ })).toBeTruthy();
+    expect(mockApplyScanPlan).not.toHaveBeenCalled();
+  });
+
+  test("COURT-109: preserved fields and bookmarks are listed and their notes not offered", async () => {
+    mockScanDocument.mockResolvedValue({
+      bodyControls: [],
+      bodyFields: ["TOA"],
+      notes: [
+        {
+          noteType: "footnote",
+          index: 1,
+          text: "See above [12] and Obeid v The Queen [2017] HCA 44.",
+          controls: [],
+          fields: ["REF", "REF"],
+          bookmarks: ["_Ref123"],
+        },
+      ],
+    });
+    renderView();
+
+    await screen.findByText(/Preserved \(2\)/);
+    expect(screen.getByText("1 TOA field")).toBeTruthy();
+    expect(screen.getByText("2 REF fields, 1 bookmark")).toBeTruthy();
+    // The note with the REF fields is not offered for adoption.
+    expect(screen.queryByRole("checkbox", { name: /Include Footnote 1/ })).toBeNull();
+    expect(screen.getByText(/Found 0/)).toBeTruthy();
   });
 
   test("a document with nothing to repair shows the empty state", async () => {

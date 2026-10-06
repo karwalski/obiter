@@ -318,6 +318,37 @@ describe("Recovery view (SAFE-005)", () => {
     expect(mockTriggerRefresh).toHaveBeenCalled();
   });
 
+  test("COURT-109: a foreign-content footnote explains why and offers no rebuild", async () => {
+    recordRefreshIssues({
+      failures: [],
+      userEdits: [
+        {
+          footnoteNumber: 4,
+          currentText: "Mabo. See above [12].",
+          expectedText: "Mabo.",
+          reason: "foreign-content",
+          foreignContent: "1 REF field, 1 bookmark",
+        },
+      ],
+    });
+
+    render(<Recovery />);
+
+    await screen.findByText(/Manually edited footnotes \(1\)/);
+    expect(screen.getByText(/contains 1 REF field, 1 bookmark that\s+Obiter did not create/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Replace footnote 4 with Obiter's version/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Keep my edit in footnote 4/ })).toBeTruthy();
+  });
+
+  test("COURT-108: footnotes with pending tracked changes are listed", async () => {
+    recordRefreshIssues({ failures: [], userEdits: [], revisionSkips: [2, 5] });
+
+    render(<Recovery />);
+
+    await screen.findByText(/Footnotes with pending tracked changes \(2\)/);
+    expect(screen.getByText(/Footnotes 2, 5 hold tracked changes/)).toBeTruthy();
+  });
+
   test("refresh failures are listed with their footnote numbers", async () => {
     recordRefreshIssues({
       failures: [{ footnoteNumbers: [2, 3], error: "insertHtml failed" }],

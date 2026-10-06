@@ -206,6 +206,9 @@ class FakeStore implements ScanRepairStore {
 
 // ─── Item factory ───────────────────────────────────────────────────────────
 
+/** COURT-121: a snapshot hook that always succeeds (the backup part is not faked here). */
+const okSnapshot = { snapshotNotes: async (): Promise<void> => undefined };
+
 function makeCitation(id: string, overrides: Partial<Citation> = {}): Citation {
   return {
     id,
@@ -305,15 +308,19 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [new FakeNote(body)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "rebuild-1",
-        kind: "rebuild",
-        citationId: "uuid-1",
-        proposedCitation: makeCitation("uuid-1"),
-        wrap: "none",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "rebuild-1",
+          kind: "rebuild",
+          citationId: "uuid-1",
+          proposedCitation: makeCitation("uuid-1"),
+          wrap: "none",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(outcome.rebuiltFromControls).toBe(1);
     expect(outcome.wrappedNotes).toBe(0);
@@ -328,16 +335,20 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [new FakeNote(body)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "adopt-1",
-        kind: "adopt",
-        citationId: "new-id",
-        proposedCitation: makeCitation("new-id"),
-        pinpoint: "42",
-        wrap: "managed",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "adopt-1",
+          kind: "adopt",
+          citationId: "new-id",
+          proposedCitation: makeCitation("new-id"),
+          pinpoint: "42",
+          wrap: "managed",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(outcome.adoptedManaged).toBe(1);
     expect(outcome.wrappedNotes).toBe(1);
@@ -368,21 +379,25 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [new FakeNote(body)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "verbatim-1",
-        kind: "verbatim",
-        citationId: "vb-id",
-        rawText: "Some unparseable note text.",
-        text: "Some unparseable note text",
-        proposedCitation: makeCitation("vb-id", {
-          sourceType: "custom",
-          overrideText: "Some unparseable note text",
-          data: { customText: "Some unparseable note text" },
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "verbatim-1",
+          kind: "verbatim",
+          citationId: "vb-id",
+          rawText: "Some unparseable note text.",
+          text: "Some unparseable note text",
+          proposedCitation: makeCitation("vb-id", {
+            sourceType: "custom",
+            overrideText: "Some unparseable note text",
+            data: { customText: "Some unparseable note text" },
+          }),
+          wrap: "flat",
         }),
-        wrap: "flat",
-      }),
-    ]);
+      ],
+      okSnapshot
+    );
 
     expect(outcome.adoptedVerbatim).toBe(1);
     expect(outcome.wrappedNotes).toBe(1);
@@ -401,19 +416,23 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ endnotes: [new FakeNote(endnoteBody)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "adopt-en-1",
-        kind: "adopt",
-        location: "endnote",
-        noteIndex: 1,
-        citationId: "en-id",
-        rawText: "Obeid v The Queen [2017] HCA 44.",
-        text: "Obeid v The Queen [2017] HCA 44",
-        proposedCitation: makeCitation("en-id"),
-        wrap: "flat",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "adopt-en-1",
+          kind: "adopt",
+          location: "endnote",
+          noteIndex: 1,
+          citationId: "en-id",
+          rawText: "Obeid v The Queen [2017] HCA 44.",
+          text: "Obeid v The Queen [2017] HCA 44",
+          proposedCitation: makeCitation("en-id"),
+          wrap: "flat",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(outcome.wrappedNotes).toBe(1);
     expect(endnoteBody.inPlaceWraps).toHaveLength(1);
@@ -425,16 +444,20 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [new FakeNote(body)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "adopt-miss",
-        kind: "adopt",
-        citationId: "miss-id",
-        rawText: "A v B (2000) 1 CLR 1.",
-        proposedCitation: makeCitation("miss-id"),
-        wrap: "managed",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "adopt-miss",
+          kind: "adopt",
+          citationId: "miss-id",
+          rawText: "A v B (2000) 1 CLR 1.",
+          proposedCitation: makeCitation("miss-id"),
+          wrap: "managed",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(store.getById("miss-id")).toBeDefined();
     expect(outcome.wrappedNotes).toBe(0);
@@ -450,16 +473,20 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [new FakeNote(body)] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "verbatim-long",
-        kind: "verbatim",
-        citationId: "long-id",
-        rawText: longText,
-        proposedCitation: makeCitation("long-id"),
-        wrap: "flat",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "verbatim-long",
+          kind: "verbatim",
+          citationId: "long-id",
+          rawText: longText,
+          proposedCitation: makeCitation("long-id"),
+          wrap: "flat",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(store.getById("long-id")).toBeDefined();
     expect(outcome.failures).toHaveLength(1);
@@ -472,15 +499,19 @@ describe("applyScanPlan (BUG-004)", () => {
     const store = new FakeStore();
     await store.add(makeCitation("uuid-1"));
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({
-        key: "rebuild-dup",
-        kind: "rebuild",
-        citationId: "uuid-1",
-        proposedCitation: makeCitation("uuid-1"),
-        wrap: "none",
-      }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "rebuild-dup",
+          kind: "rebuild",
+          citationId: "uuid-1",
+          proposedCitation: makeCitation("uuid-1"),
+          wrap: "none",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(outcome.failures).toEqual([]);
     expect(outcome.rebuiltFromControls).toBe(1);
@@ -491,9 +522,11 @@ describe("applyScanPlan (BUG-004)", () => {
     installFakeWord({ footnotes: [] });
     const store = new FakeStore();
 
-    const outcome = await applyScanPlan(store, [
-      makeItem({ key: "linked-1", kind: "linked", wrap: "none" }),
-    ]);
+    const outcome = await applyScanPlan(
+      store,
+      [makeItem({ key: "linked-1", kind: "linked", wrap: "none" })],
+      okSnapshot
+    );
 
     expect(outcome).toEqual({
       rebuiltFromControls: 0,
@@ -514,15 +547,19 @@ describe("applyScanPlan (BUG-004)", () => {
     const store = new FakeStore();
     expect(store.getCcModel()).toBeUndefined();
 
-    await applyScanPlan(store, [
-      makeItem({
-        key: "adopt-1",
-        kind: "adopt",
-        citationId: "new-id",
-        proposedCitation: makeCitation("new-id"),
-        wrap: "managed",
-      }),
-    ]);
+    await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "adopt-1",
+          kind: "adopt",
+          citationId: "new-id",
+          proposedCitation: makeCitation("new-id"),
+          wrap: "managed",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(store.getCcModel()).toBe("parent-child");
   });
@@ -534,15 +571,19 @@ describe("applyScanPlan (BUG-004)", () => {
     store.ccModel = "flat";
     const setSpy = jest.spyOn(store, "setCcModel");
 
-    await applyScanPlan(store, [
-      makeItem({
-        key: "adopt-1",
-        kind: "adopt",
-        citationId: "new-id",
-        proposedCitation: makeCitation("new-id"),
-        wrap: "managed",
-      }),
-    ]);
+    await applyScanPlan(
+      store,
+      [
+        makeItem({
+          key: "adopt-1",
+          kind: "adopt",
+          citationId: "new-id",
+          proposedCitation: makeCitation("new-id"),
+          wrap: "managed",
+        }),
+      ],
+      okSnapshot
+    );
 
     expect(setSpy).not.toHaveBeenCalled();
     expect(store.ccModel).toBe("flat");

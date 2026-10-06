@@ -110,6 +110,14 @@ export function StatusProvider({ children }: { children: ReactNode }): JSX.Eleme
         const failedCount = detail.failures.reduce((n, f) => n + f.footnoteNumbers.length, 0);
         parts.push(`${failedCount} footnote${failedCount !== 1 ? "s" : ""} failed to rebuild`);
       }
+      // COURT-108: footnotes holding pending tracked changes are never rebuilt.
+      const revisionCount = detail.revisionSkips?.length ?? 0;
+      if (revisionCount > 0) {
+        parts.push(
+          `${revisionCount} footnote${revisionCount !== 1 ? "s" : ""} with pending tracked ` +
+            `changes ${revisionCount !== 1 ? "were" : "was"} left unchanged`
+        );
+      }
       if (parts.length > 0) {
         announce(
           `Refresh finished with issues: ${parts.join(" and ")}. ` +

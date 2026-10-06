@@ -50,6 +50,10 @@ Columns: **Win M365**, **Win LTSC 2024**, **Mac**, **Web**, **iPad**. "Set" is t
 | Heading levels I–V (style plus direct formatting) | WordApi 1.1 / 1.3 | documented | documented | documented | tested (Obiter 1.14.1; build not recorded) 2026-07-07, Level I only | documented |
 | Set small capitals through the API (`Font.smallCaps`) | WordApiDesktop 1.3 | documented | unsupported | documented | unsupported | unsupported |
 | Click a citation to edit (selection events) | Common DocumentEvents | documented | documented | documented | tested (Obiter 1.14.1; build not recorded) 2026-07-07 | documented |
+| Read fields and bookmarks inside managed footnotes and notes (COURT-109) | WordApi 1.4 | documented | documented | documented | documented | documented |
+| Read Track Changes mode before automatic refresh (COURT-108) | WordApi 1.4 | documented | documented | documented | documented | documented |
+| Find managed controls in pending revisions (`getByChangeTrackingStates`, COURT-108) | WordApi 1.5 | documented | documented | documented | documented | documented |
+| Count pending revisions in managed footnotes, read-only (`getTrackedChanges`, COURT-108) | WordApi 1.6 | documented | documented | documented | documented | documented |
 | Scan and Repair | WordApi 1.1–1.5 | documented | documented | documented | tested (Obiter 1.14.1; build not recorded) 2026-07-07, healthy document only | documented |
 
 Small capitals: this row is about setting the attribute through the API, which Microsoft documents only in WordApiDesktop 1.3 (R08 §3.7). Obiter still sets it on every client; Word on the web ignores it rather than throwing (web passes in the device test log). How each client displays small capitals stored in a document is a separate question and has not been tested; see the Word for the web note on the website's documentation page.
@@ -58,12 +62,10 @@ Small capitals: this row is about setting the attribute through the API, which M
 
 | Capability | Set | Win M365 | Win LTSC 2024 | Mac | Web | iPad |
 |---|---|---|---|---|---|---|
-| Read fields (REF, NOTEREF, TA, ADDIN) | WordApi 1.4 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
 | Write or update fields (`insertField`, `updateResult`) | WordApi 1.5 plus `fieldsWritable` probe | documented, not used | documented, not used | documented, not used | unsupported (MS-4) | unsupported (MS-4) |
-| Bookmarks | WordApi 1.4 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
+| Bookmarks: insert or resolve | WordApi 1.4 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
 | Comments | WordApi 1.4 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
-| Track Changes mode (`changeTrackingMode`) | WordApi 1.4 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
-| Read, accept or reject tracked changes | WordApi 1.6 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
+| Accept or reject tracked changes | WordApi 1.6 | not used by design (COURT-108) | not used by design (COURT-108) | not used by design (COURT-108) | not used by design (COURT-108) | not used by design (COURT-108) |
 | Paragraph events with local or remote source | WordApi 1.6 | documented, not used | documented, not used | documented, not used | documented, not used | documented, not used |
 | List templates linked to styles (inspect) | WordApiDesktop 1.1 | documented, not used | documented, not used | documented, not used | unsupported | documented, not used |
 | Native table of authorities | WordApiDesktop 1.4 | documented, not used | unsupported | documented, not used | unsupported | unsupported |
@@ -79,6 +81,12 @@ Small capitals: this row is about setting the attribute through the API, which M
 - probes WordApi 1.1–1.9, WordApiDesktop 1.1–1.5 and WordApiHiddenDocument 1.3–1.5;
 - records `Office.context.diagnostics` platform and build;
 - keeps `fieldsWritable` as a separate behaviour flag: true only on Windows or Mac **and** after a guarded probe succeeds. It is never inferred from `isSetSupported`.
+
+### Track Changes, fields and bookmarks (COURT-108, COURT-109, COURT-121)
+
+- **Track Changes.** Office.js writes are recorded as revisions whenever Track Changes is on; an add-in cannot write around it. Before each automatic refresh Obiter reads `Document.changeTrackingMode`. While it is `TrackAll` or `TrackMineOnly`, automatic refresh pauses and the pane shows "Track Changes is on: refresh will be recorded as revisions" with **Refresh now** (one refresh, recorded as revisions) and **Keep paused** (the banner stays hidden until Track Changes is turned off). Refresh All, and the refresh that follows inserting or editing a citation, are explicit actions and run as before; Word records their changes as revisions. A managed footnote whose controls sit inside a pending tracked insertion or deletion is never rebuilt: refresh skips it and Recovery lists it. On WordApi 1.6 the banner shows the number of pending revisions in managed footnotes. Obiter never accepts or rejects a revision. Below WordApi 1.4 the mode cannot be read and refresh behaves as before.
+- **Fields, bookmarks and other controls.** Obiter creates no fields and no bookmarks. Before rebuilding a footnote, refresh reads the fields and bookmarks inside its managed control (in the same batch as the text it already reads) and checks the controls nested in it. Any field, any bookmark other than Word's own `_GoBack` and `_Hlk…` markers, or any nested control that is not Obiter's makes the footnote "user-edited": it is skipped and listed in Recovery with the reason, and "Use Obiter's version" is not offered. Obiter never updates, deletes or rewrites a field, and never edits docVars, custom XML parts outside its own namespaces, or controls it did not tag. If a host rejects the field or bookmark reads, refresh falls back to its earlier behaviour.
+- **Scan and Repair.** The scan lists fields (by type: ADDIN, CITATION, TA, TOA, REF, NOTEREF and others) and bookmarks as "Preserved"; notes that hold them are not offered for adoption. Before a managed adoption replaces a footnote's text, the original text is saved to the footnote history in the backup part; if that save fails the adoption is not made. **Recovery > Footnote history** can restore the original. Candidate text is normalised before parsing (non-breaking and other special spaces, zero-width characters, optional hyphens, Word's note and field marks), quotations are offered but not pre-selected, and Repair asks for a count confirmation of the selected items.
 
 To include the snapshot in an issue report, open **Settings > About > Show Word API capabilities** and copy the text. With debug logging on, the snapshot is also written to the debug log when the task pane opens.
 

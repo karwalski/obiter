@@ -84,6 +84,12 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     version: "1.5",
     description: "Document.addStyle() and getStyles() for named AGLC4 styles",
   },
+  changeTrackingStates: {
+    apiSet: "WordApi",
+    version: "1.5",
+    description:
+      "ContentControlCollection.getByChangeTrackingStates (controls inside pending revisions)",
+  },
 
   // WordApi 1.6 — R08 §3.6
   trackedChanges: {

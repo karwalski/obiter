@@ -25,6 +25,17 @@
  *
  * Nothing in this module touches the document: the plan is previewed in the
  * UI and only the user-selected items are applied by `documentScanner.ts`.
+ *
+ * COURT-109: a note holding fields or bookmarks Obiter did not create (REF,
+ * NOTEREF, TA, TOA, ADDIN, CITATION… and `_Ref` targets) is never adopted —
+ * adoption replaces or wraps the note text, which could delete or move them.
+ * Such notes, and fields in the body, are listed as "preserved" instead.
+ *
+ * COURT-121: candidate text is normalised before parsing (non-breaking and
+ * other special spaces, zero-width characters, optional hyphens and Word's
+ * field and note marks), and Word reports text across split runs as one
+ * string, so a case name italicised in several runs still parses. Notes
+ * containing quotation marks are offered but not pre-selected.
  */
 
 import type { Citation, SourceType, SourceData } from "../types/citation";
@@ -53,6 +64,13 @@ export interface ScannedNote {
   text: string;
   /** All content controls inside the note. */
   controls: ScannedControl[];
+  /**
+   * COURT-109: field type keywords found in the note (`REF`, `ADDIN`…), one
+   * per field. Absent when the host cannot read fields or there are none.
+   */
+  fields?: string[];
+  /** COURT-109: bookmark names in the note (Word's own `_GoBack` and `_Hlk…` excluded). */
+  bookmarks?: string[];
 }
 
 /** Read-only capture of everything Scan & Repair inspects. */
@@ -60,6 +78,8 @@ export interface DocumentScanSnapshot {
   /** Content controls in the main document body (outside notes). */
   bodyControls: ScannedControl[];
   notes: ScannedNote[];
+  /** COURT-109: field type keywords in the main body, one per field. */
+  bodyFields?: string[];
 }
 
 // ─── Plan types ──────────────────────────────────────────────────────────────
@@ -118,9 +138,27 @@ export interface ScanCounts {
   verbatim: number;
 }
 
+/**
+ * COURT-109: fields and bookmarks Scan & Repair found and left alone. The
+ * notes that hold them are excluded from adoption.
+ */
+export interface PreservedEntry {
+  /** Stable key for rendering. */
+  key: string;
+  location: ScanLocation;
+  /** 1-based note index (notes only). */
+  noteIndex?: number;
+  /** Field types with counts, eg `{ REF: 2, NOTEREF: 1 }`. */
+  fieldTypes: Record<string, number>;
+  /** Number of bookmarks (notes only). */
+  bookmarkCount: number;
+}
+
 export interface ScanPlan {
   items: ScanItem[];
   counts: ScanCounts;
+  /** COURT-109: preserved fields and bookmarks; absent when none were found. */
+  preserved?: PreservedEntry[];
 }
 
 export interface ScanPlanOptions {
@@ -134,10 +172,51 @@ export interface ScanPlanOptions {
 
 // ─── Text helpers ────────────────────────────────────────────────────────────
 
+/**
+ * Characters Word reports in note text that are not part of the citation:
+ * zero-width spaces and joiners, the byte-order mark, the optional (soft)
+ * hyphen, and the control characters Word uses for note reference marks,
+ * field delimiters and comment anchors (U+0001–U+0008, U+000E–U+001F).
+ * Tab, line feed and carriage return are whitespace and are collapsed below.
+ * Word's non-breaking hyphen (U+001E in range text, U+2011 in Unicode) is
+ * read as an ordinary hyphen first, so hyphenated words keep their hyphen.
+ */
+// eslint-disable-next-line no-control-regex -- matching Word's control marks is the point
+const INVISIBLE_RE = /[\u0001-\u0008\u000e-\u001f\u00ad\u200b-\u200d\u2060\ufeff]/g;
+
+/**
+ * COURT-121: normalise candidate citation text before parsing. Removes the
+ * invisible characters above and collapses every whitespace run — including
+ * non-breaking (U+00A0), narrow non-breaking (U+202F) and figure (U+2007)
+ * spaces, which `\s` covers — to one plain space (O-C9: up to 304 NBSPs in
+ * one FCA judgment body). Pure — exported for tests.
+ */
+export function normaliseCandidateText(text: string): string {
+  return (
+    text
+      // eslint-disable-next-line no-control-regex -- Word's non-breaking hyphen mark
+      .replace(/[\u001e\u2011]/g, "-")
+      .replace(INVISIBLE_RE, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
 /** Collapse all whitespace runs (Word line breaks, nbsp) to single spaces. */
 function collapseWhitespace(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  return normaliseCandidateText(text);
 }
+
+/**
+ * Quotation marks. AGLC4 r 1.5.1 runs short quotations in single quotation
+ * marks (double inside them), so a note with an opening single mark, or any
+ * double mark, is a quotation or prose, not a bare citation, and is never
+ * pre-selected for adoption (COURT-121). A closing single mark is not
+ * counted: it is also the apostrophe in case names (`Re Smith’s Will`). A
+ * straight single mark counts only where it opens a word (after the start,
+ * a space or an opening bracket), so `Hungry Jack's` is not a quotation.
+ */
+const QUOTATION_RE = /[‘“”"]|(?:^|[\s([])'/;
 
 /** Strip a single trailing full stop (the footnote closer, Rule 1.1.4). */
 function stripClosingStop(text: string): string {
@@ -411,12 +490,46 @@ export function buildScanPlan(
     }
   }
 
+  // ── COURT-109: preserved fields and bookmarks ─────────────────────────────
+  const preserved: PreservedEntry[] = [];
+  const tally = (types: readonly string[] | undefined): Record<string, number> => {
+    const counts: Record<string, number> = {};
+    for (const type of types ?? []) counts[type] = (counts[type] ?? 0) + 1;
+    return counts;
+  };
+  if ((snapshot.bodyFields ?? []).length > 0) {
+    preserved.push({
+      key: "preserved-body",
+      location: "body",
+      fieldTypes: tally(snapshot.bodyFields),
+      bookmarkCount: 0,
+    });
+  }
+  /** Notes holding foreign fields or bookmarks: never adopted. */
+  const excludedNotes = new Set<ScannedNote>();
+  for (const note of snapshot.notes) {
+    const fieldCount = (note.fields ?? []).length;
+    const bookmarkCount = (note.bookmarks ?? []).length;
+    if (fieldCount === 0 && bookmarkCount === 0) continue;
+    excludedNotes.add(note);
+    preserved.push({
+      key: `preserved-${note.noteType}-${note.index}`,
+      location: note.noteType,
+      noteIndex: note.index,
+      fieldTypes: tally(note.fields),
+      bookmarkCount,
+    });
+  }
+
   // ── Pass B: plain-text notes (no Obiter controls at all) ─────────────────
   for (const note of snapshot.notes) {
     const hasObiterStructure = note.controls.some(
       (c) => c.tag === PARENT_CC_TAG || isCitationTag(c.tag)
     );
     if (hasObiterStructure) continue;
+    // COURT-109: adopting would replace or wrap text around fields or
+    // bookmarks Obiter does not own. The note is listed as preserved.
+    if (excludedNotes.has(note)) continue;
 
     const rawText = note.text.trim();
     if (collapseWhitespace(rawText).length === 0) continue;
@@ -441,7 +554,8 @@ export function buildScanPlan(
         proposedCitation: proposal.citation,
         ...(proposal.pinpoint ? { pinpoint: proposal.pinpoint } : {}),
         selectable: true,
-        defaultSelected: true,
+        // COURT-121: a quotation is offered but never pre-selected.
+        defaultSelected: !QUOTATION_RE.test(rawText),
         // Managed conversion is only meaningful where the refresher formats
         // (footnotes). Endnotes keep their text via an in-place flat wrap.
         wrap: note.noteType === "footnote" ? "managed" : "flat",
@@ -473,5 +587,19 @@ export function buildScanPlan(
     verbatim: items.filter((i) => i.kind === "verbatim").length,
   };
 
-  return { items, counts };
+  return preserved.length > 0 ? { items, counts, preserved } : { items, counts };
+}
+
+/**
+ * Plain description of a preserved entry's contents (`2 REF fields,
+ * 1 bookmark`). Pure — exported for the preview and tests.
+ */
+export function describePreserved(entry: PreservedEntry): string {
+  const parts = Object.entries(entry.fieldTypes).map(
+    ([type, n]) => `${n} ${type === "Field" ? "" : `${type} `}field${n !== 1 ? "s" : ""}`
+  );
+  if (entry.bookmarkCount > 0) {
+    parts.push(`${entry.bookmarkCount} bookmark${entry.bookmarkCount !== 1 ? "s" : ""}`);
+  }
+  return parts.join(", ");
 }

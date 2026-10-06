@@ -452,6 +452,7 @@ export default function Recovery(): JSX.Element {
 
   const userEdits = issues.userEdits;
   const failures = issues.failures;
+  const revisionSkips = issues.revisionSkips ?? [];
 
   return (
     <div className="library-panel">
@@ -589,6 +590,15 @@ export default function Recovery(): JSX.Element {
             <div style={{ margin: "2px 0 0 8px" }}>
               Obiter&apos;s version: <TruncatedText text={edit.expectedText} />
             </div>
+            {/* COURT-109: content from another tool or template would be lost
+                in a rebuild, so Obiter's version is not offered. */}
+            {edit.reason === "foreign-content" && (
+              <div style={{ margin: "2px 0 0 8px" }}>
+                Left unchanged because it contains {edit.foreignContent ?? "content"} that
+                Obiter did not create. Obiter does not rebuild this footnote; edit it in
+                Word or keep it as it is.
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
               <button
                 type="button"
@@ -599,18 +609,36 @@ export default function Recovery(): JSX.Element {
               >
                 {busy === `keep-${edit.footnoteNumber}` ? "Locking..." : "Keep my edit"}
               </button>
-              <button
-                type="button"
-                className="library-btn"
-                disabled={busy !== null || !store}
-                onClick={() => void handleUseObiterVersion(edit.footnoteNumber)}
-                aria-label={`Replace footnote ${edit.footnoteNumber} with Obiter's version`}
-              >
-                {busy === `accept-${edit.footnoteNumber}` ? "Rebuilding..." : "Use Obiter's version"}
-              </button>
+              {edit.reason !== "foreign-content" && (
+                <button
+                  type="button"
+                  className="library-btn"
+                  disabled={busy !== null || !store}
+                  onClick={() => void handleUseObiterVersion(edit.footnoteNumber)}
+                  aria-label={`Replace footnote ${edit.footnoteNumber} with Obiter's version`}
+                >
+                  {busy === `accept-${edit.footnoteNumber}`
+                    ? "Rebuilding..."
+                    : "Use Obiter's version"}
+                </button>
+              )}
             </div>
           </div>
         ))}
+        {revisionSkips.length > 0 && (
+          <div role="status" style={{ marginTop: 8 }}>
+            <strong style={{ fontSize: "var(--text-min, 12px)" }}>
+              Footnotes with pending tracked changes ({revisionSkips.length})
+            </strong>
+            <p style={sectionNoteStyle}>
+              Footnote{revisionSkips.length !== 1 ? "s" : ""} {revisionSkips.join(", ")}{" "}
+              {revisionSkips.length !== 1 ? "hold" : "holds"} tracked changes that have not
+              been accepted or rejected, so refresh left{" "}
+              {revisionSkips.length !== 1 ? "them" : "it"} unchanged. Review the changes in
+              Word (Review &gt; Accept or Reject), then run Refresh All.
+            </p>
+          </div>
+        )}
         {failures.length > 0 && (
           <div role="alert" style={{ marginTop: 8 }}>
             <strong style={{ fontSize: "var(--text-min, 12px)" }}>

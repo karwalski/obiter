@@ -42,13 +42,20 @@ export function recordRefreshIssues(detail: RefreshIssuesDetail): void {
   latest = {
     failures: [...detail.failures],
     userEdits: [...detail.userEdits],
+    ...(detail.revisionSkips && detail.revisionSkips.length > 0
+      ? { revisionSkips: [...detail.revisionSkips] }
+      : {}),
   };
   notifySubscribers();
 }
 
 /** The latest recorded refresh issues (empty lists when none). */
 export function getRefreshIssues(): RefreshIssuesDetail {
-  return { failures: [...latest.failures], userEdits: [...latest.userEdits] };
+  return {
+    failures: [...latest.failures],
+    userEdits: [...latest.userEdits],
+    ...(latest.revisionSkips ? { revisionSkips: [...latest.revisionSkips] } : {}),
+  };
 }
 
 /**

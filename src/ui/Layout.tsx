@@ -28,6 +28,7 @@ import {
 import CorpusDownloadBanner from "./components/CorpusDownloadBanner";
 import ErrorReporter from "./components/ErrorReporter";
 import StatusLog from "./components/StatusLog";
+import TrackChangesBanner from "./components/TrackChangesBanner";
 import { useStatus } from "./context/StatusContext";
 import { useComfortMode } from "./hooks/useComfortMode";
 import CommandPalette, { type PaletteCommand } from "./components/CommandPalette";
@@ -167,12 +168,17 @@ export default function Layout(): JSX.Element {
       // count as "already current" (they are intentionally left as they read).
       const current = result.unchanged + result.lockedSkipped;
       const total = result.updated + current;
-      if (result.failures.length > 0 || result.userEdits.length > 0) {
+      // COURT-108: footnotes holding pending tracked changes are never rebuilt.
+      const revisionSkipCount = result.revisionSkips?.length ?? 0;
+      if (result.failures.length > 0 || result.userEdits.length > 0 || revisionSkipCount > 0) {
         const failedCount = result.failures.reduce((n, f) => n + f.footnoteNumbers.length, 0);
         const parts: string[] = [`Footnotes refreshed: ${result.updated} updated`];
         if (failedCount > 0) parts.push(`${failedCount} failed`);
         if (result.userEdits.length > 0) {
           parts.push(`${result.userEdits.length} manually edited (skipped)`);
+        }
+        if (revisionSkipCount > 0) {
+          parts.push(`${revisionSkipCount} with pending tracked changes (skipped)`);
         }
         announce(`${parts.join(", ")}.`, "error");
       } else {
@@ -349,6 +355,12 @@ export default function Layout(): JSX.Element {
             Open Settings
           </button>
         </div>
+      )}
+      {!manualMode && (
+        <TrackChangesBanner
+          refreshing={refreshing}
+          onRefreshNow={() => void handleRefreshAll()}
+        />
       )}
       <nav className="obiter-nav" role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (

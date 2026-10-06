@@ -12,6 +12,14 @@ import type { RefreshIssuesDetail } from "../../word/citationRefresher";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
 import { createLogger } from "../../debug/logger";
+import { isFeatureAvailable } from "../../word/apiCompat";
+import {
+  readChangeTrackingMode,
+  isTrackingOn,
+  countPendingRevisionsInManagedFootnotes,
+} from "../../word/trackChanges";
+import { PARENT_CC_TAG } from "../../word/footnoteManager";
+import { getTrackChangesGate, recordTrackingMode } from "../trackChangesGate";
 
 const log = createLogger("CitationContext");
 
@@ -93,19 +101,44 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     try {
       run = Word.run(async (context) => {
         try {
+          // COURT-108: read Track Changes before any automatic refresh. With
+          // it on, every rebuild would be recorded as a revision, so pause
+          // and let the banner offer "Refresh now" or "Keep paused". One
+          // extra sync per refresh (two more, once, to count revisions on
+          // WordApi 1.6+), never one per footnote. A host without WordApi
+          // 1.4 skips the read entirely and refreshes as before.
+          if (isFeatureAvailable("changeTrackingMode")) {
+            const mode = await readChangeTrackingMode(context);
+            if (isTrackingOn(mode)) {
+              const pending = getTrackChangesGate().paused
+                ? undefined
+                : await countPendingRevisionsInManagedFootnotes(context, PARENT_CC_TAG);
+              recordTrackingMode(mode, pending);
+              log.info("Automatic refresh paused: Track Changes is on", { mode });
+              return;
+            }
+            recordTrackingMode(mode);
+          }
           const store = await getSharedStore();
           const result = await refreshAllCitations(context, store);
           // SAFE-003: surface partial failures and detected user edits
           // instead of silently swallowing them. The Status/Recovery UI
           // listens for `obiter:refresh-issues`.
-          if (result.failures.length > 0 || result.userEdits.length > 0) {
+          const revisionSkips = result.revisionSkips ?? [];
+          if (
+            result.failures.length > 0 ||
+            result.userEdits.length > 0 ||
+            revisionSkips.length > 0
+          ) {
             log.warn("Auto-refresh completed with issues", {
               failures: result.failures,
               userEditedFootnotes: result.userEdits.map((edit) => edit.footnoteNumber),
+              revisionSkips,
             });
             const detail: RefreshIssuesDetail = {
               failures: result.failures,
               userEdits: result.userEdits,
+              ...(revisionSkips.length > 0 ? { revisionSkips } : {}),
             };
             window.dispatchEvent(new CustomEvent("obiter:refresh-issues", { detail }));
           }

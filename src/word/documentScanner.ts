@@ -20,6 +20,16 @@
  *     batched the same way (one search sync + one wrap sync).
  *
  * All APIs stay within the WordApi 1.5 baseline.
+ *
+ * COURT-109: the capture also reads fields and bookmarks (WordApi 1.4,
+ * behind runtime checks) in the same two syncs, so notes holding content
+ * Obiter does not own are listed as preserved and never adopted.
+ *
+ * COURT-121: a managed adoption first saves each note's original text to the
+ * footnote history in the backup part (the SAFE-004 snapshot), and aborts
+ * that adoption if the save fails; Recovery can restore the original. The
+ * search text is encoded for Word's search syntax so non-breaking spaces
+ * and a literal caret match.
  */
 
 /* global Word */
@@ -27,7 +37,16 @@
 import { PARENT_CC_TAG, PARENT_CC_TITLE, buildOccurrenceTitle } from "./footnoteManager";
 import type { DocumentScanSnapshot, ScannedControl, ScannedNote, ScanItem } from "./scanRepair";
 import type { Citation } from "../types/citation";
+import type { RebuildCandidate } from "./citationRefresher";
 import { createLogger } from "../debug/logger";
+import { snapshotFootnotesBeforeRebuild } from "./footnoteBackup";
+import {
+  anyProbeSupported,
+  getForeignProbeSupport,
+  queueForeignContentProbe,
+  readForeignContentProbe,
+} from "./foreignContent";
+import type { ForeignContentProbe, ForeignProbeSupport } from "./foreignContent";
 
 const log = createLogger("ScanRepair");
 
@@ -49,6 +68,45 @@ export interface ScanRepairStore {
 
 // ─── Snapshot capture (read-only) ───────────────────────────────────────────
 
+/**
+ * COURT-121: encode text for `Range.search`. Word's search syntax treats `^`
+ * as an escape, so a literal caret is `^^`; a non-breaking space is `^s`
+ * and an optional (soft) hyphen `^-` (Word search special characters,
+ * Microsoft Learn "Find and replace text" / Word search options). Other
+ * characters pass through unchanged. Pure — exported for tests.
+ */
+export function toWordSearchText(text: string): string {
+  return text
+    .replace(/\^/g, "^^")
+    .replace(/\u00a0/g, "^s")
+    .replace(/\u00ad/g, "^-");
+}
+
+/**
+ * Syncs `context`; if the batch fails while foreign-content probes are
+ * queued, re-queues `requeue` without the probes and syncs again, so a host
+ * that rejects field or bookmark reads still gets a scan (COURT-109).
+ * Returns false when the probes had to be dropped.
+ */
+async function syncWithProbeFallback(
+  context: Word.RequestContext,
+  hadProbes: boolean,
+  requeue: () => void
+): Promise<boolean> {
+  try {
+    await context.sync();
+    return true;
+  } catch (err) {
+    if (!hadProbes) throw err;
+    log.warn("scanRepair: field and bookmark read failed; scanning without it", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    requeue();
+    await context.sync();
+    return false;
+  }
+}
+
 /** Load a note collection's items, tolerating hosts without endnote support. */
 function tryLoadNotes(collection: Word.NoteItemCollection | undefined): boolean {
   if (!collection || typeof collection.load !== "function") return false;
@@ -68,12 +126,18 @@ export async function captureDocumentSnapshot(
   context: Word.RequestContext
 ): Promise<DocumentScanSnapshot> {
   const body = context.document.body;
+  const support: ForeignProbeSupport = getForeignProbeSupport();
 
   const bodyControls = body.contentControls;
   bodyControls.load("items/tag,items/title,items/text");
 
+  // COURT-109: fields in the main body (TA, TOA, REF…), listed as preserved.
+  let bodyProbe: ForeignContentProbe | undefined = support.fields
+    ? queueForeignContentProbe(body, { fields: true, bookmarks: false })
+    : undefined;
+
   const footnotes = body.footnotes;
-  const footnotesLoaded = tryLoadNotes(footnotes);
+  let footnotesLoaded = tryLoadNotes(footnotes);
 
   let endnotes: Word.NoteItemCollection | undefined;
   try {
@@ -81,15 +145,21 @@ export async function captureDocumentSnapshot(
   } catch {
     endnotes = undefined;
   }
-  const endnotesLoaded = tryLoadNotes(endnotes);
+  let endnotesLoaded = tryLoadNotes(endnotes);
 
-  await context.sync();
+  const bodyProbeKept = await syncWithProbeFallback(context, bodyProbe !== undefined, () => {
+    bodyControls.load("items/tag,items/title,items/text");
+    footnotesLoaded = tryLoadNotes(footnotes);
+    endnotesLoaded = tryLoadNotes(endnotes);
+  });
+  if (!bodyProbeKept) bodyProbe = undefined;
 
   interface PendingNote {
     noteType: "footnote" | "endnote";
     index: number;
     body: Word.Body;
     controls: Word.ContentControlCollection;
+    probe?: ForeignContentProbe;
   }
 
   const pending: PendingNote[] = [];
@@ -106,16 +176,32 @@ export async function captureDocumentSnapshot(
       noteBody.load("text");
       const controls = noteBody.contentControls;
       controls.load("items/tag,items/title,items/text");
-      pending.push({ noteType, index: i + 1, body: noteBody, controls });
+      const probe = anyProbeSupported(support)
+        ? queueForeignContentProbe(noteBody, support)
+        : undefined;
+      pending.push({ noteType, index: i + 1, body: noteBody, controls, probe });
     }
   };
 
   queueNotes(footnotes, footnotesLoaded, "footnote");
   queueNotes(endnotes, endnotesLoaded, "endnote");
 
-  // ONE sync covers every note body and control collection queued above.
+  // ONE sync covers every note body and control collection queued above
+  // (plus the COURT-109 field and bookmark reads, when supported).
   if (pending.length > 0) {
-    await context.sync();
+    const kept = await syncWithProbeFallback(
+      context,
+      pending.some((p) => p.probe !== undefined),
+      () => {
+        for (const p of pending) {
+          p.body.load("text");
+          p.controls.load("items/tag,items/title,items/text");
+        }
+      }
+    );
+    if (!kept) {
+      for (const p of pending) p.probe = undefined;
+    }
   }
 
   const toScannedControls = (collection: Word.ContentControlCollection): ScannedControl[] =>
@@ -125,16 +211,24 @@ export async function captureDocumentSnapshot(
       text: cc.text ?? "",
     }));
 
-  const notes: ScannedNote[] = pending.map((p) => ({
-    noteType: p.noteType,
-    index: p.index,
-    text: p.body.text ?? "",
-    controls: toScannedControls(p.controls),
-  }));
+  const notes: ScannedNote[] = pending.map((p) => {
+    const found = p.probe ? readForeignContentProbe(p.probe) : undefined;
+    return {
+      noteType: p.noteType,
+      index: p.index,
+      text: p.body.text ?? "",
+      controls: toScannedControls(p.controls),
+      ...(found && found.fieldTypes.length > 0 ? { fields: found.fieldTypes } : {}),
+      ...(found && found.bookmarks.length > 0 ? { bookmarks: found.bookmarks } : {}),
+    };
+  });
+
+  const bodyFields = bodyProbe ? readForeignContentProbe(bodyProbe).fieldTypes : [];
 
   return {
     bodyControls: toScannedControls(bodyControls),
     notes,
+    ...(bodyFields.length > 0 ? { bodyFields } : {}),
   };
 }
 
@@ -159,6 +253,22 @@ export interface ApplyOutcome {
   failures: { key: string; reason: string }[];
 }
 
+/** Options for {@link applyScanPlan}. */
+export interface ApplyScanOptions {
+  /**
+   * COURT-121: saves the original text of the footnotes a managed adoption
+   * is about to replace. Defaults to the SAFE-004 footnote-history snapshot
+   * in the backup part (`snapshotFootnotesBeforeRebuild`), so the Recovery
+   * view can restore it. If it throws, the managed adoptions are not made.
+   */
+  snapshotNotes?: (entries: RebuildCandidate[]) => Promise<void>;
+}
+
+/** The default COURT-121 snapshot: one footnote-history generation. */
+async function defaultSnapshotNotes(entries: RebuildCandidate[]): Promise<void> {
+  await Word.run((context) => snapshotFootnotesBeforeRebuild(context, entries));
+}
+
 /**
  * Apply the user-selected scan items.
  *
@@ -174,10 +284,16 @@ export interface ApplyOutcome {
  * A failed wrap never loses data: the note text is only removed after its
  * range was found, and a store entry always survives even if the wrap fails
  * (reported in `failures`).
+ *
+ * COURT-121: before any managed adoption, the original note texts are saved
+ * as one footnote-history generation. If that save fails, no managed item
+ * is applied (neither library entry nor document change) and each is
+ * reported; the other selected items still apply.
  */
 export async function applyScanPlan(
   store: ScanRepairStore,
-  items: readonly ScanItem[]
+  items: readonly ScanItem[],
+  options: ApplyScanOptions = {}
 ): Promise<ApplyOutcome> {
   const outcome: ApplyOutcome = {
     rebuiltFromControls: 0,
@@ -187,9 +303,45 @@ export async function applyScanPlan(
     failures: [],
   };
 
+  // ── Snapshot phase (COURT-121) ────────────────────────────────────────────
+  const managed = items.filter(
+    (item) =>
+      item.wrap === "managed" &&
+      item.kind !== "linked" &&
+      item.proposedCitation !== undefined &&
+      item.location === "footnote" &&
+      item.noteIndex !== undefined
+  );
+  let applicable: readonly ScanItem[] = items;
+  if (managed.length > 0) {
+    const snapshot = options.snapshotNotes ?? defaultSnapshotNotes;
+    try {
+      await snapshot(
+        managed.map((item) => ({
+          footnoteNumber: item.noteIndex as number,
+          existingText: item.rawText,
+        }))
+      );
+    } catch (err: unknown) {
+      log.warn("scanRepair: snapshot before adoption failed; managed adoptions skipped", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      const skipped = new Set(managed);
+      applicable = items.filter((item) => !skipped.has(item));
+      for (const item of managed) {
+        outcome.failures.push({
+          key: item.key,
+          reason:
+            "Not changed: the original footnote text could not be saved to Recovery first, " +
+            "so this footnote was left as it was.",
+        });
+      }
+    }
+  }
+
   // ── Store phase ───────────────────────────────────────────────────────────
   const wrapItems: ScanItem[] = [];
-  for (const item of items) {
+  for (const item of applicable) {
     if (item.kind === "linked" || !item.proposedCitation) continue;
     try {
       if (!store.getById(item.citationId)) {
@@ -254,7 +406,10 @@ export async function applyScanPlan(
         // "managed" removes the text (closing stop included) and rebuilds it
         // inside controls; "flat" wraps the citation only, leaving the
         // closing stop outside the control.
-        const searchText = item.wrap === "managed" ? item.rawText : item.rawText.replace(/\.$/, "");
+        // COURT-121: encoded for Word's search syntax (NBSP → ^s, ^ → ^^).
+        const searchText = toWordSearchText(
+          item.wrap === "managed" ? item.rawText : item.rawText.replace(/\.$/, "")
+        );
         if (searchText.length === 0 || searchText.length > MAX_SEARCH_LENGTH) {
           outcome.failures.push({
             key: item.key,
@@ -346,6 +501,7 @@ export async function applyScanPlan(
   // reports show what Scan & Repair found and changed.
   log.info("scanRepair: applied", {
     selected: items.length,
+    snapshotFailed: applicable.length !== items.length,
     rebuiltFromControls: outcome.rebuiltFromControls,
     adoptedManaged: outcome.adoptedManaged,
     adoptedVerbatim: outcome.adoptedVerbatim,
