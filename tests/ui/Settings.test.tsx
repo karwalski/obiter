@@ -360,7 +360,7 @@ describe("Settings — COURT-107 court toggle semantics", () => {
     mockStore.getCourtToggles.mockReturnValue({ ...getPresetToggles("HCA")! });
     await renderSettings();
 
-    expect(await screen.findByLabelText("Ibid / (n X) suppression")).toBeTruthy();
+    expect(await screen.findByLabelText("Ibid suppression")).toBeTruthy();
   });
 
   test("court mode with no court asks for one and describes what renders (O-K5)", async () => {

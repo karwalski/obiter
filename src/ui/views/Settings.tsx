@@ -1610,7 +1610,7 @@ export default function Settings(): JSX.Element {
                 <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="unreportedGate" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
-                  Ibid / (n X) suppression
+                  Ibid suppression
                   <select
                     className="ic-select"
                     style={{ width: "100%", marginTop: 2 }}

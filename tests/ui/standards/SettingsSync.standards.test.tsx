@@ -364,7 +364,7 @@ describe("STD-011 sync — court mode pushes the toggles and jurisdiction", () =
     fireEvent.change(jurisdictionSelect(), { target: { value: "HCA" } });
     await waitFor(() => expect(putCalls()).toHaveLength(1));
 
-    fireEvent.change(screen.getByLabelText("Ibid / (n X) suppression"), { target: { value: "off" } });
+    fireEvent.change(screen.getByLabelText("Ibid suppression"), { target: { value: "off" } });
 
     await waitFor(() => expect(putCalls()).toHaveLength(2));
     const [, override] = putCalls();

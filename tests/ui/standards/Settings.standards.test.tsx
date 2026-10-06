@@ -508,7 +508,7 @@ describe("STD-011 — court presets write the toggle record the preset defines",
     expect(screen.getByLabelText("Parallel citations")).toHaveValue(expected.parallelCitations);
     expect(screen.getByLabelText("Pinpoint style")).toHaveValue(expected.pinpointStyle);
     expect(screen.getByLabelText("Unreported-judgment gate")).toHaveValue(expected.unreportedGate);
-    expect(screen.getByLabelText("Ibid / (n X) suppression")).toHaveValue(expected.ibidSuppression);
+    expect(screen.getByLabelText("Ibid suppression")).toHaveValue(expected.ibidSuppression);
     expect(screen.getByLabelText("List of Authorities")).toHaveValue(expected.loaType);
 
     // The authorised-report hierarchy is read-only and shows the preset's series.
@@ -571,7 +571,7 @@ describe("STD-011 — toggle overrides persist to the document store", () => {
     fireEvent.change(jurisdictionSelect(), { target: { value: "HCA" } });
     await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenCalledWith(HCA_TOGGLES));
 
-    fireEvent.change(screen.getByLabelText("Ibid / (n X) suppression"), { target: { value: "off" } });
+    fireEvent.change(screen.getByLabelText("Ibid suppression"), { target: { value: "off" } });
     await waitFor(() =>
       expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...HCA_TOGGLES, ibidSuppression: "off" })
     );
@@ -584,7 +584,7 @@ describe("STD-011 — toggle overrides persist to the document store", () => {
         pinpointStyle: "para-only",
       })
     );
-    expect(screen.getByLabelText("Ibid / (n X) suppression")).toHaveValue("off");
+    expect(screen.getByLabelText("Ibid suppression")).toHaveValue("off");
     expect(screen.getByLabelText("Pinpoint style")).toHaveValue("para-only");
     expect(localStorage.getItem("obiter-device.courtToggles")).toBeNull();
   });
@@ -599,7 +599,7 @@ describe("STD-011 — toggle overrides persist to the document store", () => {
     expect(screen.getByLabelText("Parallel citations")).toHaveValue("preferred");
     expect(screen.getByLabelText("Pinpoint style")).toHaveValue("para-only");
     expect(screen.getByLabelText("Unreported-judgment gate")).toHaveValue("warn");
-    expect(screen.getByLabelText("Ibid / (n X) suppression")).toHaveValue("on");
+    expect(screen.getByLabelText("Ibid suppression")).toHaveValue("on");
     expect(screen.getByLabelText("Authorised-report hierarchy")).toHaveValue("NSWLR → CLR → ALR");
     // Loading never writes.
     expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
@@ -893,9 +893,9 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     );
     // Ibid: kept as is (DECISION-043 item 2), recorded as an Obiter default.
     expect(screen.getByTestId("provenance-ibidSuppression")).toHaveTextContent("Obiter default");
-    expect(screen.getByLabelText("Ibid / (n X) suppression")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ibid suppression")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Ibid / (n X) suppression"), { target: { value: "off" } });
+    fireEvent.change(screen.getByLabelText("Ibid suppression"), { target: { value: "off" } });
     await waitFor(() =>
       expect(screen.getByTestId("provenance-ibidSuppression")).toHaveTextContent("Changed for this document")
     );
@@ -963,7 +963,7 @@ describe("COURT-106 / COURT-115 — court profile in Settings", () => {
     await renderSettings();
 
     const prompt = await screen.findByRole("group", { name: "Update court profile" });
-    fireEvent.click(within(prompt).getByLabelText(/Ibid \/ \(n X\) suppression: Off to On/));
+    fireEvent.click(within(prompt).getByLabelText(/Ibid suppression: Off to On/));
     fireEvent.click(within(prompt).getByRole("button", { name: "Apply update" }));
     await waitFor(() =>
       expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({

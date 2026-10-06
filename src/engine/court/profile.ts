@@ -48,7 +48,7 @@ export const COURT_TOGGLE_LABELS: Record<CourtToggleKey, string> = {
   pinpointConnector: "Pinpoint connector",
   authorisedReportHierarchy: "Authorised-report hierarchy",
   unreportedGate: "Unreported-judgment gate",
-  ibidSuppression: "Ibid / (n X) suppression",
+  ibidSuppression: "Ibid suppression",
   crossReferenceSuppression: "(n X) cross-reference suppression",
   subsequentForm: "Subsequent references to cases",
   loaType: "List of Authorities",
