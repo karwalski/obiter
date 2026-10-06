@@ -2252,6 +2252,8 @@ body {
 
 .library-insert-pinpoint-input {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--colour-border);
   border-radius: var(--radius-sm);
@@ -2804,6 +2806,7 @@ body {
 
 .ic-recent-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: var(--space-xs) var(--space-sm);
@@ -2850,6 +2853,26 @@ body {
 
 .ic-recent-insert-btn:hover {
   background-color: var(--colour-accent-hover);
+}
+
+/* B6: the Recent re-insert menu wraps onto its own full-width line in the
+   card, so the pinpoint input and the four options fit a ~320px pane. */
+.ic-recent-reinsert-menu {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--space-xs);
+}
+
+.ic-recent-reinsert-menu .library-insert-pinpoint {
+  border-top: none;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.ic-recent-reinsert-menu .library-insert-option {
+  padding: var(--space-xs) var(--space-sm);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Offline banner */

@@ -1483,7 +1483,10 @@ export default function InsertCitation(): JSX.Element {
                     </button>
                   </div>
                   {reinsertMenuId === citation.id && (
-                    <div className="library-insert-menu" style={{ marginTop: 6, width: "100%" }}>
+                    // B6: the menu takes the card's full width on its own
+                    // line, so the pinpoint input and options are readable
+                    // at the default ~320px pane width.
+                    <div className="library-insert-menu ic-recent-reinsert-menu">
                       <div className="library-insert-pinpoint">
                         <input
                           type="text"
