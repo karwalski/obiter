@@ -4,13 +4,14 @@
  */
 
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ValidationIssue, ValidationResult } from "../../engine/validator";
 import { runDocumentValidation } from "../../engine/documentValidation";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
 import CheckReference from "../components/CheckReference";
+import { readValidationRouteState } from "./validationRouteState";
 
 type FilterTab = "all" | "error" | "warning" | "info";
 
@@ -103,8 +104,14 @@ function severityClass(severity: "error" | "warning" | "info"): string {
 
 export default function Validation(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState<ValidationResult | null>(null);
+  // B7: results handed over from Prepare for Handover show at once.
+  const [carried] = useState(() => readValidationRouteState(location.state));
+  const [result, setResult] = useState<ValidationResult | null>(
+    carried?.validationResult ?? null
+  );
+  const [fromHandover, setFromHandover] = useState(carried !== undefined);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [formatting, setFormatting] = useState(false);
@@ -164,6 +171,7 @@ export default function Validation(): JSX.Element {
     setScanning(true);
     setError(null);
     setResult(null);
+    setFromHandover(false);
 
     try {
       // Read footnote texts and body text from the document
@@ -349,6 +357,11 @@ export default function Validation(): JSX.Element {
       {/* Results */}
       {result !== null && !scanning && (
         <>
+          {fromHandover && (
+            <p className="validation-origin-note" data-testid="validation-origin-note">
+              Results from the pre-handover check. Press Validate Document after making changes.
+            </p>
+          )}
           {/* Summary bar */}
           <div className={`validation-summary ${noIssues ? "validation-summary--clean" : ""}`} aria-live="polite">
             {noIssues ? (

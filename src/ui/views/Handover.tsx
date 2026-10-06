@@ -28,6 +28,7 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { runDocumentValidation } from "../../engine/documentValidation";
+import { validationRouteState } from "./validationRouteState";
 import type { ValidationResult } from "../../engine/validator";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
@@ -289,7 +290,12 @@ export default function Handover(): JSX.Element {
               {plural(check.validation.warnings.length, "warning")} and{" "}
               {check.validation.info.length} for information.
             </p>
-            <button type="button" className="library-btn" onClick={() => navigate("/validation")}>
+            {/* B7: hand the results to Validate so its list shows them at once. */}
+            <button
+              type="button"
+              className="library-btn"
+              onClick={() => navigate("/validation", { state: validationRouteState(check.validation) })}
+            >
               Open Validate for details
             </button>
           </section>

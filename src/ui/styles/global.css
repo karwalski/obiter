@@ -959,6 +959,13 @@ body {
 }
 
 /* Summary bar */
+/* B7: note when the results were carried over from the pre-handover check */
+.validation-origin-note {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-sm);
+  color: var(--colour-text-secondary);
+}
+
 .validation-summary {
   display: flex;
   align-items: center;
