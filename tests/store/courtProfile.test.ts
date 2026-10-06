@@ -67,6 +67,9 @@ describe("COURT-106: v2 -> v3 migration", () => {
       authorisedReportHierarchy: "WAR,CLR,ALR",
       unreportedGate: "off",
       ibidSuppression: "off",
+      // COURT-107 / COURT-113: (n X) was always dropped; short-title form.
+      crossReferenceSuppression: "on",
+      subsequentForm: "short-title",
       loaType: "off",
     });
     expect(migrated.metadata.courtProfile).toEqual({

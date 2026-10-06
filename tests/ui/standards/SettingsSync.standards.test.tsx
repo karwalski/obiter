@@ -240,6 +240,8 @@ const HCA_TOGGLES = {
   authorisedReportHierarchy: "CLR",
   unreportedGate: "off",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  subsequentForm: "short-title",
   loaType: "part-ab",
 };
 const WASC_TOGGLES = {
@@ -251,6 +253,9 @@ const WASC_TOGGLES = {
   authorisedReportHierarchy: "WAR,CLR,ALR",
   unreportedGate: "off",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  // COURT-113: WA PD 2.1 cl 14, later references by case name.
+  subsequentForm: "case-name",
   loaType: "simple",
 };
 

@@ -484,6 +484,9 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
       authorisedReportHierarchy: "CLR",
       unreportedGate: "off",
       ibidSuppression: "off",
+      // COURT-107 / COURT-113: (n X) was always dropped; short-title form.
+      crossReferenceSuppression: "on",
+      subsequentForm: "short-title",
       loaType: "off",
     });
   });

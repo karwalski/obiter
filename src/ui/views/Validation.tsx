@@ -219,6 +219,10 @@ export default function Validation(): JSX.Element {
         courtJurisdiction: store.getCourtJurisdiction(),
         parallelCitationMode: currentConfig.parallelCitationMode,
         ibidSuppressionMode: currentConfig.ibidSuppressionMode,
+        // COURT-107: (n X) is not flagged when the document gives it.
+        ...(currentConfig.crossReferenceSuppression === "off"
+          ? { crossReferenceSuppression: "off" as const }
+          : {}),
         unreportedGateMode: currentConfig.unreportedGateMode,
         // COURT-111: the frozen report hierarchy drives an information prompt.
         authorisedReportHierarchy: currentConfig.authorisedReportHierarchy,

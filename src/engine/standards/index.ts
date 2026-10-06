@@ -16,6 +16,8 @@ export type {
   WritingMode,
   ParallelCitationMode,
   IbidSuppressionMode,
+  CrossReferenceSuppressionMode,
+  SubsequentForm,
   UnreportedGateMode,
   LoaType,
   ParallelOrder,
@@ -85,6 +87,10 @@ export interface CourtToggleRecord {
   pinpointConnector?: string;
   /** COURT-111: "include" (default) or "omit" (the report replaces the MNC). */
   reportedCaseMnc?: string;
+  /** COURT-107: "on" (default, no (n X)) or "off" (AGLC4 r 1.4.1 (n X)). */
+  crossReferenceSuppression?: string;
+  /** COURT-113: "short-title" (default), "case-name" or "short-title-report". */
+  subsequentForm?: string;
   /** Comma-separated report series, most preferred first (e.g. "NSWLR,CLR,ALR"). */
   authorisedReportHierarchy?: string;
 }
@@ -151,6 +157,17 @@ export function buildCourtConfig(
     // COURT-111: likewise only an explicit "omit" is carried; an absent
     // toggle (every court document saved before COURT-111) keeps the MNC.
     ...(courtToggles.reportedCaseMnc === "omit" ? { reportedCaseMnc: "omit" as const } : {}),
+    // COURT-107: only an explicit "off" is carried; an absent toggle (every
+    // court document saved before COURT-107) keeps dropping (n X).
+    ...(courtToggles.crossReferenceSuppression === "off"
+      ? { crossReferenceSuppression: "off" as const }
+      : {}),
+    // COURT-113: only a non-default form is carried; an absent toggle keeps
+    // the short-title form.
+    ...(courtToggles.subsequentForm === "case-name" ||
+    courtToggles.subsequentForm === "short-title-report"
+      ? { subsequentForm: courtToggles.subsequentForm }
+      : {}),
     ...(hierarchy ? { authorisedReportHierarchy: hierarchy } : {}),
   };
 }

@@ -689,9 +689,32 @@ const VALUES_AT_2026_10_06_2: Record<string, string> = {
   NTSC: "off|report-first|omit|para-and-page|aglc|NTLR,CLR,ALR|off|on|simple",
 };
 
+/**
+ * COURT-113: the values at version 2026-10-07, in the full key order (with
+ * COURT-107 `crossReferenceSuppression` and COURT-113 `subsequentForm`).
+ */
+const VALUES_AT_2026_10_07: Record<string, string> = {
+  // WA-1 PD 2.1 cl 14: later references by case name only (O-R9).
+  WASC: "mandatory|mnc-first|include|para-and-page|aglc|WAR,CLR,ALR|off|on|on|case-name|simple",
+};
+
+/**
+ * The toggle keys the 2026-10-06 and 2026-10-06.2 tables list. The COURT-107
+ * and COURT-113 keys did not exist then; a preset still at those versions
+ * must leave them at their engine defaults (checked below).
+ */
+const KEYS_BEFORE_COURT_107 = COURT_TOGGLE_KEYS.filter(
+  (k) => k !== "crossReferenceSuppression" && k !== "subsequentForm"
+);
+
 describe("COURT-106: a preset value change must bump the preset version", () => {
   test.each(JURISDICTIONS)("%s", (id) => {
     const version = getPresetVersion(id);
+    const t = getPresetToggles(id)!;
+    if (version === "2026-10-07") {
+      expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07[id]);
+      return;
+    }
     const table =
       version === "2026-10-06"
         ? VALUES_AT_2026_10_06
@@ -699,8 +722,15 @@ describe("COURT-106: a preset value change must bump the preset version", () => 
           ? VALUES_AT_2026_10_06_2
           : undefined;
     if (!table) return; // bumped again: a newer table applies
-    const t = getPresetToggles(id)!;
-    expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(table[id]);
+    expect(KEYS_BEFORE_COURT_107.map((k) => t[k]).join("|")).toBe(table[id]);
+    // COURT-107 / COURT-113: unchanged presets keep the earlier behaviour.
+    expect(t.crossReferenceSuppression).toBe("on");
+    expect(t.subsequentForm).toBe("short-title");
+  });
+
+  test("COURT-113: only WASC moved to 2026-10-07", () => {
+    const bumped = JURISDICTIONS.filter((id) => getPresetVersion(id) === "2026-10-07").sort();
+    expect(bumped).toEqual(Object.keys(VALUES_AT_2026_10_07).sort());
   });
 
   test("COURT-111: the corrected presets moved to the new version; the others did not", () => {

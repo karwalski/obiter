@@ -144,6 +144,12 @@ export interface ValidateDocumentOptions {
   parallelCitationMode?: ConfigParallelCitationMode;
   /** COURT-FIX-004 ibid suppression toggle. */
   ibidSuppressionMode?: IbidSuppressionMode;
+  /**
+   * COURT-107: `(n X)` suppression toggle. "off" means the document gives
+   * the AGLC4 r 1.4.1 cross-reference, so it is not flagged. Absent keeps
+   * the earlier behaviour (flagged with ibid).
+   */
+  crossReferenceSuppression?: "on" | "off";
   /** COURT-007 unreported-judgment gate toggle. */
   unreportedGateMode?: UnreportedGateMode;
   /**
@@ -311,7 +317,11 @@ function validateDocumentWithOptions(
     // COURT-FIX-004: with ibid suppressed, 'Ibid' and '(n X)' in a footnote
     // are the court-submission warnings validateCourtMode raises.
     if (ibidSuppressed) {
-      allIssues.push(...checkCourtSubsequentReferences(footnoteTexts, pdSource));
+      allIssues.push(
+        ...checkCourtSubsequentReferences(footnoteTexts, pdSource, {
+          crossReferences: options.crossReferenceSuppression !== "off",
+        })
+      );
     }
 
     // COURT-110: AGLC4 r 2.2.5 — a report pinpoint must include a page.
@@ -2756,8 +2766,11 @@ export function validateCourtMode(
  */
 export function checkCourtSubsequentReferences(
   footnoteTexts: string[],
-  pdSource: string
+  pdSource: string,
+  options: { crossReferences?: boolean } = {}
 ): ValidationIssue[] {
+  // COURT-107: (n X) is flagged unless the document gives it on purpose.
+  const flagCrossReferences = options.crossReferences ?? true;
   const issues: ValidationIssue[] = [];
 
   for (let i = 0; i < footnoteTexts.length; i++) {
@@ -2780,7 +2793,7 @@ export function checkCourtSubsequentReferences(
 
     // Check for (n X) cross-references
     const crossRefRegex = /\(n\s+\d+\)/g;
-    while ((match = crossRefRegex.exec(text)) !== null) {
+    while (flagCrossReferences && (match = crossRefRegex.exec(text)) !== null) {
       issues.push({
         ruleNumber: pdSource,
         message:

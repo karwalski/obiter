@@ -403,6 +403,8 @@ export const COURT_GUIDE_ENTRIES: CourtGuideEntry[] = [
       // COURT-119: register WA-1, O-R19.
       "Sentencing remarks have their own identifier: [2011] WASCSR 1 (PD 8.2.2).",
       "Pinpoint style is para-and-page.",
+      // COURT-113: register WA-1, O-R9.
+      "Later references give the case name only, unless case names are duplicated or popular (PD 2.1 cl 14). Obiter keeps the short title for a case whose name another cited case shares.",
       "Ibid and (n X) cross-references are not used.",
     ],
     loaRequirements: [

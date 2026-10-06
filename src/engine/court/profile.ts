@@ -34,6 +34,8 @@ export const COURT_TOGGLE_KEYS: readonly CourtToggleKey[] = [
   "authorisedReportHierarchy",
   "unreportedGate",
   "ibidSuppression",
+  "crossReferenceSuppression",
+  "subsequentForm",
   "loaType",
 ];
 
@@ -47,6 +49,8 @@ export const COURT_TOGGLE_LABELS: Record<CourtToggleKey, string> = {
   authorisedReportHierarchy: "Authorised-report hierarchy",
   unreportedGate: "Unreported-judgment gate",
   ibidSuppression: "Ibid / (n X) suppression",
+  crossReferenceSuppression: "(n X) cross-reference suppression",
+  subsequentForm: "Subsequent references to cases",
   loaType: "List of Authorities",
 };
 
@@ -71,6 +75,9 @@ const VALUE_LABELS: Record<string, string> = {
   "part-abc": "Part A / B / C",
   "two-part-read": "Two parts (read / not read)",
   "three-part-tas": "Three parts (Tas)",
+  "short-title": "Short title and pinpoint",
+  "case-name": "Case name and pinpoint",
+  "short-title-report": "Short title, report and pinpoint",
 };
 
 /** Display a toggle value; the hierarchy is shown as "A → B → C". */
@@ -111,6 +118,8 @@ export function getPresetToggles(
     authorisedReportHierarchy: preset.authorisedReportHierarchy.join(","),
     unreportedGate: preset.unreportedGate,
     ibidSuppression: preset.ibidSuppression,
+    crossReferenceSuppression: preset.crossReferenceSuppression ?? "on",
+    subsequentForm: preset.subsequentForm ?? "short-title",
     loaType: preset.loaType,
   };
 }
@@ -139,8 +148,10 @@ export function createCourtProfile(
  * toggle falls back to the standard's base config (NOT the preset — that is
  * how such a document renders today); a missing hierarchy comes from the
  * preset; a missing order is report-first, a missing connector is the
- * AGLC form and a missing MNC toggle gives the MNC (COURT-111). Stored keys are kept as they are, including keys this build
- * does not know (opaque bag rule).
+ * AGLC form and a missing MNC toggle gives the MNC (COURT-111); a missing
+ * `(n X)` toggle drops `(n X)` (COURT-107) and a missing subsequent form is
+ * the short title (COURT-113). Stored keys are kept as they are, including
+ * keys this build does not know (opaque bag rule).
  *
  * @param base - the standard's own config (`getStandardConfig(standardId)`).
  * @param stored - the toggles the document (or the legacy device pref) holds.
@@ -164,6 +175,10 @@ export function freezeEffectiveToggles(
       t.authorisedReportHierarchy ?? (preset ? preset.authorisedReportHierarchy.join(",") : ""),
     unreportedGate: t.unreportedGate ?? base.unreportedGateMode,
     ibidSuppression: t.ibidSuppression ?? base.ibidSuppressionMode,
+    // COURT-107 / COURT-113: every document before the toggles existed
+    // dropped (n X) and used the short-title form.
+    crossReferenceSuppression: t.crossReferenceSuppression ?? "on",
+    subsequentForm: t.subsequentForm ?? "short-title",
     loaType: t.loaType ?? base.loaType,
   };
 }
@@ -237,6 +252,8 @@ const ABSENT_TOGGLE_DEFAULTS: Partial<Record<CourtToggleKey, string>> = {
   parallelOrder: "report-first",
   pinpointConnector: "aglc",
   reportedCaseMnc: "include",
+  crossReferenceSuppression: "on",
+  subsequentForm: "short-title",
 };
 
 /**
@@ -338,4 +355,67 @@ export function declineProfileUpdate(
 ): CourtProfileRecord {
   const version = getPresetVersion(jurisdictionId);
   return version ? { ...profile, declinedVersion: version } : profile;
+}
+
+// ─── COURT-107: court mode with and without a court ─────────────────────────
+
+/**
+ * COURT-107: the explicit court-mode state of a document.
+ *
+ * - "academic": writing mode is academic; no court behaviour applies.
+ * - "no-court": writing mode is court but no court is selected. The
+ *   document renders with the standard's base config in court mode (no
+ *   court toggles): ibid is kept, short references drop `(n X)`, a
+ *   reported case's recorded MNC is added, and no List of Authorities is
+ *   generated. Settings asks the user to select a court.
+ * - "court": a recognised court is selected and its frozen toggles apply.
+ */
+export type CourtModeState = "academic" | "no-court" | "court";
+
+export function getCourtModeState(
+  writingMode: string | undefined,
+  jurisdictionId: string | undefined
+): CourtModeState {
+  if (writingMode !== "court") return "academic";
+  return jurisdictionId && isCourtJurisdiction(jurisdictionId) ? "court" : "no-court";
+}
+
+/** COURT-107: the prompt Settings shows in the no-court state. */
+export const SELECT_COURT_PROMPT = "Select a court to apply court rules.";
+
+/**
+ * COURT-107: the Settings help text for court mode, built from the config
+ * the document actually renders with, so the text cannot drift from the
+ * behaviour (register O-K5: court mode with no court kept ibid while the
+ * help text said "no ibid").
+ *
+ * @param config - `buildDocumentConfig` for the document in court mode.
+ * @param state - from `getCourtModeState`.
+ */
+export function describeCourtMode(config: CitationConfig, state: CourtModeState): string {
+  const parts: string[] = [];
+  parts.push(config.ibidSuppressionMode === "on" ? "no ibid" : "ibid");
+  if (config.subsequentForm === "case-name") {
+    parts.push("later references to cases by case name");
+  } else if (config.subsequentForm === "short-title-report") {
+    parts.push("later references to cases repeat the short title and report");
+  } else {
+    parts.push("short case names");
+  }
+  parts[parts.length - 1] +=
+    config.crossReferenceSuppression === "off" ? " with (n X)" : " without (n X)";
+  parts.push(
+    config.reportedCaseMnc === "omit"
+      ? "the report replaces the MNC"
+      : "the MNC added to a reported case where one is recorded"
+  );
+  parts.push(
+    config.loaType === "off"
+      ? "no List of Authorities"
+      : "List of Authorities instead of bibliography"
+  );
+  const list = parts.join(", ");
+  return state === "no-court"
+    ? `${SELECT_COURT_PROMPT} Until then, court mode gives: ${list}.`
+    : `Court mode: ${list}.`;
 }

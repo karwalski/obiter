@@ -43,7 +43,8 @@ import type { CitationContext } from "../engine/engine";
 import { buildFootnoteMap, updateFirstFootnoteNumbers } from "./footnoteTracker";
 import { runsToHtml } from "./formattedRunsHtml";
 import type { FormattedRun } from "../types/formattedRun";
-import type { Pinpoint, IntroductorySignal } from "../types/citation";
+import type { Citation, Pinpoint, IntroductorySignal } from "../types/citation";
+import { findDuplicateCaseNames } from "../engine/resolver";
 import { resolveDocumentConfig } from "../engine/standards";
 import type { CitationConfig } from "../engine/standards/types";
 import { getDevicePref } from "../store/devicePreferences";
@@ -709,6 +710,10 @@ async function renderAndRebuild(
 
   const rebuildItems: RebuildWorkItem[] = [];
 
+  // COURT-113: computed once per refresh (pure, no Office.js sync) and only
+  // for a profile using the WA case-name form (PD 2.1 cl 14).
+  const duplicateCaseNames = caseNameDuplicatesFor(store, config, footnoteMap);
+
   for (const fnEntry of footnoteEntries) {
     const currentFootnoteCitationIds: string[] = [];
 
@@ -722,7 +727,8 @@ async function renderAndRebuild(
       currentFootnoteCitationIds,
       prevFootnoteNumber,
       prevFootnoteCitationIds,
-      prevFootnotePinpoint
+      prevFootnotePinpoint,
+      duplicateCaseNames
     );
 
     // Update preceding footnote tracking for ibid resolution
@@ -932,6 +938,31 @@ export function isImmediatelyPrecedingInFootnote(
 }
 
 /**
+ * COURT-113: the cited cases whose case name another cited case shares,
+ * when the document's court profile uses the case-name subsequent form
+ * (WA SC Consolidated Practice Directions PD 2.1 cl 14: later references by
+ * case name only, unless names are duplicated). Undefined for every other
+ * config, so academic and other court documents do no extra work. Pure:
+ * reads the store only (no Office.js).
+ *
+ * @param footnoteMap - citation id to first footnote number; its keys are
+ *   the citations cited in the document.
+ */
+export function caseNameDuplicatesFor(
+  store: Pick<CitationStore, "getById">,
+  config: CitationConfig,
+  footnoteMap: ReadonlyMap<string, number>
+): Set<string> | undefined {
+  if (config.writingMode !== "court" || config.subsequentForm !== "case-name") return undefined;
+  const cited: Citation[] = [];
+  for (const id of footnoteMap.keys()) {
+    const citation = store.getById(id);
+    if (citation) cited.push(citation);
+  }
+  return findDuplicateCaseNames(cited);
+}
+
+/**
  * Renders all citations within a single footnote, building CitationContext
  * for each and applying signal/commentary.
  *
@@ -948,7 +979,8 @@ export function renderFootnoteCitations(
   currentFootnoteCitationIds: string[],
   prevFootnoteNumber: number,
   prevFootnoteCitationIds: string[],
-  prevFootnotePinpoint: Pinpoint | undefined
+  prevFootnotePinpoint: Pinpoint | undefined,
+  duplicateCaseNames?: ReadonlySet<string>
 ): RenderedCitation[] {
   const rendered: RenderedCitation[] = [];
 
@@ -994,6 +1026,7 @@ export function renderFootnoteCitations(
       firstFootnoteNumber,
       isWithinSameFootnote,
       formatPreference: child.formatPreference,
+      ...(duplicateCaseNames?.has(child.citationId) ? { duplicateCaseName: true } : {}),
     };
 
     // STD-015: the rendered text and the `renderedFormat` label come from

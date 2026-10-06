@@ -65,6 +65,8 @@ export type CourtToggleKey =
   | "authorisedReportHierarchy"
   | "unreportedGate"
   | "ibidSuppression"
+  | "crossReferenceSuppression"
+  | "subsequentForm"
   | "loaType";
 
 /** COURT-115: one court instrument (or decision) a preset was checked against. */
@@ -107,6 +109,12 @@ const V1 = "2026-10-06";
  * changed at least one value from V1, or is new.
  */
 const V2 = "2026-10-06.2";
+
+/**
+ * COURT-113: WA later references by case name (PD 2.1 cl 14). A preset at
+ * this version changed a value from V1 or V2.
+ */
+const V3 = "2026-10-07";
 
 /**
  * The instruments and decisions preset values cite. Titles, dates and URLs
@@ -289,6 +297,30 @@ const IBID: FieldProvenance = {
   note: "No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2.",
 };
 
+/**
+ * COURT-107: `(n X)` suppression. No court instrument read requires or
+ * forbids the AGLC4 r 1.4.1 cross-reference (register R02; published
+ * judgments do not use it, O-C2, O-C5); the court-mode
+ * behaviour is kept unchanged as an Obiter default.
+ */
+const CROSS_REFERENCE_DEFAULT: FieldProvenance = {
+  sourceIds: [],
+  kind: "preference",
+  checked: REGISTER_CHECKED,
+  note: "No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged.",
+};
+
+/**
+ * COURT-113: the short-title subsequent form where the instrument states no
+ * form for later references (court-mode behaviour before COURT-113).
+ */
+const SHORT_TITLE_DEFAULT: FieldProvenance = {
+  sourceIds: [],
+  kind: "preference",
+  checked: REGISTER_CHECKED,
+  note: "No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint).",
+};
+
 /** Report-first where the instrument is silent (DECISION-043 item 3). */
 const REPORT_FIRST_DEFAULT: FieldProvenance = {
   sourceIds: ["DECISION-043"],
@@ -375,6 +407,8 @@ function allNotChecked(): Record<CourtToggleKey, FieldProvenance> {
     authorisedReportHierarchy: notChecked(),
     unreportedGate: notChecked(),
     ibidSuppression: IBID,
+    crossReferenceSuppression: CROSS_REFERENCE_DEFAULT,
+    subsequentForm: SHORT_TITLE_DEFAULT,
     loaType: notChecked(),
   };
 }
@@ -669,7 +703,7 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
 
   // ── Other States/Territories ────────────────────────────────────────────
   WASC: {
-    version: V1,
+    version: V3,
     checkedAgainst: ["WA-1"],
     reviewed: REGISTER_CHECKED,
     fields: {
@@ -682,13 +716,20 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       ),
       pinpointStyle: official(["WA-1"], "PD 2.1 cl 7(a); PD 8.2.2"),
       authorisedReportHierarchy: official(["WA-1"], "PD 2.1 cl 14"),
+      subsequentForm: official(
+        ["WA-1"],
+        "PD 2.1 cl 14",
+        "Later references give the case name only, unless names are duplicated or popular. A case whose name is shared by another cited case keeps its short title."
+      ),
       loaType: official(
         ["WA-1"],
         "PD 2.1 cl 11–13",
         "A simple list approximates the combined outline; cases to be read are marked as key authorities."
       ),
     },
-    exceptions: ["Later references by case name only (PD 2.1 cl 14) are not modelled (COURT-113)."],
+    exceptions: [
+      "The popular-name exception to later references by case name (PD 2.1 cl 14) is not modelled; set the subsequent-reference form to short title where it applies.",
+    ],
   },
   SASC: {
     version: V2,

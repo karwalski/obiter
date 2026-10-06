@@ -304,6 +304,11 @@ export interface CitationContext {
   firstFootnoteNumber: number;
   isWithinSameFootnote: boolean;
   formatPreference: "full" | "short" | "ibid" | "auto";
+  /**
+   * COURT-113: another case cited in the document shares this case's name,
+   * so the WA case-name subsequent form (PD 2.1 cl 14) does not apply.
+   */
+  duplicateCaseName?: boolean;
 }
 
 // ─── Source Type Dispatch Map ────────────────────────────────────────────────
@@ -5542,6 +5547,7 @@ export function formatCitationWithFormat(
       firstFootnoteNumber: context.firstFootnoteNumber,
       isWithinSameFootnote: context.isWithinSameFootnote,
       formatPreference: context.formatPreference,
+      ...(context.duplicateCaseName ? { duplicateCaseName: true } : {}),
       config: standardConfig,
     };
 

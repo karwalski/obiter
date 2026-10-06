@@ -55,6 +55,43 @@ export type ParallelCitationMode = "off" | "preferred" | "mandatory";
 /** COURT-FIX: Ibid suppression mode. */
 export type IbidSuppressionMode = "off" | "on";
 
+/**
+ * COURT-107: whether court mode drops the AGLC4 r 1.4.1 `(n X)`
+ * cross-reference from a short reference.
+ *
+ * - "on" (default): the court short form carries no `(n X)`. This is how
+ *   every court document saved before COURT-107 renders. No court
+ *   instrument read requires or forbids `(n X)` (register R02); published
+ *   HCA, NSW and ACT judgments do not use it (O-C2, O-C5).
+ * - "off": the cross-reference is given, as AGLC4 r 1.4.1 requires
+ *   (`Pape (n 1) [45]`).
+ *
+ * Separate from ibid suppression (`IbidSuppressionMode`), which governs
+ * AGLC4 r 1.4.3 'Ibid' only.
+ */
+export type CrossReferenceSuppressionMode = "on" | "off";
+
+/**
+ * COURT-113: the lead of a court-mode subsequent reference to a case.
+ *
+ * - "short-title" (default): the short title (AGLC4 r 1.4.4 / r 2.1.14),
+ *   then the pinpoint. Court-mode behaviour before COURT-113.
+ * - "case-name": the case name only, then the pinpoint. WA SC
+ *   Consolidated Practice Directions PD 2.1 cl 14 (updated 23 Sep 2026;
+ *   register WA-1, O-R9): later references give the case name only,
+ *   unless names are duplicated or popular. A case whose name is shared by
+ *   another case cited in the document keeps the short-title form.
+ * - "short-title-report": the short title, then the report citation and
+ *   the pinpoint (`Pape (2009) 238 CLR 1, 23 [45]`). Observed in HCA
+ *   reasons (register O-C2: repeats restate the short name and the full
+ *   report; R03 federal §4), not in any instrument: an opt-in, never a
+ *   preset default.
+ *
+ * Applies to cases only; legislation and secondary sources keep the court
+ * short form.
+ */
+export type SubsequentForm = "short-title" | "case-name" | "short-title-report";
+
 /** COURT-FIX: Unreported judgment gate mode. */
 export type UnreportedGateMode = "off" | "warn";
 
@@ -124,6 +161,17 @@ export interface CitationConfig {
    * "off" = allow ibid even in court mode.
    */
   ibidSuppressionMode: IbidSuppressionMode;
+  /**
+   * COURT-107: in court mode, "off" gives the AGLC4 r 1.4.1 `(n X)`
+   * cross-reference in short references. Absent means "on" (no `(n X)`),
+   * so every court document saved before COURT-107 renders as it did.
+   */
+  crossReferenceSuppression?: CrossReferenceSuppressionMode;
+  /**
+   * COURT-113: the court-mode subsequent-reference form for cases. Absent
+   * means "short-title" (court-mode behaviour before COURT-113).
+   */
+  subsequentForm?: SubsequentForm;
   /**
    * COURT-FIX: Whether to warn when citing unreported judgments in court mode.
    */

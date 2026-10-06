@@ -52,7 +52,11 @@
  *   - FCFCOA FAM-APPEALS practice direction (updated 10 Jun 2025)
  */
 
-import type { PinpointConnector } from "../standards/types";
+import type {
+  CrossReferenceSuppressionMode,
+  PinpointConnector,
+  SubsequentForm,
+} from "../standards/types";
 
 // ─── Toggle Value Types ─────────────────────────────────────────────────────
 
@@ -71,6 +75,20 @@ export type { PinpointConnector };
 export type UnreportedGate = "off" | "warn";
 
 export type IbidSuppression = "off" | "on";
+
+/**
+ * COURT-107: `(n X)` cross-reference suppression, separate from ibid.
+ * "on" (default) drops `(n X)` from court short references, as court mode
+ * always has; "off" restores the AGLC4 r 1.4.1 form.
+ */
+export type CrossReferenceSuppression = CrossReferenceSuppressionMode;
+
+/**
+ * COURT-113: subsequent-reference form for cases in court mode
+ * ("short-title" default; "case-name" per WA PD 2.1 cl 14;
+ * "short-title-report" opt-in, observed in HCA reasons).
+ */
+export type { SubsequentForm };
 
 /**
  * List of Authorities generation type.
@@ -263,6 +281,19 @@ export interface CourtPreset {
    * toggle keeps including it (DECISION-043 item 4).
    */
   reportedCaseMnc?: ReportedCaseMnc;
+  /**
+   * COURT-107: `(n X)` suppression. Optional — omitted means "on" (court
+   * mode has always dropped `(n X)`). No preset sets "off".
+   */
+  crossReferenceSuppression?: CrossReferenceSuppression;
+  /**
+   * COURT-113: subsequent-reference form for cases. Optional — omitted
+   * means "short-title". Set only where an instrument states a form
+   * (WA PD 2.1 cl 14: case name). A document saved without the toggle
+   * keeps "short-title" until the user accepts the "Update court profile"
+   * prompt (DECISION-043 item 4).
+   */
+  subsequentForm?: SubsequentForm;
 }
 
 export type CourtGroup =
@@ -500,6 +531,9 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     ibidSuppression: "on",
     loaType: "simple",
     parallelOrder: "mnc-first",
+    // COURT-113: PD 2.1 cl 14, later references by case name only
+    // (register WA-1, O-R9).
+    subsequentForm: "case-name",
   },
   // SA Uniform Civil Rules 2020 r 217.8 (current to 15 Mar 2026):
   // appeals LOA is two parts (authorities expected to be read / not

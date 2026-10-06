@@ -42,7 +42,7 @@ Every court profile in Obiter is **experimental**. A profile is checked against 
 | Qld Court of Appeal (`QCA`) | 2026-10-06 | QLD-1, QLD-2 | 6 Oct 2026 |
 | Qld Supreme Court (`QSC`) | 2026-10-06 | QLD-1 | 6 Oct 2026 |
 | Qld District / Magistrates Court (`QLD_DISTRICT_MAG`) | 2026-10-06.2 | QLD-3 | 6 Oct 2026 |
-| WA Supreme Court (`WASC`) | 2026-10-06 | WA-1 | 6 Oct 2026 |
+| WA Supreme Court (`WASC`) | 2026-10-07 | WA-1 | 6 Oct 2026 |
 | SA Supreme Court (`SASC`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
 | SA District / Magistrates Court (civil) (`SA_DISTRICT_MAG_CIVIL`) | 2026-10-06.2 | SA-1 | 6 Oct 2026 |
 | Tas Supreme Court (`TASSC`) | 2026-10-06.2 | TAS-1, TAS-2 | 6 Oct 2026 |
@@ -70,6 +70,8 @@ Experimental: checked against HCA Practice Direction No 2 of 2024 (Joint Book of
 | Authorised-report hierarchy | CLR | Court instrument | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) JBA Part C; Form 27A Part IV; HCA-2 (HCA Form 27A) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Part A / Part B | No supporting source | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) | 6 Oct 2026 | PD 2 of 2024 requires a five-part Joint Book of Authorities (Parts A to E), not Part A / Part B (register O-R3; COURT-117). |
 
 Known exceptions:
@@ -90,6 +92,8 @@ Experimental: checked against FCA Lists of Authorities and Citations Practice No
 | Authorised-report hierarchy | FCR → CLR → ALR | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) Annexure | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | Obiter default | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) GPN-eBOOKS cl 7.2; FCA-2 (FCA eBooks Practice Note (GPN-eBOOKS)) | 6 Oct 2026 | GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1); a simple list until the GPN-eBOOKS layout (authorities, legislation, bills) is added (COURT-117). |
 
 Known exceptions:
@@ -111,6 +115,8 @@ Experimental: checked against FCFCOA FAM-APPEALS Practice Direction (updated 10 
 | Authorised-report hierarchy | FLC → ALR | No supporting source | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) | 6 Oct 2026 | FamCAFC removed: it is an MNC identifier, not a report series (register O-R6). The order of the remaining series is not checked against FAM-APPEALS. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Two parts (read / not read) | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 |  |
 
 Known exceptions:
@@ -133,6 +139,8 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Part A / Part B | No supporting source | NSW-2 (NSW Court of Appeal Practice Note SC CA 1) cl 37 | 6 Oct 2026 | SC CA 1 cl 37 sets four categories (legislation with version date; cases read; cited not read; secondary), not Part A / Part B (register O-R12; COURT-117). |
 
 Known exceptions:
@@ -154,6 +162,8 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | NSW-3 (NSW Court of Criminal Appeal Practice Note SC CCA 1 (General)) cl 28 | 6 Oct 2026 | The warning follows the NSW Supreme Court preset. SC CCA 1 cl 28 treats an authority on Caselaw with an MNC as unreported and asks for a copy, but sets no test for citing it. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | Obiter default | NSW-3 (NSW Court of Criminal Appeal Practice Note SC CCA 1 (General)) cl 27 | 6 Oct 2026 | A single list of only the authorities expected to be referred to in oral argument; a simple list until its layout is added (COURT-117). |
 
 Known exceptions:
@@ -176,6 +186,8 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -196,6 +208,8 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | Authorised-report hierarchy | NSWLR → CLR → ALR | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Unreported-judgment gate | Warn | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Off | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 
 Known exceptions:
@@ -218,6 +232,8 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Part A / B / C | Court instrument | VIC-2 (Vic Court of Appeal Practice Note SC CA 3) cl 14.1–14.2 | 6 Oct 2026 |  |
 
 Known exceptions:
@@ -239,6 +255,8 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | None | No | Not checked against a court instrument. |
 
 #### Vic County / Magistrates' Court (`VIC_COUNTY_MAG`)
@@ -255,6 +273,8 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | Authorised-report hierarchy | VR → CLR → ALR | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Off | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -277,6 +297,8 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Part A / Part B | Court instrument | QLD-2 (Qld SC Practice Direction 3 of 2013 (Court of Appeal)) | 6 Oct 2026 | Part A (relied on) and optional Part B. |
 
 Known exceptions:
@@ -297,6 +319,8 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -317,6 +341,8 @@ Experimental: checked against Qld Magistrates Court Practice Direction 7 of 2024
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -339,11 +365,13 @@ Experimental: checked against WA SC Consolidated Practice Directions (PD 2.1, PD
 | Authorised-report hierarchy | WAR → CLR → ALR | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Case name and pinpoint | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14 | 6 Oct 2026 | Later references give the case name only, unless names are duplicated or popular. A case whose name is shared by another cited case keeps its short title. |
 | List of Authorities | Simple | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 11–13 | 6 Oct 2026 | A simple list approximates the combined outline; cases to be read are marked as key authorities. |
 
 Known exceptions:
 
-- Later references by case name only (PD 2.1 cl 14) are not modelled (COURT-113).
+- The popular-name exception to later references by case name (PD 2.1 cl 14) is not modelled; set the subsequent-reference form to short title where it applies.
 
 #### SA Supreme Court (`SASC`)
 
@@ -359,6 +387,8 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 | Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Two parts (read / not read) | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 217.8; Form 91 | 6 Oct 2026 |  |
 
 Known exceptions:
@@ -380,6 +410,8 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 | Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Two parts (read / not read) | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 217.8; Form 91 | 6 Oct 2026 | Form 91 is the appeal list of authorities. |
 
 Known exceptions:
@@ -401,6 +433,8 @@ Experimental: checked against Tas SC Practice Direction 3 of 2014 (Citation of J
 | Authorised-report hierarchy | Tas R → CLR → ALR | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 5 | 6 Oct 2026 |  |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Three parts (Tas) | Court instrument | TAS-2 (Tas SC Practice Direction 3 of 2022 (Appeal Books, Lists of Authorities, Submissions)) | 6 Oct 2026 |  |
 
 Known exceptions:
@@ -421,6 +455,8 @@ Experimental: checked against ACT SC Practice Direction 2 of 2022 (Citation of A
 | Authorised-report hierarchy | ACTLR → CLR → ALR | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -441,6 +477,8 @@ Experimental: checked against NT SC Practice Direction 2 of 2007 (Citation of Au
 | Authorised-report hierarchy | NTLR → CLR → ALR | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Simple | No supporting source | NT-2 (NT SC Practice Direction 1 of 2025 (Lists of Authorities)) | 6 Oct 2026 | The list format is in Supreme Court Rules r 82.10, which was not read. |
 
 Known exceptions:
@@ -463,6 +501,8 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Off | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -483,6 +523,8 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Off | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:
@@ -503,6 +545,8 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid / (n X) suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
+| (n X) cross-reference suppression | On | Obiter default | None | 6 Oct 2026 | No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged. |
+| Subsequent references to cases | Short title and pinpoint | Obiter default | None | 6 Oct 2026 | No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint). |
 | List of Authorities | Off | No supporting source | None | No | Not checked against a court instrument. |
 
 Known exceptions:

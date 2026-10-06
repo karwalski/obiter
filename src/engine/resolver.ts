@@ -35,6 +35,13 @@ import {
   joinAuthorNames,
 } from "./rules/v4/secondary/authors";
 import { formatSecondaryShortTitle } from "./rules/v4/secondary/general";
+import { formatCaseName } from "./rules/v4/domestic/case-names";
+import {
+  formatReportSeries,
+  formatStartingPageAndPinpoint,
+  formatYearAndVolume,
+} from "./rules/v4/domestic/cases";
+import { toText } from "./rules/v4/general/coerce";
 import { genaiTypeWord } from "./rules/v4/secondary/genai";
 
 // ─── Source Type Classification ──────────────────────────────────────────────
@@ -44,6 +51,18 @@ import { genaiTypeWord } from "./rules/v4/secondary/genai";
  */
 function isCase(sourceType: SourceType): boolean {
   return sourceType.startsWith("case.");
+}
+
+/**
+ * COURT-113: a judgment (reported or unreported, AGLC4 rr 2.2–2.3), as
+ * opposed to a proceeding, order, transcript, submission, arbitration or
+ * quasi-judicial decision. WA PD 2.1 cl 14's case-name form for later
+ * references applies to cases cited as authorities, so only judgments take
+ * it; a transcript or submission in the same case keeps its own short title
+ * and does not make the judgment's name a duplicate.
+ */
+function isJudgment(sourceType: SourceType): boolean {
+  return sourceType === "case.reported" || sourceType.startsWith("case.unreported.");
 }
 
 /**
@@ -486,14 +505,24 @@ export function formatShortReference(
   firstFootnoteNumber: number,
   pinpoint?: Pinpoint,
   disambiguate?: boolean,
-  config?: CitationConfig
+  config?: CitationConfig,
+  duplicateCaseName?: boolean
 ): FormattedRun[] {
   const format = config?.subsequentReferenceFormat ?? "n";
   const pinpointPrefix = config?.pinpointPrefix ?? "";
 
-  // MULTI-014: Court mode — short name only, no (n X) cross-reference
+  // MULTI-014: Court mode — short name, no (n X) cross-reference unless the
+  // document turns (n X) suppression off (COURT-107); the case lead follows
+  // the profile's subsequent form (COURT-113).
   if (config?.writingMode === "court") {
-    return formatCourtShortReference(citation, pinpoint, disambiguate, config);
+    return formatCourtShortReference(
+      citation,
+      pinpoint,
+      disambiguate,
+      config,
+      firstFootnoteNumber,
+      duplicateCaseName
+    );
   }
 
   // STD-015: OSCOLA 5 §1.2.1 / OSCOLA 4 §1.2.1 short forms
@@ -826,19 +855,45 @@ function formatOscolaShortReference(
 
 /**
  * Formats a court-mode short reference: short case name or author surname
- * followed by an optional pinpoint. No footnote cross-reference `(n X)`.
+ * followed by an optional pinpoint.
  *
  * MULTI-014: In court submissions, every subsequent reference uses the short
  * case name (or author surname for secondary sources) without ibid and
  * without footnote cross-references.
+ *
+ * COURT-107: with `crossReferenceSuppression: "off"` the AGLC4 r 1.4.1
+ * cross-reference `(n X)` follows the lead (`Pape (n 1) [45]`). Absent or
+ * "on" keeps the court form without it, as before COURT-107.
+ *
+ * COURT-113: the lead for a case follows `config.subsequentForm`:
+ * - "short-title" (default): the short title (unchanged behaviour).
+ * - "case-name": the case name (WA SC Consolidated Practice Directions
+ *   PD 2.1 cl 14: later references by case name only, unless names are
+ *   duplicated or popular). A case whose name is shared by another case
+ *   cited in the document (`duplicateCaseName`) keeps the short title.
+ * - "short-title-report": the short title, then the report citation with
+ *   the pinpoint in the full-citation position (`Pape (2009) 238 CLR 1, 23
+ *   [45]`), the repeat form observed in HCA reasons (register O-C2). Never
+ *   carries `(n X)`, since the report is restated. A case with no report
+ *   series recorded keeps the short-title form.
  */
 function formatCourtShortReference(
   citation: Citation,
   pinpoint?: Pinpoint,
   disambiguate?: boolean,
-  config?: CitationConfig
+  config?: CitationConfig,
+  firstFootnoteNumber?: number,
+  duplicateCaseName?: boolean
 ): FormattedRun[] {
   const runs: FormattedRun[] = [];
+  const caseSource = isCase(citation.sourceType);
+  const form = caseSource ? (config?.subsequentForm ?? "short-title") : "short-title";
+
+  // COURT-113: HCA-style repeat form — short title, report and pinpoint.
+  if (form === "short-title-report") {
+    const repeated = formatShortTitleWithReport(citation, pinpoint, config);
+    if (repeated) return repeated;
+  }
 
   if (isSecondarySource(citation.sourceType) && !internationalLeadsWithShortTitle(citation)) {
     const surname = getAuthorSurname(citation);
@@ -851,24 +906,130 @@ function formatCourtShortReference(
       }
     }
   } else {
-    // Cases and legislation: use short title, italic per Rule 1.8.2
-    // (roman for Bills per Rules 3.2/3.5)
-    const title = getTitle(citation);
-    if (title) {
-      runs.push(...formatStyledShortTitle(title, citation.sourceType));
+    // COURT-113: WA PD 2.1 cl 14 — the case name, unless it is shared.
+    const caseName =
+      form === "case-name" && !duplicateCaseName && isJudgment(citation.sourceType)
+        ? courtCaseNameRuns(citation)
+        : [];
+    if (caseName.length > 0) {
+      runs.push(...caseName);
+    } else {
+      // Cases and legislation: use short title, italic per Rule 1.8.2
+      // (roman for Bills per Rules 3.2/3.5)
+      const title = getTitle(citation);
+      if (title) {
+        runs.push(...formatStyledShortTitle(title, citation.sourceType));
+      }
     }
+  }
+
+  // COURT-107: (n X) only when the document turns suppression off.
+  if (config?.crossReferenceSuppression === "off" && firstFootnoteNumber !== undefined) {
+    runs.push({ text: ` (n ${firstFootnoteNumber})` });
   }
 
   if (pinpoint) {
     // COURT-112: 'Short at [29]' where the court profile uses the 'at'
     // connector (FCA GPN-AUTH cl 2.6; Tas SC PD 3 of 2014 cl 3). Cases
     // only: no instrument shows 'at' before a legislation pinpoint.
-    const at = config?.pinpointConnector === "at" && citation.sourceType.startsWith("case.");
+    const at = config?.pinpointConnector === "at" && caseSource;
     runs.push({ text: at ? " at " : " " });
     runs.push(...formatPinpoint(pinpoint));
   }
 
   return runs;
+}
+
+/**
+ * COURT-113: the case name as the full citation gives it, italic (AGLC4
+ * r 2.1): the parties through `formatCaseName` (r 2.1.1–2.1.13), else a
+ * stored case name or title. Empty when the citation records none.
+ * Numeric fields from the XML store are read through `toText`.
+ */
+export function courtCaseNameRuns(citation: Citation): FormattedRun[] {
+  const d = citation.data;
+  const party1 = toText(d.party1);
+  const party2 = toText(d.party2);
+  if (party1 || party2) {
+    return formatCaseName(party1, party2, toText(d.separator) || "v");
+  }
+  const name = [d.caseName, d.caseTitle, d.parties].map(toText).find((n) => n.length > 0);
+  return name ? parseTitleMarkup(name, true) : [];
+}
+
+/** COURT-113: comparison key for a case name (case and spacing ignored). */
+function caseNameKey(citation: Citation): string {
+  return courtCaseNameRuns(citation)
+    .map((r) => r.text)
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * COURT-113: the ids of cited judgments whose case name is shared with
+ * another cited judgment (WA PD 2.1 cl 14: the case-name form does not
+ * apply where names are duplicated). Transcripts, submissions and other
+ * non-judgment case materials are not counted. Pure; one pass over the
+ * citations.
+ *
+ * @param citations - the citations cited in the document.
+ */
+export function findDuplicateCaseNames(citations: readonly Citation[]): Set<string> {
+  const byName = new Map<string, string[]>();
+  for (const citation of citations) {
+    if (!isJudgment(citation.sourceType)) continue;
+    const key = caseNameKey(citation);
+    if (!key) continue;
+    const ids = byName.get(key) ?? [];
+    ids.push(citation.id);
+    byName.set(key, ids);
+  }
+  const duplicates = new Set<string>();
+  for (const ids of byName.values()) {
+    if (new Set(ids).size > 1) for (const id of ids) duplicates.add(id);
+  }
+  return duplicates;
+}
+
+/**
+ * COURT-113: the HCA repeat form, `Short (year) volume Series page,
+ * pinpoint` — the short title, then the report as AGLC4 rr 2.2.1–2.2.5
+ * give it, with the pinpoint after the starting page (and the court
+ * connector, COURT-112). Undefined when no report series is recorded, so
+ * the caller falls back to the short-title form.
+ */
+function formatShortTitleWithReport(
+  citation: Citation,
+  pinpoint: Pinpoint | undefined,
+  config: CitationConfig | undefined
+): FormattedRun[] | undefined {
+  const d = citation.data;
+  const series = toText(d.reportSeries);
+  const year = toText(d.year);
+  const page = toText(d.startingPage);
+  if (!series || !year || !page) return undefined;
+  const title = getTitle(citation);
+  if (!title) return undefined;
+  const volumeText = toText(d.volume);
+  const volume = /^\d+$/.test(volumeText) ? Number(volumeText) : undefined;
+  const yearType = d.yearType === "square" ? "square" : "round";
+  const startingPage = /^\d+$/.test(page) ? Number(page) : page;
+  return [
+    ...formatStyledShortTitle(title, citation.sourceType),
+    { text: " " },
+    ...formatYearAndVolume(yearType, Number(year), volume),
+    { text: " " },
+    ...formatReportSeries(series),
+    { text: " " },
+    ...formatStartingPageAndPinpoint(
+      startingPage,
+      pinpoint,
+      config?.pinpointStyle,
+      config?.pinpointConnector
+    ),
+  ];
 }
 
 /**
@@ -1110,6 +1271,11 @@ export interface SubsequentReferenceContext {
   formatPreference: "full" | "short" | "ibid" | "auto";
   /** Whether multiple works by the same author exist, requiring disambiguation. */
   disambiguate?: boolean;
+  /**
+   * COURT-113: whether another case cited in the document shares this
+   * case's name (WA PD 2.1 cl 14 exception to the case-name form).
+   */
+  duplicateCaseName?: boolean;
   /** The current footnote number (needed for cross-reference direction). */
   footnoteNumber?: number;
   /**
@@ -1254,7 +1420,8 @@ function resolveAglcSubsequent(
               context.firstFootnoteNumber,
               context.currentPinpoint,
               context.disambiguate,
-              config
+              config,
+              context.duplicateCaseName
             )
           );
         }
@@ -1266,7 +1433,8 @@ function resolveAglcSubsequent(
             context.firstFootnoteNumber,
             context.currentPinpoint,
             context.disambiguate,
-            config
+            config,
+            context.duplicateCaseName
           )
         );
     }
@@ -1320,7 +1488,8 @@ function resolveAglcSubsequent(
       context.firstFootnoteNumber,
       context.currentPinpoint,
       context.disambiguate,
-      config
+      config,
+      context.duplicateCaseName
     )
   );
 }

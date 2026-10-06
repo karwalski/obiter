@@ -18,6 +18,7 @@
 import * as React from "react";
 import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import Settings from "../../src/ui/views/Settings";
+import { getPresetToggles } from "../../src/engine/court/profile";
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -298,6 +299,9 @@ describe("Settings — legacy device toggles adopted into the document store", (
         pinpointConnector: "aglc",
         authorisedReportHierarchy: "CLR",
         unreportedGate: "off",
+        // COURT-107 / COURT-113: frozen at the earlier behaviour.
+        crossReferenceSuppression: "on",
+        subsequentForm: "short-title",
         loaType: "off",
       })
     );
@@ -326,5 +330,55 @@ describe("Settings — legacy device toggles adopted into the document store", (
 
     await waitFor(() => expect(mockStore.setWritingMode).toHaveBeenCalledWith("court"));
     expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
+  });
+});
+
+describe("Settings — COURT-107 court toggle semantics", () => {
+  test("a court toggle change saves, shows the reformat notice and triggers a refresh (O-K6)", async () => {
+    mockStore.getWritingMode.mockReturnValue("court");
+    mockStore.getCourtJurisdiction.mockReturnValue("HCA");
+    mockStore.getCourtToggles.mockReturnValue({ ...getPresetToggles("HCA")! });
+    await renderSettings();
+
+    const select = (await screen.findByLabelText(/\(n X\) cross-reference suppression/)) as HTMLSelectElement;
+    expect(select.value).toBe("on");
+    mockTriggerRefresh.mockClear();
+    fireEvent.change(select, { target: { value: "off" } });
+
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenCalledWith(
+        expect.objectContaining({ crossReferenceSuppression: "off", ibidSuppression: "on" })
+      )
+    );
+    await waitFor(() => expect(mockTriggerRefresh).toHaveBeenCalled());
+    await screen.findByText(/Court toggle updated\. Existing citations reformat on the next refresh\./);
+  });
+
+  test("the ibid toggle keeps its label (DECISION-043 item 2)", async () => {
+    mockStore.getWritingMode.mockReturnValue("court");
+    mockStore.getCourtJurisdiction.mockReturnValue("HCA");
+    mockStore.getCourtToggles.mockReturnValue({ ...getPresetToggles("HCA")! });
+    await renderSettings();
+
+    expect(await screen.findByLabelText("Ibid / (n X) suppression")).toBeTruthy();
+  });
+
+  test("court mode with no court asks for one and describes what renders (O-K5)", async () => {
+    mockStore.getWritingMode.mockReturnValue("court");
+    await renderSettings();
+
+    const help = await screen.findByText(/^Select a court to apply court rules\./);
+    expect(help.textContent).not.toContain("no ibid");
+    expect(help.textContent).toContain("without (n X)");
+  });
+
+  test("a WA document shows the case-name subsequent form (WA PD 2.1 cl 14)", async () => {
+    mockStore.getWritingMode.mockReturnValue("court");
+    mockStore.getCourtJurisdiction.mockReturnValue("WASC");
+    mockStore.getCourtToggles.mockReturnValue({ ...getPresetToggles("WASC")! });
+    await renderSettings();
+
+    const select = (await screen.findByLabelText(/Subsequent references to cases/)) as HTMLSelectElement;
+    expect(select.value).toBe("case-name");
   });
 });

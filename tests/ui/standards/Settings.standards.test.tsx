@@ -209,6 +209,9 @@ function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
     authorisedReportHierarchy: p.authorisedReportHierarchy.join(","),
     unreportedGate: p.unreportedGate,
     ibidSuppression: p.ibidSuppression,
+    // COURT-107 / COURT-113: absent means (n X) dropped and the short title.
+    crossReferenceSuppression: p.crossReferenceSuppression ?? "on",
+    subsequentForm: p.subsequentForm ?? "short-title",
     loaType: p.loaType,
   };
 }
@@ -222,6 +225,8 @@ const HCA_TOGGLES = {
   authorisedReportHierarchy: "CLR",
   unreportedGate: "off",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  subsequentForm: "short-title",
   loaType: "part-ab",
 };
 const NSWCA_TOGGLES = {
@@ -233,6 +238,8 @@ const NSWCA_TOGGLES = {
   authorisedReportHierarchy: "NSWLR,CLR,ALR",
   unreportedGate: "warn",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  subsequentForm: "short-title",
   loaType: "part-ab",
 };
 const WASC_TOGGLES = {
@@ -244,6 +251,8 @@ const WASC_TOGGLES = {
   authorisedReportHierarchy: "WAR,CLR,ALR",
   unreportedGate: "off",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  subsequentForm: "case-name",
   loaType: "simple",
 };
 const STATE_TRIBUNAL_TOGGLES = {
@@ -255,6 +264,8 @@ const STATE_TRIBUNAL_TOGGLES = {
   authorisedReportHierarchy: "",
   unreportedGate: "off",
   ibidSuppression: "on",
+  crossReferenceSuppression: "on",
+  subsequentForm: "short-title",
   loaType: "off",
 };
 

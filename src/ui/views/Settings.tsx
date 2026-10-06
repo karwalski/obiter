@@ -23,19 +23,23 @@ import {
   type ParallelOrder,
   type PinpointConnector,
   type ReportedCaseMnc,
+  type CrossReferenceSuppression,
+  type SubsequentForm,
 } from "../../engine/court/presets";
 import {
   applyProfileUpdate,
   createCourtProfile,
   createMigratedProfile,
   declineProfileUpdate,
+  describeCourtMode,
   diffCourtProfile,
+  getCourtModeState,
   freezeEffectiveToggles,
   getPresetToggles,
   isProfileUpdateAvailable,
   recordOverride,
 } from "../../engine/court/profile";
-import { getStandardConfig } from "../../engine/standards";
+import { buildDocumentConfig, getStandardConfig } from "../../engine/standards";
 import type { CourtProfileRecord } from "../../types/citation";
 import {
   CourtExperimentalLabel,
@@ -231,6 +235,16 @@ export default function Settings(): JSX.Element {
      * did; selecting a court writes the preset's value.
      */
     reportedCaseMnc?: ReportedCaseMnc;
+    /**
+     * COURT-107: (n X) suppression, separate from ibid. Absent means "on",
+     * so a court document saved before COURT-107 renders as it did.
+     */
+    crossReferenceSuppression?: CrossReferenceSuppression;
+    /**
+     * COURT-113: subsequent-reference form for cases. Absent means
+     * "short-title" (court-mode behaviour before COURT-113).
+     */
+    subsequentForm?: SubsequentForm;
     /**
      * COURT-106: the report hierarchy frozen into the document
      * (comma-separated). Absent only on a record built before COURT-106.
@@ -1020,6 +1034,8 @@ export default function Settings(): JSX.Element {
   ) => {
     const updated = { ...courtToggles, [key]: value };
     setCourtToggles(updated);
+    // COURT-107: a toggle change re-renders existing citations, as a
+    // jurisdiction change does (register O-K6).
     // COURT-106: record which values the user changed for this document.
     const nextProfile = courtProfile
       ? recordOverride(courtProfile, String(key), String(value))
@@ -1030,15 +1046,18 @@ export default function Settings(): JSX.Element {
         // Persist into the DOCUMENT so the override applies on every device,
         // and delete the legacy device-level copy.
         const store = await getSharedStore();
+        const hadExistingCitations = store.getAll().length > 0;
         if (nextProfile) await store.setCourtProfile(nextProfile, { persist: false });
         await store.setCourtToggles(updated);
         setDevicePref("courtToggles", undefined);
         void pushSyncedSettings({ courtToggles: { ...updated } });
+        setModeNotice(hadExistingCitations ? buildReformatNotice("Court toggle updated.") : null);
+        triggerRefresh();
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to save court toggles");
       }
     })();
-  }, [courtToggles, courtProfile, pushSyncedSettings]);
+  }, [courtToggles, courtProfile, pushSyncedSettings, triggerRefresh]);
 
   // COURT-106 / DECISION-043 item 4: apply the rows the user ticked in the
   // "Update court profile" prompt. Nothing changes without this consent.
@@ -1406,7 +1425,19 @@ export default function Settings(): JSX.Element {
         </div>
         <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "0 0 0" }}>
           {writingMode === "court"
-            ? "Court mode: no ibid, short case names without (n X), parallel citations by default, List of Authorities instead of bibliography."
+            ? // COURT-107: built from the config the document renders with,
+              // so the text matches the behaviour, with or without a court.
+              describeCourtMode(
+                buildDocumentConfig({
+                  standardId,
+                  writingMode: "court",
+                  courtJurisdiction: courtJurisdiction || undefined,
+                  courtToggles: courtJurisdiction
+                    ? (courtToggles as Record<string, string>)
+                    : undefined,
+                }),
+                getCourtModeState(writingMode, courtJurisdiction)
+              )
             : "Standard academic footnote citation with ibid, short references, and bibliography."}
         </p>
 
@@ -1591,6 +1622,37 @@ export default function Settings(): JSX.Element {
                   </select>
                 </label>
                 <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="ibidSuppression" profile={courtProfile} />
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  (n X) cross-reference suppression
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.crossReferenceSuppression ?? "on"}
+                    onChange={(e) =>
+                      handleToggleOverride("crossReferenceSuppression", e.target.value as CrossReferenceSuppression)
+                    }
+                  >
+                    <option value="on">On (no (n X) in short references)</option>
+                    <option value="off">Off (AGLC4 r 1.4.1 (n X))</option>
+                  </select>
+                </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="crossReferenceSuppression" profile={courtProfile} />
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Subsequent references to cases
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.subsequentForm ?? "short-title"}
+                    onChange={(e) => handleToggleOverride("subsequentForm", e.target.value as SubsequentForm)}
+                  >
+                    <option value="short-title">Short title and pinpoint</option>
+                    <option value="case-name">Case name and pinpoint (WA PD 2.1 cl 14)</option>
+                    <option value="short-title-report">Short title, report and pinpoint (observed in HCA reasons)</option>
+                  </select>
+                </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="subsequentForm" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 0 }}>
                   List of Authorities

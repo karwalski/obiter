@@ -16,11 +16,18 @@
  *    preference only when the store value is absent.
  */
 
-import { refreshAllCitations } from "../../src/word/citationRefresher";
+import { caseNameDuplicatesFor, refreshAllCitations } from "../../src/word/citationRefresher";
+import { getPresetToggles } from "../../src/engine/court/profile";
+import { buildDocumentConfig, getStandardConfig } from "../../src/engine/standards";
 import { LOCKED_PARENT_CC_TITLE } from "../../src/word/footnoteManager";
 import { CitationStore } from "../../src/store/citationStore";
 import { setDevicePref } from "../../src/store/devicePreferences";
-import { FakeDocState, installFakeWord, storeXmlWith } from "../store/fakeWordHarness";
+import {
+  FakeDocState,
+  installFakeWord,
+  makeCitation,
+  storeXmlWith,
+} from "../store/fakeWordHarness";
 import { footnoteTexts, makeRefreshContext } from "../store/fakeFootnoteHarness";
 
 // ─── Harness ────────────────────────────────────────────────────────────────
@@ -226,5 +233,117 @@ describe("courtToggles source of truth in the refresher", () => {
     // fn2's expected text is still "Ibid." — nothing suppressed it.
     expect(parents[1].insertHtml).not.toHaveBeenCalled();
     expect(result.userEdits).toEqual([]);
+  });
+});
+
+// ─── COURT-107: a court toggle change re-renders existing footnotes ─────────
+
+describe("COURT-107: court toggle changes through refreshAllCitations", () => {
+  /** A court document on the HCA preset, rendered once (baseline). */
+  async function courtBaseline(): Promise<{
+    doc: FakeDocState;
+    store: CitationStore;
+    baseline: BaselineFootnote[];
+  }> {
+    const { doc, store } = await makeStore();
+    await store.setWritingMode("court");
+    await store.setCourtJurisdiction("HCA");
+    await store.setCourtToggles({ ...getPresetToggles("HCA")! });
+    const baseline = await renderBaseline(doc, store, "cit-1");
+    return { doc, store, baseline };
+  }
+
+  test("default court toggles: fn2 is the court short form, no Ibid and no (n X) (unchanged)", async () => {
+    const { baseline } = await courtBaseline();
+    expect(baseline[1].text).not.toContain("Ibid");
+    expect(baseline[1].text).not.toMatch(/\(n \d+\)/);
+  });
+
+  test("turning (n X) suppression off re-renders an existing footnote with (n 1)", async () => {
+    const { doc, store, baseline } = await courtBaseline();
+
+    // What Settings' handleToggleOverride writes before triggering a refresh.
+    await store.setCourtToggles({ ...store.getCourtToggles()!, crossReferenceSuppression: "off" });
+
+    const ctx = makeRefreshContext(doc, [
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
+    ]);
+    const result = await refreshAllCitations(ctx.context, store, noopHook);
+
+    expect(result.userEdits).toEqual([]);
+    expect(result.failures).toEqual([]);
+    expect(ctx.parents[0].insertHtml).not.toHaveBeenCalled();
+    expect(ctx.parents[1].insertHtml).toHaveBeenCalledTimes(1);
+    const rebuilt = footnoteTexts(ctx)[1];
+    expect(rebuilt).toContain("(n 1)");
+    expect(rebuilt).not.toContain("Ibid");
+  });
+
+  test("turning ibid suppression off re-renders fn2 as Ibid; (n X) stays suppressed", async () => {
+    const { doc, store, baseline } = await courtBaseline();
+
+    await store.setCourtToggles({ ...store.getCourtToggles()!, ibidSuppression: "off" });
+
+    const ctx = makeRefreshContext(doc, [
+      { citationId: "cit-1", text: baseline[0].text, title: baseline[0].title },
+      { citationId: "cit-1", text: baseline[1].text, title: baseline[1].title },
+    ]);
+    await refreshAllCitations(ctx.context, store, noopHook);
+
+    expect(ctx.parents[1].insertHtml).toHaveBeenCalledTimes(1);
+    expect(footnoteTexts(ctx)[1]).toBe("Ibid.");
+  });
+});
+
+// ─── COURT-113: duplicate case names for the WA case-name form ──────────────
+
+describe("COURT-113: caseNameDuplicatesFor (WA PD 2.1 cl 14)", () => {
+  const cases = new Map(
+    [
+      makeCitation("a", { data: { party1: "Lee", party2: "The Queen", year: 1999 } }),
+      makeCitation("b", { data: { party1: "Lee", party2: "The Queen", year: 2001 } }),
+      makeCitation("c", { data: { party1: "Pape", party2: "Commissioner of Taxation" } }),
+    ].map((c) => [c.id, c])
+  );
+  const store = { getById: (id: string) => cases.get(id) };
+  const cited = new Map([
+    ["a", 1],
+    ["b", 2],
+    ["c", 3],
+  ]);
+  const wa = buildDocumentConfig({
+    standardId: "aglc4",
+    writingMode: "court",
+    courtJurisdiction: "WASC",
+    courtToggles: getPresetToggles("WASC"),
+  });
+
+  test("lists the cited cases that share a name", () => {
+    expect([...(caseNameDuplicatesFor(store, wa, cited) ?? [])].sort()).toEqual(["a", "b"]);
+  });
+
+  test("only cited cases count", () => {
+    expect(
+      caseNameDuplicatesFor(
+        store,
+        wa,
+        new Map([
+          ["a", 1],
+          ["c", 2],
+        ])
+      )?.size
+    ).toBe(0);
+  });
+
+  test("does nothing for any other profile or an academic document", () => {
+    const hca = buildDocumentConfig({
+      standardId: "aglc4",
+      writingMode: "court",
+      courtJurisdiction: "HCA",
+      courtToggles: getPresetToggles("HCA"),
+    });
+    expect(caseNameDuplicatesFor(store, hca, cited)).toBeUndefined();
+    expect(caseNameDuplicatesFor(store, getStandardConfig("aglc4"), cited)).toBeUndefined();
   });
 });
