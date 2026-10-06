@@ -839,9 +839,13 @@ describe("shared footnote checks across standards", () => {
 
 // ─── 4. Court validation matrix ─────────────────────────────────────────────
 
+// B2 / COURT-111: a recorded MNC is the parallel the court formatter gives,
+// so this record has neither parallels nor an MNC; Alpha records its MNC
+// and satisfies the enforcement check.
 const papeNoParallel = cite("pape-plain", "case.reported", {
   ...papeWithParallel.data,
   parallelCitations: undefined,
+  mnc: undefined,
 });
 
 const smithUnreported = cite(
@@ -955,14 +959,10 @@ describe("court validation matrix", () => {
         expect(enforcement).toHaveLength(0);
       });
     } else {
-      test(`parallel citations ${COURT_PRESETS[preset].parallelCitations}: each reported case without parallels gets a ${expected.parallel}`, () => {
-        expect(enforcement.map((issue) => issue.severity)).toEqual([
-          expected.parallel,
-          expected.parallel,
-        ]);
+      test(`parallel citations ${COURT_PRESETS[preset].parallelCitations}: each reported case with neither parallels nor an MNC gets a ${expected.parallel} (B2)`, () => {
+        expect(enforcement.map((issue) => issue.severity)).toEqual([expected.parallel]);
         expect(enforcement.map((issue) => issue.message)).toEqual([
           expect.stringMatching(/'Pape\b/),
-          expect.stringMatching(/'Alpha\b/),
         ]);
       });
     }
@@ -1029,8 +1029,9 @@ describe("court validation matrix", () => {
         );
         const missing = matching(issues, /Parallel citation required/);
         if (PRESET_EXPECTATIONS[preset].parallel === "error") {
+          // Pape no longer records its MNC (B2 fixture), so only Alpha
+          // has both a report and an MNC.
           expect(missing.map((issue) => issue.message)).toEqual([
-            expect.stringMatching(/'Pape\b/),
             expect.stringMatching(/'Alpha\b/),
           ]);
           expect(missing.every((issue) => issue.severity === "error")).toBe(true);

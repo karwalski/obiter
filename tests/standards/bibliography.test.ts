@@ -44,7 +44,7 @@ import {
   waiKoAotearoa,
 } from "../fixtures/standards/citations";
 import { parseScenario, runTable, TABLE_KEYS } from "./matrix";
-import { bibliographyTexts, presetToggles, renderBibliography } from "./runner";
+import { bibliographyTexts, configFor, presetToggles, renderBibliography } from "./runner";
 import type { BibliographySection, CourtOptions } from "./runner";
 
 // ─── Part 1: the expectation tables ─────────────────────────────────────────
@@ -446,11 +446,14 @@ describe("STD-007: court Lists of Authorities under the AGLC4 presets", () => {
       includeSecondary: false,
       exportTarget: "pdf",
     };
-    const direct = generateLoaWithOptions(COURT_SET, options);
-    const viaConfig = renderBibliography(COURT_SET, "aglc4", {
-      preset: "WASC",
-      overrides: FROZEN_SIMPLE,
-    });
+    // B1 / COURT-117: the LOA takes the document config, so WASC's
+    // MNC-first order (PD 8.2.2) reaches the list as it does the footnotes.
+    const wasc = { preset: "WASC" as const, overrides: FROZEN_SIMPLE };
+    const direct = generateLoaWithOptions(COURT_SET, options, configFor("aglc4", wasc));
+    const viaConfig = renderBibliography(COURT_SET, "aglc4", wasc);
+    expect(bibliographyTexts(viaConfig)).toContain(
+      "Mabo v Queensland [1992] HCA 23; (1992) 175 CLR 1"
+    );
     expect(bibliographyTexts(direct.sections)).toEqual(bibliographyTexts(viaConfig));
     expect(direct.pdfExportNote).toContain("Save As PDF");
   });
