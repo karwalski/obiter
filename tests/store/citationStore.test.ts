@@ -481,6 +481,8 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
       reportedCaseMnc: "include",
       pinpointStyle: "page-only",
       pinpointConnector: "aglc",
+      // COURT-110 follow-up: written before the fix, so the earlier para-only form.
+      reportStartingPage: "legacy",
       authorisedReportHierarchy: "CLR",
       unreportedGate: "off",
       ibidSuppression: "off",

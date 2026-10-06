@@ -62,6 +62,7 @@ export type CourtToggleKey =
   | "reportedCaseMnc"
   | "pinpointStyle"
   | "pinpointConnector"
+  | "reportStartingPage"
   | "authorisedReportHierarchy"
   | "unreportedGate"
   | "ibidSuppression"
@@ -366,6 +367,19 @@ const AGLC_CONNECTOR: FieldProvenance = {
 };
 
 /**
+ * COURT-110 follow-up: every preset keeps the report starting page with a
+ * paragraph pinpoint, as AGLC4 r 2.2.5 requires (COURT-110). No court
+ * instrument read supports a report citation without it.
+ */
+const STARTING_PAGE_AGLC: FieldProvenance = {
+  sourceIds: ["AGLC4"],
+  clause: "r 2.2.5",
+  kind: "preference",
+  checked: REGISTER_CHECKED,
+  note: "A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page.",
+};
+
+/**
  * COURT-111: the MNC of a reported case is added (the behaviour of every
  * court document before COURT-111) unless an instrument says the report
  * replaces it.
@@ -410,6 +424,7 @@ function allNotChecked(): Record<CourtToggleKey, FieldProvenance> {
     reportedCaseMnc: MNC_INCLUDE_DEFAULT,
     pinpointStyle: notChecked(),
     pinpointConnector: AGLC_CONNECTOR,
+    reportStartingPage: STARTING_PAGE_AGLC,
     authorisedReportHierarchy: notChecked(),
     unreportedGate: notChecked(),
     ibidSuppression: IBID,

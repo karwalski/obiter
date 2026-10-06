@@ -158,6 +158,14 @@ export function CourtProfileUpdatePrompt({
               {c.label}: {formatToggleValue(c.key, c.current)} to {formatToggleValue(c.key, c.proposed)}
               {c.overridden ? " (you changed this)" : ""}
             </label>
+            {c.detail && (
+              <span
+                style={{ display: "block", marginLeft: 18, color: "var(--colour-text-secondary)" }}
+                data-testid={`profile-change-detail-${c.key}`}
+              >
+                {c.detail}
+              </span>
+            )}
           </li>
         ))}
       </ul>

@@ -297,6 +297,8 @@ describe("Settings — legacy device toggles adopted into the document store", (
         reportedCaseMnc: "include",
         pinpointStyle: "page-only",
         pinpointConnector: "aglc",
+        // COURT-110 follow-up: the pre-fix para-only form, until the user updates.
+        reportStartingPage: "legacy",
         authorisedReportHierarchy: "CLR",
         unreportedGate: "off",
         // COURT-107 / COURT-113: frozen at the earlier behaviour.

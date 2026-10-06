@@ -64,6 +64,8 @@ describe("COURT-106: v2 -> v3 migration", () => {
       reportedCaseMnc: "include",
       pinpointStyle: "page-only",
       pinpointConnector: "aglc",
+      // COURT-110 follow-up: written before the fix, so the earlier para-only form.
+      reportStartingPage: "legacy",
       authorisedReportHierarchy: "WAR,CLR,ALR",
       unreportedGate: "off",
       ibidSuppression: "off",

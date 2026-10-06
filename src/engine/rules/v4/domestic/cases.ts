@@ -11,7 +11,11 @@
 
 import { Pinpoint, ParallelCitation } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
-import type { PinpointConnector, PinpointStyle } from "../../../standards/types";
+import type {
+  PinpointConnector,
+  PinpointStyle,
+  ReportStartingPage,
+} from "../../../standards/types";
 import { getPreferredReportOrder } from "../../../court/reportHierarchy";
 import { toText } from "../general/coerce";
 
@@ -365,6 +369,27 @@ export function isParagraphOnlyPinpoint(pinpoint: Pinpoint | undefined): boolean
 }
 
 /**
+ * COURT-110 follow-up: the "para-only" pinpoint exactly as Obiter rendered it
+ * before COURT-110, kept for court documents frozen before the fix. The
+ * starting page is left out: a paragraph pinpoint renders as given
+ * (`[45]`), any other pinpoint without its leading comma (`6`).
+ *
+ * This is NOT the AGLC4 form (r 2.2.5 requires a page in every report
+ * pinpoint); it exists only so an existing document does not change until
+ * its user accepts the corrected form.
+ */
+function legacyParaOnlyPinpoint(pinpoint: Pinpoint): string {
+  let text =
+    pinpoint.type === "paragraph"
+      ? toText(pinpoint.value)
+      : formatPinpointText(pinpoint).replace(/^, /, "");
+  if (pinpoint.subPinpoint) {
+    text += formatPinpointText(pinpoint.subPinpoint);
+  }
+  return text;
+}
+
+/**
  * Formats the starting page number and optional pinpoint reference.
  *
  * AGLC4 Rule 2.2.4: The starting page of the case follows the report series
@@ -389,6 +414,9 @@ export function isParagraphOnlyPinpoint(pinpoint: Pinpoint | undefined): boolean
  *   (COURT-110; no instrument supports a report citation without it). The
  *   court-specific form of a report plus paragraph-only pinpoint is an open
  *   owner question (DECISION-043 item 5), so the AGLC4 form is used.
+ *   A court document frozen before COURT-110 carries `reportStartingPage`
+ *   "legacy" and keeps the earlier form without the starting page until
+ *   its user accepts the update (owner follow-up, 7 Oct 2026).
  * - "para-and-page" (Vic, FCA, HCA etc): starting page, then the pinpoint
  *   page and paragraph, `394, 410 [60]` (Vic SC Gen 3 cl 5.5, 1 Dec 2025,
  *   register VIC-1). A paragraph-only pinpoint keeps the existing
@@ -417,10 +445,24 @@ export function formatStartingPageAndPinpoint(
   startingPage: number | string,
   pinpoint?: Pinpoint,
   pinpointStyle: PinpointStyle = "page-only",
-  pinpointConnector: PinpointConnector = "aglc"
+  pinpointConnector: PinpointConnector = "aglc",
+  reportStartingPage: ReportStartingPage = "always"
 ): FormattedRun[] {
   if (!pinpoint) {
     return [{ text: `${startingPage}` }];
+  }
+
+  // ── COURT-110 follow-up: a court document frozen before COURT-110 keeps
+  //    the form it was written with (no starting page) until the user
+  //    accepts the "Update court profile" prompt (DECISION-043 item 4).
+  //    That form predates the "at" connector, so it applies only with the
+  //    AGLC connector. ──
+  if (
+    reportStartingPage === "legacy" &&
+    pinpointStyle === "para-only" &&
+    pinpointConnector !== "at"
+  ) {
+    return [{ text: legacyParaOnlyPinpoint(pinpoint) }];
   }
 
   // ── COURT-112: 'at' connector replaces the AGLC separator ──
@@ -584,6 +626,11 @@ interface ReportedCaseData {
   /** COURT-112: pinpoint connector (court mode). Defaults to "aglc". */
   pinpointConnector?: PinpointConnector;
   /**
+   * COURT-110 follow-up: "legacy" keeps the pre-COURT-110 para-only form for
+   * a court document frozen before the fix. Defaults to "always".
+   */
+  reportStartingPage?: ReportStartingPage;
+  /**
    * Rule 2.4: pre-formatted judicial officer runs. Emitted after the
    * pinpoint but BEFORE the court parenthetical — Rule 2.2.6 places the
    * court parenthetical after pinpoints and other parenthetical clauses.
@@ -643,7 +690,8 @@ export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
       data.startingPage,
       data.pinpoint,
       data.pinpointStyle,
-      data.pinpointConnector
+      data.pinpointConnector,
+      data.reportStartingPage
     )
   );
 

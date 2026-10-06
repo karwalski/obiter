@@ -85,6 +85,11 @@ export interface CourtToggleRecord {
   parallelOrder?: string;
   /** COURT-112: "aglc" (default) or "at". */
   pinpointConnector?: string;
+  /**
+   * COURT-110 follow-up: "always" (default, AGLC4 r 2.2.5) or "legacy" (the
+   * pre-COURT-110 para-only form without the starting page).
+   */
+  reportStartingPage?: string;
   /** COURT-111: "include" (default) or "omit" (the report replaces the MNC). */
   reportedCaseMnc?: string;
   /** COURT-107: "on" (default, no (n X)) or "off" (AGLC4 r 1.4.1 (n X)). */
@@ -154,6 +159,12 @@ export function buildCourtConfig(
     // COURT-112: only an explicit "at" is carried; an absent toggle (every
     // court document saved before COURT-112) keeps the AGLC connector.
     ...(courtToggles.pinpointConnector === "at" ? { pinpointConnector: "at" as const } : {}),
+    // COURT-110 follow-up: only an explicit "legacy" is carried; an absent
+    // toggle (a document frozen after the fix, or a new one) keeps the
+    // AGLC4 r 2.2.5 starting page.
+    ...(courtToggles.reportStartingPage === "legacy"
+      ? { reportStartingPage: "legacy" as const }
+      : {}),
     // COURT-111: likewise only an explicit "omit" is carried; an absent
     // toggle (every court document saved before COURT-111) keeps the MNC.
     ...(courtToggles.reportedCaseMnc === "omit" ? { reportedCaseMnc: "omit" as const } : {}),

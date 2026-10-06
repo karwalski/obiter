@@ -49,6 +49,19 @@ export type PinpointStyle = "page-only" | "para-only" | "para-and-page";
  */
 export type PinpointConnector = "aglc" | "at";
 
+/**
+ * COURT-110 follow-up (owner, 7 Oct 2026): how a report citation with a
+ * "para-only" pinpoint style treats the starting page.
+ *
+ * - "always" (default): the starting page is kept, as AGLC4 r 2.2.5 requires
+ *   (a page must always appear in a report pinpoint): `238 CLR 1 [45]`.
+ * - "legacy": the form Obiter gave before COURT-110, which left the starting
+ *   page out (`238 CLR [45]`). Only a court document saved before the fix
+ *   carries it, and only until the user accepts the "Update court profile"
+ *   prompt (DECISION-043 item 4).
+ */
+export type ReportStartingPage = "always" | "legacy";
+
 /** COURT-FIX: Parallel citation enforcement mode. */
 export type ParallelCitationMode = "off" | "preferred" | "mandatory";
 
@@ -167,6 +180,12 @@ export interface CitationConfig {
    * (AGLC4 punctuation), so academic configs are unchanged.
    */
   pinpointConnector?: PinpointConnector;
+  /**
+   * COURT-110 follow-up: "legacy" keeps the pre-COURT-110 para-only form
+   * (no starting page) for a court document frozen before the fix. Absent
+   * means the AGLC4 r 2.2.5 form, so academic configs are unchanged.
+   */
+  reportStartingPage?: ReportStartingPage;
   /**
    * COURT-FIX: Parallel citation enforcement. Only applies in court mode.
    * "mandatory" = validation error if missing, "preferred" = validation warning.

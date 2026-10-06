@@ -130,7 +130,12 @@ function renderAll(config: CitationConfig): string[] {
   return out;
 }
 
-/** The config a pre-v3 document renders with (refresher: document toggles, else legacy device pref). */
+/**
+ * The config a pre-v3 document renders with (refresher: document toggles,
+ * else legacy device pref). COURT-110 follow-up (owner, 7 Oct 2026): such a
+ * document was written before COURT-110, so it keeps the para-only form
+ * without the starting page ("legacy") until its user accepts the update.
+ */
 function configBefore(
   jurisdiction: string,
   stored: Record<string, string> | undefined,
@@ -140,7 +145,10 @@ function configBefore(
     standardId: "aglc4",
     writingMode: "court",
     courtJurisdiction: jurisdiction,
-    courtToggles: stored ?? legacy,
+    courtToggles: {
+      ...(stored ?? legacy ?? {}),
+      reportStartingPage: (stored ?? legacy)?.reportStartingPage ?? "legacy",
+    },
   });
 }
 
@@ -757,19 +765,29 @@ const MOVED_TO_2026_10_07_2 = Object.keys(VALUES_AT_2026_10_07_2);
  * must leave them at their engine defaults (checked below).
  */
 const KEYS_BEFORE_COURT_107 = COURT_TOGGLE_KEYS.filter(
-  (k) => k !== "crossReferenceSuppression" && k !== "subsequentForm"
+  (k) =>
+    k !== "crossReferenceSuppression" && k !== "subsequentForm" && k !== "reportStartingPage"
 );
+
+/**
+ * The toggle keys the 2026-10-07 tables list. The COURT-110 follow-up key
+ * (reportStartingPage) came later; every preset sets it to "always", which
+ * is also what a document without it renders with, so no version moves.
+ */
+const TABLE_KEYS = COURT_TOGGLE_KEYS.filter((k) => k !== "reportStartingPage");
 
 describe("COURT-106: a preset value change must bump the preset version", () => {
   test.each(JURISDICTIONS)("%s", (id) => {
     const version = getPresetVersion(id);
     const t = getPresetToggles(id)!;
+    // COURT-110 follow-up: every preset keeps the report starting page.
+    expect(t.reportStartingPage).toBe("always");
     if (version === "2026-10-07") {
-      expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07[id]);
+      expect(TABLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07[id]);
       return;
     }
     if (version === "2026-10-07.2") {
-      expect(COURT_TOGGLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07_2[id]);
+      expect(TABLE_KEYS.map((k) => t[k]).join("|")).toBe(VALUES_AT_2026_10_07_2[id]);
       return;
     }
     const table =

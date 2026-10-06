@@ -31,6 +31,7 @@ export const COURT_TOGGLE_KEYS: readonly CourtToggleKey[] = [
   "reportedCaseMnc",
   "pinpointStyle",
   "pinpointConnector",
+  "reportStartingPage",
   "authorisedReportHierarchy",
   "unreportedGate",
   "ibidSuppression",
@@ -46,6 +47,7 @@ export const COURT_TOGGLE_LABELS: Record<CourtToggleKey, string> = {
   reportedCaseMnc: "MNC of a reported case",
   pinpointStyle: "Pinpoint style",
   pinpointConnector: "Pinpoint connector",
+  reportStartingPage: "Report starting page with a paragraph pinpoint",
   authorisedReportHierarchy: "Authorised-report hierarchy",
   unreportedGate: "Unreported-judgment gate",
   ibidSuppression: "Ibid suppression",
@@ -70,6 +72,8 @@ const VALUE_LABELS: Record<string, string> = {
   "para-and-page": "Paragraph and page",
   aglc: "AGLC punctuation",
   at: "“at” before the pinpoint",
+  always: "Always shown (AGLC4 r 2.2.5)",
+  legacy: "Left out (earlier Obiter form)",
   simple: "Simple",
   "part-ab": "Part A / Part B",
   "part-abc": "Part A / B / C",
@@ -119,6 +123,8 @@ export function getPresetToggles(
     reportedCaseMnc: preset.reportedCaseMnc ?? "include",
     pinpointStyle: preset.pinpointStyle,
     pinpointConnector: preset.pinpointConnector ?? "aglc",
+    // COURT-110 follow-up: every new document keeps the starting page.
+    reportStartingPage: "always",
     authorisedReportHierarchy: preset.authorisedReportHierarchy.join(","),
     unreportedGate: preset.unreportedGate,
     ibidSuppression: preset.ibidSuppression,
@@ -154,7 +160,10 @@ export function createCourtProfile(
  * preset; a missing order is report-first, a missing connector is the
  * AGLC form and a missing MNC toggle gives the MNC (COURT-111); a missing
  * `(n X)` toggle drops `(n X)` (COURT-107) and a missing subsequent form is
- * the short title (COURT-113). Stored keys are kept as they are, including
+ * the short title (COURT-113). A missing starting-page toggle is "legacy":
+ * a document saved before COURT-110 left the starting page out of a
+ * para-only report pinpoint, and keeps doing so until the user accepts the
+ * update (owner follow-up to DECISION-043 item 4, 7 Oct 2026). Stored keys are kept as they are, including
  * keys this build does not know (opaque bag rule).
  *
  * @param base - the standard's own config (`getStandardConfig(standardId)`).
@@ -175,6 +184,7 @@ export function freezeEffectiveToggles(
     reportedCaseMnc: t.reportedCaseMnc ?? "include",
     pinpointStyle: t.pinpointStyle ?? base.pinpointStyle,
     pinpointConnector: t.pinpointConnector ?? "aglc",
+    reportStartingPage: t.reportStartingPage ?? "legacy",
     authorisedReportHierarchy:
       t.authorisedReportHierarchy ?? (preset ? preset.authorisedReportHierarchy.join(",") : ""),
     unreportedGate: t.unreportedGate ?? base.unreportedGateMode,
@@ -244,6 +254,28 @@ export interface CourtProfileChange {
   proposed: string;
   /** The user changed this value for the document; unticked by default. */
   overridden: boolean;
+  /** A plain-language note on what the change does to citations, if any. */
+  detail?: string;
+}
+
+/**
+ * COURT-110 follow-up: the note the update prompt shows beside the
+ * starting-page row.
+ */
+export const REPORT_STARTING_PAGE_DETAIL =
+  "Report citations with a paragraph pinpoint will show the report's starting page, as AGLC4 rule 2.2.5 requires: for example 238 CLR 1 [45] instead of 238 CLR [45].";
+
+/**
+ * COURT-110 follow-up: the starting-page toggle changes output only under
+ * the "para-only" pinpoint style. It counts as a difference only when the
+ * document uses that style now or would after the update, so a document
+ * with another style is not prompted for a change it cannot see.
+ */
+function startingPageMatters(
+  toggles: Record<string, string>,
+  preset: Record<CourtToggleKey, string>
+): boolean {
+  return toggles.pinpointStyle === "para-only" || preset.pinpointStyle === "para-only";
 }
 
 /**
@@ -255,6 +287,9 @@ export interface CourtProfileChange {
 const ABSENT_TOGGLE_DEFAULTS: Partial<Record<CourtToggleKey, string>> = {
   parallelOrder: "report-first",
   pinpointConnector: "aglc",
+  // COURT-110 follow-up: a document frozen after the fix (or new) keeps the
+  // starting page; only a migrated document stores "legacy".
+  reportStartingPage: "always",
   reportedCaseMnc: "include",
   crossReferenceSuppression: "on",
   subsequentForm: "short-title",
@@ -276,6 +311,7 @@ export function diffCourtProfile(
   const t = toggles ?? {};
   const changes: CourtProfileChange[] = [];
   for (const key of COURT_TOGGLE_KEYS) {
+    if (key === "reportStartingPage" && !startingPageMatters(t, preset)) continue;
     const effective = t[key] ?? ABSENT_TOGGLE_DEFAULTS[key];
     if (effective !== preset[key]) {
       changes.push({
@@ -284,6 +320,7 @@ export function diffCourtProfile(
         current: t[key],
         proposed: preset[key],
         overridden: isOverridden(profile, key),
+        ...(key === "reportStartingPage" ? { detail: REPORT_STARTING_PAGE_DETAIL } : {}),
       });
     }
   }
@@ -330,6 +367,12 @@ export function applyProfileUpdate(
   if (preset) {
     for (const key of acceptedKeys) {
       if (key in preset) next[key] = preset[key];
+    }
+    // COURT-110 follow-up: where the starting-page toggle cannot change
+    // output (no para-only style after the update), it takes the preset
+    // value with the rest, so it is not left behind as a hidden override.
+    if (next.pinpointStyle !== "para-only" && next.reportStartingPage !== undefined) {
+      next.reportStartingPage = preset.reportStartingPage;
     }
   }
   const overridden = preset

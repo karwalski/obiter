@@ -162,7 +162,7 @@ import {
   type SubsequentReferenceContext,
 } from "./resolver";
 import { shouldItaliciseTitle, shouldQuoteTitle } from "./rules/v4/general/italicisation";
-import type { CitationConfig, PinpointConnector } from "./standards/types";
+import type { CitationConfig, PinpointConnector, ReportStartingPage } from "./standards/types";
 import { toText } from "./rules/v4/general/coerce";
 import { getStandardConfig } from "./standards";
 import {
@@ -361,6 +361,16 @@ function courtPinpointConnector(config?: CitationConfig): PinpointConnector | un
   return config?.writingMode === "court" && config.pinpointConnector === "at" ? "at" : undefined;
 }
 
+/**
+ * COURT-110 follow-up: "legacy" only for a court document frozen before
+ * COURT-110 (see `ReportStartingPage`); academic output is never affected.
+ */
+function courtReportStartingPage(config?: CitationConfig): ReportStartingPage | undefined {
+  return config?.writingMode === "court" && config.reportStartingPage === "legacy"
+    ? "legacy"
+    : undefined;
+}
+
 // ─── PLUMB-001: Type Coercion Helpers ────────────────────────────────────────
 //
 // The UI stores all form values as strings (text inputs produce strings).
@@ -547,6 +557,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
         courtId: d.courtId as string | undefined,
         pinpointStyle: config?.pinpointStyle,
         pinpointConnector: courtPinpointConnector(config),
+        reportStartingPage: courtReportStartingPage(config),
         judicialOfficers: joRuns,
         mncFirst: mncFirst ? mnc.trim() : undefined,
       });
@@ -570,6 +581,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
     parallelCitations,
     pinpointStyle: config?.pinpointStyle,
     pinpointConnector: courtPinpointConnector(config),
+    reportStartingPage: courtReportStartingPage(config),
     judicialOfficers: joRuns,
   });
 

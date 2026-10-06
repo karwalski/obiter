@@ -67,6 +67,7 @@ Experimental: checked against HCA Practice Direction No 2 of 2024 (Joint Book of
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | CLR | Court instrument | HCA-1 (HCA Practice Direction No 2 of 2024 (Joint Book of Authorities)) JBA Part C; Form 27A Part IV; HCA-2 (HCA Form 27A) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -90,6 +91,7 @@ Experimental: checked against FCA Lists of Authorities and Citations Practice No
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.4, 2.6 | 6 Oct 2026 |  |
 | Pinpoint connector | “at” before the pinpoint | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) cl 2.6 | 6 Oct 2026 | Instrument example: “at [29]”, “at 481”. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | FCR → CLR → ALR | Court instrument | FCA-1 (FCA Lists of Authorities and Citations Practice Note (GPN-AUTH)) Annexure | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -113,6 +115,7 @@ Experimental: checked against FCFCOA FAM-APPEALS Practice Direction (updated 10 
 | MNC of a reported case | Omitted (the report replaces it) | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) cl 5.8 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | FLC → ALR | No supporting source | FCF-1 (FCFCOA FAM-APPEALS Practice Direction) | 6 Oct 2026 | FamCAFC removed: it is an MNC identifier, not a report series (register O-R6). The order of the remaining series is not checked against FAM-APPEALS. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -137,6 +140,7 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -161,6 +165,7 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | NSW-3 (NSW Court of Criminal Appeal Practice Note SC CCA 1 (General)) cl 28 | 6 Oct 2026 | The warning follows the NSW Supreme Court preset. SC CCA 1 cl 28 treats an authority on Caselaw with an MNC as unreported and asks for a copy, but sets no test for citing it. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -185,6 +190,7 @@ Experimental: checked against NSW SC Practice Note SC Gen 20 (Citation of Author
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 4 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | Court instrument | NSW-1 (NSW SC Practice Note SC Gen 20 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -207,6 +213,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | NSWLR → CLR → ALR | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Unreported-judgment gate | Warn | No supporting source | NSW-4 (NSW District and Local Court practice-note indexes (no citation instrument found)) | 6 Oct 2026 | No instrument found; AGLC4 fallback (register O-R18). |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -231,6 +238,7 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 | MNC of a reported case | Omitted (the report replaces it) | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2; VIC-2 (Vic Court of Appeal Practice Note SC CA 3) | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.5 | 6 Oct 2026 | Example: “(2023) 72 VR 394, 410 [60]”. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -254,6 +262,7 @@ Experimental: checked against Vic SC Practice Note SC Gen 3 (Citation of authori
 | MNC of a reported case | Omitted (the report replaces it) | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.5 | 6 Oct 2026 | Example: “(2023) 72 VR 394, 410 [60]”. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | VR → CLR → ALR | Court instrument | VIC-1 (Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation)) cl 5.2 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -272,6 +281,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | VR → CLR → ALR | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -296,6 +306,7 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 4(a)–(b) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -318,6 +329,7 @@ Experimental: checked against Qld SC Practice Direction 1 of 2024 (Citation of A
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 4(a)–(b) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-1 (Qld SC Practice Direction 1 of 2024 (Citation of Authority)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -340,6 +352,7 @@ Experimental: checked against Qld Magistrates Court Practice Direction 7 of 2024
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | Qd R → CLR → ALR | Court instrument | QLD-3 (Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority)) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -364,6 +377,7 @@ Experimental: checked against WA SC Consolidated Practice Directions (PD 2.1, PD
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 7(a); PD 8.2.2 | 6 Oct 2026 |  |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | WAR → CLR → ALR | Court instrument | WA-1 (WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2)) PD 2.1 cl 14 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -386,6 +400,7 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -409,6 +424,7 @@ Experimental: checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | SASR → CLR → ALR | Court instrument | SA-1 (SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91)) r 101.8(4) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -432,6 +448,7 @@ Experimental: checked against Tas SC Practice Direction 3 of 2014 (Citation of J
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph and page | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 |  |
 | Pinpoint connector | “at” before the pinpoint | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 | Instrument example: “[1997] TASSC 161 at [15]”. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | Tas R → CLR → ALR | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 3 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Warn | Court instrument | TAS-1 (Tas SC Practice Direction 3 of 2014 (Citation of Judgments)) cl 5 | 6 Oct 2026 |  |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -454,6 +471,7 @@ Experimental: checked against ACT SC Practice Direction 2 of 2022 (Citation of A
 | MNC of a reported case | Omitted (the report replaces it) | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | ACTLR → CLR → ALR | Court instrument | ACT-1 (ACT SC Practice Direction 2 of 2022 (Citation of Authority)) cl 3–4 | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -476,6 +494,7 @@ Experimental: checked against NT SC Practice Direction 2 of 2007 (Citation of Au
 | MNC of a reported case | Omitted (the report replaces it) | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 | The report replaces the MNC; the MNC is cited only for an unreported judgment (also AGLC4 r 2.2.7). |
 | Pinpoint style | Paragraph and page | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | NTLR → CLR → ALR | Court instrument | NT-1 (NT SC Practice Direction 2 of 2007 (Citation of Authorities)) | 6 Oct 2026 |  |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -500,6 +519,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -522,6 +542,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |
@@ -544,6 +565,7 @@ Experimental: not checked against a court instrument (none found); not endorsed 
 | MNC of a reported case | Given with the report | Obiter default | None | No | Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111). |
 | Pinpoint style | Paragraph only | No supporting source | None | No | Not checked against a court instrument. |
 | Pinpoint connector | AGLC punctuation | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | Instrument shows no pinpoint connector; Obiter uses the AGLC4 form. |
+| Report starting page with a paragraph pinpoint | Always shown (AGLC4 r 2.2.5) | Obiter default | AGLC4 (Australian Guide to Legal Citation (4th ed, 2018)) r 2.2.5 | 6 Oct 2026 | A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page. |
 | Authorised-report hierarchy | None | No supporting source | None | No | Not checked against a court instrument. |
 | Unreported-judgment gate | Off | No supporting source | None | No | Not checked against a court instrument. |
 | Ibid suppression | On | Obiter default | DECISION-043 (Obiter DECISION-043 (owner decision, court interoperability)) item 2 | 6 Oct 2026 | No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2. |

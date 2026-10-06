@@ -1027,7 +1027,9 @@ function formatShortTitleWithReport(
       startingPage,
       pinpoint,
       config?.pinpointStyle,
-      config?.pinpointConnector
+      config?.pinpointConnector,
+      // COURT-110 follow-up: the same starting-page form as the full citation.
+      config?.reportStartingPage
     ),
   ];
 }

@@ -204,6 +204,8 @@ function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
     parallelOrder: p.parallelOrder ?? "report-first",
     pinpointStyle: p.pinpointStyle,
     pinpointConnector: p.pinpointConnector ?? "aglc",
+    // COURT-110 follow-up: every new document keeps the report starting page.
+    reportStartingPage: "always",
     // COURT-111: absent means the MNC is given with the report.
     reportedCaseMnc: p.reportedCaseMnc ?? "include",
     authorisedReportHierarchy: p.authorisedReportHierarchy.join(","),
@@ -222,6 +224,8 @@ const HCA_TOGGLES = {
   reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
+  // COURT-110 follow-up: a new document keeps the starting page.
+  reportStartingPage: "always",
   authorisedReportHierarchy: "CLR",
   unreportedGate: "off",
   ibidSuppression: "on",
@@ -236,6 +240,8 @@ const NSWCA_TOGGLES = {
   reportedCaseMnc: "include",
   pinpointStyle: "para-only",
   pinpointConnector: "aglc",
+  // COURT-110 follow-up: a new document keeps the starting page.
+  reportStartingPage: "always",
   authorisedReportHierarchy: "NSWLR,CLR,ALR",
   unreportedGate: "warn",
   ibidSuppression: "on",
@@ -250,6 +256,8 @@ const WASC_TOGGLES = {
   reportedCaseMnc: "include",
   pinpointStyle: "para-and-page",
   pinpointConnector: "aglc",
+  // COURT-110 follow-up: a new document keeps the starting page.
+  reportStartingPage: "always",
   authorisedReportHierarchy: "WAR,CLR,ALR",
   unreportedGate: "off",
   ibidSuppression: "on",
@@ -264,6 +272,8 @@ const STATE_TRIBUNAL_TOGGLES = {
   reportedCaseMnc: "include",
   pinpointStyle: "para-only",
   pinpointConnector: "aglc",
+  // COURT-110 follow-up: a new document keeps the starting page.
+  reportStartingPage: "always",
   authorisedReportHierarchy: "",
   unreportedGate: "off",
   ibidSuppression: "on",
