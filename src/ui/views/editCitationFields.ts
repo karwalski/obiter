@@ -17,6 +17,7 @@
 
 import type { SourceType, SourceData } from "../../types/citation";
 import { getFieldAliases } from "../../engine/fieldAliases";
+import { toText } from "../../engine/rules/v4/general/coerce";
 
 export interface FieldDefinition {
   key: string;
@@ -27,7 +28,15 @@ export interface FieldDefinition {
    * "namelist" fields hold the engine's structured Author[] shape but are
    * edited as a single comma/'and'-separated line (see src/ui/nameList.ts).
    */
-  type?: "text" | "checkbox" | "namelist";
+  type?: "text" | "checkbox" | "namelist" | "select";
+  /**
+   * B5: the choices of a "select" field (value stored, label shown). A
+   * stored value that matches no option (case-insensitively) is kept and
+   * shown as its own option, so editing never rewrites it silently.
+   */
+  options?: ReadonlyArray<{ value: string; label: string }>;
+  /** B5: the option shown when nothing is stored (the engine's default). */
+  defaultValue?: string;
   /**
    * Alternative data keys the same value may have been stored under by other
    * insert paths (paste parser, AI mapper, older documents). The engine
@@ -38,6 +47,37 @@ export interface FieldDefinition {
    */
   aliases?: string[];
 }
+
+/**
+ * B5: the value a "select" field shows for a stored value. Stored values
+ * may come back from the XML store as other types, so they are read with
+ * toText. Nothing stored shows the field's default; any other value is
+ * shown as stored (the form adds it as an option when no option matches).
+ */
+export function selectFieldValue(field: FieldDefinition, stored: unknown): string {
+  const raw = toText(stored).trim();
+  return raw === "" ? (field.defaultValue ?? "") : raw;
+}
+
+/** B5: the options to render for a "select" field showing `value`. */
+export function selectFieldOptions(
+  field: FieldDefinition,
+  value: string
+): ReadonlyArray<{ value: string; label: string }> {
+  const options = field.options ?? [];
+  const extra: Array<{ value: string; label: string }> = [];
+  if (field.defaultValue === undefined) extra.push({ value: "", label: "Not set" });
+  if (value !== "" && !options.some((o) => o.value === value)) {
+    extra.push({ value, label: value });
+  }
+  return [...extra, ...options];
+}
+
+/** B5: year bracket choices, matching the Insert form (AGLC4 r 2.2.1). */
+export const YEAR_BRACKET_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "round", label: "Round (year)" },
+  { value: "square", label: "Square [year]" },
+];
 
 /**
  * Explicit per-type field lists. Types not listed here fall back to
@@ -56,7 +96,14 @@ export const EDIT_FIELDS_BY_SOURCE_TYPE: Partial<Record<SourceType, FieldDefinit
       placeholder: "e.g. Land & House Property Corporation",
     },
     { key: "year", label: "Year", required: true, placeholder: "2024" },
-    { key: "yearType", label: "Year Brackets", placeholder: "round or square" },
+    // B5: a select, as on the Insert form; the engine reads absent as round.
+    {
+      key: "yearType",
+      label: "Year Brackets",
+      type: "select",
+      options: YEAR_BRACKET_OPTIONS,
+      defaultValue: "round",
+    },
     { key: "volume", label: "Volume", placeholder: "123" },
     { key: "reportSeries", label: "Report Series", required: true, placeholder: "CLR" },
     { key: "startingPage", label: "Starting Page", required: true, placeholder: "1" },
@@ -365,7 +412,12 @@ export const STANDARD_FIELDS_BY_SOURCE_TYPE: Record<
     "case.unreported.mnc": [
       { key: "reportSeries", label: "Report Series", placeholder: "AC" },
       { key: "reportYear", label: "Report Year", placeholder: "2008" },
-      { key: "yearType", label: "Report Year Brackets", placeholder: "round or square" },
+      {
+        key: "yearType",
+        label: "Report Year Brackets",
+        type: "select",
+        options: YEAR_BRACKET_OPTIONS,
+      },
       { key: "volume", label: "Report Volume", placeholder: "1" },
       { key: "startingPage", label: "Report Starting Page", placeholder: "884" },
     ],
@@ -395,7 +447,12 @@ export const STANDARD_FIELDS_BY_SOURCE_TYPE: Record<
     "case.unreported.mnc": [
       { key: "reportSeries", label: "Report Series", placeholder: "NZLR" },
       { key: "reportYear", label: "Report Year", placeholder: "2007" },
-      { key: "yearType", label: "Report Year Brackets", placeholder: "round or square" },
+      {
+        key: "yearType",
+        label: "Report Year Brackets",
+        type: "select",
+        options: YEAR_BRACKET_OPTIONS,
+      },
       { key: "volume", label: "Report Volume", placeholder: "3" },
       { key: "startingPage", label: "Report Starting Page", placeholder: "338" },
     ],

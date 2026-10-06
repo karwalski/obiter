@@ -39,7 +39,12 @@ import { canUpdateFromSource } from "../../api/updateFromSource";
 import type { SourceUpdateResult } from "../../api/updateFromSource";
 import { useStatus } from "../context/StatusContext";
 import { userTags } from "../../engine/tags";
-import { getFieldsForSourceType, applyFieldAliases } from "./editCitationFields";
+import {
+  getFieldsForSourceType,
+  applyFieldAliases,
+  selectFieldOptions,
+  selectFieldValue,
+} from "./editCitationFields";
 import { nameListToStr, parseNameList } from "../nameList";
 import {
   EXPERIMENTAL_BADGE,
@@ -1038,6 +1043,28 @@ export default function EditCitation(): JSX.Element {
                 disabled={loading}
               />
               <span className="edit-field-label" style={{ margin: 0 }}>{field.label}</span>
+            </label>
+          ) : field.type === "select" ? (
+            // B5: a select, matching the Insert form (eg year brackets).
+            <label key={field.key} className="edit-field">
+              <span className="edit-field-label">
+                {field.label}
+                {field.required && <span className="edit-field-required">*</span>}
+              </span>
+              <select
+                className="edit-field-input"
+                value={selectFieldValue(field, formData[field.key])}
+                onChange={(e) => handleFieldChange(field.key, e.target.value)}
+                disabled={loading}
+              >
+                {selectFieldOptions(field, selectFieldValue(field, formData[field.key])).map(
+                  (o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  )
+                )}
+              </select>
             </label>
           ) : (
             <label key={field.key} className="edit-field">
