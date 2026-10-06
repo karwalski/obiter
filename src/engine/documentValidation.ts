@@ -70,6 +70,8 @@ export function runDocumentValidation(input: DocumentValidationInput): Validatio
     courtJurisdiction: input.courtJurisdiction,
     parallelCitationMode: config.parallelCitationMode,
     ibidSuppressionMode: config.ibidSuppressionMode,
+    // B2: a recorded MNC is the parallel unless the report replaces it.
+    ...(config.reportedCaseMnc ? { reportedCaseMnc: config.reportedCaseMnc } : {}),
     // COURT-107: (n X) is not flagged when the document gives it.
     ...(config.crossReferenceSuppression === "off"
       ? { crossReferenceSuppression: "off" as const }

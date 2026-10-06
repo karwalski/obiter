@@ -4,7 +4,7 @@
  */
 
 import type { ValidationIssue } from "./types/validation";
-import { getFieldAliases } from "./fieldAliases";
+import { getFieldAliases, readFieldWithAliases } from "./fieldAliases";
 import { Citation } from "../types/citation";
 import type { ParallelCitation, SourceType } from "../types/citation";
 import { checkAbbreviationFullStops, checkDashes } from "./rules/v4/general/punctuation";
@@ -25,6 +25,7 @@ import {
   isCourtJurisdiction as isCourtJurisdictionPreset,
 } from "./court/presets";
 import { pickPreferredSeries } from "./court/reportHierarchy";
+import { getParagraphPinpointEvidence } from "./court/provenance";
 import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers";
 import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
 import { parseTitleMarkup } from "./rules/v4/general/titleMarkup";
@@ -144,6 +145,12 @@ export interface ValidateDocumentOptions {
   parallelCitationMode?: ConfigParallelCitationMode;
   /** COURT-FIX-004 ibid suppression toggle. */
   ibidSuppressionMode?: IbidSuppressionMode;
+  /**
+   * COURT-111: "omit" when the profile's report replaces the MNC. Absent
+   * means the MNC is given with the report, so a recorded MNC counts as
+   * the parallel citation (B2).
+   */
+  reportedCaseMnc?: "include" | "omit";
   /**
    * COURT-107: `(n X)` suppression toggle. "off" means the document gives
    * the AGLC4 r 1.4.1 cross-reference, so it is not flagged. Absent keeps
@@ -309,7 +316,12 @@ function validateDocumentWithOptions(
   // cites the practice direction, not AGLC r 2.2.7 (which prohibits them).
   if (options.parallelCitationMode && options.parallelCitationMode !== "off") {
     allIssues.push(
-      ...checkParallelCitationEnforcement(citations, options.parallelCitationMode, pdSource)
+      ...checkParallelCitationEnforcement(
+        citations,
+        options.parallelCitationMode,
+        pdSource,
+        options.reportedCaseMnc
+      )
     );
   }
 
@@ -326,7 +338,13 @@ function validateDocumentWithOptions(
 
     // COURT-110: AGLC4 r 2.2.5 — a report pinpoint must include a page.
     if (isAglc) {
-      allIssues.push(...checkReportParagraphPinpoints(citations));
+      allIssues.push(
+        ...checkReportParagraphPinpoints(citations, "2.2.5", {
+          courtJurisdiction: options.courtJurisdiction,
+          reportedCaseMnc: options.reportedCaseMnc,
+          courtRuleNumber: pdSource,
+        })
+      );
     }
 
     // COURT-007 / COURT-FIX-006: unreported-judgment gate from the toggle.
@@ -1550,14 +1568,38 @@ export function checkTranscriptRules(citation: Citation): ValidationIssue[] {
  */
 export function checkReportParagraphPinpoints(
   citations: Citation[],
-  ruleNumber: string = "2.2.5"
+  ruleNumber: string = "2.2.5",
+  profile?: {
+    courtJurisdiction?: string;
+    reportedCaseMnc?: "include" | "omit";
+    /** The practice-direction label court issues carry. */
+    courtRuleNumber?: string;
+  }
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const evidence = profile?.courtJurisdiction
+    ? getParagraphPinpointEvidence(profile.courtJurisdiction)
+    : undefined;
   for (const citation of citations) {
     if (citation.sourceType !== "case.reported") continue;
     const raw = citation.data.pinpoint;
     const pinpoint = normaliseStringPinpoint(typeof raw === "number" ? toText(raw) : raw);
     if (!isParagraphOnlyPinpoint(pinpoint)) continue;
+    // B3 / COURT-110: a profile whose instrument shows a paragraph-only
+    // pinpoint for its form (FCA GPN-AUTH cl 2.6 "at [29]", with the MNC
+    // given, cl 2.4) gets an information note instead of the AGLC4 warning.
+    // The paragraph is a judgment paragraph only when the MNC is cited.
+    if (evidence && profile?.reportedCaseMnc !== "omit" && hasRecordedMnc(citation)) {
+      issues.push({
+        ruleNumber: profile?.courtRuleNumber ?? evidence.instrument,
+        message: `Case '${getCitationLabel(citation)}': the pinpoint gives a paragraph without a page. The ${evidence.profileName} profile accepts this: ${evidence.instrument} ${evidence.clause} gives ${evidence.example}. AGLC4 r 2.2.5 would add the page, eg 410 [60]`,
+        severity: "info",
+        offset: 0,
+        length: 0,
+        citationId: citation.id,
+      });
+      continue;
+    }
     issues.push({
       ruleNumber,
       message: `Case '${getCitationLabel(citation)}': the paragraph pinpoint has no page. Add the page before the paragraph, eg 410 [60]. AGLC4 r 2.2.5 requires a page in every pinpoint to a report`,
@@ -2457,7 +2499,8 @@ export function checkParallelCitations(citations: Citation[]): ValidationIssue[]
 export function checkParallelCitationEnforcement(
   citations: Citation[],
   mode: ConfigParallelCitationMode,
-  ruleNumber: string = "Court practice direction"
+  ruleNumber: string = "Court practice direction",
+  reportedCaseMnc?: "include" | "omit"
 ): ValidationIssue[] {
   if (mode === "off") {
     return [];
@@ -2474,8 +2517,13 @@ export function checkParallelCitationEnforcement(
     const label = getCitationLabel(citation);
     const parallels = citation.data.parallelCitations as ParallelCitation[] | undefined;
     const hasParallels = Array.isArray(parallels) && parallels.length > 0;
+    // B2 / COURT-111: in court mode the formatter gives a recorded MNC as
+    // the parallel citation (engine dispatchReportedCase), unless the
+    // profile's report replaces the MNC. A recorded MNC therefore satisfies
+    // the requirement.
+    const mncIsParallel = reportedCaseMnc !== "omit" && hasRecordedMnc(citation);
 
-    if (!hasParallels) {
+    if (!hasParallels && !mncIsParallel) {
       issues.push({
         ruleNumber,
         message:
@@ -2489,6 +2537,16 @@ export function checkParallelCitationEnforcement(
   }
 
   return issues;
+}
+
+/**
+ * True when a reported case records its medium neutral citation (the `mnc`
+ * field, read through the field-alias table) as the text the court-mode
+ * formatter renders as the parallel citation.
+ */
+function hasRecordedMnc(citation: Citation): boolean {
+  const raw = readFieldWithAliases(citation.data as Record<string, unknown>, "mnc");
+  return (typeof raw === "string" || typeof raw === "number") && toText(raw).trim().length > 0;
 }
 
 // ─── Rule 2.3.1: Medium neutral citation adoption-year check ────────────────

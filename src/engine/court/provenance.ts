@@ -898,6 +898,49 @@ export function getFieldProvenance(
   return COURT_PRESET_PROVENANCE[jurisdictionId as CourtJurisdiction]?.fields[key];
 }
 
+/**
+ * B3 / COURT-110: a court instrument that shows a paragraph-only pinpoint
+ * (no page) for the profile's citation form.
+ */
+export interface ParagraphPinpointEvidence {
+  /** Register source id (developer reference). */
+  sourceId: string;
+  /** The profile's name as shown to the user. */
+  profileName: string;
+  /** Short instrument name as shown to the user. */
+  instrument: string;
+  clause: string;
+  /** The instrument's own example, quoted. */
+  example: string;
+}
+
+/**
+ * Profiles whose instrument shows a paragraph-only pinpoint. Only courts
+ * with register evidence are listed; every other profile keeps the AGLC4
+ * r 2.2.5 warning (a page must appear in a report pinpoint).
+ *
+ * FCA: GPN-AUTH (7 May 2025, register FCA-1) cl 2.6 prefers paragraph
+ * pinpoints ("at [29]") and uses a page only where there are no paragraphs
+ * ("at 481"); cl 2.4 makes MNC paragraph references sufficient (register
+ * R02 §3, O-R2).
+ */
+const PARAGRAPH_PINPOINT_EVIDENCE: Partial<Record<CourtJurisdiction, ParagraphPinpointEvidence>> = {
+  FCA: {
+    sourceId: "FCA-1",
+    profileName: "Federal Court",
+    instrument: "FCA GPN-AUTH",
+    clause: "cl 2.6",
+    example: "“at [29]”",
+  },
+};
+
+/** B3: the paragraph-only pinpoint evidence for a profile, if any. */
+export function getParagraphPinpointEvidence(
+  jurisdictionId: string
+): ParagraphPinpointEvidence | undefined {
+  return PARAGRAPH_PINPOINT_EVIDENCE[jurisdictionId as CourtJurisdiction];
+}
+
 /** Human-readable label for a provenance kind (UI and docs). */
 export const PROVENANCE_KIND_LABELS: Record<ProvenanceKind, string> = {
   official: "Court instrument",
