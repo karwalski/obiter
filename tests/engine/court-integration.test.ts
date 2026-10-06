@@ -256,7 +256,7 @@ describe("Engine Integration — formatCitation with court mode", () => {
     expect(text).not.toContain(";");
   });
 
-  test("formatCitation respects pinpointStyle=para-only from court config", () => {
+  test("COURT-110: formatCitation with pinpointStyle=para-only keeps the starting page (r 2.2.5)", () => {
     const caseWithPinpoint: Citation = {
       ...reportedCaseNoMnc,
       id: "int-pp-1",
@@ -267,9 +267,8 @@ describe("Engine Integration — formatCitation with court mode", () => {
     };
     const runs = formatCitation(caseWithPinpoint, undefined, makeCourtConfig("para-only"));
     const text = runs.map((r) => r.text).join("");
-    expect(text).toContain("CLR [45]");
-    expect(text).not.toContain("CLR 1 [45]");
-    expect(text).not.toContain("CLR 1, [45]");
+    expect(text).toContain("CLR 1 [45]");
+    expect(text).not.toContain("CLR [45]");
   });
 
   test("formatCitation respects pinpointStyle=para-and-page from court config", () => {

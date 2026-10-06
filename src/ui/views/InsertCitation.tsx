@@ -45,6 +45,7 @@ import {
   getProvenanceNote,
 } from "../../engine/ruleExporter";
 import { buildAiLayerMarker } from "../../engine/rules/v4/secondary/aiMarker";
+import { isHcaTranscript } from "../../engine/rules/v4/domestic/cases-supplementary";
 import { personToStr, parseNameList, nameListToStr } from "../nameList";
 import { listMissingRequiredFields } from "../../engine/validator";
 import { standardExtraFields } from "./editCitationFields";
@@ -2704,8 +2705,8 @@ function renderCaseReportedForm(
           Pinpoint
           <FieldHelp
             {...(isAglcStandard ? { ruleNumber: "2.2.5" } : {})}
-            description="A specific page, paragraph, or other reference within the source."
-            example="6 or [23]"
+            description="A page, or a page and paragraph in one entry (eg 410 [60]). A pinpoint to a report always includes a page; paragraph numbers may be added after it."
+            example="6 or 410 [60]"
           />
         </label>
         <input
@@ -2713,7 +2714,7 @@ function renderCaseReportedForm(
           className="ic-input"
           type="text"
           value={(data.pinpoint as string) || ""}
-          placeholder="e.g. 6 or [23]"
+          placeholder="e.g. 6 or 410 [60]"
           onChange={(e) => updateField("pinpoint", e.target.value)}
         />
       </div>
@@ -6036,12 +6037,44 @@ function renderCaseArbitrationForm(
 
 // ─── FORMS-002: Transcript Form (Rules 2.7.1-2.7.2) ─────────────────────────
 
-function renderCaseTranscriptForm(
+/** Exported for the COURT-120 transcript-row test; not part of the view API. */
+export function renderCaseTranscriptForm(
   data: SourceData,
   updateField: (key: string, value: unknown) => void,
   isAglcStandard: boolean,
 ): JSX.Element {
-  const isHca = Boolean(data.hcaTranscript);
+  // COURT-120: a flag read back from the XML store is the string "false".
+  const isHca = isHcaTranscript(data);
+
+  // COURT-120: pinpoint + speaker rows. Values are read as text because a
+  // digit-only pinpoint can return from the XML store as a number.
+  const asText = (raw: unknown): string => {
+    if (typeof raw === "string") return raw;
+    if (typeof raw === "number") return String(raw);
+    if (raw && typeof raw === "object" && "value" in raw) return asText((raw as { value?: unknown }).value);
+    return "";
+  };
+  const storedRows = Array.isArray(data.pinpoints)
+    ? (data.pinpoints as Array<{ value?: unknown; speaker?: unknown }>)
+    : [];
+  const transcriptRows: Array<{ value: string; speaker: string }> =
+    storedRows.length > 0
+      ? storedRows.map((r) => ({ value: asText(r?.value), speaker: asText(r?.speaker) }))
+      : [{ value: asText(data.pinpoint), speaker: asText(data.speaker) }];
+  const writeTranscriptRows = (rows: Array<{ value: string; speaker: string }>): void => {
+    const first = rows[0] ?? { value: "", speaker: "" };
+    updateField("pinpoint", first.value);
+    updateField("speaker", first.speaker);
+    updateField(
+      "pinpoints",
+      rows.length > 1
+        ? rows.map((r) => ({ value: r.value, ...(r.speaker ? { speaker: r.speaker } : {}) }))
+        : undefined,
+    );
+  };
+  const setTranscriptRow = (index: number, patch: Partial<{ value: string; speaker: string }>): void => {
+    writeTranscriptRows(transcriptRows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  };
 
   return (
     <div className="ic-form-fields">
@@ -6202,40 +6235,64 @@ function renderCaseTranscriptForm(
         </>
       )}
 
-      <div className="ic-field-row">
-        <div className="ic-field ic-field--grow">
-          <label className="ic-label" htmlFor="ic-tr-pinpoint">
-            Pinpoint
-          </label>
-          <input
-            id="ic-tr-pinpoint"
-            className="ic-input"
-            type="text"
-            value={(data.pinpoint as string) || ""}
-            placeholder="e.g. 25"
-            onChange={(e) => updateField("pinpoint", e.target.value)}
-          />
-        </div>
-
-        <div className="ic-field ic-field--grow">
-          <label className="ic-label" htmlFor="ic-tr-speaker">
-            Speaker (optional)
-            <FieldHelp
-              {...(isAglcStandard ? { ruleNumber: "2.7.1" } : {})}
-              description="The speaker at the pinpointed passage, in parentheses after the pinpoint."
-              example="McHugh J"
+      {/* COURT-120: rules 2.7.1–2.7.2 allow several pinpoint + speaker
+          pairs (ex 119). One row is stored as pinpoint/speaker; more rows
+          use the pinpoints array, with row 1 mirrored into pinpoint. */}
+      {transcriptRows.map((row, index) => (
+        <div className="ic-field-row" key={`tr-row-${index}`}>
+          <div className="ic-field ic-field--grow">
+            <label className="ic-label" htmlFor={index === 0 ? "ic-tr-pinpoint" : `ic-tr-pinpoint-${index}`}>
+              {index === 0 ? "Pinpoint" : `Pinpoint ${index + 1}`}
+            </label>
+            <input
+              id={index === 0 ? "ic-tr-pinpoint" : `ic-tr-pinpoint-${index}`}
+              className="ic-input"
+              type="text"
+              value={row.value}
+              placeholder={isHca ? "e.g. 2499–517" : "e.g. 25"}
+              onChange={(e) => setTranscriptRow(index, { value: e.target.value })}
             />
-          </label>
-          <input
-            id="ic-tr-speaker"
-            className="ic-input"
-            type="text"
-            value={(data.speaker as string) || ""}
-            placeholder="e.g. McHugh J"
-            onChange={(e) => updateField("speaker", e.target.value)}
-          />
+          </div>
+
+          <div className="ic-field ic-field--grow">
+            <label className="ic-label" htmlFor={index === 0 ? "ic-tr-speaker" : `ic-tr-speaker-${index}`}>
+              {index === 0 ? "Speaker (optional)" : `Speaker ${index + 1} (optional)`}
+              {index === 0 && (
+                <FieldHelp
+                  {...(isAglcStandard ? { ruleNumber: isHca ? "2.7.2" : "2.7.1" } : {})}
+                  description="The speaker at the pinpointed passage, in parentheses after the pinpoint. Do not add '(during argument)'."
+                  example="McHugh J"
+                />
+              )}
+            </label>
+            <input
+              id={index === 0 ? "ic-tr-speaker" : `ic-tr-speaker-${index}`}
+              className="ic-input"
+              type="text"
+              value={row.speaker}
+              placeholder="e.g. McHugh J"
+              onChange={(e) => setTranscriptRow(index, { speaker: e.target.value })}
+            />
+          </div>
+          {index > 0 && (
+            <button
+              className="ic-remove-btn"
+              type="button"
+              aria-label={`Remove pinpoint ${index + 1}`}
+              onClick={() => writeTranscriptRows(transcriptRows.filter((_, i) => i !== index))}
+            >
+              x
+            </button>
+          )}
         </div>
-      </div>
+      ))}
+      <button
+        className="ic-add-btn"
+        type="button"
+        onClick={() => writeTranscriptRows([...transcriptRows, { value: "", speaker: "" }])}
+      >
+        + Add pinpoint and speaker
+      </button>
     </div>
   );
 }

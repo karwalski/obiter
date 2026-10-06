@@ -21,6 +21,7 @@ import {
   type IbidSuppression,
   type LoaType,
   type ParallelOrder,
+  type PinpointConnector,
 } from "../../engine/court/presets";
 import { hasAttribution, insertAcknowledgment, getAcknowledgmentText } from "../../word/branding";
 import { writeObiterProperties } from "../../word/documentProperties";
@@ -199,6 +200,12 @@ export default function Settings(): JSX.Element {
      * engine default, report-first; the STD-022 control writes it explicitly.
      */
     parallelOrder?: ParallelOrder;
+    /**
+     * COURT-112: case pinpoint connector. Absent means "aglc" (the engine
+     * default), so a court document saved before COURT-112 renders as it
+     * did; selecting a court writes the preset's value.
+     */
+    pinpointConnector?: PinpointConnector;
   }>({
     parallelCitations: "mandatory",
     pinpointStyle: "para-and-page",
@@ -936,6 +943,7 @@ export default function Settings(): JSX.Element {
         ibidSuppression: preset.ibidSuppression,
         loaType: preset.loaType,
         ...(preset.parallelOrder ? { parallelOrder: preset.parallelOrder } : {}),
+        ...(preset.pinpointConnector ? { pinpointConnector: preset.pinpointConnector } : {}),
       };
       setCourtToggles(newToggles);
       await store.setCourtToggles(newToggles);
@@ -1372,6 +1380,19 @@ export default function Settings(): JSX.Element {
                     <option value="page-only">Page only</option>
                     <option value="para-only">Paragraph only</option>
                     <option value="para-and-page">Paragraph and page</option>
+                  </select>
+                </label>
+
+                <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
+                  Pinpoint connector
+                  <select
+                    className="ic-select"
+                    style={{ width: "100%", marginTop: 2 }}
+                    value={courtToggles.pinpointConnector ?? "aglc"}
+                    onChange={(e) => handleToggleOverride("pinpointConnector", e.target.value as PinpointConnector)}
+                  >
+                    <option value="aglc">AGLC punctuation (1, 6)</option>
+                    <option value="at">&ldquo;at&rdquo; before the pinpoint (1 at 6)</option>
                   </select>
                 </label>
 

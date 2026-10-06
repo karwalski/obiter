@@ -246,6 +246,11 @@ export function resolveOccurrencePinpoint(
   if (typeof storedPinpoint === "string") {
     return pinpointFromTitleString(storedPinpoint);
   }
+  // COURT-120: a digit-only stored pinpoint can return from the XML store
+  // as a number; read it as text rather than dropping it.
+  if (typeof storedPinpoint === "number" && Number.isFinite(storedPinpoint)) {
+    return pinpointFromTitleString(String(storedPinpoint));
+  }
   if (
     storedPinpoint &&
     typeof storedPinpoint === "object" &&

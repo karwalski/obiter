@@ -24,12 +24,30 @@ export type WritingMode = "academic" | "court";
  *
  * - "page-only": traditional page pinpoints `420, 425` (academic default,
  *   pre-MNC cases)
- * - "para-only": paragraph pinpoints only `[45]` — no starting page from
- *   authorised report (NSW, Qld court mode)
- * - "para-and-page": starting page then paragraph `420, [45]–[46]`
- *   (Vic, FCA, HCA, WA, SA, Tas, ACT, NT court mode)
+ * - "para-only": paragraph pinpoints are sufficient for medium neutral
+ *   citations (NSW, Qld court mode). A report citation keeps its starting
+ *   page and renders as "page-only" (COURT-110; AGLC4 r 2.2.5: a page must
+ *   always appear in a report pinpoint).
+ * - "para-and-page": starting page, then pinpoint page and paragraph
+ *   `394, 410 [60]` (Vic SC Gen 3 cl 5.5); a paragraph-only pinpoint
+ *   renders `420, [45]–[46]` (Vic, FCA, HCA, WA, SA, Tas, ACT, NT court mode)
  */
 export type PinpointStyle = "page-only" | "para-only" | "para-and-page";
+
+/**
+ * COURT-112: The connector between a case citation and its pinpoint.
+ *
+ * - "aglc" (default): AGLC4 rr 2.2.5 and 2.3.1 punctuation, unchanged:
+ *   a comma before a page pinpoint (`479, 481`), a space before a
+ *   paragraph pinpoint on a report (`479 [29]`), and a comma before a
+ *   paragraph pinpoint on a medium neutral citation (`[2014] FCAFC 115, [29]`).
+ * - "at": the word 'at' before the pinpoint (`479 at 481`,
+ *   `[2014] FCAFC 115 at [29]`), as shown by FCA GPN-AUTH cl 2.6
+ *   (7 May 2025; register FCA-1) and Tas SC PD 3 of 2014 cl 3
+ *   (21 Feb 2014; register TAS-1). Court mode only; applies to case full
+ *   and short forms, never to 'ibid'.
+ */
+export type PinpointConnector = "aglc" | "at";
 
 /** COURT-FIX: Parallel citation enforcement mode. */
 export type ParallelCitationMode = "off" | "preferred" | "mandatory";
@@ -91,6 +109,11 @@ export interface CitationConfig {
    * case citations. Defaults to "page-only" for academic mode.
    */
   pinpointStyle: PinpointStyle;
+  /**
+   * COURT-112: Case pinpoint connector in court mode. Absent means "aglc"
+   * (AGLC4 punctuation), so academic configs are unchanged.
+   */
+  pinpointConnector?: PinpointConnector;
   /**
    * COURT-FIX: Parallel citation enforcement. Only applies in court mode.
    * "mandatory" = validation error if missing, "preferred" = validation warning.

@@ -30,6 +30,8 @@ import {
   formatTranscript,
   formatHcaTranscript,
   formatSubmission,
+  hcaTranscriptNumber,
+  isHcaTranscript,
   type JudicialOfficerRef,
   type TranscriptPinpoint,
 } from "./rules/v4/domestic/cases-supplementary";
@@ -160,7 +162,8 @@ import {
   type SubsequentReferenceContext,
 } from "./resolver";
 import { shouldItaliciseTitle, shouldQuoteTitle } from "./rules/v4/general/italicisation";
-import type { CitationConfig } from "./standards/types";
+import type { CitationConfig, PinpointConnector } from "./standards/types";
+import { toText } from "./rules/v4/general/coerce";
 import { getStandardConfig } from "./standards";
 import {
   endsWithClosingBracket,
@@ -313,12 +316,16 @@ type SourceFormatter = (citation: Citation, config?: CitationConfig) => Formatte
 /**
  * Normalises a pinpoint from Citation.data — handles both Pinpoint objects
  * (from the engine) and plain strings (from the UI text input).
+ *
+ * COURT-120: a digit-only pinpoint stored through the XML store can come
+ * back as a number (`42`, or `{ type: "page", value: 42 }`); both are read
+ * through toText() rather than dropped.
  */
 function normalisePinpoint(raw: unknown): Pinpoint | undefined {
   if (!raw) return undefined;
-  if (typeof raw === "string") {
-    // Plain string from UI — wrap as a generic pinpoint
-    const trimmed = raw.trim();
+  if (typeof raw === "string" || typeof raw === "number") {
+    // Plain string (or round-tripped number) from UI — wrap as a generic pinpoint
+    const trimmed = toText(raw);
     return trimmed ? { type: "page", value: trimmed } : undefined;
   }
   if (typeof raw === "object") {
@@ -326,11 +333,27 @@ function normalisePinpoint(raw: unknown): Pinpoint | undefined {
     // An empty/partial object (e.g. { value: undefined } left over from a
     // cleared field) must NOT reach the formatters, or `${prefix}${value}`
     // renders the literal string "undefined".
-    const value = (raw as Partial<Pinpoint>).value;
-    if (typeof value !== "string" || value.trim() === "") return undefined;
-    return raw as Pinpoint;
+    const candidate = raw as Partial<Pinpoint>;
+    const value = toText(candidate.value);
+    if (value === "") return undefined;
+    if (typeof candidate.value === "string") return raw as Pinpoint;
+    const sub = candidate.subPinpoint ? normalisePinpoint(candidate.subPinpoint) : undefined;
+    return {
+      ...(raw as Pinpoint),
+      value,
+      ...(sub ? { subPinpoint: sub } : {}),
+    };
   }
   return undefined;
+}
+
+/**
+ * COURT-112: the case pinpoint connector for the config. "at" only in
+ * court writing mode (FCA GPN-AUTH cl 2.6; Tas SC PD 3 of 2014 cl 3);
+ * academic AGLC4 output is never affected.
+ */
+function courtPinpointConnector(config?: CitationConfig): PinpointConnector | undefined {
+  return config?.writingMode === "court" && config.pinpointConnector === "at" ? "at" : undefined;
 }
 
 // ─── PLUMB-001: Type Coercion Helpers ────────────────────────────────────────
@@ -510,6 +533,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
         pinpoint: normalisePinpoint(d.pinpoint),
         courtId: d.courtId as string | undefined,
         pinpointStyle: config?.pinpointStyle,
+        pinpointConnector: courtPinpointConnector(config),
         judicialOfficers: joRuns,
         mncFirst: mncFirst ? mnc.trim() : undefined,
       });
@@ -532,6 +556,7 @@ function dispatchReportedCase(citation: Citation, config?: CitationConfig): Form
     courtId: d.courtId as string | undefined,
     parallelCitations,
     pinpointStyle: config?.pinpointStyle,
+    pinpointConnector: courtPinpointConnector(config),
     judicialOfficers: joRuns,
   });
 
@@ -737,7 +762,7 @@ function dispatchTreatyMou(citation: Citation): FormattedRun[] {
  * Dispatches an unreported case with MNC (Rule 2.3.1).
  * Delegates to formatUnreportedMnc from cases-unreported.ts.
  */
-function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
+function dispatchUnreportedMnc(citation: Citation, config?: CitationConfig): FormattedRun[] {
   const d = citation.data;
   const caseName = formatCaseName(
     (d.party1 as string) ?? (d.caseName as string) ?? "",
@@ -754,6 +779,7 @@ function dispatchUnreportedMnc(citation: Citation): FormattedRun[] {
     caseNumber: toNumber(d.caseNumber ?? d.mnc ?? d.judgmentNumber, 0),
     pinpoint: normalisePinpoint(d.pinpoint),
     judicialOfficer: d.judicialOfficer as string | undefined,
+    pinpointConnector: courtPinpointConnector(config),
   });
 }
 
@@ -874,9 +900,24 @@ function dispatchTranscript(citation: Citation): FormattedRun[] {
 
   // Rules 2.7.1–2.7.2: pinpoint/speaker pairs — accept a stored array or a
   // single pinpoint (+ optional speaker) from the form
+  // COURT-120: rows are read through toText() (a digit-only value can
+  // return from the XML store as a number) and blank rows are dropped.
   let pinpoints: TranscriptPinpoint[] | undefined;
-  if (Array.isArray(d.pinpoints) && d.pinpoints.length > 0) {
-    pinpoints = d.pinpoints as TranscriptPinpoint[];
+  const rows = Array.isArray(d.pinpoints)
+    ? (d.pinpoints as unknown[])
+        .map((row) => {
+          const r = (row && typeof row === "object" ? row : {}) as {
+            value?: unknown;
+            speaker?: unknown;
+          };
+          const value = toText(r.value);
+          const speaker = toText(r.speaker);
+          return { value, ...(speaker ? { speaker } : {}) };
+        })
+        .filter((row) => row.value !== "")
+    : [];
+  if (rows.length > 0) {
+    pinpoints = rows;
   } else {
     const single = normalisePinpoint(d.pinpoint)?.value;
     if (single) {
@@ -885,11 +926,15 @@ function dispatchTranscript(citation: Citation): FormattedRun[] {
   }
 
   // Rule 2.7.2: HCA transcripts use a special format with [Year] HCATrans Number
-  if (d.hcaTranscript || (d.court as string) === "HCATrans") {
+  // COURT-120: shared with the validator and the form, so a flag stored as
+  // the string "false" selects r 2.7.1 everywhere.
+  if (isHcaTranscript({ hcaTranscript: d.hcaTranscript, court: d.court })) {
     return formatHcaTranscript({
       caseName,
       year: toNumber(d.year, 0),
-      number: toNumber(d.number, toNumber(d.caseNumber, 0)),
+      // COURT-120: never 'HCATrans 0' — a missing number is omitted and
+      // reported by the validator (r 2.7.2).
+      number: hcaTranscriptNumber(d.number) || hcaTranscriptNumber(d.caseNumber),
       pinpoints,
     });
   }
@@ -918,11 +963,13 @@ function dispatchSubmission(citation: Citation): FormattedRun[] {
     d.separator as string | undefined
   );
   return formatSubmission({
-    partyName: (d.partyName as string) ?? "",
-    submissionTitle: (d.submissionTitle as string) ?? (d.title as string) ?? "",
+    // COURT-120 / r 2.8: title and proceeding number are optional and are
+    // omitted when absent; toText() guards XML round-tripped numbers.
+    partyName: toText(d.partyName),
+    submissionTitle: toText(d.submissionTitle) || toText(d.title),
     caseName,
-    proceedingNumber: toStr(d.proceedingNumber),
-    date: (d.date as string) ?? "",
+    proceedingNumber: toText(d.proceedingNumber),
+    date: toText(d.date),
     pinpoint: normalisePinpoint(d.pinpoint),
   });
 }

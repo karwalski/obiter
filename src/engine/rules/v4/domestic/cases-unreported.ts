@@ -6,6 +6,7 @@
 import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { formatPinpoint } from "../general/pinpoints";
+import type { PinpointConnector } from "../../../standards/types";
 
 // ─── CASE-012: Rule 2.3.1 — Unreported decisions with MNC ───────────────────
 
@@ -31,6 +32,12 @@ export function formatUnreportedMnc(data: {
   caseNumber: number;
   pinpoint?: Pinpoint;
   judicialOfficer?: string;
+  /**
+   * COURT-112: court-mode pinpoint connector. "at" gives
+   * `[2010] TASSC 29 at [15]` (Tas SC PD 3 of 2014 cl 3; FCA GPN-AUTH
+   * cl 2.6). Absent or "aglc" keeps the rule 2.3.1 comma.
+   */
+  pinpointConnector?: PinpointConnector;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
@@ -44,7 +51,7 @@ export function formatUnreportedMnc(data: {
 
   // Pinpoint
   if (data.pinpoint) {
-    runs.push({ text: ", " });
+    runs.push({ text: data.pinpointConnector === "at" ? " at " : ", " });
     runs.push(...formatPinpoint(data.pinpoint));
   }
 

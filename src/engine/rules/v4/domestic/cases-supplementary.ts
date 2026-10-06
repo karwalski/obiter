@@ -7,6 +7,7 @@ import { Pinpoint } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
 import { getJudicialTitlePlural, isTitleBeforeName } from "../../../data/judicial-titles";
 import { formatPinpoint } from "../general/pinpoints";
+import { toText } from "../general/coerce";
 
 // ─── CASE-015: Identifying Judicial Officers (Rules 2.4.1–2.4.5) ────────────
 //
@@ -509,6 +510,33 @@ export function formatTranscript(data: {
 }
 
 /**
+ * True when transcript data selects the AGLC4 r 2.7.2 HCATrans form: the
+ * `hcaTranscript` flag is set, or the court is recorded as `HCATrans`.
+ *
+ * COURT-120: the XML store returns booleans as the strings "true" and
+ * "false", so the flag is compared explicitly; a stored "false" selects
+ * the r 2.7.1 form. The formatter, the validator and the form share this
+ * test so they always agree on which rule applies.
+ */
+export function isHcaTranscript(data: Record<string, unknown>): boolean {
+  return data.hcaTranscript === true || data.hcaTranscript === "true" || data.court === "HCATrans";
+}
+
+/**
+ * The HCATrans number as text, or "" when it is missing or zero (r 2.7.2).
+ * Leading zeros are dropped from a digit-only number (ex 119 'HCATrans 8'),
+ * and a number returned from the XML store as a number is read as text.
+ */
+export function hcaTranscriptNumber(raw: unknown): string {
+  const text = toText(raw);
+  if (/^\d+$/.test(text)) {
+    const n = String(Number(text));
+    return n === "0" ? "" : n;
+  }
+  return text;
+}
+
+/**
  * Format an HCA transcript citation according to AGLC4 Rule 2.7.2.
  *
  * @remarks AGLC4 Rule 2.7.2: High Court transcripts bearing an
@@ -526,7 +554,11 @@ export function formatTranscript(data: {
 export function formatHcaTranscript(data: {
   caseName: FormattedRun[];
   year: number;
-  number: number;
+  /**
+   * The HCATrans number. COURT-120: a missing or zero number is omitted
+   * (never 'HCATrans 0'); the validator reports it as an r 2.7.2 error.
+   */
+  number: number | string;
   /** Line-number pinpoint(s), comma-separated after the number (ex 119). */
   pinpoints?: TranscriptPinpoint[];
 }): FormattedRun[] {
@@ -534,7 +566,8 @@ export function formatHcaTranscript(data: {
 
   runs.push({ text: "Transcript of Proceedings, " });
   runs.push(...data.caseName);
-  runs.push({ text: ` [${data.year}] HCATrans ${data.number}` });
+  const number = hcaTranscriptNumber(data.number);
+  runs.push({ text: ` [${data.year}] HCATrans${number ? ` ${number}` : ""}` });
 
   if (data.pinpoints && data.pinpoints.length > 0) {
     runs.push({ text: `, ${renderTranscriptPinpoints(data.pinpoints)}` });
@@ -549,26 +582,46 @@ export function formatHcaTranscript(data: {
  * Format a submission in a case according to AGLC4 Rule 2.8.
  *
  * @remarks AGLC4 Rule 2.8: Submissions in cases are cited in the form:
- * 'Party Name, 'Title of Submission', Submission in Case Name, Proceeding Number,
- * Full Date, [Pinpoint]'. The title of the submission is enclosed in single
- * quotation marks. The case name is italicised (provided via pre-formatted runs).
+ * `«Party Name», '«Title of Submission»', Submission in «Case Name»,
+ * «Proceeding Number», «Full Date of Submission», «Pinpoint»`. The title of
+ * the submission is enclosed in single quotation marks. The case name is
+ * italicised (provided via pre-formatted runs). The title and the proceeding
+ * number are included only if each appears in the submission (derived
+ * reference §2.8, PDF p 91), so an absent element is omitted with its
+ * punctuation (COURT-120: never `‘’` or `, ,`).
+ *
+ * @example `Attorney-General (Cth), ‘Outline of Submissions of the Attorney-General of the Commonwealth as Amicus Curiae’, Submission in Humane Society International Inc v Kyodo Senpaku Kaisha Ltd, NSD1519/2004, 25 January 2005, [10]`
  *
  * @param data - Submission metadata
  * @returns FormattedRun[] representing the formatted citation
  */
 export function formatSubmission(data: {
   partyName: string;
-  submissionTitle: string;
+  submissionTitle?: string;
   caseName: FormattedRun[];
-  proceedingNumber: string;
+  proceedingNumber?: string;
   date: string;
   pinpoint?: Pinpoint;
 }): FormattedRun[] {
   const runs: FormattedRun[] = [];
 
-  runs.push({ text: `${data.partyName}, \u2018${data.submissionTitle}\u2019, Submission in ` });
+  const partyName = (data.partyName ?? "").trim();
+  const title = (data.submissionTitle ?? "").trim();
+  const lead: string[] = [];
+  if (partyName) lead.push(partyName);
+  if (title) lead.push(`\u2018${title}\u2019`);
+  lead.push("Submission in ");
+  runs.push({ text: lead.join(", ") });
   runs.push(...data.caseName);
-  runs.push({ text: `, ${data.proceedingNumber}, ${data.date}` });
+
+  const tail: string[] = [];
+  const proceedingNumber = (data.proceedingNumber ?? "").trim();
+  if (proceedingNumber) tail.push(proceedingNumber);
+  const date = (data.date ?? "").trim();
+  if (date) tail.push(date);
+  if (tail.length > 0) {
+    runs.push({ text: `, ${tail.join(", ")}` });
+  }
 
   if (data.pinpoint) {
     runs.push({ text: ", " });

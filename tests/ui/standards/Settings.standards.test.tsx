@@ -199,6 +199,7 @@ function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
     ibidSuppression: p.ibidSuppression,
     loaType: p.loaType,
     ...(p.parallelOrder ? { parallelOrder: p.parallelOrder } : {}),
+    ...(p.pinpointConnector ? { pinpointConnector: p.pinpointConnector } : {}),
   };
 }
 
@@ -618,6 +619,50 @@ describe("STD-022 — Parallel citation order control", () => {
     await waitFor(() =>
       expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...HCA_TOGGLES, parallelOrder: "mnc-first" })
     );
+  });
+});
+
+describe("COURT-112 — Pinpoint connector control", () => {
+  beforeEach(() => {
+    mockStore.getWritingMode.mockReturnValue("court");
+  });
+
+  // FCA GPN-AUTH cl 2.6 (7 May 2025, register FCA-1): "at [29]", "at 481".
+  test("selecting FCA (new document) writes pinpointConnector 'at'", async () => {
+    await renderSettings();
+    fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
+    await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith(presetToggles("FCA")));
+    expect(presetToggles("FCA")).toHaveProperty("pinpointConnector", "at");
+    expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("at");
+  });
+
+  test("a preset without the connector shows AGLC and does not write the key", async () => {
+    await renderSettings();
+    fireEvent.change(jurisdictionSelect(), { target: { value: "HCA" } });
+    await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenCalledWith(HCA_TOGGLES));
+    expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("aglc");
+
+    fireEvent.change(screen.getByLabelText("Pinpoint connector"), { target: { value: "at" } });
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...HCA_TOGGLES, pinpointConnector: "at" })
+    );
+  });
+
+  // DECISION-043 item 4: an existing FCA document saved before COURT-112
+  // keeps the AGLC connector until the user changes it; loading never writes.
+  test("an existing FCA document without the toggle keeps AGLC and is not rewritten", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue({
+      parallelCitations: "mandatory",
+      pinpointStyle: "para-and-page",
+      unreportedGate: "off",
+      ibidSuppression: "on",
+      loaType: "part-ab",
+    });
+    await renderSettings();
+    expect(jurisdictionSelect()).toHaveValue("FCA");
+    expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("aglc");
+    expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
   });
 });
 

@@ -11,8 +11,9 @@
 
 import { Pinpoint, ParallelCitation } from "../../../../types/citation";
 import { FormattedRun } from "../../../../types/formattedRun";
-import type { PinpointStyle } from "../../../standards/types";
+import type { PinpointConnector, PinpointStyle } from "../../../standards/types";
 import { getPreferredReportOrder } from "../../../court/reportHierarchy";
+import { toText } from "../general/coerce";
 
 // ─── Court-to-Series Mapping ─────────────────────────────────────────────────
 
@@ -337,6 +338,33 @@ function formatPinpointText(pinpoint: Pinpoint): string {
 }
 
 /**
+ * The pinpoint text without its leading AGLC separator (`, ` or a space),
+ * including any sub-pinpoint: `481`, `481 [29]`, `[29]`, `n 3`.
+ */
+function pinpointBody(pinpoint: Pinpoint): string {
+  let text = formatPinpointText(pinpoint).replace(/^(?:, | )/, "");
+  if (pinpoint.subPinpoint) {
+    text += formatPinpointText(pinpoint.subPinpoint);
+  }
+  return text;
+}
+
+/**
+ * True when a pinpoint to a report is to paragraphs only, with no page:
+ * a typed paragraph pinpoint (`[45]`), or a page-typed value that is
+ * itself a bracketed paragraph (`[45]`, as a plain form string becomes).
+ *
+ * AGLC4 r 2.2.5 (derived reference §2.2.5, PDF p 77): for reports with both
+ * page and paragraph numbers, a page number must always appear in the
+ * pinpoint; paragraph numbers may be added.
+ */
+export function isParagraphOnlyPinpoint(pinpoint: Pinpoint | undefined): boolean {
+  if (!pinpoint) return false;
+  if (pinpoint.type === "paragraph") return true;
+  return pinpoint.type === "page" && toText(pinpoint.value).startsWith("[");
+}
+
+/**
  * Formats the starting page number and optional pinpoint reference.
  *
  * AGLC4 Rule 2.2.4: The starting page of the case follows the report series
@@ -348,11 +376,27 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  * AGLC4 Rule 2.2.5: A pinpoint reference follows the starting page.
  * - Page pinpoints are separated by a comma and space: `1, 6`.
  * - Paragraph pinpoints are separated by a space: `1 [23]`.
+ * - Page plus paragraph: `394, 410 [60]` (r 2.2.5, ex 70 'Ibid 404 [32]').
+ * The starting page is never dropped: a page must always appear in a
+ * report pinpoint (derived reference §2.2.5, PDF p 77).
  *
- * COURT-005: Pinpoint style parameterisation adjusts rendering:
- * - "page-only" (default): starting page + page pinpoint `420, 425`
- * - "para-only" (NSW, Qld): paragraph pinpoint only `[45]` — no starting page
- * - "para-and-page" (Vic, FCA, HCA etc): starting page + paragraph `420, [45]–[46]`
+ * COURT-005 / COURT-110: Pinpoint style parameterisation:
+ * - "page-only" (default): AGLC4 rendering above.
+ * - "para-only" (NSW, Qld): renders exactly as "page-only" for a report.
+ *   Paragraph-only pinpoints belong to medium neutral citations (NSW SC
+ *   Gen 20; Qld SC PD 1 of 2024 make MNC paragraphs "sufficient"), which
+ *   are formatted by rule 2.3.1, not here. The starting page is kept
+ *   (COURT-110; no instrument supports a report citation without it). The
+ *   court-specific form of a report plus paragraph-only pinpoint is an open
+ *   owner question (DECISION-043 item 5), so the AGLC4 form is used.
+ * - "para-and-page" (Vic, FCA, HCA etc): starting page, then the pinpoint
+ *   page and paragraph, `394, 410 [60]` (Vic SC Gen 3 cl 5.5, 1 Dec 2025,
+ *   register VIC-1). A paragraph-only pinpoint keeps the existing
+ *   `420, [45]` form; the validator warns that the page is missing.
+ *
+ * COURT-112: with connector "at" (court mode, FCA GPN-AUTH cl 2.6; Tas SC
+ * PD 3 of 2014 cl 3), the separator before the pinpoint is ' at ':
+ * `479 at 481`, `479 at 481 [29]`, `479 at [29]`.
  *
  * @example
  *   formatStartingPageAndPinpoint(1)
@@ -362,63 +406,40 @@ function formatPinpointText(pinpoint: Pinpoint): string {
  *   formatStartingPageAndPinpoint(1, { type: "paragraph", value: "[23]" })
  *     => [{ text: "1 [23]" }]
  *   formatStartingPageAndPinpoint(1, { type: "paragraph", value: "[45]" }, "para-only")
- *     => [{ text: "[45]" }]
- *   formatStartingPageAndPinpoint(420, { type: "paragraph", value: "[45]–[46]" }, "para-and-page")
- *     => [{ text: "420, [45]–[46]" }]
+ *     => [{ text: "1 [45]" }]
+ *   formatStartingPageAndPinpoint(394, { type: "page", value: "410",
+ *     subPinpoint: { type: "paragraph", value: "[60]" } }, "para-and-page")
+ *     => [{ text: "394, 410 [60]" }]
+ *   formatStartingPageAndPinpoint(479, { type: "page", value: "481" }, "para-and-page", "at")
+ *     => [{ text: "479 at 481" }]
  */
 export function formatStartingPageAndPinpoint(
   startingPage: number | string,
   pinpoint?: Pinpoint,
-  pinpointStyle: PinpointStyle = "page-only"
+  pinpointStyle: PinpointStyle = "page-only",
+  pinpointConnector: PinpointConnector = "aglc"
 ): FormattedRun[] {
-  // ── COURT-005: para-only — emit paragraph pinpoint only, no starting page ──
-  if (pinpointStyle === "para-only") {
-    if (pinpoint && pinpoint.type === "paragraph") {
-      let text = pinpoint.value;
-      if (pinpoint.subPinpoint) {
-        text += formatPinpointText(pinpoint.subPinpoint);
-      }
-      return [{ text }];
-    }
-    // No paragraph pinpoint provided — fall through to emit starting page
-    // (edge case: user has only a page pinpoint in para-only mode)
-    if (pinpoint) {
-      let text = formatPinpointText(pinpoint).replace(/^, /, "");
-      if (pinpoint.subPinpoint) {
-        text += formatPinpointText(pinpoint.subPinpoint);
-      }
-      return [{ text }];
-    }
-    // No pinpoint at all — emit starting page as fallback
+  if (!pinpoint) {
     return [{ text: `${startingPage}` }];
   }
 
-  // ── COURT-005: para-and-page — starting page, then paragraph pinpoint ──
-  if (pinpointStyle === "para-and-page") {
-    let text = `${startingPage}`;
-    if (pinpoint && pinpoint.type === "paragraph") {
-      // Comma-separated: "420, [45]–[46]"
-      text += `, ${pinpoint.value}`;
-      if (pinpoint.subPinpoint) {
-        text += formatPinpointText(pinpoint.subPinpoint);
-      }
-    } else if (pinpoint) {
-      // Non-paragraph pinpoint — render normally
-      text += formatPinpointText(pinpoint);
-      if (pinpoint.subPinpoint) {
-        text += formatPinpointText(pinpoint.subPinpoint);
-      }
-    }
-    return [{ text }];
+  // ── COURT-112: 'at' connector replaces the AGLC separator ──
+  if (pinpointConnector === "at") {
+    return [{ text: `${startingPage} at ${pinpointBody(pinpoint)}` }];
   }
 
-  // ── Default: page-only (academic) — starting page + pinpoint ──
+  // ── COURT-005: para-and-page — a paragraph-only pinpoint is
+  //    comma-separated from the starting page ("420, [45]–[46]") ──
+  if (pinpointStyle === "para-and-page" && pinpoint.type === "paragraph") {
+    return [{ text: `${startingPage}, ${pinpointBody(pinpoint)}` }];
+  }
+
+  // ── Default (page-only, para-only, and para-and-page with a page
+  //    pinpoint): starting page + pinpoint per AGLC4 r 2.2.5 ──
   let text = `${startingPage}`;
-  if (pinpoint) {
-    text += formatPinpointText(pinpoint);
-    if (pinpoint.subPinpoint) {
-      text += formatPinpointText(pinpoint.subPinpoint);
-    }
+  text += formatPinpointText(pinpoint);
+  if (pinpoint.subPinpoint) {
+    text += formatPinpointText(pinpoint.subPinpoint);
   }
   return [{ text }];
 }
@@ -560,6 +581,8 @@ interface ReportedCaseData {
   parallelCitations?: ParallelCitation[];
   /** COURT-005: Pinpoint style override. Defaults to "page-only". */
   pinpointStyle?: PinpointStyle;
+  /** COURT-112: pinpoint connector (court mode). Defaults to "aglc". */
+  pinpointConnector?: PinpointConnector;
   /**
    * Rule 2.4: pre-formatted judicial officer runs. Emitted after the
    * pinpoint but BEFORE the court parenthetical — Rule 2.2.6 places the
@@ -615,7 +638,14 @@ export function formatReportedCase(data: ReportedCaseData): FormattedRun[] {
 
   // Starting page and pinpoint (COURT-005: style-aware)
   runs.push({ text: " " });
-  runs.push(...formatStartingPageAndPinpoint(data.startingPage, data.pinpoint, data.pinpointStyle));
+  runs.push(
+    ...formatStartingPageAndPinpoint(
+      data.startingPage,
+      data.pinpoint,
+      data.pinpointStyle,
+      data.pinpointConnector
+    )
+  );
 
   // Judicial officers (Rule 2.4) — precede the court parenthetical,
   // which Rule 2.2.6 places after "other parenthetical clauses".

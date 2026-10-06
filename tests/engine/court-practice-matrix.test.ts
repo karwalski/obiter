@@ -109,11 +109,13 @@ describe("CRIT-004: court-practice validation matrix", () => {
     test("court-mode pinpoint style matches the preset", () => {
       const text = render(configFor(preset));
       // Rendered forms are pinned by the COURT-005 engine-dispatch tests:
-      //   para-only      -> "CLR [45]"    (series + paragraph, no page)
+      //   para-only      -> "CLR 1 [45]"  (COURT-110: AGLC4 r 2.2.5 keeps
+      //                                    the starting page; same as page-only)
       //   para-and-page  -> "CLR 1, [45]" (series + page + ", " + paragraph)
       //   page-only      -> "CLR 1 [45]"  (series + page + " " + paragraph)
       if (preset.pinpointStyle === "para-only") {
-        expect(text).toContain("CLR [45]");
+        expect(text).toContain("CLR 1 [45]");
+        expect(text).not.toContain("CLR [45]");
       } else if (preset.pinpointStyle === "para-and-page") {
         expect(text).toContain("CLR 1, [45]");
       } else {

@@ -81,6 +81,8 @@ export interface CourtToggleRecord {
   ibidSuppression?: string;
   loaType?: string;
   parallelOrder?: string;
+  /** COURT-112: "aglc" (default) or "at". */
+  pinpointConnector?: string;
   /** Comma-separated report series, most preferred first (e.g. "NSWLR,CLR,ALR"). */
   authorisedReportHierarchy?: string;
 }
@@ -141,6 +143,9 @@ export function buildCourtConfig(
     loaType: (courtToggles.loaType as CitationConfig["loaType"]) ?? baseConfig.loaType,
     parallelOrder:
       (courtToggles.parallelOrder as CitationConfig["parallelOrder"]) ?? baseConfig.parallelOrder,
+    // COURT-112: only an explicit "at" is carried; an absent toggle (every
+    // court document saved before COURT-112) keeps the AGLC connector.
+    ...(courtToggles.pinpointConnector === "at" ? { pinpointConnector: "at" as const } : {}),
     ...(hierarchy ? { authorisedReportHierarchy: hierarchy } : {}),
   };
 }

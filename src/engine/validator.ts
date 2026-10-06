@@ -28,6 +28,10 @@ import { getByCode as getCourtIdentifierByCode } from "./data/court-identifiers"
 import { trimIssuingBodyName } from "./rules/v4/domestic/legislation-supplementary";
 import { parseTitleMarkup } from "./rules/v4/general/titleMarkup";
 import { exportRuleReference } from "./ruleExporter";
+import { toText } from "./rules/v4/general/coerce";
+import { normaliseStringPinpoint } from "./standards/pinpoints";
+import { isParagraphOnlyPinpoint } from "./rules/v4/domestic/cases";
+import { hcaTranscriptNumber, isHcaTranscript } from "./rules/v4/domestic/cases-supplementary";
 
 // Re-export for consumers
 export type { ValidationIssue } from "./types/validation";
@@ -279,6 +283,7 @@ function validateDocumentWithOptions(
     if (isAglc) {
       allIssues.push(...checkLegislativeHistoryHint(citation));
       allIssues.push(...checkCourtOrderOfficers(citation));
+      allIssues.push(...checkTranscriptRules(citation));
       allIssues.push(...checkIssuingBodyName(citation));
       allIssues.push(...checkJournalIssue(citation));
     }
@@ -318,6 +323,11 @@ function validateDocumentWithOptions(
     // are the court-submission warnings validateCourtMode raises.
     if (ibidSuppressed) {
       allIssues.push(...checkCourtSubsequentReferences(footnoteTexts, pdSource));
+    }
+
+    // COURT-110: AGLC4 r 2.2.5 — a report pinpoint must include a page.
+    if (isAglc) {
+      allIssues.push(...checkReportParagraphPinpoints(citations));
     }
 
     // COURT-007 / COURT-FIX-006: unreported-judgment gate from the toggle.
@@ -1451,6 +1461,108 @@ export function checkCourtOrderOfficers(citation: Citation): ValidationIssue[] {
       citationId: citation.id,
     },
   ];
+}
+
+/**
+ * The transcript speakers recorded on a citation: the single form field
+ * (`speaker`) and each row of the `pinpoints` array (rule 2.7.2 rows).
+ */
+function transcriptSpeakers(data: Record<string, unknown>): string[] {
+  const speakers: string[] = [];
+  const single = toText(data.speaker);
+  if (single) speakers.push(single);
+  if (Array.isArray(data.pinpoints)) {
+    for (const row of data.pinpoints) {
+      if (row && typeof row === "object") {
+        const speaker = toText((row as { speaker?: unknown }).speaker);
+        if (speaker) speakers.push(speaker);
+      }
+    }
+  }
+  return speakers;
+}
+
+/**
+ * Checks transcript citations for the rule 2.7 defects the formatter cannot
+ * repair on its own (COURT-120).
+ *
+ * @remarks AGLC4 r 2.7.1 and r 2.7.2 (derived reference §§2.7.1–2.7.2, PDF
+ * pp 90–1): a speaker's name may follow a pinpoint, but '(during argument)'
+ * must not be added (contrast r 2.4.4 for reported cases). Rule 2.7.2
+ * applies only where an HCATrans number appears on the transcript, so the
+ * HCATrans form without its number is an error; the formatter never
+ * renders 'HCATrans 0'.
+ */
+export function checkTranscriptRules(citation: Citation): ValidationIssue[] {
+  if (citation.sourceType !== "case.transcript") {
+    return [];
+  }
+  const d = citation.data;
+  const hca = isHcaTranscript(d);
+  const ruleNumber = hca ? "2.7.2" : "2.7.1";
+  const label = getCitationLabel(citation);
+  const issues: ValidationIssue[] = [];
+
+  if (transcriptSpeakers(d).some((speaker) => /during argument/i.test(speaker))) {
+    issues.push({
+      ruleNumber,
+      message: `Transcript '${label}': remove '(during argument)' from the speaker. Rule ${ruleNumber} allows the speaker's name after a pinpoint, but not '(during argument)'`,
+      severity: "error",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    });
+  }
+
+  if (hca) {
+    const number = hcaTranscriptNumber(d.number) || hcaTranscriptNumber(d.caseNumber);
+    if (number === "") {
+      issues.push({
+        ruleNumber: "2.7.2",
+        message: `Transcript '${label}' has no HCATrans number. Rule 2.7.2 applies only where the number appears on the transcript; add the number, or cite the transcript under rule 2.7.1`,
+        severity: "error",
+        offset: 0,
+        length: 0,
+        citationId: citation.id,
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Court mode (AGLC-based profile): warns when a reported-case citation has a
+ * paragraph pinpoint but no pinpoint page (COURT-110).
+ *
+ * @remarks AGLC4 r 2.2.5 (derived reference §2.2.5, PDF p 77): where a
+ * report has both page and paragraph numbers, a page number must always
+ * appear in the pinpoint; paragraph numbers may be added. Vic SC Gen 3
+ * cl 5.5 (1 Dec 2025, register VIC-1) gives the form `394, 410 [60]`.
+ * Paragraph-only pinpoints are sufficient for medium neutral citations
+ * (NSW SC Gen 20; Qld SC PD 1 of 2024), so case.unreported.mnc is not
+ * checked. Only the citation's stored pinpoint is examined.
+ */
+export function checkReportParagraphPinpoints(
+  citations: Citation[],
+  ruleNumber: string = "2.2.5"
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const citation of citations) {
+    if (citation.sourceType !== "case.reported") continue;
+    const raw = citation.data.pinpoint;
+    const pinpoint = normaliseStringPinpoint(typeof raw === "number" ? toText(raw) : raw);
+    if (!isParagraphOnlyPinpoint(pinpoint)) continue;
+    issues.push({
+      ruleNumber,
+      message: `Case '${getCitationLabel(citation)}': the paragraph pinpoint has no page. Add the page before the paragraph, eg 410 [60]. AGLC4 r 2.2.5 requires a page in every pinpoint to a report`,
+      severity: "warning",
+      offset: 0,
+      length: 0,
+      citationId: citation.id,
+    });
+  }
+  return issues;
 }
 
 /**

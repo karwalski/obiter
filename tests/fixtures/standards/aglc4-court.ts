@@ -40,7 +40,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "HCA:first+page",
     expected: "Mabo v Queensland (1992) 175 CLR 1, 42; [1992] HCA 23 (‘Mabo’)",
-    rule: "HCA PD 2 of 2024: authorised report (CLR) with the MNC as a parallel citation, report first; pinpointStyle para-and-page ('CLR 1, [42]'); ibid and (n X) suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "HCA PD 2 of 2024: authorised report (CLR) with the MNC as a parallel citation, report first; pinpointStyle para-and-page ('CLR 1, [42]'); ibid and (n X) suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts HCA; tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md",
   },
@@ -105,7 +105,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "HCA:first+page",
     expected: "Mabo v Queensland [1992] HCA 23, 42 (‘Mabo’)",
-    rule: "HCA PD 2 of 2024: authorised report (CLR) with the MNC as a parallel citation, report first; pinpointStyle para-and-page ('CLR 1, [42]'); ibid and (n X) suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "HCA PD 2 of 2024: authorised report (CLR) with the MNC as a parallel citation, report first; pinpointStyle para-and-page ('CLR 1, [42]'); ibid and (n X) suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts HCA; tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -163,7 +163,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:first",
     expected: "Mabo v Queensland (1992) 175 CLR 1; [1992] HCA 23 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: first citation with the auto-parallel MNC; AGLC 1.4.4 short-title introduction still appended after the parallel citation (engine convention, not addressed by the practice directions)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: first citation with the auto-parallel MNC; AGLC 1.4.4 short-title introduction still appended after the parallel citation (engine convention, not addressed by the practice directions)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -171,23 +171,23 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:parallel",
     expected: "Mabo v Queensland (1992) 175 CLR 1; [1992] HCA 23 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: identical to 'first': court mode always composes report + MNC from a case that carries both (MULTI-003 / engine dispatchReportedCase)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: identical to 'first': court mode always composes report + MNC from a case that carries both (MULTI-003 / engine dispatchReportedCase)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
   {
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:first+page",
-    expected: "Mabo v Queensland (1992) 175 CLR 42; [1992] HCA 23 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    expected: "Mabo v Queensland (1992) 175 CLR 1, 42; [1992] HCA 23 (‘Mabo’)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
   {
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:first+paragraph",
-    expected: "Mabo v Queensland (1992) 175 CLR [42]; [1992] HCA 23 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
+    expected: "Mabo v Queensland (1992) 175 CLR 1 [42]; [1992] HCA 23 (‘Mabo’)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -195,7 +195,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:subsequent-short",
     expected: "Mabo",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: MULTI-014 court short form: short title only, no (n X), italic (formatCourtShortReference)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: MULTI-014 court short form: short title only, no (n X), italic (formatCourtShortReference)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -203,7 +203,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:subsequent-short+page",
     expected: "Mabo 42",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: court short form + page pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: court short form + page pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -211,7 +211,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:subsequent-short+paragraph",
     expected: "Mabo [42]",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: court short form + paragraph pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: court short form + paragraph pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -219,7 +219,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:subsequent-ibid",
     expected: "Mabo",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: ibidSuppression on: the immediately following footnote repeats the short form, never 'Ibid' (COURT-FIX-004)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: ibidSuppression on: the immediately following footnote repeats the short form, never 'Ibid' (COURT-FIX-004)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -227,7 +227,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "NSWCA:subsequent-ibid+paragraph",
     expected: "Mabo [42]",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: ibid suppressed; short form + paragraph pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: ibid suppressed; short form + paragraph pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -235,7 +235,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:first",
     expected: "Mabo v Queensland [1992] HCA 23 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: first citation with the auto-parallel MNC; AGLC 1.4.4 short-title introduction still appended after the parallel citation (engine convention, not addressed by the practice directions)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: first citation with the auto-parallel MNC; AGLC 1.4.4 short-title introduction still appended after the parallel citation (engine convention, not addressed by the practice directions)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -244,7 +244,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:first+page",
     expected: "Mabo v Queensland [1992] HCA 23, 42 (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -253,7 +253,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:first+paragraph",
     expected: "Mabo v Queensland [1992] HCA 23, [42] (‘Mabo’)",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -262,7 +262,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:subsequent-short",
     expected: "Mabo",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: MULTI-014 court short form: short title only, no (n X), italic (formatCourtShortReference)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: MULTI-014 court short form: short title only, no (n X), italic (formatCourtShortReference)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -270,7 +270,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:subsequent-short+page",
     expected: "Mabo 42",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: court short form + page pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: court short form + page pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -278,7 +278,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:subsequent-short+paragraph",
     expected: "Mabo [42]",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: court short form + paragraph pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: court short form + paragraph pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -286,7 +286,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:subsequent-ibid",
     expected: "Mabo",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: ibidSuppression on: the immediately following footnote repeats the short form, never 'Ibid' (COURT-FIX-004)",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: ibidSuppression on: the immediately following footnote repeats the short form, never 'Ibid' (COURT-FIX-004)",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -294,7 +294,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "NSWCA:subsequent-ibid+paragraph",
     expected: "Mabo [42]",
-    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR [42]', starting page dropped); ibid suppressed; scenario: ibid suppressed; short form + paragraph pinpoint",
+    rule: "NSW SC Gen 20 (1 Oct 2023) + SC CA 1: MNC paragraph pinpoints sufficient, authorised report noted where possible (parallelCitations 'preferred'); pinpointStyle para-only ('CLR 1 [42]': COURT-110 keeps the starting page, AGLC4 r 2.2.5); ibid suppressed; scenario: ibid suppressed; short form + paragraph pinpoint",
     source:
       "src/engine/court/presets.ts NSWCA (CRIT-004 §4 sign-off); tests/engine/court-practice-matrix.test.ts; docs/court-practices-review.md §1.1",
   },
@@ -318,7 +318,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-reported",
     scenario: "WASC:first+page",
     expected: "Mabo v Queensland [1992] HCA 23; (1992) 175 CLR 1, 42 (‘Mabo’)",
-    rule: "WA SC Consolidated PD 8.2.2 (20 Jun 2025): MNC first, then the report ('Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]'); pinpointStyle para-and-page; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "WA SC Consolidated PD 8.2.2 (20 Jun 2025): MNC first, then the report ('Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]'); pinpointStyle para-and-page; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts WASC (parallelOrder mnc-first); tests/engine/court-practice-matrix.test.ts",
   },
@@ -383,7 +383,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "WASC:first+page",
     expected: "Mabo v Queensland [1992] HCA 23, 42 (‘Mabo’)",
-    rule: "WA SC Consolidated PD 8.2.2 (20 Jun 2025): MNC first, then the report ('Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]'); pinpointStyle para-and-page; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "WA SC Consolidated PD 8.2.2 (20 Jun 2025): MNC first, then the report ('Lee v The Queen [1999] WASCA 14; (1999) 18 WAR 23, 34 [15]'); pinpointStyle para-and-page; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts WASC (parallelOrder mnc-first); tests/engine/court-practice-matrix.test.ts",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -456,15 +456,15 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
   {
     fixture: "fx-mabo-reported",
     scenario: "QSC:first+page",
-    expected: "Mabo v Queensland (1992) 175 CLR 42; [1992] HCA 23 (‘Mabo’)",
-    rule: "Qld SC PD 1 of 2024: parallel citation 'should, as far as possible' (preferred); paragraph pinpoints sufficient (para-only); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    expected: "Mabo v Queensland (1992) 175 CLR 1, 42; [1992] HCA 23 (‘Mabo’)",
+    rule: "Qld SC PD 1 of 2024: parallel citation 'should, as far as possible' (preferred); paragraph pinpoints sufficient (para-only); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts QSC (CRIT-004 §4 sign-off); docs/court-practices-review.md §1.2",
   },
   {
     fixture: "fx-mabo-reported",
     scenario: "QSC:first+paragraph",
-    expected: "Mabo v Queensland (1992) 175 CLR [42]; [1992] HCA 23 (‘Mabo’)",
+    expected: "Mabo v Queensland (1992) 175 CLR 1 [42]; [1992] HCA 23 (‘Mabo’)",
     rule: "Qld SC PD 1 of 2024: parallel citation 'should, as far as possible' (preferred); paragraph pinpoints sufficient (para-only); ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
     source:
       "src/engine/court/presets.ts QSC (CRIT-004 §4 sign-off); docs/court-practices-review.md §1.2",
@@ -522,7 +522,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "QSC:first+page",
     expected: "Mabo v Queensland [1992] HCA 23, 42 (‘Mabo’)",
-    rule: "Qld SC PD 1 of 2024: parallel citation 'should, as far as possible' (preferred); paragraph pinpoints sufficient (para-only); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "Qld SC PD 1 of 2024: parallel citation 'should, as far as possible' (preferred); paragraph pinpoints sufficient (para-only); ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts QSC (CRIT-004 §4 sign-off); docs/court-practices-review.md §1.2",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",
@@ -595,15 +595,15 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
   {
     fixture: "fx-mabo-reported",
     scenario: "STATE_TRIBUNAL:first+page",
-    expected: "Mabo v Queensland (1992) 175 CLR 42; [1992] HCA 23 (‘Mabo’)",
-    rule: "Tribunal preset: parallelCitations 'off' governs validation only — the engine still auto-emits the stored MNC (pinned by court-practice-matrix); pinpointStyle para-only; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    expected: "Mabo v Queensland (1992) 175 CLR 1, 42; [1992] HCA 23 (‘Mabo’)",
+    rule: "Tribunal preset: parallelCitations 'off' governs validation only — the engine still auto-emits the stored MNC (pinned by court-practice-matrix); pinpointStyle para-only; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts STATE_TRIBUNAL; tests/engine/court-practice-matrix.test.ts ('The MNC is always emitted in court mode')",
   },
   {
     fixture: "fx-mabo-reported",
     scenario: "STATE_TRIBUNAL:first+paragraph",
-    expected: "Mabo v Queensland (1992) 175 CLR [42]; [1992] HCA 23 (‘Mabo’)",
+    expected: "Mabo v Queensland (1992) 175 CLR 1 [42]; [1992] HCA 23 (‘Mabo’)",
     rule: "Tribunal preset: parallelCitations 'off' governs validation only — the engine still auto-emits the stored MNC (pinned by court-practice-matrix); pinpointStyle para-only; ibid suppressed; scenario: paragraph pinpoint under the preset's pinpointStyle",
     source:
       "src/engine/court/presets.ts STATE_TRIBUNAL; tests/engine/court-practice-matrix.test.ts ('The MNC is always emitted in court mode')",
@@ -661,7 +661,7 @@ export const AGLC4_COURT_EXPECTATIONS: ExpectationTable = [
     fixture: "fx-mabo-mnc",
     scenario: "STATE_TRIBUNAL:first+page",
     expected: "Mabo v Queensland [1992] HCA 23, 42 (‘Mabo’)",
-    rule: "Tribunal preset: parallelCitations 'off' governs validation only — the engine still auto-emits the stored MNC (pinned by court-practice-matrix); pinpointStyle para-only; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (para-only renders the page in place of the starting page — pinned by court-mode.test.ts)",
+    rule: "Tribunal preset: parallelCitations 'off' governs validation only — the engine still auto-emits the stored MNC (pinned by court-practice-matrix); pinpointStyle para-only; ibid suppressed; scenario: page pinpoint under the preset's pinpointStyle (COURT-110: para-only keeps the starting page, AGLC4 r 2.2.5)",
     source:
       "src/engine/court/presets.ts STATE_TRIBUNAL; tests/engine/court-practice-matrix.test.ts ('The MNC is always emitted in court mode')",
     note: "MNC-only case: no report to pair, so no parallel citation; AGLC 2.3.1 form with a comma before the pinpoint",

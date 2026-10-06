@@ -860,7 +860,11 @@ function formatCourtShortReference(
   }
 
   if (pinpoint) {
-    runs.push({ text: " " });
+    // COURT-112: 'Short at [29]' where the court profile uses the 'at'
+    // connector (FCA GPN-AUTH cl 2.6; Tas SC PD 3 of 2014 cl 3). Cases
+    // only: no instrument shows 'at' before a legislation pinpoint.
+    const at = config?.pinpointConnector === "at" && citation.sourceType.startsWith("case.");
+    runs.push({ text: at ? " at " : " " });
     runs.push(...formatPinpoint(pinpoint));
   }
 

@@ -558,11 +558,13 @@ describe("STD-012 aglc4 + NSWCA preset", () => {
     expect(doc.rendered[FN[3]].renderedFormat).toBe("short");
   });
 
-  test("first citation with a paragraph pinpoint: para-only drops the starting page — 'CLR [42]; [1992] HCA 23'", async () => {
+  test("COURT-110: first citation with a paragraph pinpoint keeps the starting page under para-only — 'CLR 1 [42]; [1992] HCA 23' (AGLC4 r 2.2.5)", async () => {
     const one = await refresh(run, [{ citationId: maboReported.id, pinpoint: "[42]" }]);
     expect(one.rendered[0].effectivePinpoint).toEqual(PARA_42);
-    expect(one.footnotes[0]).toBe("Mabo v Queensland (1992) 175 CLR [42]; [1992] HCA 23 (‘Mabo’).");
-    expect(one.footnotes[0]).not.toContain("CLR 1");
+    expect(one.footnotes[0]).toBe(
+      "Mabo v Queensland (1992) 175 CLR 1 [42]; [1992] HCA 23 (‘Mabo’)."
+    );
+    expect(one.footnotes[0]).not.toContain("CLR [42]");
   });
 
   test("fn9: ibid suppressed with a pinpoint immediately after the full citation — 'Mabo [42]'", () => {

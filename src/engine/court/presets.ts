@@ -35,11 +35,21 @@
  *   - FCFCOA FAM-APPEALS practice direction (updated 10 Jun 2025)
  */
 
+import type { PinpointConnector } from "../standards/types";
+
 // ─── Toggle Value Types ─────────────────────────────────────────────────────
 
 export type ParallelCitationMode = "off" | "preferred" | "mandatory";
 
 export type PinpointStyle = "page-only" | "para-only" | "para-and-page";
+
+/**
+ * COURT-112: case pinpoint connector. "aglc" (default) keeps AGLC4
+ * punctuation; "at" gives `479 at 481` and `[2010] TASSC 29 at [15]`.
+ * Set only where an instrument shows it (FCA GPN-AUTH cl 2.6; Tas SC
+ * PD 3 of 2014 cl 3).
+ */
+export type { PinpointConnector };
 
 export type UnreportedGate = "off" | "warn";
 
@@ -170,6 +180,14 @@ export interface CourtPreset {
    * "mnc-first" per Consolidated PD 8.2.2 (updated 20 Jun 2025).
    */
   parallelOrder?: ParallelOrder;
+  /**
+   * COURT-112: case pinpoint connector. Optional — omitted means "aglc".
+   * Set to "at" only where the court's instrument shows it, with the
+   * source recorded beside the preset. Applied to a document when its
+   * court is selected; a document saved without the toggle keeps "aglc"
+   * (DECISION-043 item 4).
+   */
+  pinpointConnector?: PinpointConnector;
 }
 
 export type CourtGroup =
@@ -209,6 +227,10 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     unreportedGate: "off",
     ibidSuppression: "on",
     loaType: "part-ab",
+    // COURT-112: GPN-AUTH cl 2.6 (7 May 2025; register FCA-1, O-R2)
+    // shows pinpoints as "at [29]" and "at 481". Provenance: official
+    // (instrument example).
+    pinpointConnector: "at",
   },
   // FCFCOA FAM-APPEALS (updated 10 Jun 2025): appeals LOA is two parts —
   // Part 1 authorities cited in argument, Part 2 authorities possibly
@@ -390,6 +412,10 @@ export const COURT_PRESETS: Record<CourtJurisdiction, CourtPreset> = {
     unreportedGate: "warn",
     ibidSuppression: "on",
     loaType: "three-part-tas",
+    // COURT-112: PD 3 of 2014 cl 3 (21 Feb 2014; register TAS-1, O-R8)
+    // shows "Smith v Brown [1997] TASSC 161 at [15]". Provenance:
+    // official (instrument example).
+    pinpointConnector: "at",
   },
   // ACT SC PD 2 of 2022 (26 May 2022): authorised-series citation
   // should be used where one exists, with no express dispensation for

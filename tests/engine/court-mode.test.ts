@@ -349,16 +349,19 @@ describe("COURT-005: Pinpoint Style — formatStartingPageAndPinpoint", () => {
 
   // ── para-only (NSW, Qld court mode) ──────────────────────────────────────
 
-  test("para-only: paragraph pinpoint renders '[45]' without starting page", () => {
+  // COURT-110: AGLC4 r 2.2.5 (derived reference §2.2.5, PDF p 77) — a page
+  // must always appear in a report pinpoint, so para-only keeps the
+  // starting page and renders as page-only (O-K8).
+  test("COURT-110 para-only: paragraph pinpoint keeps the starting page, '420 [45]' (r 2.2.5)", () => {
     const runs = formatStartingPageAndPinpoint(420, paraPinpoint, "para-only");
     const text = runs.map((r: { text: string }) => r.text).join("");
-    expect(text).toBe("[45]");
+    expect(text).toBe("420 [45]");
   });
 
-  test("para-only: paragraph range pinpoint renders '[45]–[46]' without starting page", () => {
+  test("COURT-110 para-only: paragraph range keeps the starting page, '420 [45]–[46]' (r 2.2.5)", () => {
     const runs = formatStartingPageAndPinpoint(420, paraRangePinpoint, "para-only");
     const text = runs.map((r: { text: string }) => r.text).join("");
-    expect(text).toBe("[45]–[46]");
+    expect(text).toBe("420 [45]–[46]");
   });
 
   test("para-only: no pinpoint falls back to starting page", () => {
@@ -367,10 +370,10 @@ describe("COURT-005: Pinpoint Style — formatStartingPageAndPinpoint", () => {
     expect(text).toBe("420");
   });
 
-  test("para-only: page pinpoint (edge case) renders page value without starting page", () => {
+  test("COURT-110 para-only: page pinpoint keeps the starting page, '420, 425' (r 2.2.5)", () => {
     const runs = formatStartingPageAndPinpoint(420, pagePinpointVal, "para-only");
     const text = runs.map((r: { text: string }) => r.text).join("");
-    expect(text).toBe("425");
+    expect(text).toBe("420, 425");
   });
 
   // ── para-and-page (Vic, FCA, HCA, WA, SA, Tas, ACT, NT) ─────────────────
@@ -425,15 +428,15 @@ describe("COURT-005: Pinpoint Style — formatReportedCase integration", () => {
     expect(text).toContain("1 [45]");
   });
 
-  test("para-only: full citation emits paragraph only, no starting page before pinpoint", () => {
+  test("COURT-110 para-only: full citation keeps the starting page (r 2.2.5)", () => {
     const runs = formatReportedCase({
       ...baseCaseData,
       pinpoint: paraPinpoint,
       pinpointStyle: "para-only",
     });
     const text = runs.map((r: { text: string }) => r.text).join("");
-    // Should contain "[45]" but not "1 [45]" or "1, [45]"
-    expect(text).toContain("CLR [45]");
+    expect(text).toContain("CLR 1 [45]");
+    expect(text).not.toContain("CLR [45]");
   });
 
   test("para-and-page: full citation emits starting page then paragraph", () => {
@@ -479,12 +482,11 @@ describe("COURT-005: Pinpoint Style — engine dispatch integration", () => {
     modifiedAt: "2026-01-01T00:00:00Z",
   };
 
-  test("engine dispatches para-only correctly", () => {
+  test("COURT-110: engine dispatches para-only with the starting page kept (r 2.2.5)", () => {
     const runs = formatCitation(reportedCase, undefined, makeCourtConfig("para-only"));
     const text = runs.map((r: { text: string }) => r.text).join("");
-    expect(text).toContain("CLR [45]");
-    expect(text).not.toContain("CLR 1 [45]");
-    expect(text).not.toContain("CLR 1, [45]");
+    expect(text).toContain("CLR 1 [45]");
+    expect(text).not.toContain("CLR [45]");
   });
 
   test("engine dispatches para-and-page correctly", () => {
