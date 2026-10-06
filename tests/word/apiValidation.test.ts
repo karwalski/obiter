@@ -17,6 +17,7 @@
  * checks via Office.context.requirements.isSetSupported().
  */
 
+import { FEATURE_FLAGS, isFeatureAvailable } from "../../src/word/apiCompat";
 import {
   installOfficeGlobals,
   removeOfficeGlobals,
@@ -331,34 +332,22 @@ describe("API Surface Audit: WordApi 1.5 Baseline", () => {
 
 describe("WordApi Version Checks", () => {
   describe("isSetSupported calls in production code", () => {
-    test("styles.ts: applyAglc4Styles checks for WordApi 1.6 before addStyle", () => {
-      // At 1.5, addStyle is not available. The function should return early.
+    // COURT-103: guards route through apiCompat FEATURE_FLAGS (R08 §3).
+    test("styles.ts: applyAglc4Styles gates addStyle at WordApi 1.5 (was 1.6)", () => {
+      expect(FEATURE_FLAGS.addStyle).toMatchObject({ apiSet: "WordApi", version: "1.5" });
       installOfficeGlobals(supportUpTo("1.5"));
-
-      const isSupported = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      expect(isSupported.context.requirements.isSetSupported("WordApi", "1.6")).toBe(false);
-      expect(isSupported.context.requirements.isSetSupported("WordApi", "1.5")).toBe(true);
+      expect(isFeatureAvailable("addStyle")).toBe(true);
     });
 
-    test("styles.ts: applyAglc4Styles proceeds when WordApi 1.6 is available", () => {
-      installOfficeGlobals(supportUpTo("1.6"));
-
-      const isSupported = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      expect(isSupported.context.requirements.isSetSupported("WordApi", "1.6")).toBe(true);
+    test("styles.ts: applyAglc4Styles is skipped below WordApi 1.5", () => {
+      installOfficeGlobals(supportUpTo("1.4"));
+      expect(isFeatureAvailable("addStyle")).toBe(false);
     });
 
-    test("documentProperties.ts: writeObiterProperties checks for WordApi 1.6", () => {
+    test("documentProperties.ts: writeObiterProperties gates at WordApi 1.3 (was 1.6)", () => {
+      expect(FEATURE_FLAGS.customProperties).toMatchObject({ apiSet: "WordApi", version: "1.3" });
       installOfficeGlobals(supportUpTo("1.5"));
-
-      const isSupported = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      // Should return false for 1.6, meaning the function skips custom properties
-      expect(isSupported.context.requirements.isSetSupported("WordApi", "1.6")).toBe(false);
+      expect(isFeatureAvailable("customProperties")).toBe(true);
     });
 
     test("headingTracker.ts: checks WordApi 1.3 for list API", () => {
@@ -408,29 +397,12 @@ describe("WordApi Version Checks", () => {
       expect(detected).toBe("unknown");
     });
 
-    test("FEATURE_FLAGS maps customStyles to WordApi 1.6", () => {
-      // Verify the expected feature flag definitions
-      const flags: Record<string, { apiSet: string; version: string }> = {
-        customStyles: { apiSet: "WordApi", version: "1.6" },
-        annotations: { apiSet: "WordApi", version: "1.7" },
-        comments: { apiSet: "WordApi", version: "1.8" },
-        trackedChanges: { apiSet: "WordApi", version: "1.8" },
-      };
-
-      installOfficeGlobals(supportUpTo("1.6"));
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-
-      expect(Office.context.requirements.isSetSupported(
-        flags.customStyles.apiSet, flags.customStyles.version,
-      )).toBe(true);
-      expect(Office.context.requirements.isSetSupported(
-        flags.annotations.apiSet, flags.annotations.version,
-      )).toBe(false);
-      expect(Office.context.requirements.isSetSupported(
-        flags.comments.apiSet, flags.comments.version,
-      )).toBe(false);
+    test("FEATURE_FLAGS follow the Learn requirement-set tables (COURT-103)", () => {
+      installOfficeGlobals(supportUpTo("1.5"));
+      expect(isFeatureAvailable("addStyle")).toBe(true); // 1.5
+      expect(isFeatureAvailable("comments")).toBe(true); // 1.4
+      expect(isFeatureAvailable("trackedChanges")).toBe(false); // 1.6
+      expect(isFeatureAvailable("annotations")).toBe(false); // 1.7
     });
 
     test("core functionality (1.5) never gated behind feature checks", () => {
@@ -447,25 +419,14 @@ describe("WordApi Version Checks", () => {
   });
 
   describe("graceful degradation above WordApi 1.5", () => {
-    test("addStyle unavailable at 1.5: applyAglc4Styles should be a no-op", () => {
-      installOfficeGlobals(supportUpTo("1.5"));
-
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      const canAddStyles = Office.context.requirements.isSetSupported("WordApi", "1.6");
-      expect(canAddStyles).toBe(false);
-      // Production code returns early when canAddStyles is false
+    test("addStyle unavailable at 1.4: applyAglc4Styles should be a no-op", () => {
+      installOfficeGlobals(supportUpTo("1.4"));
+      expect(isFeatureAvailable("addStyle")).toBe(false);
     });
 
-    test("custom properties unavailable at 1.5: writeObiterProperties skips", () => {
-      installOfficeGlobals(supportUpTo("1.5"));
-
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      const canWriteProps = Office.context.requirements.isSetSupported("WordApi", "1.6");
-      expect(canWriteProps).toBe(false);
+    test("custom properties unavailable at 1.2: writeObiterProperties skips", () => {
+      installOfficeGlobals(supportUpTo("1.2"));
+      expect(isFeatureAvailable("customProperties")).toBe(false);
     });
 
     test("annotations unavailable at 1.6: feature check returns false", () => {
@@ -1029,25 +990,15 @@ describe("citationRefresher.ts", () => {
 
 describe("styles.ts", () => {
   describe("applyAglc4Styles — API availability", () => {
-    test("returns early when WordApi < 1.6 (addStyle unavailable)", () => {
-      installOfficeGlobals(supportUpTo("1.5"));
-
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      const canAddStyles = Office.context.requirements.isSetSupported("WordApi", "1.6");
-      expect(canAddStyles).toBe(false);
-      // Production code: if (!canAddStyles) return;
+    test("returns early when WordApi < 1.5 (addStyle unavailable)", () => {
+      installOfficeGlobals(supportUpTo("1.4"));
+      expect(isFeatureAvailable("addStyle")).toBe(false);
+      // Production code: if (!isFeatureAvailable("addStyle")) return [];
     });
 
-    test("creates styles when WordApi 1.6 is available", () => {
-      installOfficeGlobals(supportUpTo("1.6"));
-
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      const canAddStyles = Office.context.requirements.isSetSupported("WordApi", "1.6");
-      expect(canAddStyles).toBe(true);
+    test("creates styles when WordApi 1.5 is available", () => {
+      installOfficeGlobals(supportUpTo("1.5"));
+      expect(isFeatureAvailable("addStyle")).toBe(true);
 
       const ctx = createMockContext();
       // Verify addStyle is callable
@@ -1702,23 +1653,9 @@ describe("changeListener.ts", () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe("documentMeta.ts", () => {
-  describe("setDocumentMetadata", () => {
-    test("sets all six custom properties", async () => {
-      const ctx = createMockContext();
-      const custom = ctx.document.properties.customProperties;
-
-      custom.add("Obiter.Version", "1.10.35");
-      custom.add("Obiter.CitationStyle", "AGLC4");
-      custom.add("Obiter.Author", "Watt, Matthew");
-      custom.add("Obiter.ManagedDocument", "true");
-      custom.add("Obiter.CreatedDate", new Date().toISOString());
-      custom.add("Obiter.Website", "https://obiter.com.au");
-
-      expect(custom.add).toHaveBeenCalledTimes(6);
-      expect(custom.add).toHaveBeenCalledWith("Obiter.Version", "1.10.35");
-      expect(custom.add).toHaveBeenCalledWith("Obiter.CitationStyle", "AGLC4");
-    });
-  });
+  // setDocumentMetadata was removed (COURT-102, DECISION-043 item 1): it
+  // wrote a hard-coded personal name on every open. Property writes are
+  // covered by tests/word/court102DocumentProperties.test.ts.
 
   describe("getDocumentMetadata", () => {
     test("returns null when no Obiter.Version property exists", async () => {
@@ -1738,22 +1675,18 @@ describe("documentMeta.ts", () => {
       const ctx = createMockContext();
       ctx.document.properties.customProperties.items = [
         { key: "Obiter.Version", value: "1.10.35" },
-        { key: "Obiter.CitationStyle", value: "AGLC4" },
-        { key: "Obiter.Author", value: "Watt, Matthew" },
+        { key: "Obiter.CitationStyle", value: "aglc4" },
       ];
 
       let version = "";
       let style = "";
-      let author = "";
       for (const prop of ctx.document.properties.customProperties.items) {
         if (prop.key === "Obiter.Version") version = String(prop.value);
         if (prop.key === "Obiter.CitationStyle") style = String(prop.value);
-        if (prop.key === "Obiter.Author") author = String(prop.value);
       }
 
       expect(version).toBe("1.10.35");
-      expect(style).toBe("AGLC4");
-      expect(author).toBe("Watt, Matthew");
+      expect(style).toBe("aglc4");
     });
 
     test("handles errors from custom properties API gracefully", () => {
@@ -2325,27 +2258,14 @@ describe("templateExporter.ts", () => {
 
 describe("documentProperties.ts", () => {
   describe("writeObiterProperties", () => {
-    test("skips when WordApi 1.6 is not supported", () => {
-      installOfficeGlobals(supportUpTo("1.5"));
-
-      const Office = (globalThis as Record<string, unknown>).Office as {
-        context: { requirements: { isSetSupported: (a: string, v: string) => boolean } }
-      };
-      const canWrite = Office.context.requirements.isSetSupported("WordApi", "1.6");
-      expect(canWrite).toBe(false);
+    test("skips when WordApi 1.3 is not supported (COURT-103)", () => {
+      installOfficeGlobals(supportUpTo("1.2"));
+      expect(isFeatureAvailable("customProperties")).toBe(false);
     });
 
-    test("writes three properties when API available", async () => {
-      installOfficeGlobals(supportUpTo("1.6"));
-      const ctx = createMockContext();
-
-      const props = ctx.document.properties.customProperties;
-      props.add("Obiter.Version", "1.10.35");
-      props.add("Obiter.Standard", "aglc4");
-      props.add("Obiter.Mode", "academic");
-      await ctx.sync();
-
-      expect(props.add).toHaveBeenCalledTimes(3);
+    test("runs on the WordApi 1.5 baseline", () => {
+      installOfficeGlobals(supportUpTo("1.5"));
+      expect(isFeatureAvailable("customProperties")).toBe(true);
     });
 
     test("catches errors silently when custom properties API fails", async () => {

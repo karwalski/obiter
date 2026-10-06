@@ -13,69 +13,17 @@ if ("serviceWorker" in navigator) {
     // Service worker registration failed — offline mode unavailable
   });
 }
-import { applyAglc4Styles } from "../word/styles";
-import { applyAglc4Template } from "../word/template";
-import { CitationStore } from "../store/citationStore";
-import { hideAddinNotice, setDocumentMetadata } from "../word/documentMeta";
+import { getSharedStore } from "../store/singleton";
+import { hideAddinNotice } from "../word/documentMeta";
 import { removeTemplateNotice } from "../word/templateExporter";
-import { writeObiterProperties } from "../word/documentProperties";
+import { runStartupDocumentTasks } from "../word/startupSetup";
+import { formatCapabilitySnapshot, getCapabilitySnapshot } from "../word/apiCompat";
+import { createLogger } from "../debug/logger";
 import { APP_VERSION } from "../constants";
 import { detectProduct } from "../store/devicePreferences";
 import { installGlobalErrorHandlers } from "../debug/globalErrors";
 
-/** Check if this document has already been set up by Obiter. */
-async function isDocumentSetUp(): Promise<boolean> {
-  try {
-    const store = new CitationStore();
-    await store.initStore();
-    // If the store was already initialised (has metadata), document is set up
-    return store.getSchemaVersion() !== undefined;
-  } catch {
-    return false;
-  }
-}
-
-/** Apply AGLC4 template and styles on first use. */
-async function autoSetupDocument(): Promise<void> {
-  try {
-    const alreadySetUp = await isDocumentSetUp();
-
-    // Check if user has opted out of auto-setup
-    let autoSetup = true;
-    try {
-      const saved = localStorage.getItem("obiter-autoSetup");
-      if (saved === "false") autoSetup = false;
-    } catch {
-      /* ignore */
-    }
-
-    if (!autoSetup) return;
-
-    // Only apply template to empty/new documents, always apply styles
-    await Word.run(async (context) => {
-      // Apply styles (modifies built-in Heading 1-5 to AGLC4 formatting)
-      try {
-        await applyAglc4Styles(context);
-      } catch {
-        /* styles may already exist */
-      }
-
-      // Apply template only if document is new (empty or just has placeholders)
-      if (!alreadySetUp) {
-        const body = context.document.body;
-        body.load("text");
-        await context.sync();
-
-        const bodyText = body.text.trim();
-        if (bodyText.length === 0) {
-          await applyAglc4Template(context);
-        }
-      }
-    });
-  } catch {
-    // Auto-setup failed — non-critical, user can do it manually from Settings
-  }
-}
+const log = createLogger("Taskpane");
 
 Office.onReady((info) => {
   // SAFE-006: capture unhandled errors and promise rejections for the whole
@@ -97,10 +45,10 @@ Office.onReady((info) => {
 
     renderApp(root);
 
-    // Auto-setup document on first load
-    void autoSetupDocument();
+    // COURT-103: record what the host reports, for issue reports.
+    log.info("Word API capabilities\n" + formatCapabilitySnapshot(getCapabilitySnapshot()));
 
-    // Clean up notices and set metadata
+    // Clean up notices
     void Word.run(async (context) => {
       try {
         await hideAddinNotice(context);
@@ -109,11 +57,6 @@ Office.onReady((info) => {
       }
       try {
         await removeTemplateNotice(context);
-      } catch {
-        /* non-critical */
-      }
-      try {
-        await setDocumentMetadata(context);
       } catch {
         /* non-critical */
       }
@@ -165,15 +108,16 @@ Office.onReady((info) => {
       }
     })();
 
-    // INFRA-008 Layer 1: Write document properties on startup
+    // COURT-101 / COURT-102: startup document tasks. Never modifies an
+    // existing style; creates missing AGLC4 styles only on a new blank
+    // academic document (visible setting); writes Obiter properties only
+    // when the document holds a citation, and removes any Obiter.Author.
+    // Uses the shared store so no second store instance races its persists.
     void (async () => {
       try {
-        const store = new CitationStore();
-        await store.initStore();
-        const stdId = store.getStandardId();
-        const mode = store.getWritingMode();
+        const store = await getSharedStore();
         await Word.run(async (context) => {
-          await writeObiterProperties(context, APP_VERSION, stdId, mode);
+          await runStartupDocumentTasks(context, store, APP_VERSION);
         });
       } catch {
         /* non-critical */

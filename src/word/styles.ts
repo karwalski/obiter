@@ -6,6 +6,8 @@
 /* global Word */
 
 import type { CitationStandardId } from "../engine/standards/types";
+import { isFeatureAvailable } from "./apiCompat";
+import { AGLC4_HEADING_COMMON, AGLC4_HEADING_FORMATS } from "./aglc4HeadingStyles";
 
 // ─── Roman Numeral Conversion ────────────────────────────────────────────────
 
@@ -110,11 +112,31 @@ export function getHeadingPrefix(level: 1 | 2 | 3 | 4 | 5, number: number): stri
 
 // ─── AGLC4 Document Styles (Rules 1.5.1, 1.12.1, 1.12.2, 1.13) ─────────────
 
+/** Names of the AGLC4 paragraph styles Obiter creates (create-only). */
+export const AGLC4_STYLE_NAMES: ReadonlyArray<string> = [
+  "AGLC4 Block Quote",
+  "AGLC4 Title",
+  "AGLC4 Author",
+  "AGLC4 Footnote Text",
+  "AGLC4 Bibliography Heading",
+];
+
+/** Options for {@link applyAglc4Styles}. */
+export interface ApplyAglc4StylesOptions {
+  /**
+   * Also restyle Word's built-in Heading 1–5 (Rule 1.12.2). Only pass true
+   * from an explicit user action that has shown which styles will change
+   * (COURT-101). Defaults to false: create-only.
+   */
+  formatBuiltInHeadings?: boolean;
+}
+
 /**
- * Creates all AGLC4 styles in the active Word document.
+ * Creates the AGLC4 named paragraph styles that do not already exist in the
+ * document. Never modifies an existing style, built-in or custom (COURT-101).
  *
- * Uses `context.document.addStyle()` (WordApi 1.6+) to create named styles
- * with the correct paragraph and font formatting per AGLC4 rules:
+ * Uses `getStyles().getByNameOrNullObject()` and `addStyle()`, both WordApi
+ * 1.5 (MS-2; R08 §3.7), routed through the `addStyle` feature flag:
  *
  * - **AGLC4 Block Quote** (Rule 1.5.1): left indent 720 twips (0.5 in),
  *   font size 10 pt, no quotation marks.
@@ -122,44 +144,37 @@ export function getHeadingPrefix(level: 1 | 2 | 3 | 4 | 5, number: number): stri
  * - **AGLC4 Author** (Rule 1.12.1): small caps, centred.
  * - **AGLC4 Footnote Text**: 10 pt, single spacing.
  * - **AGLC4 Bibliography Heading** (Rule 1.13): centred, italic.
- * - **AGLC4 Level I–V** (Rule 1.12.2): heading styles with appropriate
- *   formatting and alignment.
  *
- * If a style with the same name already exists, the call to `addStyle` will
- * throw; in that case the error is caught and the existing style is left
- * unchanged.
+ * Two syncs at most, independent of document size.
  *
  * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @returns The names of the styles created by this call.
  */
-export async function applyAglc4Styles(context: Word.RequestContext): Promise<void> {
+export async function createAglc4Styles(context: Word.RequestContext): Promise<string[]> {
+  if (!isFeatureAvailable("addStyle")) return [];
   const doc = context.document;
 
-  // Check if addStyle is available (WordApi 1.6+)
-  const canAddStyles = Office.context.requirements.isSetSupported("WordApi", "1.6");
-  if (!canAddStyles) {
-    // On WordApi 1.5, we cannot create custom styles programmatically.
-    // Users will need to use the AGLC4 template file instead.
-    return;
+  // Look up every AGLC4 style in one batch so existing ones are left alone.
+  let missing: string[];
+  try {
+    const styles = doc.getStyles();
+    const probes = AGLC4_STYLE_NAMES.map((name) => styles.getByNameOrNullObject(name));
+    for (const probe of probes) probe.load("isNullObject");
+    await context.sync();
+    missing = AGLC4_STYLE_NAMES.filter((_, i) => probes[i].isNullObject);
+  } catch {
+    // Cannot tell which styles exist — create nothing rather than risk a clash.
+    return [];
   }
+  if (missing.length === 0) return [];
 
-  // Helper: create a style, returning null if it already exists.
-  // addStyle throws at sync time if the name is taken, so we
-  // track names we've already attempted and skip duplicates.
-  const attempted = new Set<string>();
-  const getOrCreateStyle = (name: string, type: Word.StyleType): Word.Style | null => {
-    if (attempted.has(name)) return null;
-    attempted.add(name);
-    try {
-      return doc.addStyle(name, type);
-    } catch {
-      return null;
-    }
-  };
+  const create = (name: string): Word.Style | null =>
+    missing.includes(name) ? doc.addStyle(name, "Paragraph" as Word.StyleType) : null;
 
   // ── AGLC4 Block Quote (Rule 1.5.1) ──────────────────────────────────────
   // "Quotations of four or more lines ... should be displayed in an
   //  indented block, without quotation marks, in a smaller font."
-  const blockQuote = getOrCreateStyle("AGLC4 Block Quote", "Paragraph" as Word.StyleType);
+  const blockQuote = create("AGLC4 Block Quote");
   if (blockQuote) {
     blockQuote.font.size = 10;
     blockQuote.paragraphFormat.leftIndent = 36; // 720 twips = 36pt = 0.5 in
@@ -168,7 +183,7 @@ export async function applyAglc4Styles(context: Word.RequestContext): Promise<vo
 
   // ── AGLC4 Title (Rule 1.12.1) ───────────────────────────────────────────
   // "The title of the work should appear in bold and be centred."
-  const title = getOrCreateStyle("AGLC4 Title", "Paragraph" as Word.StyleType);
+  const title = create("AGLC4 Title");
   if (title) {
     title.font.bold = true;
     title.paragraphFormat.alignment = "Centered" as Word.Alignment;
@@ -176,14 +191,14 @@ export async function applyAglc4Styles(context: Word.RequestContext): Promise<vo
 
   // ── AGLC4 Author (Rule 1.12.1) ──────────────────────────────────────────
   // "The author's name should appear in small capitals and be centred."
-  const author = getOrCreateStyle("AGLC4 Author", "Paragraph" as Word.StyleType);
+  const author = create("AGLC4 Author");
   if (author) {
     author.font.smallCaps = true;
     author.paragraphFormat.alignment = "Centered" as Word.Alignment;
   }
 
   // ── AGLC4 Footnote Text ─────────────────────────────────────────────────
-  const footnoteText = getOrCreateStyle("AGLC4 Footnote Text", "Paragraph" as Word.StyleType);
+  const footnoteText = create("AGLC4 Footnote Text");
   if (footnoteText) {
     footnoteText.font.size = 10;
     footnoteText.paragraphFormat.lineSpacing = 12;
@@ -193,7 +208,7 @@ export async function applyAglc4Styles(context: Word.RequestContext): Promise<vo
   // Bibliography section headings are centred and in italic. Add visible
   // breathing room before/after each heading so sections are visually
   // separated from the entries above and below.
-  const bibHeading = getOrCreateStyle("AGLC4 Bibliography Heading", "Paragraph" as Word.StyleType);
+  const bibHeading = create("AGLC4 Bibliography Heading");
   if (bibHeading) {
     bibHeading.font.italic = true;
     bibHeading.paragraphFormat.alignment = "Centered" as Word.Alignment;
@@ -209,80 +224,68 @@ export async function applyAglc4Styles(context: Word.RequestContext): Promise<vo
     }
   }
 
-  // ── Modify built-in Heading 1–5 for AGLC4 (Rule 1.12.2) ────────────────
-  //
-  // Instead of creating new custom styles, we modify Word's built-in
-  // Heading 1-5 styles so they appear correctly in the styles pane
-  // and work with Word's built-in outline/navigation features.
+  await context.sync();
+  return missing;
+}
 
-  const headingConfigs: Array<{
-    name: string;
-    italic: boolean;
-    smallCaps: boolean;
-    bold: boolean;
-    centered: boolean;
-    leftIndent: number;
-  }> = [
-    {
-      name: "Heading 1",
-      italic: false,
-      smallCaps: true,
-      bold: false,
-      centered: true,
-      leftIndent: 0,
-    },
-    {
-      name: "Heading 2",
-      italic: true,
-      smallCaps: false,
-      bold: false,
-      centered: true,
-      leftIndent: 0,
-    },
-    {
-      name: "Heading 3",
-      italic: true,
-      smallCaps: false,
-      bold: false,
-      centered: false,
-      leftIndent: 0,
-    },
-    {
-      name: "Heading 4",
-      italic: true,
-      smallCaps: false,
-      bold: false,
-      centered: false,
-      leftIndent: 36,
-    },
-    {
-      name: "Heading 5",
-      italic: true,
-      smallCaps: false,
-      bold: false,
-      centered: false,
-      leftIndent: 72,
-    },
-  ];
-
-  for (const cfg of headingConfigs) {
+/**
+ * Restyles Word's built-in Heading 1–5 to the AGLC4 heading levels.
+ *
+ * AGLC4 Rule 1.12.2 (PDF p 59): Level I in large and small capitals,
+ * centred; Level II italic, centred; Levels III–V italic, left-aligned.
+ * Size, colour, spacing and indents are Obiter layout choices
+ * (see `AGLC4_HEADING_FORMATS`).
+ *
+ * This MODIFIES existing styles, including a court or firm template's own
+ * headings. It must run only from an explicit user action that has shown
+ * the changes from `describeBuiltInHeadingChanges()` and offered a cancel
+ * (COURT-101). It never runs when the task pane opens.
+ *
+ * @param context - A Word.RequestContext from within a Word.run() callback.
+ */
+export async function applyAglc4HeadingFormatting(context: Word.RequestContext): Promise<void> {
+  if (!isFeatureAvailable("addStyle")) return; // getStyles is WordApi 1.5
+  const doc = context.document;
+  for (const cfg of AGLC4_HEADING_FORMATS) {
     try {
       const style = doc.getStyles().getByName(cfg.name);
       // Don't override the document's default font — let users choose their own
-      style.font.size = 12;
+      style.font.size = AGLC4_HEADING_COMMON.fontSize;
       style.font.italic = cfg.italic;
       style.font.smallCaps = cfg.smallCaps;
       style.font.bold = cfg.bold;
-      style.font.color = "black";
+      style.font.color = AGLC4_HEADING_COMMON.color;
       style.paragraphFormat.alignment = (cfg.centered ? "Centered" : "Left") as Word.Alignment;
       style.paragraphFormat.leftIndent = cfg.leftIndent;
-      style.paragraphFormat.firstLineIndent = 0;
-      style.paragraphFormat.spaceAfter = 12;
-      style.paragraphFormat.spaceBefore = 12;
+      style.paragraphFormat.firstLineIndent = AGLC4_HEADING_COMMON.firstLineIndent;
+      style.paragraphFormat.spaceAfter = AGLC4_HEADING_COMMON.spaceAfter;
+      style.paragraphFormat.spaceBefore = AGLC4_HEADING_COMMON.spaceBefore;
       await context.sync();
     } catch {
       // getStyles/getByName not available or style not found — skip
     }
+  }
+}
+
+/**
+ * Creates any missing AGLC4 named styles and, only when the caller passes
+ * `formatBuiltInHeadings: true` from an explicit, previewed user action,
+ * restyles the built-in Heading 1–5 (COURT-101).
+ *
+ * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @param options - See {@link ApplyAglc4StylesOptions}.
+ */
+export async function applyAglc4Styles(
+  context: Word.RequestContext,
+  options: ApplyAglc4StylesOptions = {}
+): Promise<void> {
+  try {
+    await createAglc4Styles(context);
+  } catch {
+    // A style may have been added by another pane between lookup and add.
+  }
+  if (options.formatBuiltInHeadings) {
+    await applyAglc4HeadingFormatting(context);
   }
 }
 

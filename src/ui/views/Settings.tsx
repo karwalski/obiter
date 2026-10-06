@@ -25,8 +25,10 @@ import {
 import { hasAttribution, insertAcknowledgment, getAcknowledgmentText } from "../../word/branding";
 import { writeObiterProperties } from "../../word/documentProperties";
 // styleInstaller import removed — XSL now downloaded via button
-import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template } from "../../word/template";
+import HeadingStyleConfirm, { TEMPLATE_OTHER_CHANGES } from "../components/HeadingStyleConfirm";
+import { getAutoCreateStylesPref, setAutoCreateStylesPref } from "../../store/autoSetupPreference";
+import { formatCapabilitySnapshot, getCapabilitySnapshot } from "../../word/apiCompat";
 import { loadTemplatePreferences, saveTemplatePreferences, type TemplatePreferences } from "../../word/documentMeta";
 import { APP_NAME, APP_VERSION, GITHUB_REPO } from "../../constants";
 import { loadLlmConfig, saveLlmConfig, testConnection, clearStoredKeys, type LLMConfig } from "../../llm/config";
@@ -209,6 +211,12 @@ export default function Settings(): JSX.Element {
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
   const [debugLogs, setDebugLogs] = useState<ReturnType<typeof getLogHistory>>([]);
   const [testStatus, setTestStatus] = useState<string | null>(null);
+  // COURT-101: visible setting replacing the hidden obiter-autoSetup key, and
+  // the confirmation shown before Prepare as Template changes any style.
+  const [autoCreateStyles, setAutoCreateStyles] = useState<boolean>(() => getAutoCreateStylesPref());
+  const [confirmingTemplate, setConfirmingTemplate] = useState(false);
+  // COURT-103: capability snapshot for issue reports.
+  const [capabilityText, setCapabilityText] = useState<string | null>(null);
 
   // LLM configuration state
   const [llmProvider, setLlmProvider] = useState<LLMConfig["provider"]>("openai");
@@ -714,11 +722,12 @@ export default function Settings(): JSX.Element {
             });
           }
 
-          // INFRA-008 Layer 1: Write document properties
+          // INFRA-008 Layer 1 / COURT-102: document properties, written only
+          // when the document holds a citation (DECISION-043 item 1).
           const currentStandard = store.getStandardId();
-          const currentMode = store.getWritingMode();
+          const citationCount = (store.getAll() ?? []).length;
           await Word.run(async (context) => {
-            await writeObiterProperties(context, APP_VERSION, currentStandard, currentMode);
+            await writeObiterProperties(context, APP_VERSION, currentStandard, citationCount);
           });
 
           setLoading(false);
@@ -1537,6 +1546,27 @@ export default function Settings(): JSX.Element {
               Report an issue or request a feature
             </a>
           </p>
+          {/* COURT-103: capability snapshot for issue reports. */}
+          <button
+            className="library-btn"
+            style={{ alignSelf: "flex-start", marginTop: 4 }}
+            onClick={() => setCapabilityText(formatCapabilitySnapshot(getCapabilitySnapshot()))}
+          >
+            Show Word API capabilities
+          </button>
+          {capabilityText && (
+            <>
+              <p style={{ fontSize: 11, margin: 0, color: "var(--colour-text-secondary)" }}>
+                Copy this text into your issue report.
+              </p>
+              <pre
+                aria-label="Word API capabilities"
+                style={{ fontSize: 10, whiteSpace: "pre-wrap", margin: 0, userSelect: "text" }}
+              >
+                {capabilityText}
+              </pre>
+            </>
+          )}
         </div>
       </fieldset>
 
@@ -1607,6 +1637,25 @@ export default function Settings(): JSX.Element {
 
       <fieldset className="settings-section" style={{ marginTop: 12 }}>
         <legend className="settings-section-title">Template Defaults</legend>
+
+        <label className="settings-toggle-row">
+          <input
+            type="checkbox"
+            checked={autoCreateStyles}
+            onChange={(e) => {
+              setAutoCreateStyles(e.target.checked);
+              setAutoCreateStylesPref(e.target.checked);
+            }}
+          />
+          <span>Add AGLC4 styles to new blank documents</span>
+        </label>
+        <p style={{ fontSize: 11, color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
+          When the task pane opens on an empty document, adds the AGLC4 Block Quote,
+          Title, Author, Footnote Text and Bibliography Heading styles if they are
+          missing. This does not run in court mode. Obiter does not change existing styles,
+          including Word&rsquo;s headings, when it opens. To format headings, use
+          Set Up Document in the Styling view. Stored on this device.
+        </p>
 
         <details style={{ marginTop: 8 }}>
           <summary style={{ fontSize: 12, cursor: "pointer", color: "var(--colour-accent)" }}>
@@ -1702,27 +1751,37 @@ export default function Settings(): JSX.Element {
             <button
               className="library-btn library-btn--insert"
               style={{ marginTop: 8, width: "100%" }}
-              onClick={async () => {
-                try {
-                  setFormatStatus(null);
-                  const { prepareAsTemplate } = await import("../../word/templateExporter");
-                  await Word.run(async (context) => {
-                    try { await applyAglc4Styles(context); } catch { /* */ }
-                    await applyAglc4Template(context);
-                    await prepareAsTemplate(context);
-                  });
-                  setFormatStatus(
-                    "Template prepared. Save as .dotx: File > Save As > " +
-                    "choose 'Word Template (.dotx)'. New documents created " +
-                    "from this template will have AGLC4 formatting pre-configured."
-                  );
-                } catch (err: unknown) {
-                  setError(err instanceof Error ? err.message : "Failed to prepare template");
-                }
-              }}
+              disabled={confirmingTemplate}
+              onClick={() => setConfirmingTemplate(true)}
             >
               Prepare as Template (.dotx)
             </button>
+            {confirmingTemplate && (
+              <HeadingStyleConfirm
+                otherChanges={[...TEMPLATE_OTHER_CHANGES, "A notice at the top of the document asking recipients to install Obiter"]}
+                defaultFormatHeadings={writingMode !== "court"}
+                offerHeadings={standardId.startsWith("aglc")}
+                onCancel={() => setConfirmingTemplate(false)}
+                onConfirm={async (formatBuiltInHeadings) => {
+                  setConfirmingTemplate(false);
+                  try {
+                    setFormatStatus(null);
+                    const { prepareAsTemplate } = await import("../../word/templateExporter");
+                    await Word.run(async (context) => {
+                      await applyAglc4Template(context, undefined, { formatBuiltInHeadings });
+                      await prepareAsTemplate(context);
+                    });
+                    setFormatStatus(
+                      "Template prepared. Save as .dotx: File > Save As > " +
+                      "choose 'Word Template (.dotx)'. New documents created " +
+                      "from this template will have AGLC4 formatting pre-configured."
+                    );
+                  } catch (err: unknown) {
+                    setError(err instanceof Error ? err.message : "Failed to prepare template");
+                  }
+                }}
+              />
+            )}
             <p style={{ fontSize: "var(--text-min)", color: "var(--colour-text-secondary)", margin: "4px 0 0" }}>
               Sets up AGLC4 styles, formatting, and an install notice, then
               prompts you to save as a Word Template. New documents created

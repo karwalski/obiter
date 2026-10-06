@@ -5,41 +5,39 @@
 
 /* global Word */
 
-import { applyAglc4Styles } from "./styles";
-import {
-  setDocumentMetadata,
-  loadTemplatePreferences,
-  type TemplatePreferences,
-} from "./documentMeta";
+import { applyAglc4Styles, type ApplyAglc4StylesOptions } from "./styles";
+import { loadTemplatePreferences, type TemplatePreferences } from "./documentMeta";
 
 /**
  * Applies a full AGLC4 document template using the user's saved
- * preferences (or defaults). Sets document metadata, applies styles,
- * configures formatting, and optionally inserts title/author placeholders
- * and the add-in notice.
+ * preferences (or defaults). Creates the AGLC4 styles, configures
+ * formatting, and optionally inserts title/author placeholders.
+ *
+ * Built-in Heading 1–5 are restyled only when `styleOptions` asks for it,
+ * which callers do only after showing the user what will change
+ * (COURT-101). Document properties are no longer written here: they are
+ * written by `writeObiterProperties` only once the document holds a citation
+ * (COURT-102, DECISION-043 item 1).
  *
  * @param context - A Word.RequestContext from within a Word.run() callback.
  * @param prefsOverride - Optional preferences to use instead of saved ones.
+ * @param styleOptions - Whether to restyle the built-in headings.
  */
 export async function applyAglc4Template(
   context: Word.RequestContext,
-  prefsOverride?: Partial<TemplatePreferences>
+  prefsOverride?: Partial<TemplatePreferences>,
+  styleOptions: ApplyAglc4StylesOptions = {}
 ): Promise<void> {
   const prefs = { ...loadTemplatePreferences(), ...prefsOverride };
 
-  // 1. Apply AGLC4 styles (heading formatting, block quote, etc.)
+  // 1. Create AGLC4 styles; restyle built-in headings only on explicit request
   try {
-    await applyAglc4Styles(context);
+    await applyAglc4Styles(context, styleOptions);
   } catch {
     // Styles may already exist
   }
 
-  // 2. Set document metadata (custom properties)
-  try {
-    await setDocumentMetadata(context);
-  } catch {
-    // Custom properties API may not be available
-  }
+  // 2. (Document metadata moved to writeObiterProperties — COURT-102.)
 
   // 3. Set default font — only if user explicitly chose one in Settings
   const body = context.document.body;
@@ -143,8 +141,8 @@ export async function applyAglc4Template(
   // The notice is only useful for recipients who don't have Obiter installed.
   // It will be inserted when the document is shared/exported, not on creation,
   // to avoid showing it to the author during editing.
-  // The document's custom properties (Obiter.ManagedDocument) serve as the
-  // machine-readable signal that this document uses Obiter.
+  // The document's custom properties (Obiter.Version, written once the
+  // document holds a citation) are the machine-readable signal.
 }
 
 /**

@@ -9,40 +9,22 @@
 
 /* global Word */
 
-import { APP_VERSION } from "../constants";
+import { toText } from "../engine/rules/v4/general/coerce";
 
 // ─── Custom Document Properties ────────────────────────────────────────────
-
-/**
- * Sets custom document properties identifying this as an Obiter-managed
- * document. These persist in the .docx file and are visible in Word's
- * File > Properties > Custom Properties.
- */
-export async function setDocumentMetadata(context: Word.RequestContext): Promise<void> {
-  const properties = context.document.properties;
-  properties.load("author,title");
-  await context.sync();
-
-  // Set custom properties via the customProperties API
-  const custom = properties.customProperties;
-
-  custom.add("Obiter.Version", APP_VERSION);
-  custom.add("Obiter.CitationStyle", "AGLC4");
-  custom.add("Obiter.Author", "Watt, Matthew");
-  custom.add("Obiter.ManagedDocument", "true");
-  custom.add("Obiter.CreatedDate", new Date().toISOString());
-  custom.add("Obiter.Website", "https://obiter.com.au");
-
-  await context.sync();
-}
+//
+// Writing moved to `writeObiterProperties` in documentProperties.ts, which
+// follows DECISION-043 item 1 (COURT-102): only Obiter.Version and the actual
+// citation standard, written once the document holds a citation; never a
+// person's name.
 
 /**
  * Reads Obiter metadata from the document. Returns null if the document
- * was not created with Obiter.
+ * carries no `Obiter.Version` property.
  */
 export async function getDocumentMetadata(
   context: Word.RequestContext
-): Promise<{ version: string; style: string; author: string } | null> {
+): Promise<{ version: string; style: string } | null> {
   try {
     const custom = context.document.properties.customProperties;
     custom.load("items");
@@ -50,16 +32,15 @@ export async function getDocumentMetadata(
 
     let version = "";
     let style = "";
-    let author = "";
 
     for (const prop of custom.items ?? []) {
-      if (prop.key === "Obiter.Version") version = String(prop.value);
-      if (prop.key === "Obiter.CitationStyle") style = String(prop.value);
-      if (prop.key === "Obiter.Author") author = String(prop.value);
+      // Values typed string can come back as numbers from the store: toText().
+      if (prop.key === "Obiter.Version") version = toText(prop.value);
+      if (prop.key === "Obiter.CitationStyle") style = toText(prop.value);
     }
 
     if (!version) return null;
-    return { version, style, author };
+    return { version, style };
   } catch {
     return null;
   }

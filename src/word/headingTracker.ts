@@ -3,9 +3,10 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-/* global Word, Office */
+/* global Word */
 
 import { getHeadingPrefix } from "./styles";
+import { isFeatureAvailable } from "./apiCompat";
 
 /**
  * AGLC4 heading style names, indexed by level (1-based).
@@ -80,7 +81,7 @@ export async function renumberHeadings(context: Word.RequestContext): Promise<nu
   let renumbered = 0;
 
   // Check if the list API is available for potential use.
-  const canUseListApi = Office.context.requirements.isSetSupported("WordApi", "1.3");
+  const canUseListApi = isFeatureAvailable("listApi");
 
   // If the list API is available, check whether any heading paragraph is
   // already part of a list. If so, we skip text-based renumbering for those

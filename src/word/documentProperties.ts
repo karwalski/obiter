@@ -5,43 +5,125 @@
 
 /* global Word */
 
-/**
- * Layer 1 — Document custom properties (INFRA-008).
- *
- * Writes machine-readable metadata into the document's custom properties
- * so that Obiter-managed documents can be identified without opening
- * the Custom XML Part.
- */
+import { toText } from "../engine/rules/v4/general/coerce";
+import { createLogger } from "../debug/logger";
+import { isFeatureAvailable } from "./apiCompat";
+import { hostReportsReadOnly, isWriteRefused } from "./documentAccess";
+
+const log = createLogger("DocumentProperties");
 
 /**
- * Write (or update) the three Obiter custom document properties.
+ * Layer 1 — Document custom properties (INFRA-008, COURT-102).
  *
- * Uses `context.document.properties.customProperties` (WordApi 1.6+).
- * Silently skips if the API is unavailable on the host.
+ * DECISION-043 item 1 (owner, 6 Oct 2026): Obiter writes only
+ * `Obiter.Version` and the document's actual citation standard. It never
+ * writes a person's name; an `Obiter.Author` property already in a document
+ * is removed the next time the document is opened. `Obiter.CreatedDate` is
+ * set once and never overwritten. `Obiter.Website` is no longer written.
+ *
+ * Other keys earlier releases wrote (`Obiter.ManagedDocument`,
+ * `Obiter.Website`, `Obiter.Standard`, `Obiter.Mode`) are no longer written
+ * and existing values are left in place; removing them is a user choice for
+ * the finalised-copy work (COURT-122).
+ */
+
+/** Custom property keys Obiter writes. */
+export const OBITER_PROPERTY_KEYS = {
+  version: "Obiter.Version",
+  /** The document's actual citation standard id (eg "aglc4", "oscola5"). */
+  citationStyle: "Obiter.CitationStyle",
+  createdDate: "Obiter.CreatedDate",
+} as const;
+
+/** Keys removed from a document on open (DECISION-043 item 1). */
+export const RETIRED_PROPERTY_KEYS: ReadonlyArray<string> = ["Obiter.Author"];
+
+/** What {@link writeObiterProperties} changed, for tests and the debug log. */
+export interface PropertyWriteResult {
+  written: string[];
+  removed: string[];
+}
+
+/**
+ * Bring the document's Obiter custom properties into line with DECISION-043
+ * item 1 (COURT-102).
+ *
+ * - Always removes a retired `Obiter.Author` property if one is present.
+ * - Writes `Obiter.Version` and `Obiter.CitationStyle` (the document's actual
+ *   standard id) only when the document's Obiter store holds at least one
+ *   citation, so opening the pane on an unrelated document writes nothing.
+ *   Unchanged values are not rewritten.
+ * - Writes `Obiter.CreatedDate` once, only if absent; never overwrites it.
+ *
+ * `customProperties` is WordApi 1.3 (R08 §3.3), routed through the
+ * `customProperties` feature flag. Two syncs at most. A read-only document
+ * refuses the write; that is logged and swallowed, never surfaced as an error.
+ *
+ * @param context - A Word.RequestContext from within a Word.run() callback.
+ * @param version - The running Obiter version.
+ * @param standardId - The document store's citation standard id.
+ * @param citationCount - Number of citations in the document's Obiter store.
  */
 export async function writeObiterProperties(
   context: Word.RequestContext,
   version: string,
-  standard: string,
-  mode: string
-): Promise<void> {
+  standardId: string,
+  citationCount: number
+): Promise<PropertyWriteResult> {
+  const result: PropertyWriteResult = { written: [], removed: [] };
+  if (!isFeatureAvailable("customProperties")) return result;
+  // A document the host opened read-only cannot take the write; skip it.
+  if (hostReportsReadOnly()) return result;
+
   try {
-    // Runtime-check for customProperties support (WordApi 1.6+)
-    if (
-      typeof Office !== "undefined" &&
-      !Office.context.requirements.isSetSupported("WordApi", "1.6")
-    ) {
-      return;
+    const props = context.document.properties.customProperties;
+    const retired = RETIRED_PROPERTY_KEYS.map((key) => props.getItemOrNullObject(key));
+    const current = {
+      version: props.getItemOrNullObject(OBITER_PROPERTY_KEYS.version),
+      citationStyle: props.getItemOrNullObject(OBITER_PROPERTY_KEYS.citationStyle),
+      createdDate: props.getItemOrNullObject(OBITER_PROPERTY_KEYS.createdDate),
+    };
+    for (const item of [...retired, ...Object.values(current)]) {
+      item.load("isNullObject,value");
+    }
+    await context.sync();
+
+    retired.forEach((item, i) => {
+      if (!item.isNullObject) {
+        item.delete();
+        result.removed.push(RETIRED_PROPERTY_KEYS[i]);
+      }
+    });
+
+    if (citationCount > 0) {
+      // Values typed string can come back from the store as numbers: toText().
+      if (current.version.isNullObject || toText(current.version.value) !== version) {
+        props.add(OBITER_PROPERTY_KEYS.version, version);
+        result.written.push(OBITER_PROPERTY_KEYS.version);
+      }
+      if (
+        current.citationStyle.isNullObject ||
+        toText(current.citationStyle.value) !== standardId
+      ) {
+        props.add(OBITER_PROPERTY_KEYS.citationStyle, standardId);
+        result.written.push(OBITER_PROPERTY_KEYS.citationStyle);
+      }
+      if (current.createdDate.isNullObject) {
+        props.add(OBITER_PROPERTY_KEYS.createdDate, new Date().toISOString());
+        result.written.push(OBITER_PROPERTY_KEYS.createdDate);
+      }
     }
 
-    const props = context.document.properties.customProperties;
-
-    props.add("Obiter.Version", version);
-    props.add("Obiter.Standard", standard);
-    props.add("Obiter.Mode", mode);
-
-    await context.sync();
-  } catch {
-    // Custom properties API not available — silently skip
+    if (result.written.length > 0 || result.removed.length > 0) {
+      await context.sync();
+    }
+  } catch (err: unknown) {
+    // Custom properties unavailable, or the document refused the write
+    // (read-only, IRM or a co-authoring lock) — skip.
+    log[isWriteRefused(err) ? "info" : "warn"]("writeObiterProperties skipped", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { written: [], removed: [] };
   }
+  return result;
 }

@@ -476,7 +476,8 @@ async function testApplyTemplate(): Promise<string> {
 
 async function testApplyStyles(): Promise<string> {
   return await Word.run(async (context) => {
-    await applyAglc4Styles(context);
+    // Explicit debug action: restyle built-in headings too (COURT-101).
+    await applyAglc4Styles(context, { formatBuiltInHeadings: true });
     return "AGLC4 styles applied (headings modified to AGLC4 formatting)";
   });
 }

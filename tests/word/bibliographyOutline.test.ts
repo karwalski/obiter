@@ -22,10 +22,14 @@ describe("A11Y-019: bibliography heading outline level (Part B)", () => {
   afterEach(() => removeOfficeGlobals());
 
   it("sets OutlineLevel1 on the AGLC4 Bibliography Heading style", async () => {
-    // applyAglc4Styles only creates custom styles on WordApi 1.6+.
-    installOfficeGlobals(supportUpTo("1.6"));
+    // addStyle/getStyles are WordApi 1.5 (COURT-103; R08 §3.7).
+    installOfficeGlobals(supportUpTo("1.5"));
 
     const context = createMockContext();
+    // No AGLC4 style exists yet, so every one is created (create-only, COURT-101).
+    (context.document.getStyles as jest.Mock).mockReturnValue({
+      getByNameOrNullObject: () => ({ isNullObject: true, load: jest.fn() }),
+    });
     const created = new Map<string, MockStyle>();
     // Track each style addStyle hands back so we can inspect the bib heading.
     (context.document.addStyle as jest.Mock).mockImplementation((name: string) => {
@@ -41,8 +45,8 @@ describe("A11Y-019: bibliography heading outline level (Part B)", () => {
     expect(bibHeading?.paragraphFormat.outlineLevel).toBe("OutlineLevel1");
   });
 
-  it("does nothing on WordApi 1.5 (no custom-style API)", async () => {
-    installOfficeGlobals(supportUpTo("1.5"));
+  it("does nothing below WordApi 1.5 (no custom-style API)", async () => {
+    installOfficeGlobals(supportUpTo("1.4"));
     const context = createMockContext();
     await applyAglc4Styles(context as unknown as Word.RequestContext);
     expect(context.document.addStyle as jest.Mock).not.toHaveBeenCalled();

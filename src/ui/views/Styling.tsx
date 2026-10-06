@@ -7,12 +7,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   applyHeadingLevel,
+  createAglc4Styles,
   findExistingHeadingListId,
   getSelectedStyleParagraphs,
   renumberAllHeadings,
 } from "../../word/styles";
-import { applyAglc4Styles } from "../../word/styles";
 import { applyAglc4Template, insertTitleParagraph, insertAuthorParagraph } from "../../word/template";
+import HeadingStyleConfirm, { TEMPLATE_OTHER_CHANGES } from "../components/HeadingStyleConfirm";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
 import type { CitationStandardId } from "../../engine/standards/types";
@@ -120,6 +121,9 @@ export default function Styling(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [standardId, setStandardId] = useState<CitationStandardId>("aglc4");
+  // COURT-101: the set-up action shows what it changes before running.
+  const [confirmingSetup, setConfirmingSetup] = useState(false);
+  const [courtMode, setCourtMode] = useState(false);
   // Title & Author manual entry.
   const [titleText, setTitleText] = useState("");
   const [authorText, setAuthorText] = useState("");
@@ -131,6 +135,7 @@ export default function Styling(): JSX.Element {
       try {
         const store = await getSharedStore();
         setStandardId(store.getStandardId());
+        setCourtMode(store.getWritingMode() === "court");
 
         // If no heading list ID is persisted yet, scan the document for one and persist it.
         const savedListId = store.getHeadingListId();
@@ -183,6 +188,14 @@ export default function Styling(): JSX.Element {
       setStatus(null);
       setError(null);
       await Word.run(async (context) => {
+        // COURT-101: styles are no longer created on pane open for existing
+        // documents, so create a missing AGLC4 Block Quote here (create-only;
+        // an existing style is never changed).
+        try {
+          await createAglc4Styles(context);
+        } catch {
+          /* fall back to the style if present */
+        }
         for (const para of await getSelectedStyleParagraphs(context)) {
           try {
             para.style = "AGLC4 Block Quote";
@@ -202,20 +215,24 @@ export default function Styling(): JSX.Element {
     }
   }, []);
 
-  const handleSetupDocument = useCallback(async () => {
+  const handleSetupDocument = useCallback(async (formatBuiltInHeadings: boolean) => {
+    setConfirmingSetup(false);
     setApplying(true);
     try {
       setStatus(null);
       setError(null);
       await Word.run(async (context) => {
-        if (isAglc) {
-          try { await applyAglc4Styles(context); } catch { /* may already exist */ }
-        }
-        await applyAglc4Template(context);
+        // COURT-101: built-in headings change only when the user ticked it
+        // in the confirmation, which listed every change.
+        await applyAglc4Template(context, undefined, {
+          formatBuiltInHeadings: isAglc && formatBuiltInHeadings,
+        });
       });
-      setStatus(isAglc
-        ? "Document set up with AGLC4 styles and template."
-        : "Document set up with template formatting.");
+      setStatus(isAglc && formatBuiltInHeadings
+        ? "Document set up with AGLC4 styles, heading styles and template."
+        : isAglc
+          ? "Document set up with AGLC4 styles and template. Heading styles were not changed."
+          : "Document set up with template formatting.");
     } catch (err: unknown) {
       setError(writeErrorMessage(err, "Failed to set up document."));
     } finally {
@@ -314,7 +331,13 @@ export default function Styling(): JSX.Element {
         });
 
         if (decision.mode === "block" && paraCount > 0) {
-          // Block quote: 10pt, indented, remove surrounding quotation marks
+          // Block quote: 10pt, indented, remove surrounding quotation marks.
+          // Create a missing AGLC4 Block Quote first (create-only, COURT-101).
+          try {
+            await createAglc4Styles(context);
+          } catch {
+            /* fall back to the style if present */
+          }
           for (const para of paragraphs) {
             try {
               para.style = "AGLC4 Block Quote";
@@ -507,11 +530,20 @@ export default function Styling(): JSX.Element {
         <button
           className="bib-insert-btn"
           style={{ width: "100%" }}
-          onClick={() => void handleSetupDocument()}
-          disabled={applying}
+          onClick={() => setConfirmingSetup(true)}
+          disabled={applying || confirmingSetup}
         >
           {applying ? "Applying..." : isAglc ? "Set Up Document (Styles + Template)" : "Set Up Document (Template)"}
         </button>
+        {confirmingSetup && (
+          <HeadingStyleConfirm
+            otherChanges={TEMPLATE_OTHER_CHANGES}
+            defaultFormatHeadings={isAglc && !courtMode}
+            offerHeadings={isAglc}
+            onConfirm={(formatHeadings) => void handleSetupDocument(formatHeadings)}
+            onCancel={() => setConfirmingSetup(false)}
+          />
+        )}
       </fieldset>
 
       {isAglc && (
