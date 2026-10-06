@@ -5,6 +5,12 @@ Microsoft Word platform. All testing should confirm that core AGLC4 formatting
 functionality works correctly and that graceful degradation occurs where
 platform capabilities differ.
 
+The capability matrix, the documented-versus-tested status of each feature on
+each client, and the device test log are in
+[compatibility-matrix.md](compatibility-matrix.md) (COURT-104). Record every
+run there with the client build, date and capability snapshot
+(Settings > About > Show Word API capabilities).
+
 ## Word for Web (Office Online)
 
 ### Footnotes
@@ -38,7 +44,8 @@ platform capabilities differ.
 ### General
 
 - [ ] Confirm `Office.context.requirements.isSetSupported("WordApi", "1.5")` returns true
-- [ ] Verify features gated on WordApi 1.6+ degrade gracefully (styles via `addStyle`)
+- [ ] Verify features gated above WordApi 1.5 degrade gracefully (see `FEATURE_FLAGS` in `src/word/apiCompat.ts`)
+- [ ] Confirm opening the task pane does not change any existing style (COURT-101)
 - [ ] Check that no console errors appear during normal citation workflows
 - [ ] Test with multiple browsers: Chrome, Edge, Firefox, Safari
 
@@ -93,10 +100,14 @@ platform capabilities differ.
 - [ ] Document selection and range manipulation
 - [ ] `context.sync()` batch operations complete without error
 
+### Style creation (WordApi 1.5)
+
+- [ ] `document.addStyle()` and `getStyles()` are WordApi 1.5: verify missing AGLC4 styles are
+      created by Set Up Document and existing styles are left unchanged
+- [ ] Opening the task pane on a court or firm template changes no style (COURT-101)
+
 ### WordApi 1.6+ Degradation (Graceful Fallback Required)
 
-- [ ] `document.addStyle()` (1.6): verify styles are created when available;
-      confirm no error when API is unavailable and manual formatting is applied instead
 - [ ] Confirm that the absence of 1.6+ APIs does not block citation insertion
 - [ ] Verify warning or informational message is shown when optional features are unavailable
 
@@ -106,10 +117,10 @@ platform capabilities differ.
 - [ ] Checkbox content controls: confirm graceful fallback
 - [ ] Verify `isFeatureAvailable()` returns `false` for 1.7 features on 1.5/1.6 runtimes
 
-### WordApi 1.8+ Degradation
+### WordApi 1.9 and desktop-only sets
 
-- [ ] Comments API: confirm feature is hidden or disabled when unavailable
-- [ ] Verify no runtime errors from attempting to use unavailable comment APIs
+- [ ] Windows LTSC 2024 reports WordApi 1.8 and WordApiDesktop 1.1 only: confirm nothing assumes 1.9
+- [ ] Record the capability snapshot (Settings > About) for the test log
 
 ### General Desktop Testing
 
