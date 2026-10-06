@@ -164,8 +164,9 @@ export default function Bibliography(): JSX.Element {
   // empty Part A, or legislation with no version date). Court mode only.
   const loaWarnings = useMemo((): LoaValidationWarning[] => {
     if (writingMode !== "court") return [];
-    return generateCourtListOfAuthorities(filteredCitations, loaType).warnings;
-  }, [filteredCitations, writingMode, loaType]);
+    return generateCourtListOfAuthorities(filteredCitations, loaType, false, documentConfig)
+      .warnings;
+  }, [filteredCitations, writingMode, loaType, documentConfig]);
 
   const handleInsert = useCallback(async () => {
     if (sections.length === 0) return;

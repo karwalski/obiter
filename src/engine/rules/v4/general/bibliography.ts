@@ -1328,24 +1328,68 @@ function getLoaSortKey(citation: Citation): string {
 }
 
 /**
- * Formats a case entry for the List of Authorities, including parallel
- * citations where available.
+ * B1 / COURT-117: the citation config the List of Authorities is being
+ * generated under. The LOA generators are synchronous and nest, so the
+ * public entry points that take a config set it for the duration of the
+ * call (see {@link withLoaConfig}) and {@link formatLoaCaseEntry} reads it.
+ * Undefined means the earlier behaviour (report first, MNC appended).
+ */
+let activeLoaConfig: CitationConfig | undefined;
+
+/** Runs `fn` with `config` as the active LOA config, restoring the previous one. */
+function withLoaConfig<T>(config: CitationConfig | undefined, fn: () => T): T {
+  if (config === undefined) return fn();
+  const previous = activeLoaConfig;
+  activeLoaConfig = config;
+  try {
+    return fn();
+  } finally {
+    activeLoaConfig = previous;
+  }
+}
+
+/**
+ * Formats a case entry for the List of Authorities, including the medium
+ * neutral citation as a parallel where available.
  *
- * Format: Case Name (year) volume Series startingPage; [MNC or parallels]
+ * The entry follows the footnote formatter (engine dispatchReportedCase) for
+ * the active court profile (B1 / COURT-117):
+ * - report first (the default): `Case Name (year) volume Series page; MNC`
+ * - `parallelOrder` "mnc-first" (FCA GPN-AUTH cl 2.5, WA PD 8.2.2, Tas PD 3
+ *   of 2014 cl 3(a)): `Case Name MNC; (year) volume Series page`
+ * - `reportedCaseMnc` "omit" (the report replaces the MNC): the report alone
+ *   when a report series is recorded.
  */
 function formatLoaCaseEntry(citation: Citation): FormattedRun[] {
   const entry = formatBibliographyEntry(citation);
   const d = citation.data;
+  const config = activeLoaConfig;
 
   // Append MNC if available and not already represented
-  const mnc = d.mnc as string | undefined;
-  if (mnc && mnc.trim()) {
-    const entryText = entry.map((r) => r.text).join("");
-    if (!entryText.includes(mnc.trim())) {
-      entry.push({ text: `; ${mnc.trim()}` });
+  const mnc = toText(d.mnc).trim();
+  if (!mnc) return entry;
+  const entryText = entry.map((r) => r.text).join("");
+  if (entryText.includes(mnc)) return entry;
+
+  const court = config?.writingMode === "court";
+  const hasReport = toText(d.reportSeries).trim().length > 0;
+  if (court && hasReport && config?.reportedCaseMnc === "omit") {
+    return entry;
+  }
+
+  if (court && hasReport && config?.parallelOrder === "mnc-first") {
+    // The case name is the first italic run; the MNC follows it.
+    const nameIndex = entry.findIndex((r) => r.italic === true);
+    if (nameIndex >= 0) {
+      return [
+        ...entry.slice(0, nameIndex + 1),
+        { text: ` ${mnc};` },
+        ...entry.slice(nameIndex + 1),
+      ];
     }
   }
 
+  entry.push({ text: `; ${mnc}` });
   return entry;
 }
 
@@ -1368,7 +1412,14 @@ function formatLoaCaseEntry(citation: Citation): FormattedRun[] {
  * @param citations - All citations referenced in the document.
  * @returns An array of BibliographySection objects for the List of Authorities.
  */
-export function generateListOfAuthorities(citations: Citation[]): BibliographySection[] {
+export function generateListOfAuthorities(
+  citations: Citation[],
+  config?: CitationConfig
+): BibliographySection[] {
+  return withLoaConfig(config, () => generateSimpleListOfAuthorities(citations));
+}
+
+function generateSimpleListOfAuthorities(citations: Citation[]): BibliographySection[] {
   const cases: Citation[] = [];
   const legislation: Citation[] = [];
 
@@ -2484,7 +2535,16 @@ export function generateWaOutlineListOfAuthorities(citations: Citation[]): Court
 export function generateCourtListOfAuthorities(
   citations: Citation[],
   loaType: LoaType,
-  includeSecondary = false
+  includeSecondary = false,
+  config?: CitationConfig
+): CourtLoaResult {
+  return withLoaConfig(config, () => generateCourtLayout(citations, loaType, includeSecondary));
+}
+
+function generateCourtLayout(
+  citations: Citation[],
+  loaType: LoaType,
+  includeSecondary: boolean
 ): CourtLoaResult {
   switch (loaType) {
     case "off":
@@ -2573,6 +2633,14 @@ export interface LoaResult {
  * @returns A LoaResult containing sections, warnings, and export metadata.
  */
 export function generateLoaWithOptions(
+  citations: Citation[],
+  options: LoaGenerationOptions,
+  config?: CitationConfig
+): LoaResult {
+  return withLoaConfig(config, () => generateLoaWithOptionsInner(citations, options));
+}
+
+function generateLoaWithOptionsInner(
   citations: Citation[],
   options: LoaGenerationOptions
 ): LoaResult {
@@ -2673,33 +2741,8 @@ export function generateBibliographyForStandard(
   // MULTI-014 + COURT-FIX-005: Court mode generates List of Authorities
   // controlled by the loaType toggle.
   if (writingMode === "court") {
-    const effectiveLoaType = loaType ?? "simple";
-
-    if (effectiveLoaType === "off") {
-      return [];
-    }
-
-    if (
-      effectiveLoaType === "part-ab" ||
-      effectiveLoaType === "part-abc" ||
-      effectiveLoaType === "two-part-read" ||
-      effectiveLoaType === "three-part-tas"
-    ) {
-      return combineCourtLoaSections(citations, effectiveLoaType).sections;
-    }
-
-    // COURT-117: instrument-backed layouts.
-    if (
-      effectiveLoaType === "hca-jba-five-part" ||
-      effectiveLoaType === "nswca-four-category" ||
-      effectiveLoaType === "fca-ebook-sections" ||
-      effectiveLoaType === "wa-outline-asterisk"
-    ) {
-      return generateCourtListOfAuthorities(citations, effectiveLoaType).sections;
-    }
-
-    // Default: "simple" — flat list of authorities
-    return generateListOfAuthorities(citations);
+    // B1 / COURT-117: case entries follow the profile's parallel order.
+    return withLoaConfig(config, () => courtBibliography(citations, loaType));
   }
 
   switch (structure) {
@@ -2711,6 +2754,37 @@ export function generateBibliographyForStandard(
     default:
       return generateBibliography(citations);
   }
+}
+
+/** The court-mode List of Authorities for {@link generateBibliographyForStandard}. */
+function courtBibliography(citations: Citation[], loaType?: LoaType): BibliographySection[] {
+  const effectiveLoaType = loaType ?? "simple";
+
+  if (effectiveLoaType === "off") {
+    return [];
+  }
+
+  if (
+    effectiveLoaType === "part-ab" ||
+    effectiveLoaType === "part-abc" ||
+    effectiveLoaType === "two-part-read" ||
+    effectiveLoaType === "three-part-tas"
+  ) {
+    return combineCourtLoaSections(citations, effectiveLoaType).sections;
+  }
+
+  // COURT-117: instrument-backed layouts.
+  if (
+    effectiveLoaType === "hca-jba-five-part" ||
+    effectiveLoaType === "nswca-four-category" ||
+    effectiveLoaType === "fca-ebook-sections" ||
+    effectiveLoaType === "wa-outline-asterisk"
+  ) {
+    return generateCourtListOfAuthorities(citations, effectiveLoaType).sections;
+  }
+
+  // Default: "simple" — flat list of authorities
+  return generateListOfAuthorities(citations);
 }
 
 // ─── Shared Helpers ─────────────────────────────────────────────────────────
