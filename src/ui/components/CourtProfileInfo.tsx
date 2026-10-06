@@ -31,7 +31,10 @@ const NOTE_STYLE = {
  */
 export function CourtExperimentalLabel({ jurisdiction }: { jurisdiction: string }): JSX.Element {
   return (
-    <p style={{ ...NOTE_STYLE, fontSize: 11, margin: "6px 0 0" }} data-testid="court-experimental-label">
+    <p
+      style={{ ...NOTE_STYLE, fontSize: 11, margin: "6px 0 0" }}
+      data-testid="court-experimental-label"
+    >
       {experimentalLabel(jurisdiction)}
     </p>
   );
@@ -68,12 +71,19 @@ export function ToggleProvenanceNote({
 }): JSX.Element | null {
   const prov = getFieldProvenance(jurisdiction, toggleKey);
   if (!prov) return null;
-  const source = prov.sourceIds.length > 0 ? PROFILE_SOURCES[prov.sourceIds[0]] : undefined;
+  // B4: name only published sources; an internal Obiter decision is a
+  // developer reference (docs/court-profiles.md), not user-facing text.
+  // The clause belongs to the first source, so it is shown only with it.
+  const sourceIndex = prov.sourceIds.findIndex((id) => PROFILE_SOURCES[id]?.internal !== true);
+  const source = sourceIndex >= 0 ? PROFILE_SOURCES[prov.sourceIds[sourceIndex]] : undefined;
   const sourceText = source
-    ? `${source.title}${prov.clause ? ` ${prov.clause}` : ""}`
+    ? `${source.title}${prov.clause && sourceIndex === 0 ? ` ${prov.clause}` : ""}`
     : undefined;
   return (
-    <span style={{ ...NOTE_STYLE, display: "block", margin: "0 0 6px" }} data-testid={`provenance-${toggleKey}`}>
+    <span
+      style={{ ...NOTE_STYLE, display: "block", margin: "0 0 6px" }}
+      data-testid={`provenance-${toggleKey}`}
+    >
       {inheritanceLabel(profile, toggleKey)}. {PROVENANCE_KIND_LABELS[prov.kind]}
       {sourceText && (
         <>
@@ -146,7 +156,10 @@ export function CourtProfileUpdatePrompt({
           setting you chose yourself.
         </p>
       )}
-      <ul style={{ margin: "2px 0 4px", paddingLeft: 0, listStyle: "none" }} aria-label="Settings that will change">
+      <ul
+        style={{ margin: "2px 0 4px", paddingLeft: 0, listStyle: "none" }}
+        aria-label="Settings that will change"
+      >
         {changes.map((c) => (
           <li key={c.key} style={{ marginBottom: 2 }}>
             <label>
@@ -155,7 +168,8 @@ export function CourtProfileUpdatePrompt({
                 checked={ticked[c.key] ?? !c.overridden}
                 onChange={(e) => setTicked({ ...ticked, [c.key]: e.target.checked })}
               />{" "}
-              {c.label}: {formatToggleValue(c.key, c.current)} to {formatToggleValue(c.key, c.proposed)}
+              {c.label}: {formatToggleValue(c.key, c.current)} to{" "}
+              {formatToggleValue(c.key, c.proposed)}
               {c.overridden ? " (you changed this)" : ""}
             </label>
             {c.detail && (

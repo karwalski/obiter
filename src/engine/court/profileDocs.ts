@@ -65,7 +65,7 @@ export function renderCourtProfilesMarkdown(): string {
     '- When a profile changes, existing documents keep their values. Settings offers "Update court profile" and lists each change; nothing changes until the user applies it (DECISION-043 item 4).'
   );
   lines.push(
-    "- Settings shows, for each value, whether it comes from the profile or was changed for the document, the kind of source, and a link to it (COURT-115)."
+    "- Settings shows, for each value, whether it comes from the profile or was changed for the document, the kind of source, a link to it and the note, in plain English (COURT-115). The source ids and references in this file are for developers; Settings does not show them, and it does not name an internal Obiter decision as a source (B4)."
   );
   lines.push("");
   lines.push("## Kinds of source");
@@ -82,7 +82,7 @@ export function renderCourtProfilesMarkdown(): string {
     `| ${PROVENANCE_KIND_LABELS.preference} | Obiter's default where the instrument is silent, including the AGLC4 form. |`
   );
   lines.push(
-    `| ${PROVENANCE_KIND_LABELS.unsourced} | No instrument supports the value, or the instrument contradicts it. The note names the correcting story. |`
+    `| ${PROVENANCE_KIND_LABELS.unsourced} | No instrument supports the value, or the instrument contradicts it. The references name the evidence and the correcting story. |`
   );
   lines.push("");
   lines.push("## Review process");
@@ -126,8 +126,8 @@ export function renderCourtProfilesMarkdown(): string {
       lines.push("");
       lines.push(experimentalLabel(id));
       lines.push("");
-      lines.push("| Setting | Value | Kind | Source | Checked | Note |");
-      lines.push("|---|---|---|---|---|---|");
+      lines.push("| Setting | Value | Kind | Source | Checked | Note | References |");
+      lines.push("|---|---|---|---|---|---|---|");
       for (const key of COURT_TOGGLE_KEYS) {
         const field = prov.fields[key];
         lines.push(
@@ -135,7 +135,7 @@ export function renderCourtProfilesMarkdown(): string {
             PROVENANCE_KIND_LABELS[field.kind]
           } | ${cell(describeSource(field))} | ${field.checked ? formatIsoDate(field.checked) : "No"} | ${cell(
             field.note ?? ""
-          )} |`
+          )} | ${cell(field.refs ?? "")} |`
         );
       }
       if (prov.exceptions.length > 0) {

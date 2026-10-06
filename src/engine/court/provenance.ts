@@ -51,8 +51,14 @@ export interface FieldProvenance {
   kind: ProvenanceKind;
   /** ISO date the value was checked against the source; null if never. */
   checked: string | null;
-  /** Plain-language note shown beside the value. */
+  /** Plain-language note shown beside the value (user-facing: no internal ids). */
   note?: string;
+  /**
+   * B4: developer references for the value (evidence-register rows,
+   * decision items, stories). Shown in docs/court-profiles.md only, never
+   * in the add-in.
+   */
+  refs?: string;
 }
 
 /** The toggle keys a court profile freezes into the document. */
@@ -78,6 +84,11 @@ export interface ProfileSource {
   /** Effective date or version, as recorded in the register. */
   effective: string;
   url?: string;
+  /**
+   * B4: an internal record (an Obiter decision) rather than a published
+   * instrument. Settings does not name it; the docs do.
+   */
+  internal?: boolean;
 }
 
 /** COURT-106 / COURT-115: provenance for a whole preset. */
@@ -256,13 +267,14 @@ export const PROFILE_SOURCES: Record<string, ProfileSource> = {
   },
   "O-C5": {
     id: "O-C5",
-    title: "Observed practice in published NSW and ACT judgments (evidence register O-C5)",
+    title: "Published NSW and ACT judgments (sample, Nov 2025 to Oct 2026)",
     effective: "Nov 2025 to Oct 2026 sample",
   },
   "DECISION-043": {
     id: "DECISION-043",
     title: "Obiter DECISION-043 (owner decision, court interoperability)",
     effective: "6 Oct 2026",
+    internal: true,
   },
   AGLC4: {
     id: "AGLC4",
@@ -289,6 +301,9 @@ const unsourced = (note: string, sourceIds: string[] = [], clause?: string): Fie
   note,
 });
 
+/** B4: attach developer references (docs only) to a field. */
+const withRefs = (field: FieldProvenance, refs: string): FieldProvenance => ({ ...field, refs });
+
 /** Not checked against any instrument. */
 const notChecked = (): FieldProvenance => unsourced("Not checked against a court instrument.");
 
@@ -301,7 +316,8 @@ const IBID: FieldProvenance = {
   clause: "item 2",
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "No court instrument read mentions ibid (register O-R14); Obiter default kept by DECISION-043 item 2.",
+  note: "None of the court instruments checked mentions ibid.",
+  refs: "register O-R14; DECISION-043 item 2",
 };
 
 /**
@@ -314,7 +330,8 @@ const CROSS_REFERENCE_DEFAULT: FieldProvenance = {
   sourceIds: [],
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "No court instrument read requires or forbids (n X) cross-references (register R02); published judgments do not use them (O-C2, O-C5). Obiter court-mode default, unchanged.",
+  note: "None of the court instruments checked requires or forbids (n X) cross-references, and published judgments do not use them.",
+  refs: "register R02; O-C2, O-C5",
 };
 
 /**
@@ -325,7 +342,8 @@ const SHORT_TITLE_DEFAULT: FieldProvenance = {
   sourceIds: [],
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "No court instrument read states a form for later references (register R02); Obiter court-mode default (short title and pinpoint).",
+  note: "None of the court instruments checked states a form for later references, so the short title and pinpoint are used.",
+  refs: "register R02",
 };
 
 /** Report-first where the instrument is silent (DECISION-043 item 3). */
@@ -334,7 +352,8 @@ const REPORT_FIRST_DEFAULT: FieldProvenance = {
   clause: "item 3",
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "Instrument silent on order; report first by default (DECISION-043 item 3).",
+  note: "The instrument does not state an order, so the report is given first.",
+  refs: "DECISION-043 item 3",
 };
 
 /**
@@ -346,7 +365,8 @@ const notApplicable = (): FieldProvenance => ({
   clause: "item 3",
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "No parallel citation is given, so the order has no effect; report first by default (DECISION-043 item 3).",
+  note: "No parallel citation is given, so the order has no effect.",
+  refs: "DECISION-043 item 3",
 });
 
 /** Report-first observed in published NSW judgments (DECISION-043 item 3; O-C5). */
@@ -354,7 +374,8 @@ const REPORT_FIRST_NSW: FieldProvenance = {
   sourceIds: ["O-C5", "DECISION-043"],
   kind: "observed",
   checked: REGISTER_CHECKED,
-  note: "Observed in published NSW judgments (register O-C5); adopted by DECISION-043 item 3.",
+  note: "Published NSW judgments give the report first.",
+  refs: "register O-C5; DECISION-043 item 3",
 };
 
 /** The AGLC4 pinpoint form where the instrument shows no connector. */
@@ -376,7 +397,8 @@ const STARTING_PAGE_AGLC: FieldProvenance = {
   clause: "r 2.2.5",
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "A page must always appear in a report pinpoint (COURT-110); no court instrument read supports a report citation without its starting page.",
+  note: "A pinpoint to a report always includes a page, so the starting page is kept. No court instrument checked supports a report citation without it.",
+  refs: "COURT-110",
 };
 
 /**
@@ -388,7 +410,8 @@ const MNC_INCLUDE_DEFAULT: FieldProvenance = {
   sourceIds: [],
   kind: "preference",
   checked: null,
-  note: "Obiter default: the MNC is given with the report (court-mode behaviour before COURT-111).",
+  note: "The MNC is given with the report unless the court's instrument says the report replaces it.",
+  refs: "COURT-111",
 };
 
 /** COURT-111: an instrument says the report is cited instead of the MNC. */
@@ -405,7 +428,8 @@ const REPORT_FIRST_SILENT = (sourceIds: string[]): FieldProvenance => ({
   sourceIds: [...sourceIds, "DECISION-043"],
   kind: "preference",
   checked: REGISTER_CHECKED,
-  note: "Instrument requires both but states no order; report first by default (DECISION-043 item 3).",
+  note: "The instrument requires both but does not state an order, so the report is given first.",
+  refs: "DECISION-043 item 3",
 });
 
 /** COURT-119: no instrument found for the court; values fall back. */
@@ -449,15 +473,21 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: unsourced(
-        "HCA instruments are silent on parallel citation (register O-R4); value under review (open question Q3).",
-        ["HCA-1", "HCA-2"]
+      parallelCitations: withRefs(
+        unsourced(
+          "The High Court instruments do not address parallel citation; this value is under review.",
+          ["HCA-1", "HCA-2"]
+        ),
+        "register O-R4; open question Q3"
       ),
       authorisedReportHierarchy: official(["HCA-1", "HCA-2"], "JBA Part C; Form 27A Part IV"),
-      loaType: official(
-        ["HCA-1", "HCA-2"],
-        "PD 2 of 2024; Form 27A annexure",
-        "Joint Book of Authorities Parts A to E (principal legislation; other legislation; CLR cases; other report series; other materials), with the legislation version (register O-R3, O-R15)."
+      loaType: withRefs(
+        official(
+          ["HCA-1", "HCA-2"],
+          "PD 2 of 2024; Form 27A annexure",
+          "Joint Book of Authorities Parts A to E (principal legislation; other legislation; CLR cases; other report series; other materials), with the legislation version."
+        ),
+        "register O-R3, O-R15"
       ),
     },
     exceptions: [
@@ -472,18 +502,24 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     fields: {
       ...allNotChecked(),
       parallelCitations: official(["FCA-1"], "cl 2.4–2.5"),
-      parallelOrder: official(
-        ["FCA-1", "DECISION-043"],
-        "cl 2.5",
-        "Instrument example: “D'Arcy v Myriad Genetics Inc [2014] FCAFC 115; (2014) 224 FCR 479” (register O-R2; DECISION-043 item 3)."
+      parallelOrder: withRefs(
+        official(
+          ["FCA-1", "DECISION-043"],
+          "cl 2.5",
+          "Example: “D'Arcy v Myriad Genetics Inc [2014] FCAFC 115; (2014) 224 FCR 479”."
+        ),
+        "register O-R2; DECISION-043 item 3"
       ),
       pinpointStyle: official(["FCA-1"], "cl 2.4, 2.6"),
       pinpointConnector: official(["FCA-1"], "cl 2.6", "Instrument example: “at [29]”, “at 481”."),
       authorisedReportHierarchy: official(["FCA-1"], "Annexure"),
-      loaType: official(
-        ["FCA-2", "FCA-1"],
-        "GPN-eBOOKS cl 7.2, 7.4",
-        "Authorities, legislation, and bills and explanatory material, each alphabetical; legislation states the version in force. GPN-AUTH (7 May 2025) has no Part A / Part B list (register O-R1)."
+      loaType: withRefs(
+        official(
+          ["FCA-2", "FCA-1"],
+          "GPN-eBOOKS cl 7.2, 7.4",
+          "Authorities, legislation, and bills and explanatory material, each alphabetical; legislation states the version in force. GPN-AUTH (7 May 2025) has no Part A / Part B list."
+        ),
+        "register O-R1"
       ),
     },
     exceptions: [
@@ -497,17 +533,23 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["FCF-1"],
-        "cl 5.8",
-        "The report replaces the MNC; the MNC is for unreported judgments only (register O-R6)."
+      parallelCitations: withRefs(
+        official(
+          ["FCF-1"],
+          "cl 5.8",
+          "The report replaces the MNC; the MNC is for unreported judgments only."
+        ),
+        "register O-R6"
       ),
       parallelOrder: notApplicable(),
       reportedCaseMnc: mncOmitted(["FCF-1"], "cl 5.8"),
       pinpointStyle: official(["FCF-1"], "cl 5.8"),
-      authorisedReportHierarchy: unsourced(
-        "FamCAFC removed: it is an MNC identifier, not a report series (register O-R6). The order of the remaining series is not checked against FAM-APPEALS.",
-        ["FCF-1"]
+      authorisedReportHierarchy: withRefs(
+        unsourced(
+          "FamCAFC is not listed: it is a medium neutral citation identifier, not a report series. The order of the remaining series is not checked against FAM-APPEALS.",
+          ["FCF-1"]
+        ),
+        "register O-R6"
       ),
       loaType: official(["FCF-1"], "cl 5.8"),
     },
@@ -529,10 +571,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
       parallelOrder: REPORT_FIRST_NSW,
       pinpointStyle: official(["NSW-1"], "cl 4"),
       authorisedReportHierarchy: official(["NSW-1"], "cl 3"),
-      loaType: official(
-        ["NSW-2"],
-        "cl 37",
-        "Four categories: legislation with its version date; cases from which passages will be read (CLR and NSWLR, at most 10 without leave; up to five from other reports; other cases); cases cited but not read; secondary sources (register O-R12)."
+      loaType: withRefs(
+        official(
+          ["NSW-2"],
+          "cl 37",
+          "Four categories: legislation with its version date; cases from which passages will be read (CLR and NSWLR, at most 10 without leave; up to five from other reports; other cases); cases cited but not read; secondary sources."
+        ),
+        "register O-R12"
       ),
     },
     exceptions: [
@@ -565,7 +610,8 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
         clause: "cl 27",
         kind: "preference",
         checked: REGISTER_CHECKED,
-        note: "A single list of only the authorities expected to be referred to in oral argument; a simple list until its layout is added (COURT-117).",
+        note: "A single list of only the authorities expected to be referred to in oral argument; Obiter gives a simple list until this layout is added.",
+        refs: "COURT-117",
       },
     },
     exceptions: [
@@ -597,24 +643,30 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: noInstrument(
-        ["NSW-4"],
-        "No instrument found; AGLC4 fallback. No District or Local Court citation instrument was found (register O-R18); the value follows the NSW Supreme Court preset."
+      parallelCitations: withRefs(
+        noInstrument(
+          ["NSW-4"],
+          "No instrument found; AGLC4 fallback. No District or Local Court citation instrument was found; the value follows the NSW Supreme Court profile."
+        ),
+        "register O-R18"
       ),
       parallelOrder: REPORT_FIRST_NSW,
-      pinpointStyle: noInstrument(
-        ["NSW-4"],
-        "No instrument found; AGLC4 fallback (register O-R18)."
+      pinpointStyle: withRefs(
+        noInstrument(["NSW-4"], "No instrument found; AGLC4 fallback."),
+        "register O-R18"
       ),
-      authorisedReportHierarchy: noInstrument(
-        ["NSW-4"],
-        "No instrument found; AGLC4 fallback (register O-R18)."
+      authorisedReportHierarchy: withRefs(
+        noInstrument(["NSW-4"], "No instrument found; AGLC4 fallback."),
+        "register O-R18"
       ),
-      unreportedGate: noInstrument(
-        ["NSW-4"],
-        "No instrument found; AGLC4 fallback (register O-R18)."
+      unreportedGate: withRefs(
+        noInstrument(["NSW-4"], "No instrument found; AGLC4 fallback."),
+        "register O-R18"
       ),
-      loaType: noInstrument(["NSW-4"], "No instrument found; AGLC4 fallback (register O-R18)."),
+      loaType: withRefs(
+        noInstrument(["NSW-4"], "No instrument found; AGLC4 fallback."),
+        "register O-R18"
+      ),
     },
     exceptions: [
       "No instrument found; AGLC4 fallback. No citation instrument was found for the District or Local Court (register NSW-4).",
@@ -628,10 +680,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["VIC-1", "VIC-2"],
-        "cl 5.2",
-        "SC Gen 3 cl 5.2 and SC CA 3 cl 14.4: the report is cited instead of the unreported version (register O-R5)."
+      parallelCitations: withRefs(
+        official(
+          ["VIC-1", "VIC-2"],
+          "cl 5.2",
+          "SC Gen 3 cl 5.2 and SC CA 3 cl 14.4: the report is cited instead of the unreported version."
+        ),
+        "register O-R5"
       ),
       parallelOrder: notApplicable(),
       reportedCaseMnc: mncOmitted(["VIC-1", "VIC-2"], "cl 5.2"),
@@ -650,10 +705,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["VIC-1"],
-        "cl 5.2",
-        "“that report must be included instead of the unreported version” (register O-R5)."
+      parallelCitations: withRefs(
+        official(
+          ["VIC-1"],
+          "cl 5.2",
+          "“that report must be included instead of the unreported version”."
+        ),
+        "register O-R5"
       ),
       parallelOrder: notApplicable(),
       reportedCaseMnc: mncOmitted(["VIC-1"], "cl 5.2"),
@@ -710,10 +768,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["QLD-3"],
-        "cl 3",
-        "“should, as far as possible, also be noted” (register O-R11). Magistrates Court only."
+      parallelCitations: withRefs(
+        official(
+          ["QLD-3"],
+          "cl 3",
+          "“should, as far as possible, also be noted”. Magistrates Court only."
+        ),
+        "register O-R11"
       ),
       pinpointStyle: official(["QLD-3"]),
       authorisedReportHierarchy: official(["QLD-3"]),
@@ -759,10 +820,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["SA-1"],
-        "r 217.8(3)",
-        "r 217.8(3) and r 101.8(4): the authorised report and the MNC (for a decision after 1997 available online) must both be given (register O-R7)."
+      parallelCitations: withRefs(
+        official(
+          ["SA-1"],
+          "r 217.8(3)",
+          "r 217.8(3) and r 101.8(4): the authorised report and the MNC (for a decision after 1997 available online) must both be given."
+        ),
+        "register O-R7"
       ),
       parallelOrder: REPORT_FIRST_SILENT(["SA-1"]),
       authorisedReportHierarchy: official(["SA-1"], "r 101.8(4)"),
@@ -779,10 +843,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["SA-1"],
-        "r 101.8(4)",
-        "The Uniform Civil Rules apply across the SA civil courts: the authorised report and the MNC (after 1997) must both be given (register O-R7)."
+      parallelCitations: withRefs(
+        official(
+          ["SA-1"],
+          "r 101.8(4)",
+          "The Uniform Civil Rules apply across the SA civil courts: the authorised report and the MNC (after 1997) must both be given."
+        ),
+        "register O-R7"
       ),
       parallelOrder: REPORT_FIRST_SILENT(["SA-1"]),
       authorisedReportHierarchy: official(["SA-1"], "r 101.8(4)"),
@@ -800,10 +867,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     fields: {
       ...allNotChecked(),
       parallelCitations: official(["TAS-1"], "cl 3(a), 3(d)"),
-      parallelOrder: official(
-        ["TAS-1", "DECISION-043"],
-        "cl 3(a)",
-        "Instrument example: “Jackson v Building Appeal Board [2010] TASSC 29; (2010) 20 Tas R 1” (register O-R8; DECISION-043 item 3)."
+      parallelOrder: withRefs(
+        official(
+          ["TAS-1", "DECISION-043"],
+          "cl 3(a)",
+          "Example: “Jackson v Building Appeal Board [2010] TASSC 29; (2010) 20 Tas R 1”."
+        ),
+        "register O-R8; DECISION-043 item 3"
       ),
       pinpointStyle: official(["TAS-1"], "cl 3"),
       pinpointConnector: official(
@@ -825,10 +895,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["ACT-1"],
-        "cl 3–4",
-        "The authorised report “should be used”; the direction is silent on the MNC (register O-R10)."
+      parallelCitations: withRefs(
+        official(
+          ["ACT-1"],
+          "cl 3–4",
+          "The authorised report “should be used”; the direction does not mention the MNC."
+        ),
+        "register O-R10"
       ),
       parallelOrder: notApplicable(),
       reportedCaseMnc: mncOmitted(["ACT-1"], "cl 3–4"),
@@ -844,10 +917,13 @@ export const COURT_PRESET_PROVENANCE: Record<CourtJurisdiction, CourtPresetProve
     reviewed: REGISTER_CHECKED,
     fields: {
       ...allNotChecked(),
-      parallelCitations: official(
-        ["NT-1"],
-        undefined,
-        "The authorised report “is to be cited”; the direction does not mention the MNC (register O-R10)."
+      parallelCitations: withRefs(
+        official(
+          ["NT-1"],
+          undefined,
+          "The authorised report “is to be cited”; the direction does not mention the MNC."
+        ),
+        "register O-R10"
       ),
       parallelOrder: notApplicable(),
       reportedCaseMnc: mncOmitted(["NT-1"]),
