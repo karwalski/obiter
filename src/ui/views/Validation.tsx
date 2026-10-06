@@ -4,14 +4,12 @@
  */
 
 import { useState, useCallback } from "react";
-import { validateDocument, checkOscolaRules, checkNzlsgRules, ValidationIssue } from "../../engine/validator";
+import { useNavigate } from "react-router-dom";
+import { ValidationIssue, ValidationResult } from "../../engine/validator";
+import { runDocumentValidation } from "../../engine/documentValidation";
 import { getSharedStore } from "../../store/singleton";
-import { ValidationResult } from "../../engine/validator";
-import type { CitationStandardId } from "../../engine/standards/types";
-import { getStandardConfig, buildCourtConfig } from "../../engine/standards";
 import { getDevicePref } from "../../store/devicePreferences";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
-import { checkDocumentAccessibility, DocumentA11yModel } from "../../engine/documentAccessibility";
 import CheckReference from "../components/CheckReference";
 
 type FilterTab = "all" | "error" | "warning" | "info";
@@ -104,6 +102,7 @@ function severityClass(severity: "error" | "warning" | "info"): string {
 }
 
 export default function Validation(): JSX.Element {
+  const navigate = useNavigate();
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -202,84 +201,22 @@ export default function Validation(): JSX.Element {
       const store = await getSharedStore();
       const citations = store.getAll();
 
-      // Run validation (including body text for footnote position checks)
-      const currentWritingMode = store.getWritingMode();
-      const currentStandardId: CitationStandardId = store.getStandardId();
-      const baseConfig = getStandardConfig(currentStandardId);
+      // Run validation (including body text for footnote position checks).
+      // The checks live in runDocumentValidation so the pre-handover check
+      // (COURT-122) reports exactly what this view reports.
       const courtToggles =
         store.getCourtToggles() ??
         (getDevicePref("courtToggles") as Record<string, string> | undefined);
-      const currentConfig = buildCourtConfig({ ...baseConfig, writingMode: currentWritingMode }, courtToggles);
-      // STD-019: the validator selects its check set from the standard and
-      // runs the court checks (parallel enforcement, ibid suppression and the
-      // unreported-judgment gate) from the same config the refresher renders with.
-      const validationResult = validateDocument(footnoteTexts, citations, bodyText, {
-        standardId: currentStandardId,
-        writingMode: currentWritingMode,
-        courtJurisdiction: store.getCourtJurisdiction(),
-        parallelCitationMode: currentConfig.parallelCitationMode,
-        ibidSuppressionMode: currentConfig.ibidSuppressionMode,
-        // COURT-107: (n X) is not flagged when the document gives it.
-        ...(currentConfig.crossReferenceSuppression === "off"
-          ? { crossReferenceSuppression: "off" as const }
-          : {}),
-        unreportedGateMode: currentConfig.unreportedGateMode,
-        // COURT-111: the frozen report hierarchy drives an information prompt.
-        authorisedReportHierarchy: currentConfig.authorisedReportHierarchy,
-      });
-
-      // Run standard-specific validation rules
-      if (currentStandardId.startsWith("oscola")) {
-        const oscolaIssues = checkOscolaRules(citations, footnoteTexts, {
-          standardId: currentStandardId,
-        });
-        for (const issue of oscolaIssues) {
-          switch (issue.severity) {
-            case "error":
-              validationResult.errors.push(issue);
-              break;
-            case "warning":
-              validationResult.warnings.push(issue);
-              break;
-            case "info":
-              validationResult.info.push(issue);
-              break;
-          }
-        }
-      } else if (currentStandardId.startsWith("nzlsg")) {
-        const nzlsgIssues = checkNzlsgRules(citations, footnoteTexts);
-        for (const issue of nzlsgIssues) {
-          switch (issue.severity) {
-            case "error":
-              validationResult.errors.push(issue);
-              break;
-            case "warning":
-              validationResult.warnings.push(issue);
-              break;
-            case "info":
-              validationResult.info.push(issue);
-              break;
-          }
-        }
-      }
-
-      // Document accessibility check (ATAG Part B.3 / A11Y-028). Heading order is
-      // scanned live; the document language is set by the AGLC4 template and Obiter
-      // footnotes are native, so those branches are not re-flagged here.
-      const a11yModel: DocumentA11yModel = {
+      const validationResult = runDocumentValidation({
+        footnoteTexts,
+        bodyText,
         headingLevels,
-        documentLanguageSet: true,
-        fauxFootnoteCount: 0,
-      };
-      for (const issue of checkDocumentAccessibility(a11yModel)) {
-        if (issue.severity === "error") {
-          validationResult.errors.push(issue);
-        } else if (issue.severity === "warning") {
-          validationResult.warnings.push(issue);
-        } else {
-          validationResult.info.push(issue);
-        }
-      }
+        citations,
+        standardId: store.getStandardId(),
+        writingMode: store.getWritingMode(),
+        courtJurisdiction: store.getCourtJurisdiction(),
+        courtToggles,
+      });
 
       setResult(validationResult);
     } catch (err: unknown) {
@@ -371,6 +308,16 @@ export default function Validation(): JSX.Element {
           </div>
         )}
       </div>
+
+      {/* COURT-122: pre-handover check (validation summary plus metadata review) */}
+      <button
+        type="button"
+        className="validation-scan-btn"
+        onClick={() => navigate("/handover")}
+        disabled={scanning}
+      >
+        Prepare for Handover
+      </button>
 
       {/* Check Reference (LLM-powered) */}
       <CheckReference />

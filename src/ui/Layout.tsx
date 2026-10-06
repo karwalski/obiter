@@ -288,6 +288,13 @@ export default function Layout(): JSX.Element {
         run: () => navigate("/recovery"),
       },
       {
+        id: "handover",
+        label: "Prepare for handover",
+        hint: "View",
+        keywords: "finalise finalize file filing send court check metadata properties author comments tracked changes",
+        run: () => navigate("/handover"),
+      },
+      {
         id: "comfort-mode",
         label: comfortMode ? "Turn off Comfort mode" : "Turn on Comfort mode",
         keywords: "accessibility larger text targets motion",

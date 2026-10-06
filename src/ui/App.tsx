@@ -19,6 +19,7 @@ import Styling from "./views/Styling";
 import Quote from "./views/Quote";
 import ScanRepair from "./views/ScanRepair";
 import Recovery from "./views/Recovery";
+import Handover from "./views/Handover";
 import { CitationProvider } from "./context/CitationContext";
 import { InsertCitationProvider } from "./context/InsertCitationContext";
 import { StatusProvider } from "./context/StatusContext";
@@ -147,6 +148,7 @@ function App(): JSX.Element {
                 <Route path="settings" element={<ErrorBoundary label="Settings"><Settings /></ErrorBoundary>} />
                 <Route path="scan-repair" element={<ErrorBoundary label="Scan and Repair"><ScanRepair /></ErrorBoundary>} />
                 <Route path="recovery" element={<ErrorBoundary label="Recovery"><Recovery /></ErrorBoundary>} />
+                <Route path="handover" element={<ErrorBoundary label="Prepare for handover"><Handover /></ErrorBoundary>} />
               </Route>
             </Routes>
           </ErrorBoundary>
