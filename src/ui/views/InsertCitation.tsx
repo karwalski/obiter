@@ -12,7 +12,7 @@ import { FormattedRun } from "../../types/formattedRun";
 import { CitationStore } from "../../store/citationStore";
 import { getSharedStore, getSharedStoreIfReady } from "../../store/singleton";
 import { insertCitationFootnote, getAllCitationFootnotes, buildOccurrenceTitle } from "../../word/footnoteManager";
-import { refreshAllCitationsNow } from "../../word/citationRefresher";
+import { refreshAllCitationsWithConsent } from "../../word/trackedWriteConsent";
 import type { CitationFootnoteEntry } from "../../word/footnoteManager";
 import { getFormattedPreview, formatCitation } from "../../engine/engine";
 import type { CitationContext as CitationFormatContext } from "../../engine/engine";
@@ -944,9 +944,15 @@ export default function InsertCitation(): JSX.Element {
 
         setReinsertMenuId(null);
         setReinsertPinpoint("");
-        await refreshAllCitationsNow(await getStore());
+        // COURT-108 follow-up: with Track Changes on, ask before refreshing.
+        const refreshed = await refreshAllCitationsWithConsent(await getStore(), "insert");
         triggerRefresh();
-        setFeedback({ type: "success", message: "Citation re-inserted as footnote." });
+        setFeedback({
+          type: "success",
+          message: refreshed !== null
+            ? "Citation re-inserted as footnote."
+            : "Citation re-inserted as footnote. Other footnotes were not refreshed because Track Changes is on.",
+        });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to re-insert citation";
         setFeedback({ type: "error", message });
@@ -1386,13 +1392,20 @@ export default function InsertCitation(): JSX.Element {
       // BUG-003: Signal the Citation Library to refresh
       triggerRefresh();
 
+      // COURT-108 follow-up: the user chose not to refresh with Track Changes on.
+      const skippedNote = result.refreshSkipped
+        ? " Other footnotes were not refreshed because Track Changes is on; use Refresh All when you are ready."
+        : "";
       if (result.mode === "override") {
-        setFeedback({ type: "success", message: "Citation inserted as footnote (manual override)." });
+        setFeedback({
+          type: "success",
+          message: `Citation inserted as footnote (manual override).${skippedNote}`,
+        });
       } else {
         const successMsg = result.appendedToFootnote
           ? `Citation appended to footnote ${result.appendedToFootnote} (Rule 1.1.3).`
           : "Citation inserted as footnote.";
-        setFeedback({ type: "success", message: successMsg });
+        setFeedback({ type: "success", message: `${successMsg}${skippedNote}` });
       }
 
       // BUG-008: reset through the context so the Paste Citation, Help me

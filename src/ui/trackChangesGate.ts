@@ -12,9 +12,10 @@
  * CitationContext records the pause here; the banner in Layout reads it and
  * offers "Refresh now" (one refresh, recorded as revisions) or "Keep paused".
  *
- * Explicit user actions are not paused: Refresh All, and the refresh that
- * follows inserting or editing a citation, run as before and Word records
- * their changes as revisions. The pause clears itself the next time an
+ * Explicit user actions are not paused: Refresh All, the refresh that
+ * follows inserting or editing a citation, and a refresh a Settings change
+ * starts ask first instead (COURT-108 follow-up, owner, 7 Oct 2026; see
+ * TrackedRefreshConfirm). The pause clears itself the next time an
  * automatic refresh finds Track Changes off.
  *
  * Same module-store pattern as recoveryQueue.ts: plain state plus subscribers,
@@ -89,6 +90,24 @@ export function recordTrackingMode(mode: TrackingMode, pendingRevisions?: number
 export function acknowledgeTrackChangesPause(): void {
   if (!state.paused || state.acknowledged) return;
   state = { ...state, acknowledged: true };
+  notify();
+}
+
+/**
+ * COURT-108 follow-up: the user has just answered the in-pane "refresh with
+ * Track Changes on?" question. The automatic refresh that usually follows
+ * an insert or a Settings change then pauses without showing the banner
+ * again, until Track Changes is turned off.
+ */
+export function noteTrackedWriteDecision(mode: TrackingMode): void {
+  if (mode !== "TrackAll" && mode !== "TrackMineOnly") return;
+  if (state.paused && state.acknowledged && state.mode === mode) return;
+  state = {
+    paused: true,
+    mode,
+    acknowledged: true,
+    ...(state.pendingRevisions !== undefined ? { pendingRevisions: state.pendingRevisions } : {}),
+  };
   notify();
 }
 

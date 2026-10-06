@@ -117,7 +117,8 @@ import {
 } from "../../api/corpus/corpusDownload";
 import { registerCorpusAfterDownload } from "../../api/initializeAdapters";
 import { useVersionCheck, clearVersionCache } from "../hooks/useVersionCheck";
-import { useCitationContext } from "../context/CitationContext";
+import { ASK_IF_TRACKED, useCitationContext } from "../context/CitationContext";
+import { confirmManagedRefresh } from "../../word/trackedWriteConsent";
 import { enableDebug, disableDebug, isDebugEnabled, getLogHistory, clearLogHistory, exportLogs, runAllTests, setStatusCallback, prepareTestEssay, SCREENSHOT_PREPS } from "../../debug";
 
 type AglcVersion = "4" | "5";
@@ -261,7 +262,17 @@ export default function Settings(): JSX.Element {
   // user opened the "Update court profile" comparison after declining it.
   const [courtProfile, setCourtProfile] = useState<CourtProfileRecord | undefined>(undefined);
   const [showProfileReview, setShowProfileReview] = useState(false);
-  const { autoRefreshEnabled: _are, setAutoRefreshEnabled, triggerRefresh } = useCitationContext();
+  const {
+    autoRefreshEnabled: _are,
+    setAutoRefreshEnabled,
+    triggerRefresh: triggerContextRefresh,
+  } = useCitationContext();
+  // COURT-108 follow-up: a refresh a Settings change starts asks first (in
+  // the pane) while Track Changes is on, rather than pausing silently.
+  const triggerRefresh = useCallback(
+    () => triggerContextRefresh(ASK_IF_TRACKED),
+    [triggerContextRefresh]
+  );
   const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
   const [debugLogs, setDebugLogs] = useState<ReturnType<typeof getLogHistory>>([]);
@@ -980,16 +991,20 @@ export default function Settings(): JSX.Element {
       setDocSetting("obiter-autoRefresh", true);
       // Explicit refresh (not the debounced trigger) so it runs deterministically
       // now that manual mode is cleared. Locked footnotes are skipped.
+      // COURT-108 follow-up: with Track Changes on, ask first.
       const store = await getSharedStore();
-      await Word.run(async (ctx) => {
-        const { refreshAllCitations } = await import("../../word/citationRefresher");
-        await refreshAllCitations(ctx, store);
-      });
-      triggerRefresh();
+      if (await confirmManagedRefresh("settings")) {
+        await Word.run(async (ctx) => {
+          const { refreshAllCitations } = await import("../../word/citationRefresher");
+          await refreshAllCitations(ctx, store);
+        });
+      }
+      // The user has just answered (or Track Changes is off): no second question.
+      triggerContextRefresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to resume automatic formatting");
     }
-  }, [setAutoRefreshEnabled, triggerRefresh]);
+  }, [setAutoRefreshEnabled, triggerContextRefresh]);
 
   const handleJurisdictionChange = useCallback(async (jurisdictionId: string) => {
     try {

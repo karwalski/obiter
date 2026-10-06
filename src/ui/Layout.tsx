@@ -29,6 +29,8 @@ import CorpusDownloadBanner from "./components/CorpusDownloadBanner";
 import ErrorReporter from "./components/ErrorReporter";
 import StatusLog from "./components/StatusLog";
 import TrackChangesBanner from "./components/TrackChangesBanner";
+import TrackedRefreshConfirm from "./components/TrackedRefreshConfirm";
+import { confirmManagedRefresh } from "../word/trackedWriteConsent";
 import { useStatus } from "./context/StatusContext";
 import { useComfortMode } from "./hooks/useComfortMode";
 import CommandPalette, { type PaletteCommand } from "./components/CommandPalette";
@@ -151,11 +153,20 @@ export default function Layout(): JSX.Element {
     })();
   }, [refreshCounter]);
 
-  const handleRefreshAll = useCallback(async () => {
+  /**
+   * Refresh All. COURT-108 follow-up: with Track Changes on, ask first (in
+   * the pane) unless the user already chose to refresh in the Track Changes
+   * banner (`consented`).
+   */
+  const handleRefreshAll = useCallback(async (consented?: boolean) => {
     if (refreshing) return;
     setRefreshing(true);
-    announce("Refreshing all footnotes…");
     try {
+      if (consented !== true && !(await confirmManagedRefresh("refresh-all"))) {
+        announce("Refresh skipped. Track Changes is on; use Refresh All when you are ready.", "info");
+        return;
+      }
+      announce("Refreshing all footnotes…");
       const store = await getSharedStore();
       let result = emptyRefreshResult();
       await Word.run(async (context) => {
@@ -366,9 +377,10 @@ export default function Layout(): JSX.Element {
       {!manualMode && (
         <TrackChangesBanner
           refreshing={refreshing}
-          onRefreshNow={() => void handleRefreshAll()}
+          onRefreshNow={() => void handleRefreshAll(true)}
         />
       )}
+      <TrackedRefreshConfirm />
       <nav className="obiter-nav" role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (
           <NavLink

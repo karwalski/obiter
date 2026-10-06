@@ -112,7 +112,9 @@ async function executeRibbonAction(action: string): Promise<void> {
       // leaving duplicate Custom XML parts behind.
       const store = await getSharedStore();
       const citations = store.getAll();
-      if (citations.length > 0) {
+      // COURT-108 follow-up: with Track Changes on, ask in the pane first.
+      const { confirmManagedRefresh } = await import("../word/trackedWriteConsent");
+      if (citations.length > 0 && (await confirmManagedRefresh("refresh-all"))) {
         await Word.run(async (context) => {
           await refreshAllCitations(context, store);
           await renumberAllHeadings(context);

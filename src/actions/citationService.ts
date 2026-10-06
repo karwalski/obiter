@@ -35,7 +35,10 @@ import {
   deleteCitationFootnote,
   retagOccurrences,
 } from "../word/footnoteManager";
-import { refreshAllCitationsNow } from "../word/citationRefresher";
+import {
+  refreshAllCitationsWithConsent,
+  type ManagedRefreshReason,
+} from "../word/trackedWriteConsent";
 import { getSharedStore } from "../store/singleton";
 import { CitationStore } from "../store/citationStore";
 import { getDevicePref } from "../store/devicePreferences";
@@ -52,6 +55,24 @@ export interface InsertResult {
   mode: "new" | "reused" | "override";
   /** Present when appended to an existing footnote (Rule 1.1.3). */
   appendedToFootnote?: number;
+  /**
+   * COURT-108 follow-up: true when Track Changes was on and the user chose
+   * "Skip for now", so the footnotes were not refreshed after the insert.
+   */
+  refreshSkipped?: boolean;
+}
+
+/**
+ * COURT-108 follow-up (owner, 7 Oct 2026): the refresh after a managed write.
+ * With Track Changes on, the task pane asks first (in-pane prompt); with it
+ * off, unreadable, or no pane to ask, this refreshes as before. Returns true
+ * when the user chose to skip.
+ */
+async function refreshAfterWrite(
+  store: CitationStore,
+  reason: ManagedRefreshReason
+): Promise<boolean> {
+  return (await refreshAllCitationsWithConsent(store, reason)) === null;
 }
 
 /**
@@ -107,12 +128,13 @@ export async function insertCitation(
     await store.add(citation);
     const title = request.shortTitle || citation.sourceType;
     await insertCitationFootnote(citation.id, title, [{ text: request.overrideText }], appendIndex);
-    await refreshAllCitationsNow(store);
+    const refreshSkipped = await refreshAfterWrite(store, "insert");
     return {
       status: "inserted",
       citationId: citation.id,
       mode: "override",
       appendedToFootnote: appendIndex,
+      ...(refreshSkipped ? { refreshSkipped } : {}),
     };
   }
 
@@ -146,12 +168,13 @@ export async function insertCitation(
   if (existingMatch) {
     const runs = getFormattedPreview(existingMatch, cfg);
     await insertCitationFootnote(existingMatch.id, occurrenceTitle, runs, appendIndex);
-    await refreshAllCitationsNow(store);
+    const refreshSkipped = await refreshAfterWrite(store, "insert");
     return {
       status: "inserted",
       citationId: existingMatch.id,
       mode: "reused",
       appendedToFootnote: appendIndex,
+      ...(refreshSkipped ? { refreshSkipped } : {}),
     };
   }
 
@@ -161,12 +184,13 @@ export async function insertCitation(
   const runs = getFormattedPreview(citation, cfg);
   await store.add(citation);
   await insertCitationFootnote(citation.id, occurrenceTitle, runs, appendIndex);
-  await refreshAllCitationsNow(store);
+  const refreshSkipped = await refreshAfterWrite(store, "insert");
   return {
     status: "inserted",
     citationId: citation.id,
     mode: "new",
     appendedToFootnote: appendIndex,
+    ...(refreshSkipped ? { refreshSkipped } : {}),
   };
 }
 
@@ -205,7 +229,7 @@ export async function formatCitationForRequest(
 /** Re-render every managed footnote (fixes ibid, short references, numbering). */
 export async function refreshFootnotes(): Promise<void> {
   const store = await getSharedStore();
-  await refreshAllCitationsNow(store);
+  await refreshAfterWrite(store, "refresh-all");
 }
 
 /** Re-format and update every occurrence of a stored citation from a new request. */
@@ -218,14 +242,14 @@ export async function updateCitation(
   const cfg = config ?? (await resolveConfig(store));
   const runs = formatCitationRuns(request, cfg);
   await updateCitationContent(citationId, runs);
-  await refreshAllCitationsNow(store);
+  await refreshAfterWrite(store, "edit");
 }
 
 /** Remove a specific footnote occurrence of a citation. */
 export async function deleteCitation(citationId: string, footnoteIndex: number): Promise<void> {
   await deleteCitationFootnote(citationId, footnoteIndex);
   const store = await getSharedStore();
-  await refreshAllCitationsNow(store);
+  await refreshAfterWrite(store, "edit");
 }
 
 /**
@@ -279,7 +303,7 @@ export async function mergeDuplicateCitation(
       // The duplicate entry is already gone — nothing more to remove.
     }
   }
-  await refreshAllCitationsNow(store);
+  await refreshAfterWrite(store, "edit");
   return moved;
 }
 

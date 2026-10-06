@@ -17,9 +17,14 @@ import {
   readChangeTrackingMode,
   isTrackingOn,
   countPendingRevisionsInManagedFootnotes,
+  type TrackingMode,
 } from "../../word/trackChanges";
 import { PARENT_CC_TAG } from "../../word/footnoteManager";
 import { getTrackChangesGate, recordTrackingMode } from "../trackChangesGate";
+import {
+  hasTrackedWriteConsentHandler,
+  requestTrackedWriteConsent,
+} from "../../word/trackedWriteConsent";
 
 const log = createLogger("CitationContext");
 
@@ -32,10 +37,24 @@ interface CitationContextValue {
   focusField: FocusField;
   setFocusField: (field: FocusField) => void;
   refreshCounter: number;
-  triggerRefresh: () => void;
+  /**
+   * Bump the refresh counter and schedule the debounced refresh. With
+   * `askIfTracked` (a Settings change), Track Changes on asks first in the
+   * pane instead of pausing silently (COURT-108 follow-up).
+   */
+  triggerRefresh: (options?: TriggerRefreshOptions) => void;
   autoRefreshEnabled: boolean;
   setAutoRefreshEnabled: (enabled: boolean) => void;
 }
+
+/** COURT-108 follow-up: options for {@link CitationContextValue.triggerRefresh}. */
+export interface TriggerRefreshOptions {
+  /** Ask before refreshing while Track Changes is on (Settings changes). */
+  askIfTracked?: boolean;
+}
+
+/** COURT-108 follow-up: the option a Settings change passes. */
+export const ASK_IF_TRACKED: TriggerRefreshOptions = { askIfTracked: true };
 
 const CitationContext = createContext<CitationContextValue | undefined>(undefined);
 
@@ -51,6 +70,9 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
   // Now it runs once the current refresh finishes.
   const refreshPendingRef = useRef(false);
   const debounceTimerRef = useRef<number | null>(null);
+  // COURT-108 follow-up: a Settings change asked for the next debounced
+  // refresh to ask first while Track Changes is on.
+  const askIfTrackedRef = useRef(false);
 
   // UX-005: Delay auto-refresh until Word finishes its initial document
   // render (including footnote numbering). Without this guard, the change
@@ -70,23 +92,28 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     if (!id) setFocusField(null);
   }, []);
 
-  const triggerRefresh = useCallback(() => {
-    setRefreshCounter((prev) => prev + 1);
+  const triggerRefresh = useCallback(
+    (options?: TriggerRefreshOptions) => {
+      setRefreshCounter((prev) => prev + 1);
 
-    // Auto-refresh ibid/subsequent references when enabled.
-    // Debounced: waits 1.5s after the last trigger before running, so rapid
-    // inserts don't cause back-to-back full refreshes (O(n) each).
-    // Gate: Manual Citations Mode disables all auto-refresh.
-    if (
-      !autoRefreshEnabled ||
-      !startupReadyRef.current ||
-      getDevicePref("manualCitationMode") === true
-    )
-      return;
+      // Auto-refresh ibid/subsequent references when enabled.
+      // Debounced: waits 1.5s after the last trigger before running, so rapid
+      // inserts don't cause back-to-back full refreshes (O(n) each).
+      // Gate: Manual Citations Mode disables all auto-refresh.
+      if (
+        !autoRefreshEnabled ||
+        !startupReadyRef.current ||
+        getDevicePref("manualCitationMode") === true
+      )
+        return;
 
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = window.setTimeout(() => runRefresh(), 1500);
-  }, [autoRefreshEnabled]);
+      // Only an explicit option counts (a click handler may pass an event).
+      if (options?.askIfTracked === true) askIfTrackedRef.current = true;
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = window.setTimeout(() => runRefresh(), 1500);
+    },
+    [autoRefreshEnabled]
+  );
 
   /** Run one full refresh, then any refresh requested while it ran. */
   function runRefresh(): void {
@@ -96,6 +123,10 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
     }
     refreshingRef.current = true;
     refreshPendingRef.current = false;
+    const askIfTracked = askIfTrackedRef.current;
+    askIfTrackedRef.current = false;
+    // Set when a Settings change found Track Changes on: ask after this run.
+    let askMode: TrackingMode | null = null;
 
     let run: Promise<unknown>;
     try {
@@ -110,6 +141,13 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
           if (isFeatureAvailable("changeTrackingMode")) {
             const mode = await readChangeTrackingMode(context);
             if (isTrackingOn(mode)) {
+              // COURT-108 follow-up: a Settings change asks in the pane
+              // instead (after this Word.run, so no request context is held
+              // open while the user decides).
+              if (askIfTracked && hasTrackedWriteConsentHandler()) {
+                askMode = mode;
+                return;
+              }
               const pending = getTrackChangesGate().paused
                 ? undefined
                 : await countPendingRevisionsInManagedFootnotes(context, PARENT_CC_TAG);
@@ -119,29 +157,7 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
             }
             recordTrackingMode(mode);
           }
-          const store = await getSharedStore();
-          const result = await refreshAllCitations(context, store);
-          // SAFE-003: surface partial failures and detected user edits
-          // instead of silently swallowing them. The Status/Recovery UI
-          // listens for `obiter:refresh-issues`.
-          const revisionSkips = result.revisionSkips ?? [];
-          if (
-            result.failures.length > 0 ||
-            result.userEdits.length > 0 ||
-            revisionSkips.length > 0
-          ) {
-            log.warn("Auto-refresh completed with issues", {
-              failures: result.failures,
-              userEditedFootnotes: result.userEdits.map((edit) => edit.footnoteNumber),
-              revisionSkips,
-            });
-            const detail: RefreshIssuesDetail = {
-              failures: result.failures,
-              userEdits: result.userEdits,
-              ...(revisionSkips.length > 0 ? { revisionSkips } : {}),
-            };
-            window.dispatchEvent(new CustomEvent("obiter:refresh-issues", { detail }));
-          }
+          await refreshAndReport(context);
         } catch (err) {
           // Refresh failed — non-critical, will catch up on next trigger
           log.error("Auto-refresh failed", {
@@ -158,6 +174,21 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
       .catch(() => {
         // Word.run itself failed (document closing); the next trigger retries.
       })
+      .then(async () => {
+        if (!askMode) return;
+        const accepted = await requestTrackedWriteConsent({ reason: "settings", mode: askMode });
+        if (!accepted) {
+          log.info("Refresh after a Settings change skipped: Track Changes is on");
+          return;
+        }
+        try {
+          await Word.run((context) => refreshAndReport(context));
+        } catch (err) {
+          log.error("Refresh after a Settings change failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      })
       .finally(() => {
         refreshingRef.current = false;
         if (refreshPendingRef.current) {
@@ -165,6 +196,29 @@ export function CitationProvider({ children }: { children: React.ReactNode }): J
           runRefresh();
         }
       });
+  }
+
+  /** One full refresh, with partial failures reported to the Status UI. */
+  async function refreshAndReport(context: Word.RequestContext): Promise<void> {
+    const store = await getSharedStore();
+    const result = await refreshAllCitations(context, store);
+    // SAFE-003: surface partial failures and detected user edits
+    // instead of silently swallowing them. The Status/Recovery UI
+    // listens for `obiter:refresh-issues`.
+    const revisionSkips = result.revisionSkips ?? [];
+    if (result.failures.length > 0 || result.userEdits.length > 0 || revisionSkips.length > 0) {
+      log.warn("Auto-refresh completed with issues", {
+        failures: result.failures,
+        userEditedFootnotes: result.userEdits.map((edit) => edit.footnoteNumber),
+        revisionSkips,
+      });
+      const detail: RefreshIssuesDetail = {
+        failures: result.failures,
+        userEdits: result.userEdits,
+        ...(revisionSkips.length > 0 ? { revisionSkips } : {}),
+      };
+      window.dispatchEvent(new CustomEvent("obiter:refresh-issues", { detail }));
+    }
   }
 
   // Register the document selection handler — auto-navigate to /edit on CC click

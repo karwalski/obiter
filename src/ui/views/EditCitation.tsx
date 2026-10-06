@@ -46,6 +46,11 @@ import {
   isExperimentalSourceType,
   getProvenanceNote,
 } from "../../engine/ruleExporter";
+import { confirmManagedRefresh } from "../../word/trackedWriteConsent";
+
+/** COURT-108 follow-up: shown when the user skipped the refresh with Track Changes on. */
+const TRACKED_SKIP_NOTE =
+  " Footnotes were not refreshed because Track Changes is on; use Refresh All when you are ready.";
 
 // ─── Format Preference ───────────────────────────────────────────────────────
 
@@ -492,12 +497,16 @@ export default function EditCitation(): JSX.Element {
       );
       // Re-render this footnote (and others, for ibid/short chains downstream)
       const store = await getSharedStore();
-      await Word.run(async (ctx) => {
-        const { refreshAllCitations } = await import("../../word/citationRefresher");
-        await refreshAllCitations(ctx, store);
-      });
+      // COURT-108 follow-up: with Track Changes on, ask before refreshing.
+      const refreshed = await confirmManagedRefresh("edit");
+      if (refreshed) {
+        await Word.run(async (ctx) => {
+          const { refreshAllCitations } = await import("../../word/citationRefresher");
+          await refreshAllCitations(ctx, store);
+        });
+      }
       await loadOccurrences(citation.id);
-      setSuccessMessage(`Footnote ${footnoteIndex} updated.`);
+      setSuccessMessage(`Footnote ${footnoteIndex} updated.${refreshed ? "" : TRACKED_SKIP_NOTE}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update occurrence.");
     } finally {
@@ -515,13 +524,17 @@ export default function EditCitation(): JSX.Element {
       await deleteCitationFootnote(citation.id, footnoteIndex);
       // Rebuild footnotes to clean up orphaned separators
       const store = await getSharedStore();
-      await Word.run(async (ctx) => {
-        const { refreshAllCitations } = await import("../../word/citationRefresher");
-        await refreshAllCitations(ctx, store);
-      });
+      // COURT-108 follow-up: with Track Changes on, ask before refreshing.
+      const refreshed = await confirmManagedRefresh("edit");
+      if (refreshed) {
+        await Word.run(async (ctx) => {
+          const { refreshAllCitations } = await import("../../word/citationRefresher");
+          await refreshAllCitations(ctx, store);
+        });
+      }
       // Refresh the occurrences list after removal
       await loadOccurrences(citation.id);
-      setSuccessMessage(`Removed from footnote ${footnoteIndex}.`);
+      setSuccessMessage(`Removed from footnote ${footnoteIndex}.${refreshed ? "" : TRACKED_SKIP_NOTE}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove occurrence.");
     } finally {
@@ -554,12 +567,20 @@ export default function EditCitation(): JSX.Element {
     try {
       await setFootnoteLock(footnoteIndex, false);
       const store = await getSharedStore();
-      await Word.run(async (ctx) => {
-        const { refreshAllCitations } = await import("../../word/citationRefresher");
-        await refreshAllCitations(ctx, store);
-      });
+      // COURT-108 follow-up: with Track Changes on, ask before refreshing.
+      const refreshed = await confirmManagedRefresh("edit");
+      if (refreshed) {
+        await Word.run(async (ctx) => {
+          const { refreshAllCitations } = await import("../../word/citationRefresher");
+          await refreshAllCitations(ctx, store);
+        });
+      }
       await loadOccurrences(citation.id);
-      setSuccessMessage(`Footnote ${footnoteIndex} unlocked and reformatted.`);
+      setSuccessMessage(
+        refreshed
+          ? `Footnote ${footnoteIndex} unlocked and reformatted.`
+          : `Footnote ${footnoteIndex} unlocked.${TRACKED_SKIP_NOTE}`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to unlock footnote.");
     } finally {
@@ -723,12 +744,16 @@ export default function EditCitation(): JSX.Element {
       // document-wide resolutions an isolated single-citation rewrite cannot
       // perform (and which would desync SAFE-002 edit-detection, leaving the
       // footnote flagged as "manually edited"). Mirrors the occurrence handlers.
-      await Word.run(async (ctx) => {
-        const { refreshAllCitations } = await import("../../word/citationRefresher");
-        await refreshAllCitations(ctx, store);
-      });
+      // COURT-108 follow-up: with Track Changes on, ask before refreshing.
+      const refreshed = await confirmManagedRefresh("edit");
+      if (refreshed) {
+        await Word.run(async (ctx) => {
+          const { refreshAllCitations } = await import("../../word/citationRefresher");
+          await refreshAllCitations(ctx, store);
+        });
+      }
 
-      setSuccessMessage("Citation updated successfully.");
+      setSuccessMessage(`Citation updated successfully.${refreshed ? "" : TRACKED_SKIP_NOTE}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update citation.");
     } finally {

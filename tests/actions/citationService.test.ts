@@ -36,6 +36,7 @@ import {
 } from "../../src/actions/citationService";
 import type { Citation } from "../../src/types/citation";
 import { userTags } from "../../src/engine/tags";
+import { setTrackedWriteConsentHandler } from "../../src/word/trackedWriteConsent";
 
 const insertFootnote = footnoteManager.insertCitationFootnote as jest.Mock;
 const retag = footnoteManager.retagOccurrences as jest.Mock;
@@ -377,5 +378,54 @@ describe("mergeDuplicateCitation and ignoreDuplicatePair (ENP-003)", () => {
     expect(updates.map((c) => c.id)).toEqual(["rep", "mnc"]);
     expect(updates[0].tags).toEqual(["native title", "dedupe:ignore:mabo|1992|"]);
     expect(updates[1].tags).toEqual(["land", "dedupe:ignore:mabo|1992|"]);
+  });
+});
+
+describe("COURT-108 follow-up: the refresh after a managed write asks first with Track Changes on", () => {
+  let unregister: (() => void) | undefined;
+
+  beforeEach(() => {
+    (globalThis as Record<string, unknown>).Office = {
+      context: {
+        requirements: {
+          isSetSupported: (set: string, v: string) => set === "WordApi" && parseFloat(v) <= 1.5,
+        },
+      },
+    };
+    (globalThis as Record<string, unknown>).Word = {
+      run: (fn: (ctx: unknown) => Promise<unknown>) => {
+        const doc = { changeTrackingMode: "TrackAll", load: jest.fn() };
+        return fn({ document: doc, sync: async () => undefined });
+      },
+    };
+  });
+  afterEach(() => {
+    unregister?.();
+    unregister = undefined;
+    delete (globalThis as Record<string, unknown>).Office;
+    delete (globalThis as Record<string, unknown>).Word;
+  });
+
+  it("Skip for now: the citation is inserted, the refresh is skipped and reported", async () => {
+    const ask = jest.fn(async () => false);
+    unregister = setTrackedWriteConsentHandler(ask);
+    const result = await insertCitation(caseRequest, CONFIG);
+    expect(insertFootnote).toHaveBeenCalledTimes(1);
+    expect(ask).toHaveBeenCalledWith({ reason: "insert", mode: "TrackAll" });
+    expect(refreshNow).not.toHaveBeenCalled();
+    expect(result.refreshSkipped).toBe(true);
+  });
+
+  it("Refresh anyway: refreshes as before (Word records the changes as revisions)", async () => {
+    unregister = setTrackedWriteConsentHandler(async () => true);
+    const result = await insertCitation(caseRequest, CONFIG);
+    expect(refreshNow).toHaveBeenCalledTimes(1);
+    expect(result).not.toHaveProperty("refreshSkipped");
+  });
+
+  it("no pane to ask (headless runtime): refreshes as before", async () => {
+    const result = await insertCitation(caseRequest, CONFIG);
+    expect(refreshNow).toHaveBeenCalledTimes(1);
+    expect(result).not.toHaveProperty("refreshSkipped");
   });
 });
