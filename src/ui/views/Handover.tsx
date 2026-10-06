@@ -12,7 +12,10 @@
  *  - footnotes the last refresh left unchanged because they were edited by
  *    hand, and footnotes the user locked;
  *  - Obiter's custom document properties, each with its own Remove button
- *    and an Undo (legacy keys such as Obiter.Author are marked);
+ *    and an Undo (legacy keys such as Obiter.Author are marked). A removal
+ *    sticks: it is recorded in the document's Obiter store and Obiter does
+ *    not write that property again until the user turns its properties
+ *    back on here (COURT-122 follow-up, owner, 7 Oct 2026);
  *  - whether the Obiter data part and Obiter's controls are present;
  *  - counts of comments and pending tracked changes (read-only).
  *
@@ -38,6 +41,8 @@ import {
   type RemovedProperty,
 } from "../../word/handoverCheck";
 import { hostReportsReadOnly, writeErrorMessage } from "../../word/documentAccess";
+import { WRITTEN_PROPERTY_KEYS, writeObiterProperties } from "../../word/documentProperties";
+import { APP_VERSION } from "../../constants";
 import { getRefreshIssues } from "../recoveryQueue";
 import { createLogger } from "../../debug/logger";
 
@@ -79,6 +84,8 @@ export default function Handover(): JSX.Element {
   const [removed, setRemoved] = useState<Record<string, RemovedProperty>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  /** COURT-122 follow-up: Obiter properties this document says not to write. */
+  const [optOut, setOptOut] = useState<string[]>([]);
   const readOnly = hostReportsReadOnly();
 
   const handleCheck = useCallback(async () => {
@@ -103,6 +110,7 @@ export default function Handover(): JSX.Element {
           (getDevicePref("courtToggles") as Record<string, string> | undefined),
       });
       const userEdited = getRefreshIssues().userEdits.map((e) => e.footnoteNumber);
+      setOptOut(store.getPropertyOptOut?.() ?? []);
       setCheck({ snapshot, validation, userEdited });
     } catch (err: unknown) {
       log.warn("Handover check failed", {
@@ -114,23 +122,57 @@ export default function Handover(): JSX.Element {
     }
   }, []);
 
-  const handleRemove = useCallback(async (key: string) => {
-    setBusyKey(key);
-    setActionMessage(null);
+  /**
+   * COURT-122 follow-up: record (or clear) the opt-out for a property Obiter
+   * writes, in the document's own Obiter store. Returns false if the store
+   * refused the write.
+   */
+  const recordOptOut = useCallback(async (key: string, optedOut: boolean): Promise<boolean> => {
+    if (!WRITTEN_PROPERTY_KEYS.includes(key)) return true;
     try {
-      const result = await Word.run((context) => removeObiterProperty(context, key));
-      if (result) {
-        setRemoved((prev) => ({ ...prev, [key]: result }));
-        setActionMessage(`Removed ${key}. Undo puts it back.`);
-      } else {
-        setActionMessage(`${key} was already removed.`);
-      }
+      const store = await getSharedStore();
+      const current = store.getPropertyOptOut?.() ?? [];
+      const next = optedOut
+        ? Array.from(new Set([...current, key]))
+        : current.filter((k) => k !== key);
+      await store.setPropertyOptOut(next);
+      setOptOut(next);
+      return true;
     } catch (err: unknown) {
-      setActionMessage(writeErrorMessage(err, `Could not remove ${key}`));
-    } finally {
-      setBusyKey(null);
+      log.warn("Could not record the property choice", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return false;
     }
   }, []);
+
+  const handleRemove = useCallback(
+    async (key: string) => {
+      setBusyKey(key);
+      setActionMessage(null);
+      try {
+        const result = await Word.run((context) => removeObiterProperty(context, key));
+        // A removal sticks: Obiter does not write this property again.
+        const recorded = await recordOptOut(key, true);
+        const sticks = WRITTEN_PROPERTY_KEYS.includes(key)
+          ? recorded
+            ? " Obiter will not write it again."
+            : " Obiter could not record this choice, so it may write the property again."
+          : "";
+        if (result) {
+          setRemoved((prev) => ({ ...prev, [key]: result }));
+          setActionMessage(`Removed ${key}.${sticks} Undo puts it back.`);
+        } else {
+          setActionMessage(`${key} was already removed.${sticks}`);
+        }
+      } catch (err: unknown) {
+        setActionMessage(writeErrorMessage(err, `Could not remove ${key}`));
+      } finally {
+        setBusyKey(null);
+      }
+    },
+    [recordOptOut]
+  );
 
   const handleUndo = useCallback(
     async (key: string) => {
@@ -145,6 +187,7 @@ export default function Handover(): JSX.Element {
           delete next[key];
           return next;
         });
+        await recordOptOut(key, false);
         setActionMessage(`Put back ${key}.`);
       } catch (err: unknown) {
         setActionMessage(writeErrorMessage(err, `Could not put back ${key}`));
@@ -152,8 +195,44 @@ export default function Handover(): JSX.Element {
         setBusyKey(null);
       }
     },
-    [removed]
+    [removed, recordOptOut]
   );
+
+  /**
+   * COURT-122 follow-up: turn Obiter's properties back on for this document
+   * and write them now (only while the document holds citations, as on
+   * open). `Obiter.Author` is never written.
+   */
+  const handleTurnPropertiesOn = useCallback(async () => {
+    setBusyKey("turn-on");
+    setActionMessage(null);
+    try {
+      const store = await getSharedStore();
+      await store.setPropertyOptOut([]);
+      setOptOut([]);
+      const citationCount = (store.getAll() ?? []).length;
+      const result = await Word.run((context) =>
+        writeObiterProperties(context, APP_VERSION, store.getStandardId(), citationCount, [])
+      );
+      // A property written again replaces the removed copy; drop its Undo.
+      setRemoved((prev) => {
+        const next = { ...prev };
+        for (const key of WRITTEN_PROPERTY_KEYS) delete next[key];
+        return next;
+      });
+      // Read the document again first (the check clears the status line).
+      await handleCheck();
+      setActionMessage(
+        result.written.length > 0
+          ? `Obiter will write its properties again. Written: ${result.written.join(", ")}.`
+          : "Obiter will write its properties again while this document holds citations."
+      );
+    } catch (err: unknown) {
+      setActionMessage(writeErrorMessage(err, "Could not turn Obiter properties back on"));
+    } finally {
+      setBusyKey(null);
+    }
+  }, [handleCheck]);
 
   const snapshot = check?.snapshot;
   const listed = snapshot?.properties ? obiterPropertyRows(snapshot.properties) : [];
@@ -250,10 +329,9 @@ export default function Handover(): JSX.Element {
               <>
                 <p style={sectionNoteStyle}>
                   Custom properties Obiter wrote into this document. Remove any you do not want
-                  to send; each removal can be undone while this pane is open. While the document
-                  holds citations, Obiter writes Obiter.Version, Obiter.CitationStyle and
-                  Obiter.CreatedDate again when the document is next opened or when you open
-                  Settings.{" "}
+                  to send; each removal can be undone while this pane is open. A property you
+                  remove stays removed: Obiter records the choice in this document and does not
+                  write it again.{" "}
                   {others > 0 &&
                     `${plural(others, "property", "properties")} from other tools ${
                       others === 1 ? "is" : "are"
@@ -300,6 +378,22 @@ export default function Handover(): JSX.Element {
                     )}
                   </div>
                 ))}
+                {optOut.length > 0 && (
+                  <div style={entryStyle} data-testid="handover-property-optout">
+                    <div>
+                      Obiter does not write {optOut.join(", ")} to this document.
+                    </div>
+                    <button
+                      type="button"
+                      className="library-btn"
+                      style={{ marginTop: 4 }}
+                      disabled={busyKey !== null || readOnly}
+                      onClick={() => void handleTurnPropertiesOn()}
+                    >
+                      {busyKey === "turn-on" ? "Turning on..." : "Turn Obiter properties back on"}
+                    </button>
+                  </div>
+                )}
                 {readOnly && (
                   <p style={sectionNoteStyle}>
                     This document is open read-only, so properties cannot be removed.

@@ -18,6 +18,8 @@ export interface StartupStoreView {
   getAll(): ReadonlyArray<unknown>;
   getStandardId(): string;
   getWritingMode(): "academic" | "court";
+  /** COURT-122 follow-up: Obiter properties the user removed (absent on a partial store). */
+  getPropertyOptOut?(): string[];
 }
 
 /** What the startup tasks did, for tests and the debug log. */
@@ -35,7 +37,7 @@ export interface StartupSetupResult {
  *   with the visible setting on (create-only).
  * - Brings Obiter custom properties in line with DECISION-043 item 1: removes
  *   any `Obiter.Author`; writes version and standard only when the store
- *   holds a citation.
+ *   holds a citation, and never a property the user removed (COURT-122).
  *
  * Each step is best effort; a read-only document degrades to no writes.
  *
@@ -58,7 +60,8 @@ export async function runStartupDocumentTasks(
     context,
     version,
     store.getStandardId(),
-    citationCount
+    citationCount,
+    store.getPropertyOptOut?.() ?? []
   );
 
   const enabled = getAutoCreateStylesPref();

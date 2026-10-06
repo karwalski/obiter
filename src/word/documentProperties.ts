@@ -25,6 +25,11 @@ const log = createLogger("DocumentProperties");
  * `Obiter.Website`, `Obiter.Standard`, `Obiter.Mode`) are no longer written
  * and existing values are left in place; removing them is a user choice for
  * the finalised-copy work (COURT-122).
+ *
+ * COURT-122 follow-up (owner, 7 Oct 2026): a property the user removes in
+ * the pre-handover check stays removed. The removal is recorded in the
+ * document's own Obiter store (`propertyOptOut`), and Obiter does not write
+ * that property again until the user turns its properties back on.
  */
 
 /** Custom property keys Obiter writes. */
@@ -34,6 +39,9 @@ export const OBITER_PROPERTY_KEYS = {
   citationStyle: "Obiter.CitationStyle",
   createdDate: "Obiter.CreatedDate",
 } as const;
+
+/** The keys {@link writeObiterProperties} writes, in display order. */
+export const WRITTEN_PROPERTY_KEYS: ReadonlyArray<string> = Object.values(OBITER_PROPERTY_KEYS);
 
 /** Keys removed from a document on open (DECISION-043 item 1). */
 export const RETIRED_PROPERTY_KEYS: ReadonlyArray<string> = ["Obiter.Author"];
@@ -54,6 +62,8 @@ export interface PropertyWriteResult {
  *   citation, so opening the pane on an unrelated document writes nothing.
  *   Unchanged values are not rewritten.
  * - Writes `Obiter.CreatedDate` once, only if absent; never overwrites it.
+ * - Never writes a key in `optOut` (the properties the user removed in the
+ *   pre-handover check, COURT-122). `Obiter.Author` is removed regardless.
  *
  * `customProperties` is WordApi 1.3 (R08 §3.3), routed through the
  * `customProperties` feature flag. Two syncs at most. A read-only document
@@ -63,12 +73,14 @@ export interface PropertyWriteResult {
  * @param version - The running Obiter version.
  * @param standardId - The document store's citation standard id.
  * @param citationCount - Number of citations in the document's Obiter store.
+ * @param optOut - Property keys the user removed; never written back.
  */
 export async function writeObiterProperties(
   context: Word.RequestContext,
   version: string,
   standardId: string,
-  citationCount: number
+  citationCount: number,
+  optOut: ReadonlyArray<string> = []
 ): Promise<PropertyWriteResult> {
   const result: PropertyWriteResult = { written: [], removed: [] };
   if (!isFeatureAvailable("customProperties")) return result;
@@ -96,19 +108,25 @@ export async function writeObiterProperties(
     });
 
     if (citationCount > 0) {
+      // COURT-122 follow-up: keys the user removed stay removed. Opt-out
+      // entries are read through toText() (store round-trip hazard).
+      const skipped = new Set(optOut.map((key) => toText(key)));
       // Values typed string can come back from the store as numbers: toText().
-      if (current.version.isNullObject || toText(current.version.value) !== version) {
+      if (
+        !skipped.has(OBITER_PROPERTY_KEYS.version) &&
+        (current.version.isNullObject || toText(current.version.value) !== version)
+      ) {
         props.add(OBITER_PROPERTY_KEYS.version, version);
         result.written.push(OBITER_PROPERTY_KEYS.version);
       }
       if (
-        current.citationStyle.isNullObject ||
-        toText(current.citationStyle.value) !== standardId
+        !skipped.has(OBITER_PROPERTY_KEYS.citationStyle) &&
+        (current.citationStyle.isNullObject || toText(current.citationStyle.value) !== standardId)
       ) {
         props.add(OBITER_PROPERTY_KEYS.citationStyle, standardId);
         result.written.push(OBITER_PROPERTY_KEYS.citationStyle);
       }
-      if (current.createdDate.isNullObject) {
+      if (!skipped.has(OBITER_PROPERTY_KEYS.createdDate) && current.createdDate.isNullObject) {
         props.add(OBITER_PROPERTY_KEYS.createdDate, new Date().toISOString());
         result.written.push(OBITER_PROPERTY_KEYS.createdDate);
       }

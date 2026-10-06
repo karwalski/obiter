@@ -690,6 +690,28 @@ export class CitationStore {
   }
 
   /**
+   * COURT-122 follow-up: the Obiter custom properties the user removed from
+   * this document (pre-handover check). `writeObiterProperties` does not
+   * write them back. Empty when the user has removed none.
+   */
+  getPropertyOptOut(): string[] {
+    this.ensureInitialised();
+    return [...(this.storeData!.metadata.propertyOptOut ?? [])];
+  }
+
+  /**
+   * COURT-122 follow-up: record which Obiter properties Obiter must not write
+   * back, and persist the choice into the document so it travels with the
+   * file. An empty list turns Obiter's properties back on.
+   */
+  async setPropertyOptOut(keys: readonly string[]): Promise<void> {
+    this.ensureInitialised();
+    const unique = Array.from(new Set(keys.map((k) => k.trim()).filter((k) => k !== "")));
+    this.storeData!.metadata.propertyOptOut = unique.length > 0 ? unique : undefined;
+    await this.persist();
+  }
+
+  /**
    * Return the persisted heading list ID, or undefined if not set.
    */
   getHeadingListId(): number | undefined {
@@ -924,7 +946,8 @@ export class CitationStore {
       this.storeData!.metadata.courtToggles,
       this.storeData!.metadata.nzlsgStyle,
       this.storeData!.metadata.genaiWording,
-      this.storeData!.metadata.courtProfile
+      this.storeData!.metadata.courtProfile,
+      this.storeData!.metadata.propertyOptOut
     );
   }
 

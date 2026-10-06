@@ -780,11 +780,19 @@ export default function Settings(): JSX.Element {
           }
 
           // INFRA-008 Layer 1 / COURT-102: document properties, written only
-          // when the document holds a citation (DECISION-043 item 1).
+          // when the document holds a citation (DECISION-043 item 1), and
+          // never one the user removed before handover (COURT-122).
           const currentStandard = store.getStandardId();
           const citationCount = (store.getAll() ?? []).length;
+          const propertyOptOut = store.getPropertyOptOut?.() ?? [];
           await Word.run(async (context) => {
-            await writeObiterProperties(context, APP_VERSION, currentStandard, citationCount);
+            await writeObiterProperties(
+              context,
+              APP_VERSION,
+              currentStandard,
+              citationCount,
+              propertyOptOut
+            );
           });
 
           setLoading(false);

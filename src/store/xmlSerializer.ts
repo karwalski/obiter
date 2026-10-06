@@ -36,6 +36,7 @@ import {
   SourceData,
   SourceType,
 } from "../types/citation";
+import { toText } from "../engine/rules/v4/general/coerce";
 
 export const OBITER_NAMESPACE = "urn:obiter:aglc";
 const DEFAULT_SCHEMA_VERSION = "2";
@@ -170,7 +171,8 @@ export function serializeStore(
   courtToggles?: Record<string, string>,
   nzlsgStyle?: "general" | "commercial",
   genaiWording?: "output" | "correspondence",
-  courtProfile?: CourtProfileRecord
+  courtProfile?: CourtProfileRecord,
+  propertyOptOut?: string[]
 ): string {
   const lines: string[] = [];
   // COURT-106: a court profile is v3 data, so its store is always marked v3
@@ -191,6 +193,12 @@ export function serializeStore(
   const nzlsgStyleAttr = nzlsgStyle ? ` nzlsgStyle="${escapeXml(nzlsgStyle)}"` : "";
   // A5-EXP-9: generative AI wording; absent reads as "output".
   const genaiWordingAttr = genaiWording ? ` genaiWording="${escapeXml(genaiWording)}"` : "";
+  // COURT-122 follow-up: Obiter properties the user removed, JSON-encoded.
+  // Written only when non-empty, so every other store serialises as before.
+  const propertyOptOutAttr =
+    propertyOptOut && propertyOptOut.length > 0
+      ? ` propertyOptOut="${escapeXml(JSON.stringify(propertyOptOut))}"`
+      : "";
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
   // COURT-106: the frozen court profile, JSON-encoded. Keys this build does
@@ -199,7 +207,7 @@ export function serializeStore(
     ? ` courtProfile="${escapeXml(JSON.stringify(courtProfile))}"`
     : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(versionAttr)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${courtProfileAttr}${nzlsgStyleAttr}${genaiWordingAttr}${headingAttr}${ccModelAttr}>`
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(versionAttr)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${courtProfileAttr}${nzlsgStyleAttr}${genaiWordingAttr}${propertyOptOutAttr}${headingAttr}${ccModelAttr}>`
   );
 
   // INFRA-008 Layer 2: generator element
@@ -442,6 +450,7 @@ export function deserializeStore(xml: string): CitationStoreData {
   const courtProfile = parseCourtProfileAttr(root.getAttribute("courtProfile"));
   const nzlsgStyle = parseNzlsgStyleAttr(root.getAttribute("nzlsgStyle"));
   const genaiWording = parseGenaiWordingAttr(root.getAttribute("genaiWording"));
+  const propertyOptOut = parsePropertyOptOutAttr(root.getAttribute("propertyOptOut"));
   const headingListIdStr = root.getAttribute("headingListId");
   const headingListId = headingListIdStr ? parseInt(headingListIdStr, 10) : undefined;
   const ccModel = (root.getAttribute("ccModel") as "flat" | "parent-child" | null) ?? undefined;
@@ -478,6 +487,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       ...(courtProfile ? { courtProfile } : {}),
       nzlsgStyle,
       genaiWording,
+      ...(propertyOptOut ? { propertyOptOut } : {}),
       headingListId,
       ccModel,
     },
@@ -532,6 +542,24 @@ function parseNzlsgStyleAttr(attr: string | null): "general" | "commercial" | un
  */
 function parseGenaiWordingAttr(attr: string | null): "output" | "correspondence" | undefined {
   return attr === "output" || attr === "correspondence" ? attr : undefined;
+}
+
+/**
+ * COURT-122 follow-up: Parse the JSON-encoded `propertyOptOut` root
+ * attribute (the Obiter property keys the user removed). Entries are read
+ * through toText() (a hand-edited value can come back as a number) and
+ * blanks are dropped. Absent, malformed or empty reads as undefined.
+ */
+function parsePropertyOptOutAttr(attr: string | null): string[] | undefined {
+  if (!attr) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(attr);
+    if (!Array.isArray(parsed)) return undefined;
+    const keys = parsed.map((k) => toText(k)).filter((k) => k !== "");
+    return keys.length > 0 ? Array.from(new Set(keys)) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**

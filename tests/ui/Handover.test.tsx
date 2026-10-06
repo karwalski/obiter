@@ -32,14 +32,27 @@ jest.mock("../../src/word/handoverCheck", () => {
   };
 });
 
+let mockOptOut: string[] = [];
 const mockStore = {
-  getAll: jest.fn(() => []),
+  getAll: jest.fn((): unknown[] => []),
+  getPropertyOptOut: jest.fn(() => [...mockOptOut]),
+  setPropertyOptOut: jest.fn(async (keys: string[]) => {
+    mockOptOut = [...keys];
+  }),
   getById: jest.fn(() => undefined),
   getStandardId: jest.fn(() => "aglc4"),
   getWritingMode: jest.fn(() => "academic"),
   getCourtJurisdiction: jest.fn(() => undefined),
   getCourtToggles: jest.fn(() => undefined),
 };
+const mockWriteProps = jest.fn();
+jest.mock("../../src/word/documentProperties", () => {
+  const actual = jest.requireActual("../../src/word/documentProperties");
+  return {
+    ...actual,
+    writeObiterProperties: (...args: unknown[]): unknown => mockWriteProps(...args),
+  };
+});
 jest.mock("../../src/store/singleton", () => ({
   getSharedStore: (): Promise<unknown> => Promise.resolve(mockStore),
 }));
@@ -70,6 +83,8 @@ beforeEach(() => {
     value: "[legacy placeholder]",
   }));
   mockRestore.mockResolvedValue(undefined);
+  mockOptOut = [];
+  mockWriteProps.mockResolvedValue({ written: ["Obiter.Version"], removed: [] });
   (global as Record<string, unknown>).Word = {
     run: async <T,>(cb: (ctx: unknown) => Promise<T>): Promise<T> => cb({}),
   };
@@ -193,5 +208,73 @@ describe("Prepare for handover (COURT-122)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check document" }));
     await screen.findByText(/does not let add-ins read document properties/);
     expect(screen.getByText(/Comments:/).textContent).toContain("not available");
+  });
+});
+
+describe("COURT-122 follow-up: a removed property stays removed (owner, 7 Oct 2026)", () => {
+  test("removing Obiter.Version records the opt-out in the document's Obiter store", async () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Check document" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove the property Obiter.Version" })
+    );
+    await screen.findByText(/Removed Obiter.Version. Obiter will not write it again./);
+    expect(mockStore.setPropertyOptOut).toHaveBeenCalledWith(["Obiter.Version"]);
+    expect(screen.getByTestId("handover-property-optout").textContent).toContain(
+      "Obiter does not write Obiter.Version to this document."
+    );
+    expect(
+      screen.getByRole("button", { name: "Turn Obiter properties back on" })
+    ).toBeTruthy();
+  });
+
+  test("removing the retired Obiter.Author records no opt-out (it is never written)", async () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Check document" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove the property Obiter.Author" })
+    );
+    await screen.findByRole("button", { name: "Undo the removal of Obiter.Author" });
+    expect(mockStore.setPropertyOptOut).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("handover-property-optout")).toBeNull();
+  });
+
+  test("Undo puts the property back and clears its opt-out", async () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Check document" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Remove the property Obiter.Version" })
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Undo the removal of Obiter.Version" })
+    );
+    await screen.findByText(/Put back Obiter.Version/);
+    expect(mockStore.setPropertyOptOut).toHaveBeenLastCalledWith([]);
+    expect(screen.queryByTestId("handover-property-optout")).toBeNull();
+  });
+
+  test("an opt-out saved in the document is shown, and turning properties back on writes them", async () => {
+    mockOptOut = ["Obiter.Version", "Obiter.CreatedDate"];
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Check document" }));
+    const panel = await screen.findByTestId("handover-property-optout");
+    expect(panel.textContent).toContain("Obiter.Version, Obiter.CreatedDate");
+    // The document holds one citation when the properties are turned back on.
+    mockStore.getAll.mockReturnValueOnce([{ id: "c1" }]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Turn Obiter properties back on" }));
+    await screen.findByText(/Obiter will write its properties again. Written: Obiter.Version./);
+    expect(mockStore.setPropertyOptOut).toHaveBeenCalledWith([]);
+    // Written now with an empty opt-out, for a document holding citations.
+    expect(mockWriteProps).toHaveBeenCalledWith(expect.anything(), expect.any(String), "aglc4", 1, []);
+    expect(screen.queryByTestId("handover-property-optout")).toBeNull();
+  });
+
+  test("the copy says a removal sticks and no longer says Obiter writes it again", async () => {
+    const { container } = renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Check document" }));
+    await screen.findByText("Obiter.Author");
+    expect(container.textContent).toContain("A property you remove stays removed");
+    expect(container.textContent).not.toContain("writes Obiter.Version, Obiter.CitationStyle");
   });
 });

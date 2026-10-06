@@ -352,6 +352,14 @@ export interface StoreMetadata {
    * Absent means "output"; "correspondence" keeps the earlier Obiter form.
    */
   genaiWording?: "output" | "correspondence";
+  /**
+   * COURT-122 follow-up (owner, 7 Oct 2026): Obiter custom document
+   * properties (eg `Obiter.Version`) the user removed in the pre-handover
+   * check. Obiter does not write them back. Document metadata, so the
+   * choice travels with the file. Absent or empty means Obiter writes its
+   * properties as usual.
+   */
+  propertyOptOut?: string[];
   headingListId?: number; // Persisted Word multilevel list ID for heading numbering
   ccModel?: "flat" | "parent-child"; // FN-005: content control model version (defaults to "flat" for backward compat)
 }
