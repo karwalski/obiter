@@ -116,6 +116,9 @@ const mockStore = {
   setWritingMode: jest.fn(async () => undefined),
   setCourtJurisdiction: jest.fn(async () => undefined),
   setCourtToggles: jest.fn(async () => undefined),
+  // COURT-106: the frozen court profile accessors.
+  getCourtProfile: jest.fn((): unknown => undefined),
+  setCourtProfile: jest.fn(async () => undefined),
   // STD-022 defines the NZLSG citation-style accessors on the document store.
   getNzlsgStyle: jest.fn((): string | undefined => undefined),
   setNzlsgStyle: jest.fn(async () => undefined),
@@ -226,20 +229,27 @@ jest.mock("../../../src/debug", () => ({
 
 // ─── Fixtures and helpers ───────────────────────────────────────────────────
 
+// COURT-106: selecting a court freezes the full resolved toggle set,
+// including the order, the connector and the report hierarchy.
 const HCA_TOGGLES = {
   parallelCitations: "mandatory",
+  parallelOrder: "report-first",
   pinpointStyle: "para-and-page",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "CLR",
   unreportedGate: "off",
   ibidSuppression: "on",
   loaType: "part-ab",
 };
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
+  parallelOrder: "mnc-first",
   pinpointStyle: "para-and-page",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "WAR,CLR,ALR",
   unreportedGate: "off",
   ibidSuppression: "on",
   loaType: "simple",
-  parallelOrder: "mnc-first",
 };
 
 const mockOpenAuthDialog = openAuthDialog as unknown as jest.Mock;

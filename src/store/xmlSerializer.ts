@@ -1,11 +1,19 @@
 /**
- * XML Serialization for the Obiter citation store (Schema v2).
+ * XML Serialization for the Obiter citation store (Schema v2 / v3).
  *
  * Converts between Citation objects and XML strings stored in the
  * Custom XML Part. This module is pure (no Office.js dependency)
  * and can be tested independently.
  *
- * ## Schema v2 (current)
+ * ## Schema v3 (COURT-106)
+ *
+ * v3 adds one root attribute, `courtProfile` (JSON): the court profile a
+ * court-mode document froze (preset id and version, overridden toggles).
+ * The citation layout is the v2 layout. A store is written as v3 only when
+ * it carries a court profile; every other store is still written as v2, so
+ * builds that predate v3 keep reading academic documents.
+ *
+ * ## Schema v2
  *
  * Citation-level scalars (shortTitle, aglcVersion, firstFootnoteNumber,
  * createdAt, modifiedAt) are **attributes** on `<obiter:citation>`.
@@ -21,7 +29,13 @@
  * After one open+save cycle the document is migrated to v2.
  */
 
-import { Citation, CitationStoreData, SourceData, SourceType } from "../types/citation";
+import {
+  Citation,
+  CitationStoreData,
+  CourtProfileRecord,
+  SourceData,
+  SourceType,
+} from "../types/citation";
 
 export const OBITER_NAMESPACE = "urn:obiter:aglc";
 const DEFAULT_SCHEMA_VERSION = "2";
@@ -31,7 +45,7 @@ const DEFAULT_AGLC_VERSION = "4";
  * Highest store schema version this build can read (SAFE-008).
  * Bump together with a registered migration in ./migrations.ts.
  */
-export const MAX_SUPPORTED_SCHEMA_VERSION = 2;
+export const MAX_SUPPORTED_SCHEMA_VERSION = 3;
 
 // ─── Errors (BUG-003) ────────────────────────────────────────────────────────
 
@@ -41,7 +55,7 @@ export const MAX_SUPPORTED_SCHEMA_VERSION = 2;
  * - "parse"        — the XML is not well-formed (DOMParser <parsererror>)
  * - "wrong-root"   — well-formed XML but not an <obiter:citationStore>
  * - "newer-schema" — the part was written by a NEWER version of Obiter
- *                    (schema version > 2). SAFE-008: refusing to read it
+ *                    (schema version > MAX_SUPPORTED_SCHEMA_VERSION). SAFE-008: refusing to read it
  *                    quarantines the part instead of half-parsing it and
  *                    overwriting it as v2 on the next persist.
  */
@@ -155,9 +169,13 @@ export function serializeStore(
   ccModel?: "flat" | "parent-child",
   courtToggles?: Record<string, string>,
   nzlsgStyle?: "general" | "commercial",
-  genaiWording?: "output" | "correspondence"
+  genaiWording?: "output" | "correspondence",
+  courtProfile?: CourtProfileRecord
 ): string {
   const lines: string[] = [];
+  // COURT-106: a court profile is v3 data, so its store is always marked v3
+  // (a v2 reader would drop the attribute and overwrite it).
+  const versionAttr = courtProfile ? "3" : schemaVersion;
   lines.push(`<?xml version="1.0" encoding="UTF-8"?>`);
   const courtAttr = courtJurisdiction ? ` courtJurisdiction="${escapeXml(courtJurisdiction)}"` : "";
   // Court toggle overrides travel WITH the document (cross-device
@@ -175,8 +193,13 @@ export function serializeStore(
   const genaiWordingAttr = genaiWording ? ` genaiWording="${escapeXml(genaiWording)}"` : "";
   const headingAttr = headingListId !== undefined ? ` headingListId="${headingListId}"` : "";
   const ccModelAttr = ccModel ? ` ccModel="${escapeXml(ccModel)}"` : "";
+  // COURT-106: the frozen court profile, JSON-encoded. Keys this build does
+  // not know are written back as they were read (opaque bag rule).
+  const courtProfileAttr = courtProfile
+    ? ` courtProfile="${escapeXml(JSON.stringify(courtProfile))}"`
+    : "";
   lines.push(
-    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(schemaVersion)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${nzlsgStyleAttr}${genaiWordingAttr}${headingAttr}${ccModelAttr}>`
+    `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="${escapeXml(versionAttr)}" aglcVersion="${escapeXml(aglcVersion)}" standardId="${escapeXml(standardId)}" writingMode="${escapeXml(writingMode)}"${courtAttr}${courtTogglesAttr}${courtProfileAttr}${nzlsgStyleAttr}${genaiWordingAttr}${headingAttr}${ccModelAttr}>`
   );
 
   // INFRA-008 Layer 2: generator element
@@ -394,9 +417,9 @@ export function deserializeStore(xml: string): CitationStoreData {
   const schemaVersion = root.getAttribute("version") ?? "1.0";
 
   // SAFE-008 forward-compatibility guard: refuse schemas newer than this
-  // build understands. Half-parsing a future v3 document would drop the
+  // build understands. Half-parsing a future v4 document would drop the
   // fields we do not know about, and the next persist would overwrite the
-  // document as v2 — silent data loss. Failing loudly makes initStore
+  // document as v3 — silent data loss. Failing loudly makes initStore
   // quarantine the part instead. (Non-numeric versions fall through and are
   // treated as legacy, matching the historic "1.0" default.)
   const versionNumber = parseInt(schemaVersion, 10);
@@ -416,6 +439,7 @@ export function deserializeStore(xml: string): CitationStoreData {
   // the Tasmanian Supreme Court preset.
   const courtJurisdiction = rawCourtJurisdiction === "TASCSC" ? "TASSC" : rawCourtJurisdiction;
   const courtToggles = parseCourtTogglesAttr(root.getAttribute("courtToggles"));
+  const courtProfile = parseCourtProfileAttr(root.getAttribute("courtProfile"));
   const nzlsgStyle = parseNzlsgStyleAttr(root.getAttribute("nzlsgStyle"));
   const genaiWording = parseGenaiWordingAttr(root.getAttribute("genaiWording"));
   const headingListIdStr = root.getAttribute("headingListId");
@@ -451,6 +475,7 @@ export function deserializeStore(xml: string): CitationStoreData {
       writingMode,
       courtJurisdiction,
       courtToggles,
+      ...(courtProfile ? { courtProfile } : {}),
       nzlsgStyle,
       genaiWording,
       headingListId,
@@ -530,6 +555,50 @@ function parseCourtTogglesAttr(attr: string | null): Record<string, string> | un
       }
     }
     return toggles;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * COURT-106: Parse the JSON-encoded `courtProfile` root attribute.
+ *
+ * The record is an opaque bag: every key is kept, including keys a later
+ * build added, so they round-trip unchanged. A payload missing the fields
+ * this build relies on (preset id and version, the overridden list) reads
+ * as absent; the v2 to v3 migration then re-freezes the profile from the
+ * stored toggles, which renders the same.
+ */
+function parseCourtProfileAttr(attr: string | null): CourtProfileRecord | undefined {
+  if (!attr) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(attr);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const record = parsed as Record<string, unknown>;
+    if (typeof record.presetId !== "string" || record.presetId === "") return undefined;
+    // Numeric-looking strings can come back as numbers from hand edits.
+    const presetVersion =
+      typeof record.presetVersion === "string" || typeof record.presetVersion === "number"
+        ? String(record.presetVersion)
+        : undefined;
+    if (presetVersion === undefined) return undefined;
+    const overridden = Array.isArray(record.overridden)
+      ? record.overridden.filter((k): k is string => typeof k === "string")
+      : [];
+    const origin =
+      record.origin === "selected" || record.origin === "migrated" || record.origin === "updated"
+        ? record.origin
+        : "migrated";
+    return {
+      ...record,
+      presetId: record.presetId,
+      presetVersion,
+      origin,
+      frozenAt: typeof record.frozenAt === "string" ? record.frozenAt : "",
+      overridden,
+    };
   } catch {
     return undefined;
   }

@@ -99,6 +99,11 @@ const IGNORED_HOSTS: ReadonlySet<string> = new Set([
   "https://ncat.nsw.gov.au",
   "https://www.countycourt.vic.gov.au",
   "https://www.qcat.qld.gov.au",
+  // COURT-106 / COURT-115: court-profile provenance source links from the
+  // evidence register (displayed in Settings, never fetched)
+  "https://districtcourt.nsw.gov.au",
+  "https://supremecourt.tas.gov.au",
+  "https://supremecourt.nt.gov.au",
 
   // -- Example citations in reference-guide data (cited sources, not fetched) --
   "https://www.smh.com.au", // newspaper citation example

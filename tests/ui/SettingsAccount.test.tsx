@@ -103,6 +103,9 @@ const mockStore = {
   setWritingMode: jest.fn(async () => undefined),
   setCourtJurisdiction: jest.fn(async () => undefined),
   setCourtToggles: jest.fn(async () => undefined),
+  // COURT-106: the frozen court profile accessors.
+  getCourtProfile: jest.fn((): unknown => undefined),
+  setCourtProfile: jest.fn(async () => undefined),
 };
 jest.mock("../../src/store/singleton", () => ({
   getSharedStore: (): Promise<unknown> => Promise.resolve(mockStore),

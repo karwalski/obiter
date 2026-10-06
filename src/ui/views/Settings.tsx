@@ -23,6 +23,24 @@ import {
   type ParallelOrder,
   type PinpointConnector,
 } from "../../engine/court/presets";
+import {
+  applyProfileUpdate,
+  createCourtProfile,
+  createMigratedProfile,
+  declineProfileUpdate,
+  diffCourtProfile,
+  freezeEffectiveToggles,
+  getPresetToggles,
+  isProfileUpdateAvailable,
+  recordOverride,
+} from "../../engine/court/profile";
+import { getStandardConfig } from "../../engine/standards";
+import type { CourtProfileRecord } from "../../types/citation";
+import {
+  CourtExperimentalLabel,
+  CourtProfileUpdatePrompt,
+  ToggleProvenanceNote,
+} from "../components/CourtProfileInfo";
 import { hasAttribution, insertAcknowledgment, getAcknowledgmentText } from "../../word/branding";
 import { writeObiterProperties } from "../../word/documentProperties";
 // styleInstaller import removed — XSL now downloaded via button
@@ -206,6 +224,11 @@ export default function Settings(): JSX.Element {
      * did; selecting a court writes the preset's value.
      */
     pinpointConnector?: PinpointConnector;
+    /**
+     * COURT-106: the report hierarchy frozen into the document
+     * (comma-separated). Absent only on a record built before COURT-106.
+     */
+    authorisedReportHierarchy?: string;
   }>({
     parallelCitations: "mandatory",
     pinpointStyle: "para-and-page",
@@ -213,6 +236,10 @@ export default function Settings(): JSX.Element {
     ibidSuppression: "on",
     loaType: "part-ab",
   });
+  // COURT-106: the court profile frozen into the document, and whether the
+  // user opened the "Update court profile" comparison after declining it.
+  const [courtProfile, setCourtProfile] = useState<CourtProfileRecord | undefined>(undefined);
+  const [showProfileReview, setShowProfileReview] = useState(false);
   const { autoRefreshEnabled: _are, setAutoRefreshEnabled, triggerRefresh } = useCitationContext();
   const [templatePrefs, setTemplatePrefs] = useState<TemplatePreferences>(loadTemplatePreferences());
   const [debugEnabled, setDebugEnabled] = useState(isDebugEnabled());
@@ -697,6 +724,8 @@ export default function Settings(): JSX.Element {
                 loaType: (savedToggles?.loaType as LoaType) ?? preset.loaType,
                 parallelOrder: (savedToggles?.parallelOrder as ParallelOrder) ?? preset.parallelOrder,
               });
+              // COURT-106: provenance of the frozen values.
+              setCourtProfile(store.getCourtProfile());
             }
           }
 
@@ -786,6 +815,7 @@ export default function Settings(): JSX.Element {
           await store.setWritingMode("academic");
           setWritingMode("academic");
           setCourtJurisdiction("");
+          setCourtProfile(undefined);
           await store.setCourtJurisdiction(undefined);
           await store.setCourtToggles(undefined);
           setDocSetting("obiter-writingMode", "academic");
@@ -863,6 +893,7 @@ export default function Settings(): JSX.Element {
       if (mode === "academic") {
         // Clear jurisdiction and toggle overrides when switching to academic
         setCourtJurisdiction("");
+        setCourtProfile(undefined);
         await store.setCourtJurisdiction(undefined);
         await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
@@ -874,7 +905,25 @@ export default function Settings(): JSX.Element {
         // document store here (a Settings save — the refresher stays
         // read-only) and delete the legacy key.
         const legacyToggles = getDevicePref("courtToggles") as Record<string, string> | undefined;
-        if (legacyToggles) {
+        const jurisdiction = store.getCourtJurisdiction();
+        if (jurisdiction && isCourtJurisdiction(jurisdiction) && !store.getCourtProfile()) {
+          // COURT-106: a court left over from an earlier session has no
+          // frozen profile; freeze what it renders with now (no output
+          // change), exactly as the schema migration does.
+          const frozen = freezeEffectiveToggles(
+            getStandardConfig(store.getStandardId()),
+            jurisdiction,
+            legacyToggles
+          );
+          const profile = createMigratedProfile(jurisdiction);
+          await store.setCourtProfile(profile, { persist: false });
+          await store.setCourtToggles(frozen);
+          setDevicePref("courtToggles", undefined);
+          // Show the values the document now carries, not the preset's.
+          setCourtJurisdiction(jurisdiction);
+          setCourtToggles(frozen as typeof courtToggles);
+          setCourtProfile(profile);
+        } else if (legacyToggles) {
           await store.setCourtToggles(legacyToggles);
           setDevicePref("courtToggles", undefined);
         }
@@ -919,6 +968,7 @@ export default function Settings(): JSX.Element {
       const hadExistingCitations = store.getAll().length > 0;
       if (!jurisdictionId) {
         setCourtJurisdiction("");
+        setCourtProfile(undefined);
         await store.setCourtJurisdiction(undefined);
         await store.setCourtToggles(undefined);
         setDevicePref("courtToggles", undefined);
@@ -931,21 +981,20 @@ export default function Settings(): JSX.Element {
       const preset = getCourtPreset(jurisdictionId);
       if (!preset) return;
 
+      // COURT-106: freeze the court profile at selection time: the full
+      // resolved toggle set (including the report hierarchy and parallel
+      // order) plus the preset id and version. The profile is staged first
+      // and written with the toggles. Toggles are document metadata; the
+      // device pref is only deleted (legacy key).
+      const profile = createCourtProfile(jurisdictionId);
+      await store.setCourtProfile(profile, { persist: false });
       setCourtJurisdiction(jurisdictionId as CourtJurisdiction);
       await store.setCourtJurisdiction(jurisdictionId);
 
-      // Apply preset defaults and clear any previous overrides. Toggles are
-      // document metadata now; the device pref is only deleted (legacy key).
-      const newToggles = {
-        parallelCitations: preset.parallelCitations,
-        pinpointStyle: preset.pinpointStyle,
-        unreportedGate: preset.unreportedGate,
-        ibidSuppression: preset.ibidSuppression,
-        loaType: preset.loaType,
-        ...(preset.parallelOrder ? { parallelOrder: preset.parallelOrder } : {}),
-        ...(preset.pinpointConnector ? { pinpointConnector: preset.pinpointConnector } : {}),
-      };
-      setCourtToggles(newToggles);
+      const newToggles = getPresetToggles(jurisdictionId) as Record<string, string>;
+      setCourtToggles(newToggles as typeof courtToggles);
+      setCourtProfile(profile);
+      setShowProfileReview(false);
       await store.setCourtToggles(newToggles);
       setDevicePref("courtToggles", undefined);
       // STD-022: the jurisdiction id is synced with its toggle record.
@@ -964,11 +1013,17 @@ export default function Settings(): JSX.Element {
   ) => {
     const updated = { ...courtToggles, [key]: value };
     setCourtToggles(updated);
+    // COURT-106: record which values the user changed for this document.
+    const nextProfile = courtProfile
+      ? recordOverride(courtProfile, String(key), String(value))
+      : undefined;
+    if (nextProfile) setCourtProfile(nextProfile);
     void (async () => {
       try {
         // Persist into the DOCUMENT so the override applies on every device,
         // and delete the legacy device-level copy.
         const store = await getSharedStore();
+        if (nextProfile) await store.setCourtProfile(nextProfile, { persist: false });
         await store.setCourtToggles(updated);
         setDevicePref("courtToggles", undefined);
         void pushSyncedSettings({ courtToggles: { ...updated } });
@@ -976,7 +1031,46 @@ export default function Settings(): JSX.Element {
         setError(err instanceof Error ? err.message : "Failed to save court toggles");
       }
     })();
-  }, [courtToggles, pushSyncedSettings]);
+  }, [courtToggles, courtProfile, pushSyncedSettings]);
+
+  // COURT-106 / DECISION-043 item 4: apply the rows the user ticked in the
+  // "Update court profile" prompt. Nothing changes without this consent.
+  const handleProfileUpdate = useCallback(async (acceptedKeys: string[]) => {
+    if (!courtJurisdiction) return;
+    try {
+      const store = await getSharedStore();
+      const hadExistingCitations = store.getAll().length > 0;
+      const result = applyProfileUpdate(courtToggles, courtProfile, courtJurisdiction, acceptedKeys);
+      await store.setCourtProfile(result.profile, { persist: false });
+      await store.setCourtToggles(result.toggles);
+      setCourtToggles(result.toggles as typeof courtToggles);
+      setCourtProfile(result.profile);
+      setShowProfileReview(false);
+      void pushSyncedSettings({ courtToggles: { ...result.toggles } });
+      setModeNotice(hadExistingCitations ? buildReformatNotice("Court profile updated.") : null);
+      triggerRefresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update the court profile");
+    }
+  }, [courtJurisdiction, courtToggles, courtProfile, pushSyncedSettings, triggerRefresh]);
+
+  // COURT-106: keep the document's values; the prompt stays hidden until
+  // the court profile changes again.
+  const handleProfileDecline = useCallback(async () => {
+    if (!courtJurisdiction || !courtProfile) {
+      setShowProfileReview(false);
+      return;
+    }
+    try {
+      const store = await getSharedStore();
+      const declined = declineProfileUpdate(courtProfile, courtJurisdiction);
+      await store.setCourtProfile(declined);
+      setCourtProfile(declined);
+      setShowProfileReview(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save the court profile");
+    }
+  }, [courtJurisdiction, courtProfile]);
 
   // Template defaults: device save plus account sync (BUG-007).
   const persistTemplatePrefs = useCallback((updated: TemplatePreferences) => {
@@ -1336,6 +1430,35 @@ export default function Settings(): JSX.Element {
               </select>
             </label>
 
+            {courtJurisdiction && <CourtExperimentalLabel jurisdiction={courtJurisdiction} />}
+
+            {courtJurisdiction &&
+              courtProfile &&
+              (isProfileUpdateAvailable(courtToggles, courtProfile, courtJurisdiction) || showProfileReview) && (
+                <CourtProfileUpdatePrompt
+                  key={`${courtJurisdiction}:${courtProfile?.presetVersion ?? ""}:${courtProfile?.frozenAt ?? ""}`}
+                  jurisdiction={courtJurisdiction}
+                  toggles={courtToggles as Record<string, string>}
+                  profile={courtProfile}
+                  onAccept={(keys) => void handleProfileUpdate(keys)}
+                  onDecline={() => void handleProfileDecline()}
+                />
+              )}
+            {courtJurisdiction &&
+              courtProfile &&
+              !showProfileReview &&
+              !isProfileUpdateAvailable(courtToggles, courtProfile, courtJurisdiction) &&
+              diffCourtProfile(courtToggles as Record<string, string>, courtProfile, courtJurisdiction).length > 0 && (
+                <button
+                  type="button"
+                  className="library-btn"
+                  style={{ marginTop: 6, fontSize: 11 }}
+                  onClick={() => setShowProfileReview(true)}
+                >
+                  Compare with the current court profile
+                </button>
+              )}
+
             {courtJurisdiction && (
               <div style={{ marginTop: 8, padding: "8px 10px", background: "var(--colour-surface)", borderRadius: 4, border: "1px solid var(--colour-border)" }}>
                 <p style={{ fontSize: 11, fontWeight: 600, margin: "0 0 6px", color: "var(--colour-text-secondary)" }}>
@@ -1355,6 +1478,7 @@ export default function Settings(): JSX.Element {
                     <option value="mandatory">Mandatory</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="parallelCitations" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Parallel citation order
@@ -1368,6 +1492,7 @@ export default function Settings(): JSX.Element {
                     <option value="mnc-first">Medium neutral citation first</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="parallelOrder" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Pinpoint style
@@ -1382,6 +1507,7 @@ export default function Settings(): JSX.Element {
                     <option value="para-and-page">Paragraph and page</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="pinpointStyle" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Pinpoint connector
@@ -1395,6 +1521,7 @@ export default function Settings(): JSX.Element {
                     <option value="at">&ldquo;at&rdquo; before the pinpoint (1 at 6)</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="pinpointConnector" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Authorised-report hierarchy
@@ -1402,10 +1529,19 @@ export default function Settings(): JSX.Element {
                     type="text"
                     className="ic-input"
                     style={{ width: "100%", marginTop: 2 }}
-                    value={getCourtPreset(courtJurisdiction)?.authorisedReportHierarchy.join(" \u2192 ") ?? "MNC only"}
+                    value={
+                      courtToggles.authorisedReportHierarchy !== undefined
+                        ? courtToggles.authorisedReportHierarchy
+                            .split(",")
+                            .map((series) => series.trim())
+                            .filter((series) => series.length > 0)
+                            .join(" \u2192 ")
+                        : getCourtPreset(courtJurisdiction)?.authorisedReportHierarchy.join(" \u2192 ") ?? "MNC only"
+                    }
                     disabled
                   />
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="authorisedReportHierarchy" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Unreported-judgment gate
@@ -1419,6 +1555,7 @@ export default function Settings(): JSX.Element {
                     <option value="warn">Warn</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="unreportedGate" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 4 }}>
                   Ibid / (n X) suppression
@@ -1432,6 +1569,7 @@ export default function Settings(): JSX.Element {
                     <option value="on">On</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="ibidSuppression" profile={courtProfile} />
 
                 <label style={{ fontSize: 11, display: "block", marginBottom: 0 }}>
                   List of Authorities
@@ -1449,6 +1587,7 @@ export default function Settings(): JSX.Element {
                     <option value="three-part-tas">Three parts (Tas, legislation separate)</option>
                   </select>
                 </label>
+                <ToggleProvenanceNote jurisdiction={courtJurisdiction} toggleKey="loaType" profile={courtProfile} />
               </div>
             )}
           </>

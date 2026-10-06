@@ -334,6 +334,14 @@ export interface StoreMetadata {
    */
   courtToggles?: Record<string, string>;
   /**
+   * COURT-106 (schema v3): the court profile frozen into the document — which
+   * preset (and preset version) the toggle set came from, and which values
+   * the user changed. Present only for a court-mode document with a
+   * jurisdiction. Absent on every academic document (which is still written
+   * as schema v2).
+   */
+  courtProfile?: CourtProfileRecord;
+  /**
    * STD-022: NZLSG subsequent-reference style (NZLSG 3 r 2.3). Document
    * metadata so the same document renders identically on every device.
    * Absent means "general".
@@ -359,4 +367,40 @@ export interface CitationStoreData {
     mode: string;
   };
   citations: Citation[];
+}
+
+// ─── Court Profile (COURT-106, schema v3) ────────────────────────────────────
+
+/**
+ * COURT-106: the court profile frozen into a document.
+ *
+ * The full resolved toggle set lives in `StoreMetadata.courtToggles` (what
+ * the engine reads); this record says where it came from. Stored as a JSON
+ * root attribute and treated as an opaque bag: keys this build does not know
+ * are kept and written back unchanged.
+ *
+ * - `presetId` — the CourtJurisdiction the toggles were taken from.
+ * - `presetVersion` — the preset data version at selection or last update;
+ *   `"legacy"` when the profile was frozen from a document saved before
+ *   schema v3 (the values are what that document rendered with, not
+ *   necessarily any preset's).
+ * - `origin` — how the profile was set: chosen in Settings, frozen by the
+ *   v2 to v3 migration, or updated through the "Update court profile"
+ *   prompt (DECISION-043 item 4).
+ * - `overridden` — toggle keys the user changed for this document.
+ * - `overridesKnown` — false for a migrated profile: Obiter cannot tell a
+ *   user's change from an older preset value.
+ * - `declinedVersion` — the preset version whose update the user chose not
+ *   to apply; the prompt stays hidden until the preset changes again.
+ */
+export interface CourtProfileRecord {
+  presetId: string;
+  presetVersion: string;
+  origin: "selected" | "migrated" | "updated";
+  frozenAt: string;
+  overridden: string[];
+  overridesKnown?: boolean;
+  declinedVersion?: string;
+  /** Unknown keys written by a later build round-trip unchanged. */
+  [key: string]: unknown;
 }

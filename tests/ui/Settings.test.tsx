@@ -33,6 +33,9 @@ const mockStore = {
   setWritingMode: jest.fn(),
   setCourtJurisdiction: jest.fn(),
   setCourtToggles: jest.fn(),
+  // COURT-106: the frozen court profile accessors.
+  getCourtProfile: jest.fn(),
+  setCourtProfile: jest.fn(),
 };
 jest.mock("../../src/store/singleton", () => ({
   getSharedStore: (): Promise<unknown> => Promise.resolve(mockStore),
@@ -172,6 +175,8 @@ beforeEach(() => {
   mockStore.setWritingMode.mockResolvedValue(undefined);
   mockStore.setCourtJurisdiction.mockResolvedValue(undefined);
   mockStore.setCourtToggles.mockResolvedValue(undefined);
+  mockStore.getCourtProfile.mockReturnValue(undefined);
+  mockStore.setCourtProfile.mockResolvedValue(undefined);
 });
 
 async function renderSettings(): Promise<void> {
@@ -272,6 +277,41 @@ describe("Settings — legacy device toggles adopted into the document store", (
         pinpointStyle: "para-only",
       });
     });
+    expect(localStorage.getItem("obiter-device.courtToggles")).toBeNull();
+  });
+
+  test("COURT-106: a court left without a frozen profile is frozen at what it renders with, not the preset", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("HCA");
+    localStorage.setItem("obiter-device.courtToggles", JSON.stringify({ ibidSuppression: "on" }));
+    await renderSettings();
+
+    fireEvent.change(screen.getByLabelText("Writing mode"), { target: { value: "court" } });
+
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenCalledWith({
+        ibidSuppression: "on",
+        parallelCitations: "off",
+        parallelOrder: "report-first",
+        pinpointStyle: "page-only",
+        pinpointConnector: "aglc",
+        authorisedReportHierarchy: "CLR",
+        unreportedGate: "off",
+        loaType: "off",
+      })
+    );
+    expect(mockStore.setCourtProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ presetId: "HCA", origin: "migrated", overridesKnown: false }),
+      { persist: false }
+    );
+    // The panel shows the frozen value, not the HCA preset's para-and-page.
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByLabelText(/Pinpoint style/)
+          .filter((el): el is HTMLSelectElement => el instanceof HTMLSelectElement)
+          .map((el) => el.value)
+      ).toEqual(["page-only"])
+    );
     expect(localStorage.getItem("obiter-device.courtToggles")).toBeNull();
   });
 

@@ -19,6 +19,13 @@
  * practiceDirections.ts (A5-CM-1); they are court-mode practice-direction
  * guidance, not AGLC citation rules.
  *
+ * COURT-106: typed provenance for every value below (source ids, clause,
+ * kind, check date) and each preset's data version live in provenance.ts;
+ * the comments here are background. Changing a value here means updating
+ * its provenance and bumping that preset's version there, so existing
+ * documents are offered the change (DECISION-043 item 4). A test fails if a
+ * preset lacks provenance for any toggle.
+ *
  * Sources (verified against primary court sources 2026-07-21):
  *   - Federal Court GPN-AUTH (reissued 7 May 2025)
  *   - HCA PD 2 of 2024

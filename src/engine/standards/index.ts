@@ -193,6 +193,9 @@ export function buildDocumentConfig(state: DocumentStandardState): CitationConfi
     return base;
   }
   let toggles: CourtToggleRecord | undefined = courtToggles;
+  // COURT-106: a document with a frozen court profile always carries the
+  // hierarchy in its toggles, so the live preset is read only for a record
+  // built outside the store (tests, a partial store) that lacks it.
   if (courtJurisdiction && toggles?.authorisedReportHierarchy === undefined) {
     const preset = getCourtPreset(courtJurisdiction);
     if (preset && preset.authorisedReportHierarchy.length > 0) {

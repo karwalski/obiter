@@ -11,6 +11,7 @@ import {
   clearMigrationsForTest,
   getRegisteredMigrations,
   registerMigration,
+  resetMigrationsForTest,
 } from "../../src/store/migrations";
 import type { CitationStoreData } from "../../src/types/citation";
 
@@ -25,10 +26,18 @@ beforeEach(() => {
   clearMigrationsForTest();
 });
 
+afterAll(() => {
+  resetMigrationsForTest();
+});
+
 describe("migrations registry (SAFE-008)", () => {
-  test("the current build writes schema v2 and has no registered migrations", () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(2);
-    expect(getRegisteredMigrations()).toEqual([]);
+  test("the current build understands schema v3 and registers v1 -> v2 -> v3 (COURT-106)", () => {
+    resetMigrationsForTest();
+    expect(CURRENT_SCHEMA_VERSION).toBe(3);
+    expect(getRegisteredMigrations().map((m) => [m.fromVersion, m.toVersion])).toEqual([
+      [1, 2],
+      [2, 3],
+    ]);
   });
 
   test("registerMigration rejects steps that do not advance exactly one version", () => {

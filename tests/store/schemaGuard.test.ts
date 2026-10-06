@@ -3,7 +3,8 @@
  *
  * Schema forward-compatibility guard tests (SAFE-008).
  *
- * A store part written by a FUTURE Obiter (version > 2) must be reported
+ * A store part written by a FUTURE Obiter (version > 3; v3 is current since
+ * COURT-106) must be reported
  * unreadable and quarantined — never half-parsed and then overwritten as v2
  * by the next persist. v1 and v2 parsing behaviour is unchanged.
  */
@@ -35,9 +36,9 @@ import {
 import { FakeDocState, installFakeWord, makeCitation, storeXmlWith } from "./fakeWordHarness";
 
 /** A plausible future-schema part: same root, higher version, unknown children. */
-const V3_XML =
+const FUTURE_XML =
   `<?xml version="1.0" encoding="UTF-8"?>` +
-  `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="3" aglcVersion="5">` +
+  `<obiter:citationStore xmlns:obiter="${OBITER_NAMESPACE}" version="4" aglcVersion="5">` +
   `<obiter:citation id="future-a" sourceType="case.reported" aglcVersion="5">` +
   `<obiter:field name="caseName">Future v Past</obiter:field>` +
   `<obiter:futureConcept kind="unknown-to-v2"/>` +
@@ -57,10 +58,10 @@ const V1_XML =
 // ─── Deserializer guard ─────────────────────────────────────────────────────
 
 describeIfDOMParser("deserializeStore newer-schema guard (SAFE-008)", () => {
-  test('version="3" throws StoreXmlError with reason "newer-schema"', () => {
+  test('version="4" throws StoreXmlError with reason "newer-schema"', () => {
     expect.assertions(3);
     try {
-      deserializeStore(V3_XML);
+      deserializeStore(FUTURE_XML);
     } catch (err) {
       expect(err).toBeInstanceOf(StoreXmlError);
       expect((err as StoreXmlError).reason).toBe("newer-schema");
@@ -97,10 +98,10 @@ describeIfDOMParser("deserializeStore newer-schema guard (SAFE-008)", () => {
 // ─── Store-level quarantine ─────────────────────────────────────────────────
 
 describeIfDOMParser("future-schema part quarantine (SAFE-008)", () => {
-  test('a v3 part is unreadable and quarantined, with errorReason "newer-schema" in diagnostics', async () => {
+  test('a v4 part is unreadable and quarantined, with errorReason "newer-schema" in diagnostics', async () => {
     const doc = new FakeDocState();
     installFakeWord(doc);
-    const futurePart = doc.addPart(V3_XML);
+    const futurePart = doc.addPart(FUTURE_XML);
 
     const store = new CitationStore();
     await store.initStore();
@@ -115,13 +116,13 @@ describeIfDOMParser("future-schema part quarantine (SAFE-008)", () => {
 
     // Quarantined in place — never deleted, never adopted for writes.
     expect(doc.obiterParts()).toEqual([futurePart]);
-    expect(futurePart.xml).toBe(V3_XML);
+    expect(futurePart.xml).toBe(FUTURE_XML);
   });
 
-  test("a v3 part is never persisted over: writes go to a new part, the v3 part survives byte-identical", async () => {
+  test("a v4 part is never persisted over: writes go to a new part, the v4 part survives byte-identical", async () => {
     const doc = new FakeDocState();
     installFakeWord(doc);
-    const futurePart = doc.addPart(V3_XML);
+    const futurePart = doc.addPart(FUTURE_XML);
 
     const store = new CitationStore();
     await store.initStore();
@@ -129,16 +130,16 @@ describeIfDOMParser("future-schema part quarantine (SAFE-008)", () => {
 
     const parts = doc.obiterParts();
     expect(parts).toContain(futurePart);
-    expect(futurePart.xml).toBe(V3_XML);
+    expect(futurePart.xml).toBe(FUTURE_XML);
     const otherParts = parts.filter((p) => p !== futurePart);
     expect(otherParts).toHaveLength(1);
     expect(deserializeStore(otherParts[0].xml).citations.map((c) => c.id)).toEqual(["mine"]);
   });
 
-  test("a v3 part alongside a v2 part: v2 is selected, v3 stays quarantined", async () => {
+  test("a v4 part alongside a v2 part: v2 is selected, v4 stays quarantined", async () => {
     const doc = new FakeDocState();
     installFakeWord(doc);
-    const futurePart = doc.addPart(V3_XML);
+    const futurePart = doc.addPart(FUTURE_XML);
     doc.addPart(storeXmlWith("a", "b"));
 
     const store = new CitationStore();

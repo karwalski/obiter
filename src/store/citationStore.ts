@@ -10,7 +10,7 @@
  * bugs on Word for Web where custom XML parts are silently stripped.
  */
 
-import { Citation, CitationStoreData, StoreMetadata } from "../types/citation";
+import { Citation, CitationStoreData, CourtProfileRecord, StoreMetadata } from "../types/citation";
 import {
   OBITER_NAMESPACE,
   StoreXmlError,
@@ -19,6 +19,8 @@ import {
   deserializeStore,
 } from "./xmlSerializer";
 import { addSnapshot } from "./backupStore";
+import { applyMigrations, schemaVersionToWrite, type MigrationContext } from "./migrations";
+import { getDevicePref } from "./devicePreferences";
 import type { SnapshotReason } from "./backupSerializer";
 import type { CitationStandardId } from "../engine/standards/types";
 import { APP_VERSION } from "../constants";
@@ -251,7 +253,10 @@ export class CitationStore {
       }
 
       this.xmlPartId = winner.id;
-      this.storeData = winnerData;
+      // COURT-106: bring the store to the current schema in memory (the v2
+      // to v3 step freezes a court document's toggles; output is unchanged).
+      // Nothing is written here: the next persist writes the result.
+      this.storeData = applyMigrations(winnerData, undefined, migrationContext());
 
       // Delete only readable losing duplicates — their citations are merged.
       // Unreadable parts stay quarantined in the document for recovery.
@@ -578,7 +583,13 @@ export class CitationStore {
    */
   async setCourtJurisdiction(jurisdictionId: string | undefined): Promise<void> {
     this.ensureInitialised();
-    this.storeData!.metadata.courtJurisdiction = jurisdictionId;
+    const meta = this.storeData!.metadata;
+    meta.courtJurisdiction = jurisdictionId;
+    // COURT-106: a profile describes one court; clearing or changing the
+    // court drops it (a profile staged for the new court is kept).
+    if (meta.courtProfile && meta.courtProfile.presetId !== jurisdictionId) {
+      meta.courtProfile = undefined;
+    }
     await this.persist();
   }
 
@@ -605,6 +616,36 @@ export class CitationStore {
     this.ensureInitialised();
     this.storeData!.metadata.courtToggles = toggles ? { ...toggles } : undefined;
     await this.persist();
+  }
+
+  /**
+   * COURT-106: Return the court profile frozen into the document (preset
+   * id and version, overridden toggles), or undefined when there is none.
+   */
+  getCourtProfile(): CourtProfileRecord | undefined {
+    this.ensureInitialised();
+    const profile = this.storeData!.metadata.courtProfile;
+    return profile ? { ...profile, overridden: [...profile.overridden] } : undefined;
+  }
+
+  /**
+   * COURT-106: Set the document's court profile.
+   *
+   * With `persist: false` the profile is only staged in memory, so a caller
+   * can write it with the toggles it describes in ONE store write (the
+   * following `setCourtToggles` persists both).
+   */
+  async setCourtProfile(
+    profile: CourtProfileRecord | undefined,
+    opts: { persist?: boolean } = {}
+  ): Promise<void> {
+    this.ensureInitialised();
+    this.storeData!.metadata.courtProfile = profile
+      ? { ...profile, overridden: [...profile.overridden] }
+      : undefined;
+    if (opts.persist !== false) {
+      await this.persist();
+    }
   }
 
   /**
@@ -742,7 +783,8 @@ export class CitationStore {
       }
     });
 
-    this.storeData = data;
+    // COURT-106: a snapshot taken before v3 is brought to the current schema.
+    this.storeData = applyMigrations(data, undefined, migrationContext());
     await this.persist({ allowDataLoss: allowEmpty });
     log.info("restoreFromSnapshot: library restored", {
       citations: data.citations.length,
@@ -870,7 +912,8 @@ export class CitationStore {
   private serializeCurrentStore(): string {
     return serializeStore(
       this.storeData!.citations,
-      this.storeData!.metadata.schemaVersion,
+      // COURT-106: v3 only when the store carries a court profile.
+      schemaVersionToWrite(this.storeData!.metadata),
       this.storeData!.metadata.aglcVersion,
       this.storeData!.metadata.standardId ?? DEFAULT_STANDARD_ID,
       this.storeData!.metadata.writingMode ?? "academic",
@@ -880,7 +923,8 @@ export class CitationStore {
       this.storeData!.metadata.ccModel,
       this.storeData!.metadata.courtToggles,
       this.storeData!.metadata.nzlsgStyle,
-      this.storeData!.metadata.genaiWording
+      this.storeData!.metadata.genaiWording,
+      this.storeData!.metadata.courtProfile
     );
   }
 
@@ -1003,6 +1047,21 @@ export class CitationStore {
       throw new Error("CitationStore not initialised. Call initStore() first.");
     }
   }
+}
+
+/**
+ * COURT-106: inputs the schema migrations need from outside the document —
+ * the legacy device-level court toggles, which a court document without
+ * stored toggles renders with on this device (string values only).
+ */
+function migrationContext(): MigrationContext {
+  const raw = getDevicePref("courtToggles");
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const legacy: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === "string") legacy[key] = value;
+  }
+  return Object.keys(legacy).length > 0 ? { legacyCourtToggles: legacy } : {};
 }
 
 /** Default diagnostics before initStore() has run. */

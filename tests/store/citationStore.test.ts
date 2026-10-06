@@ -437,10 +437,15 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
     await reopened.initStore();
     expect(reopened.getWritingMode()).toBe("court");
     expect(reopened.getCourtJurisdiction()).toBe("HCA");
-    expect(reopened.getCourtToggles()).toEqual({
+    // COURT-106: stored values survive; the reopened store freezes the
+    // remaining toggles at what the document renders with (no output change).
+    expect(reopened.getCourtToggles()).toMatchObject({
       ibidSuppression: "on",
       parallelCitations: "mandatory",
+      pinpointStyle: "page-only",
+      authorisedReportHierarchy: "CLR",
     });
+    expect(reopened.getCourtProfile()?.origin).toBe("migrated");
   });
 
   test("setCourtToggles(undefined) clears the stored overrides", async () => {
@@ -458,7 +463,7 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
     expect(reopened.getCourtToggles()).toBeUndefined();
   });
 
-  test("a v2 document persisted without courtToggles reloads with undefined (backward compat)", async () => {
+  test("a v2 document persisted without courtToggles is frozen at the values it renders with (COURT-106)", async () => {
     const doc = new FakeDocState();
     doc.addPart(serializeStore([makeCitation("a")], "2", "4", "aglc4", "court", "HCA"));
     installFakeWord(doc);
@@ -467,7 +472,18 @@ describeIfDOMParser("CitationStore court mode metadata", () => {
     await store.initStore();
     expect(store.getWritingMode()).toBe("court");
     expect(store.getCourtJurisdiction()).toBe("HCA");
-    expect(store.getCourtToggles()).toBeUndefined();
+    // No stored toggles rendered with the AGLC4 base config plus the preset
+    // hierarchy; that is what is frozen.
+    expect(store.getCourtToggles()).toEqual({
+      parallelCitations: "off",
+      parallelOrder: "report-first",
+      pinpointStyle: "page-only",
+      pinpointConnector: "aglc",
+      authorisedReportHierarchy: "CLR",
+      unreportedGate: "off",
+      ibidSuppression: "off",
+      loaType: "off",
+    });
   });
 
   test("getCourtToggles returns a copy — mutating it does not change the store", async () => {

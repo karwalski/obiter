@@ -37,6 +37,9 @@ const mockStore = {
   setWritingMode: jest.fn(),
   setCourtJurisdiction: jest.fn(),
   setCourtToggles: jest.fn(),
+  // COURT-106: the frozen court profile accessors.
+  getCourtProfile: jest.fn(),
+  setCourtProfile: jest.fn(),
   // STD-022 defines the NZLSG citation-style accessors on the document store
   // (general / commercial, stored in document metadata and mapped into the
   // config). Present on the mock so the control tests exercise the setter.
@@ -189,45 +192,61 @@ const SELECTABLE_STANDARDS = ["aglc4", "oscola5", "oscola4", "nzlsg3"] as const;
 const STANDARD_NOTICE =
   "Standard updated. Run Refresh All to reformat existing citations to the new standard.";
 
-/** The toggle record Settings writes for a preset (handleJurisdictionChange). */
+/**
+ * The toggle record Settings writes for a preset (handleJurisdictionChange).
+ * COURT-106: the full resolved set is frozen at selection, with the engine
+ * defaults (report-first, AGLC connector) and the report hierarchy written out.
+ */
 function presetToggles(id: keyof typeof COURT_PRESETS): Record<string, string> {
   const p = COURT_PRESETS[id];
   return {
     parallelCitations: p.parallelCitations,
+    parallelOrder: p.parallelOrder ?? "report-first",
     pinpointStyle: p.pinpointStyle,
+    pinpointConnector: p.pinpointConnector ?? "aglc",
+    authorisedReportHierarchy: p.authorisedReportHierarchy.join(","),
     unreportedGate: p.unreportedGate,
     ibidSuppression: p.ibidSuppression,
     loaType: p.loaType,
-    ...(p.parallelOrder ? { parallelOrder: p.parallelOrder } : {}),
-    ...(p.pinpointConnector ? { pinpointConnector: p.pinpointConnector } : {}),
   };
 }
 
 const HCA_TOGGLES = {
   parallelCitations: "mandatory",
+  parallelOrder: "report-first",
   pinpointStyle: "para-and-page",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "CLR",
   unreportedGate: "off",
   ibidSuppression: "on",
   loaType: "part-ab",
 };
 const NSWCA_TOGGLES = {
   parallelCitations: "preferred",
+  parallelOrder: "report-first",
   pinpointStyle: "para-only",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "NSWLR,CLR,ALR",
   unreportedGate: "warn",
   ibidSuppression: "on",
   loaType: "part-ab",
 };
 const WASC_TOGGLES = {
   parallelCitations: "mandatory",
+  parallelOrder: "mnc-first",
   pinpointStyle: "para-and-page",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "WAR,CLR,ALR",
   unreportedGate: "off",
   ibidSuppression: "on",
   loaType: "simple",
-  parallelOrder: "mnc-first",
 };
 const STATE_TRIBUNAL_TOGGLES = {
   parallelCitations: "off",
+  parallelOrder: "report-first",
   pinpointStyle: "para-only",
+  pinpointConnector: "aglc",
+  authorisedReportHierarchy: "",
   unreportedGate: "off",
   ibidSuppression: "on",
   loaType: "off",
@@ -249,6 +268,8 @@ beforeEach(() => {
   mockStore.setWritingMode.mockResolvedValue(undefined);
   mockStore.setCourtJurisdiction.mockResolvedValue(undefined);
   mockStore.setCourtToggles.mockResolvedValue(undefined);
+  mockStore.getCourtProfile.mockReturnValue(undefined);
+  mockStore.setCourtProfile.mockResolvedValue(undefined);
   mockStore.setNzlsgStyle.mockResolvedValue(undefined);
 });
 
@@ -479,14 +500,14 @@ describe("STD-011 — court presets write the toggle record the preset defines",
     expect(mockTriggerRefresh).toHaveBeenCalled();
   });
 
-  test("WASC is the only preset that carries parallelOrder, and it is mnc-first", async () => {
+  test("WASC freezes parallelOrder mnc-first; a preset without one freezes report-first (COURT-106)", async () => {
     await renderSettings();
     fireEvent.change(jurisdictionSelect(), { target: { value: "WASC" } });
     await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenCalled());
     expect(mockStore.setCourtToggles.mock.calls[0][0]).toHaveProperty("parallelOrder", "mnc-first");
 
     for (const other of ["HCA", "NSWCA", "STATE_TRIBUNAL"] as const) {
-      expect(presetToggles(other)).not.toHaveProperty("parallelOrder");
+      expect(presetToggles(other)).toHaveProperty("parallelOrder", "report-first");
     }
   });
 
@@ -636,7 +657,7 @@ describe("COURT-112 — Pinpoint connector control", () => {
     expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("at");
   });
 
-  test("a preset without the connector shows AGLC and does not write the key", async () => {
+  test("a preset without the connector shows AGLC and freezes it explicitly (COURT-106)", async () => {
     await renderSettings();
     fireEvent.change(jurisdictionSelect(), { target: { value: "HCA" } });
     await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenCalledWith(HCA_TOGGLES));
@@ -757,6 +778,158 @@ describe("STD-011 — axe on Settings under each standard", () => {
     const container = await renderSettings();
     const group = screen.getByText("Court toggles (override preset defaults)").parentElement as HTMLElement;
     expect(within(group).getByLabelText("Parallel citations")).toHaveValue("mandatory");
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+// ─── 6. COURT-106 / COURT-115: frozen profile, provenance, update prompt ────
+
+describe("COURT-106 / COURT-115 — court profile in Settings", () => {
+  const FCA_LEGACY_TOGGLES = { ...presetToggles("FCA"), pinpointConnector: "aglc" };
+  const migratedProfile = (id: string): Record<string, unknown> => ({
+    presetId: id,
+    presetVersion: "legacy",
+    origin: "migrated",
+    frozenAt: "2026-10-01T00:00:00.000Z",
+    overridden: [],
+    overridesKnown: false,
+  });
+
+  beforeEach(() => {
+    mockStore.getWritingMode.mockReturnValue("court");
+  });
+
+  test("selecting a court stages the profile (preset id and version) and writes it with the toggles", async () => {
+    await renderSettings();
+    fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
+    await waitFor(() => expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith(presetToggles("FCA")));
+    expect(mockStore.setCourtProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06", origin: "selected", overridden: [] }),
+      { persist: false }
+    );
+    // Staged before the writes, so no extra store write.
+    expect(mockStore.setCourtProfile.mock.invocationCallOrder[0]).toBeLessThan(
+      mockStore.setCourtToggles.mock.invocationCallOrder[0]
+    );
+  });
+
+  test("every court shows the experimental label with its instrument and check date", async () => {
+    await renderSettings();
+    fireEvent.change(jurisdictionSelect(), { target: { value: "FCA" } });
+    expect(await screen.findByTestId("court-experimental-label")).toHaveTextContent(
+      "Experimental: checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025) on 6 Oct 2026; not endorsed by the court."
+    );
+  });
+
+  test("each toggle shows inherited or overridden, its kind and source (FCA GPN-AUTH cl 2.6)", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue(presetToggles("FCA"));
+    mockStore.getCourtProfile.mockReturnValue({
+      presetId: "FCA",
+      presetVersion: "2026-10-06",
+      origin: "selected",
+      frozenAt: "2026-10-06T00:00:00.000Z",
+      overridden: [],
+    });
+    await renderSettings();
+
+    const connector = await screen.findByTestId("provenance-pinpointConnector");
+    expect(connector).toHaveTextContent("From the court profile. Court instrument:");
+    expect(connector).toHaveTextContent("cl 2.6");
+    expect(within(connector).getByRole("link")).toHaveAttribute(
+      "href",
+      "https://www.fedcourt.gov.au/law-and-practice/practice-documents/practice-notes/gpn-auth"
+    );
+    // Ibid: kept as is (DECISION-043 item 2), recorded as an Obiter default.
+    expect(screen.getByTestId("provenance-ibidSuppression")).toHaveTextContent("Obiter default");
+    expect(screen.getByLabelText("Ibid / (n X) suppression")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Ibid / (n X) suppression"), { target: { value: "off" } });
+    await waitFor(() =>
+      expect(screen.getByTestId("provenance-ibidSuppression")).toHaveTextContent("Changed for this document")
+    );
+    expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ overridden: ["ibidSuppression"] }),
+      { persist: false }
+    );
+    // No prompt: the only difference is the user's own choice.
+    expect(screen.queryByRole("group", { name: "Update court profile" })).toBeNull();
+  });
+
+  test("an existing document is offered the update with the change listed, and Apply writes it", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue(FCA_LEGACY_TOGGLES);
+    mockStore.getCourtProfile.mockReturnValue(migratedProfile("FCA"));
+    await renderSettings();
+
+    const prompt = await screen.findByRole("group", { name: "Update court profile" });
+    const row = within(prompt).getByLabelText(/Pinpoint connector: AGLC punctuation to .at. before the pinpoint/);
+    expect(row).toBeChecked();
+    // Loading never writes (DECISION-043 item 4: nothing changes without consent).
+    expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("aglc");
+
+    fireEvent.click(within(prompt).getByRole("button", { name: "Apply update" }));
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({ ...FCA_LEGACY_TOGGLES, pinpointConnector: "at" })
+    );
+    expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ presetId: "FCA", presetVersion: "2026-10-06", origin: "updated", overridden: [] }),
+      { persist: false }
+    );
+    expect(mockTriggerRefresh).toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Update court profile" })).toBeNull());
+    expect(screen.getByLabelText("Pinpoint connector")).toHaveValue("at");
+  });
+
+  test("unticking a row keeps that value and records it as the user's choice", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue({ ...FCA_LEGACY_TOGGLES, ibidSuppression: "off" });
+    mockStore.getCourtProfile.mockReturnValue(migratedProfile("FCA"));
+    await renderSettings();
+
+    const prompt = await screen.findByRole("group", { name: "Update court profile" });
+    fireEvent.click(within(prompt).getByLabelText(/Ibid \/ \(n X\) suppression: Off to On/));
+    fireEvent.click(within(prompt).getByRole("button", { name: "Apply update" }));
+    await waitFor(() =>
+      expect(mockStore.setCourtToggles).toHaveBeenLastCalledWith({
+        ...FCA_LEGACY_TOGGLES,
+        ibidSuppression: "off",
+        pinpointConnector: "at",
+      })
+    );
+    expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({ overridden: ["ibidSuppression"] }),
+      { persist: false }
+    );
+  });
+
+  test("Keep current settings records the decline, writes no toggles, and leaves a way back", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue(FCA_LEGACY_TOGGLES);
+    mockStore.getCourtProfile.mockReturnValue(migratedProfile("FCA"));
+    await renderSettings();
+
+    const prompt = await screen.findByRole("group", { name: "Update court profile" });
+    fireEvent.click(within(prompt).getByRole("button", { name: "Keep current settings" }));
+    await waitFor(() =>
+      expect(mockStore.setCourtProfile).toHaveBeenLastCalledWith(
+        expect.objectContaining({ declinedVersion: "2026-10-06" })
+      )
+    );
+    expect(mockStore.setCourtToggles).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole("group", { name: "Update court profile" })).toBeNull());
+
+    fireEvent.click(screen.getByRole("button", { name: "Compare with the current court profile" }));
+    expect(await screen.findByRole("group", { name: "Update court profile" })).toBeInTheDocument();
+  });
+
+  test("no violations with the update prompt and provenance notes open", async () => {
+    mockStore.getCourtJurisdiction.mockReturnValue("FCA");
+    mockStore.getCourtToggles.mockReturnValue(FCA_LEGACY_TOGGLES);
+    mockStore.getCourtProfile.mockReturnValue(migratedProfile("FCA"));
+    const container = await renderSettings();
+    await screen.findByRole("group", { name: "Update court profile" });
     expect(await axe(container)).toHaveNoViolations();
   });
 });
