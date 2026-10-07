@@ -3,7 +3,7 @@
  * Copyright (C) 2026. Licensed under GPLv3.
  */
 
-import type { ValidationIssue } from "./types/validation";
+import type { CitationOccurrence, ValidationIssue } from "./types/validation";
 import { getFieldAliases, readFieldWithAliases } from "./fieldAliases";
 import { Citation } from "../types/citation";
 import type { ParallelCitation, SourceType } from "../types/citation";
@@ -36,7 +36,7 @@ import { isParagraphOnlyPinpoint } from "./rules/v4/domestic/cases";
 import { hcaTranscriptNumber, isHcaTranscript } from "./rules/v4/domestic/cases-supplementary";
 
 // Re-export for consumers
-export type { ValidationIssue } from "./types/validation";
+export type { ValidationIssue, CitationOccurrence } from "./types/validation";
 
 /**
  * Aggregated validation result for an entire document.
@@ -166,6 +166,12 @@ export interface ValidateDocumentOptions {
   authorisedReportHierarchy?: readonly string[];
   /** Built-in heading entries for the AGLC r 1.12.2 heading check. */
   headings?: HeadingEntry[];
+  /**
+   * COURT-110 (N2): where each citation is cited and with what pinpoint,
+   * from the document scan. Pinpoint checks read these first and fall back
+   * to the record's pinpoint only for a citation with no occurrence pinpoint.
+   */
+  occurrences?: readonly CitationOccurrence[];
 }
 
 /**
@@ -339,11 +345,16 @@ function validateDocumentWithOptions(
     // COURT-110: AGLC4 r 2.2.5 — a report pinpoint must include a page.
     if (isAglc) {
       allIssues.push(
-        ...checkReportParagraphPinpoints(citations, "2.2.5", {
-          courtJurisdiction: options.courtJurisdiction,
-          reportedCaseMnc: options.reportedCaseMnc,
-          courtRuleNumber: pdSource,
-        })
+        ...checkReportParagraphPinpoints(
+          citations,
+          "2.2.5",
+          {
+            courtJurisdiction: options.courtJurisdiction,
+            reportedCaseMnc: options.reportedCaseMnc,
+            courtRuleNumber: pdSource,
+          },
+          options.occurrences
+        )
       );
     }
 
@@ -1554,6 +1565,13 @@ export function checkTranscriptRules(citation: Citation): ValidationIssue[] {
   return issues;
 }
 
+/** "footnote 3", "footnotes 1 and 2", "footnotes 1, 2 and 5". */
+function footnoteList(numbers: readonly number[]): string {
+  if (numbers.length === 1) return `footnote ${numbers[0]}`;
+  const head = numbers.slice(0, -1).join(", ");
+  return `footnotes ${head} and ${numbers[numbers.length - 1]}`;
+}
+
 /**
  * Court mode (AGLC-based profile): warns when a reported-case citation has a
  * paragraph pinpoint but no pinpoint page (COURT-110).
@@ -1564,7 +1582,13 @@ export function checkTranscriptRules(citation: Citation): ValidationIssue[] {
  * cl 5.5 (1 Dec 2025, register VIC-1) gives the form `394, 410 [60]`.
  * Paragraph-only pinpoints are sufficient for medium neutral citations
  * (NSW SC Gen 20; Qld SC PD 1 of 2024), so case.unreported.mnc is not
- * checked. Only the citation's stored pinpoint is examined.
+ * checked.
+ *
+ * N2 (live test of v1.17.9): the pinpoints checked are the ones in the
+ * footnotes. Each occurrence's pinpoint (from its control title, passed in
+ * `occurrences`) is evaluated; the record's `data.pinpoint` is read only for
+ * a citation with no occurrence pinpoint. One issue per citation, naming the
+ * footnotes where the pinpoint has no page.
  */
 export function checkReportParagraphPinpoints(
   citations: Citation[],
@@ -1574,17 +1598,44 @@ export function checkReportParagraphPinpoints(
     reportedCaseMnc?: "include" | "omit";
     /** The practice-direction label court issues carry. */
     courtRuleNumber?: string;
-  }
+  },
+  occurrences?: readonly CitationOccurrence[]
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const evidence = profile?.courtJurisdiction
     ? getParagraphPinpointEvidence(profile.courtJurisdiction)
     : undefined;
+
+  // Occurrence pinpoints by citation id, in footnote order.
+  const pinpointsById = new Map<string, Array<{ footnoteIndex: number; pinpoint: string }>>();
+  for (const occurrence of occurrences ?? []) {
+    const text = toText(occurrence.pinpoint);
+    if (text === "") continue;
+    const list = pinpointsById.get(occurrence.citationId) ?? [];
+    list.push({ footnoteIndex: occurrence.footnoteIndex, pinpoint: text });
+    pinpointsById.set(occurrence.citationId, list);
+  }
+
   for (const citation of citations) {
     if (citation.sourceType !== "case.reported") continue;
-    const raw = citation.data.pinpoint;
-    const pinpoint = normaliseStringPinpoint(typeof raw === "number" ? toText(raw) : raw);
-    if (!isParagraphOnlyPinpoint(pinpoint)) continue;
+    const found = pinpointsById.get(citation.id);
+    let footnotes: number[] = [];
+    if (found && found.length > 0) {
+      footnotes = Array.from(
+        new Set(
+          found
+            .filter((o) => isParagraphOnlyPinpoint(normaliseStringPinpoint(o.pinpoint)))
+            .map((o) => o.footnoteIndex)
+        )
+      ).sort((a, b) => a - b);
+      if (footnotes.length === 0) continue;
+    } else {
+      const raw = citation.data.pinpoint;
+      const pinpoint = normaliseStringPinpoint(typeof raw === "number" ? toText(raw) : raw);
+      if (!isParagraphOnlyPinpoint(pinpoint)) continue;
+    }
+    const where = footnotes.length > 0 ? ` (${footnoteList(footnotes)})` : "";
+    const located = footnotes.length > 0 ? { footnoteIndex: footnotes[0] } : {};
     // B3 / COURT-110: a profile whose instrument shows a paragraph-only
     // pinpoint for its form (FCA GPN-AUTH cl 2.6 "at [29]", with the MNC
     // given, cl 2.4) gets an information note instead of the AGLC4 warning.
@@ -1592,21 +1643,23 @@ export function checkReportParagraphPinpoints(
     if (evidence && profile?.reportedCaseMnc !== "omit" && hasRecordedMnc(citation)) {
       issues.push({
         ruleNumber: profile?.courtRuleNumber ?? evidence.instrument,
-        message: `Case '${getCitationLabel(citation)}': the pinpoint gives a paragraph without a page. The ${evidence.profileName} profile accepts this: ${evidence.instrument} ${evidence.clause} gives ${evidence.example}. AGLC4 r 2.2.5 would add the page, eg 410 [60]`,
+        message: `Case '${getCitationLabel(citation)}'${where}: the pinpoint gives a paragraph without a page. The ${evidence.profileName} profile accepts this: ${evidence.instrument} ${evidence.clause} gives ${evidence.example}. AGLC4 r 2.2.5 would add the page, eg 410 [60]`,
         severity: "info",
         offset: 0,
         length: 0,
         citationId: citation.id,
+        ...located,
       });
       continue;
     }
     issues.push({
       ruleNumber,
-      message: `Case '${getCitationLabel(citation)}': the paragraph pinpoint has no page. Add the page before the paragraph, eg 410 [60]. AGLC4 r 2.2.5 requires a page in every pinpoint to a report`,
+      message: `Case '${getCitationLabel(citation)}'${where}: the paragraph pinpoint has no page. Add the page before the paragraph, eg 410 [60]. AGLC4 r 2.2.5 requires a page in every pinpoint to a report`,
       severity: "warning",
       offset: 0,
       length: 0,
       citationId: citation.id,
+      ...located,
     });
   }
   return issues;

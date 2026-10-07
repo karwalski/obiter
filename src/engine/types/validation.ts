@@ -20,3 +20,18 @@ export interface ValidationIssue {
   /** Citation ID for issues tied to a specific citation. */
   citationId?: string;
 }
+
+/**
+ * COURT-110 (live test of v1.17.9, N2): one place a citation is cited in the
+ * document, as the footnote scan reads it. The per-footnote pinpoint lives
+ * in the occurrence's content-control title (`Citation:<pref>:<pinpoint>`),
+ * not in the citation record, so pinpoint checks read it from here.
+ */
+export interface CitationOccurrence {
+  /** The citation id (the occurrence control's tag). */
+  citationId: string;
+  /** 1-based footnote number. */
+  footnoteIndex: number;
+  /** The occurrence pinpoint as stored in the control title, if any. */
+  pinpoint?: string;
+}

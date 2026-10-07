@@ -12,6 +12,8 @@
  *   (STD-019: the standard selects the check set; court checks for parallel
  *   citations, ibid suppression and the unreported gate use the same court
  *   config; COURT-107 and COURT-111 options pass through).
+ * - Pinpoint checks read the occurrence pinpoints the scan found
+ *   (`occurrences`, COURT-110 / N2).
  * - The OSCOLA or NZLSG rule checks for those standards.
  * - The document accessibility check (ATAG Part B.3 / A11Y-028): heading
  *   order from the live scan; the language is set by the AGLC4 template and
@@ -22,6 +24,7 @@ import {
   validateDocument,
   checkOscolaRules,
   checkNzlsgRules,
+  type CitationOccurrence,
   type ValidationIssue,
   type ValidationResult,
 } from "./validator";
@@ -42,6 +45,12 @@ export interface DocumentValidationInput {
   courtJurisdiction?: string;
   /** The document's court toggles (or the legacy device preference). */
   courtToggles?: Record<string, string>;
+  /**
+   * COURT-110 (N2): each citation occurrence with its footnote pinpoint, from
+   * the same scan as `footnoteTexts`. Pinpoint checks read these, not the
+   * record's pinpoint.
+   */
+  occurrences?: readonly CitationOccurrence[];
 }
 
 function push(result: ValidationResult, issue: ValidationIssue): void {
@@ -79,6 +88,7 @@ export function runDocumentValidation(input: DocumentValidationInput): Validatio
     unreportedGateMode: config.unreportedGateMode,
     // COURT-111: the frozen report hierarchy drives an information prompt.
     authorisedReportHierarchy: config.authorisedReportHierarchy,
+    ...(input.occurrences ? { occurrences: input.occurrences } : {}),
   });
 
   if (standardId.startsWith("oscola")) {

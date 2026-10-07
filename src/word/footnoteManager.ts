@@ -34,6 +34,7 @@
 
 import { FormattedRun } from "../types/formattedRun";
 import type { Pinpoint } from "../types/citation";
+import type { CitationOccurrence } from "../engine/types/validation";
 import {
   pinpointFromTitleString,
   pinpointToTitleString,
@@ -863,6 +864,34 @@ export async function getAllCitationFootnotes(): Promise<CitationFootnoteEntry[]
   });
 
   return results;
+}
+
+/**
+ * COURT-110 (live test of v1.17.9, N2): the citation occurrences in already
+ * loaded footnote content controls (`items/tag,items/title`), one list per
+ * footnote in document order. Pure: the caller batches the loads (one sync
+ * for every footnote, never one per footnote) and passes the items here.
+ * Same reading as {@link getAllCitationFootnotes}: internal `obiter-` tags
+ * are skipped and the pinpoint comes from the occurrence title.
+ */
+export function citationOccurrencesFromControls(
+  perFootnote: ReadonlyArray<ReadonlyArray<{ tag?: unknown; title?: unknown }>>
+): CitationOccurrence[] {
+  const occurrences: CitationOccurrence[] = [];
+  perFootnote.forEach((controls, i) => {
+    for (const cc of controls) {
+      const tag = typeof cc.tag === "string" ? cc.tag : "";
+      if (tag === "" || tag.startsWith("obiter-")) continue;
+      const title = typeof cc.title === "string" ? cc.title : undefined;
+      const { pinpoint } = parseOccurrenceTitle(title);
+      occurrences.push({
+        citationId: tag,
+        footnoteIndex: i + 1,
+        ...(pinpoint ? { pinpoint } : {}),
+      });
+    }
+  });
+  return occurrences;
 }
 
 // ─── Footnote Lock (freeze / unfreeze) ──────────────────────────────────────

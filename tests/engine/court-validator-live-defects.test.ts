@@ -21,7 +21,9 @@ import type { CourtJurisdiction } from "../../src/engine/court/presets";
 import {
   checkParallelCitationEnforcement,
   checkReportParagraphPinpoints,
+  type CitationOccurrence,
 } from "../../src/engine/validator";
+import { citationOccurrencesFromControls } from "../../src/word/footnoteManager";
 import { runDocumentValidation } from "../../src/engine/documentValidation";
 import type { Citation } from "../../src/types/citation";
 
@@ -142,5 +144,114 @@ describe("B3 / COURT-110: paragraph-only pinpoint under a profile with instrumen
     expect(nsw.warnings.some((i) => i.message.includes("paragraph pinpoint has no page"))).toBe(
       true
     );
+  });
+});
+
+describe("N2 / COURT-110: the pinpoints checked are the ones in the footnotes", () => {
+  // Live case (Word for the web, v1.17.9): the record held "45" while the
+  // two footnotes held "[45]" and "[50]".
+  const live = (): Citation => kozarov({ pinpoint: "45" });
+  const occurrences: CitationOccurrence[] = [
+    { citationId: "kozarov", footnoteIndex: 1, pinpoint: "[45]" },
+    { citationId: "kozarov", footnoteIndex: 2, pinpoint: "[50]" },
+  ];
+
+  test("FCA: one information note, naming both footnotes", () => {
+    const issues = checkReportParagraphPinpoints(
+      [live()],
+      "2.2.5",
+      { courtJurisdiction: "FCA", courtRuleNumber: "FCA GPN-AUTH (7 May 2025)" },
+      occurrences
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("info");
+    expect(issues[0].message).toContain("Federal Court profile accepts this");
+    expect(issues[0].message).toContain("(footnotes 1 and 2)");
+    expect(issues[0].footnoteIndex).toBe(1);
+  });
+
+  test("AGLC4 (no profile evidence): one warning naming footnotes 1 and 2", () => {
+    const issues = checkReportParagraphPinpoints([live()], "2.2.5", undefined, occurrences);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].severity).toBe("warning");
+    expect(issues[0].ruleNumber).toBe("2.2.5");
+    expect(issues[0].message).toContain("(footnotes 1 and 2)");
+    expect(issues[0].message).toContain("AGLC4 r 2.2.5 requires a page");
+    expect(issues[0].message).not.toContain("!");
+  });
+
+  test("a stale paragraph-only record is not flagged when the footnotes give a page", () => {
+    const issues = checkReportParagraphPinpoints(
+      [kozarov({ pinpoint: "[45]" })],
+      "2.2.5",
+      undefined,
+      [{ citationId: "kozarov", footnoteIndex: 3, pinpoint: "410 [45]" }]
+    );
+    expect(issues).toEqual([]);
+  });
+
+  test("only the footnotes with a paragraph-only pinpoint are named", () => {
+    const issues = checkReportParagraphPinpoints([live()], "2.2.5", undefined, [
+      { citationId: "kozarov", footnoteIndex: 1, pinpoint: "120 [45]" },
+      { citationId: "kozarov", footnoteIndex: 4, pinpoint: "[50]" },
+      { citationId: "kozarov", footnoteIndex: 6 },
+    ]);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain("(footnote 4)");
+    expect(issues[0].footnoteIndex).toBe(4);
+  });
+
+  test("with no occurrence pinpoint, the record's pinpoint is read (no footnote named)", () => {
+    const issues = checkReportParagraphPinpoints(
+      [kozarov({ pinpoint: "[45]" })],
+      "2.2.5",
+      undefined,
+      [{ citationId: "kozarov", footnoteIndex: 1 }]
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).not.toContain("footnote");
+    expect(issues[0].footnoteIndex).toBeUndefined();
+  });
+
+  test("document validation passes the occurrences through", () => {
+    const run = (id: CourtJurisdiction) =>
+      runDocumentValidation({
+        footnoteTexts: [],
+        bodyText: "",
+        headingLevels: [],
+        citations: [live()],
+        standardId: "aglc4",
+        writingMode: "court",
+        courtJurisdiction: id,
+        courtToggles: getPresetToggles(id) as Record<string, string>,
+        occurrences,
+      });
+    const all = (r: ReturnType<typeof run>) => [...r.errors, ...r.warnings, ...r.info];
+    const fca = all(run("FCA")).filter((i) => i.message.includes("without a page"));
+    expect(fca).toHaveLength(1);
+    expect(fca[0].severity).toBe("info");
+    const nsw = all(run("NSWCA")).filter((i) => i.message.includes("pinpoint has no page"));
+    expect(nsw).toHaveLength(1);
+    expect(nsw[0].severity).toBe("warning");
+    expect(nsw[0].message).toContain("footnotes 1 and 2");
+  });
+});
+
+describe("N2: citationOccurrencesFromControls reads the occurrence titles", () => {
+  test("pinpoints per footnote, internal controls skipped", () => {
+    expect(
+      citationOccurrencesFromControls([
+        [
+          { tag: "obiter-fn", title: "Obiter Footnote" },
+          { tag: "kozarov", title: "Citation:auto:[45]" },
+        ],
+        [{ tag: "kozarov", title: "Citation:short:[50]" }],
+        [{ tag: "other", title: "Citation:auto" }],
+      ])
+    ).toEqual([
+      { citationId: "kozarov", footnoteIndex: 1, pinpoint: "[45]" },
+      { citationId: "kozarov", footnoteIndex: 2, pinpoint: "[50]" },
+      { citationId: "other", footnoteIndex: 3 },
+    ]);
   });
 });

@@ -26,11 +26,16 @@
  */
 
 import { toText } from "../engine/rules/v4/general/coerce";
+import type { CitationOccurrence } from "../engine/types/validation";
 import { OBITER_NAMESPACE } from "../store/xmlSerializer";
 import { BACKUP_NAMESPACE } from "../store/backupSerializer";
 import { isFeatureAvailable } from "./apiCompat";
 import { DocumentReadOnlyError, hostReportsReadOnly, rethrowWriteFailure } from "./documentAccess";
-import { LOCKED_PARENT_CC_TITLE, PARENT_CC_TAG } from "./footnoteManager";
+import {
+  citationOccurrencesFromControls,
+  LOCKED_PARENT_CC_TITLE,
+  PARENT_CC_TAG,
+} from "./footnoteManager";
 import { normaliseTrackingMode, type TrackingMode } from "./trackChanges";
 import { OBITER_PROPERTY_KEYS, RETIRED_PROPERTY_KEYS } from "./documentProperties";
 
@@ -90,6 +95,8 @@ export interface HandoverSnapshot {
   /** Number of Obiter backup parts (`urn:obiter:aglc:backup`). */
   backupParts?: number;
   controls: ManagedControlCounts;
+  /** Citation occurrences with their footnote pinpoints (COURT-110 / N2). */
+  occurrences?: CitationOccurrence[];
   comments?: number;
   pendingRevisions?: number;
   trackingMode: TrackingMode;
@@ -229,6 +236,8 @@ export async function readHandoverSnapshot(
     bodyText: toText(body.text),
     headingLevels: headingLevelsOf((paragraphs.items ?? []).map((p) => p.style)),
     controls: countManagedControls(allControls, isKnownCitation),
+    // COURT-110 (N2): the footnote pinpoints, from the controls read above.
+    occurrences: citationOccurrencesFromControls(noteControls.map((ccs) => ccs.items ?? [])),
     trackingMode: "unknown",
   };
 

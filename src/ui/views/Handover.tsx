@@ -102,6 +102,7 @@ export default function Handover(): JSX.Element {
         footnoteTexts: snapshot.footnoteTexts,
         bodyText: snapshot.bodyText,
         headingLevels: snapshot.headingLevels,
+        occurrences: snapshot.occurrences,
         citations: store.getAll(),
         standardId: store.getStandardId(),
         writingMode: store.getWritingMode(),

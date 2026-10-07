@@ -7,6 +7,7 @@ import { useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ValidationIssue, ValidationResult } from "../../engine/validator";
 import { runDocumentValidation } from "../../engine/documentValidation";
+import { citationOccurrencesFromControls } from "../../word/footnoteManager";
 import { getSharedStore } from "../../store/singleton";
 import { getDevicePref } from "../../store/devicePreferences";
 import { scanAndFormatInlineReferences, FormatResult } from "../../word/inlineFormatter";
@@ -175,7 +176,7 @@ export default function Validation(): JSX.Element {
 
     try {
       // Read footnote texts and body text from the document
-      const { footnoteTexts, bodyText, headingLevels } = await Word.run(async (context) => {
+      const { footnoteTexts, bodyText, headingLevels, occurrences } = await Word.run(async (context) => {
         const body = context.document.body;
         body.load("text");
         const footnotes = body.footnotes;
@@ -186,9 +187,14 @@ export default function Validation(): JSX.Element {
 
         const texts: string[] = [];
         const fnItems = footnotes.items ?? [];
-        for (const fn of fnItems) {
+        // Text and occurrence controls for every footnote in one sync
+        // (COURT-110 / N2: the per-footnote pinpoints live in the controls).
+        const fnControls = fnItems.map((fn) => {
           fn.body.load("text");
-        }
+          const ccs = fn.body.contentControls;
+          ccs.load("items/tag,items/title");
+          return ccs;
+        });
         await context.sync();
 
         for (const fn of fnItems) {
@@ -202,7 +208,12 @@ export default function Validation(): JSX.Element {
           const match = /^Heading (\d)$/.exec(para.style ?? "");
           if (match) levels.push(parseInt(match[1], 10));
         }
-        return { footnoteTexts: texts, bodyText: body.text, headingLevels: levels };
+        return {
+          footnoteTexts: texts,
+          bodyText: body.text,
+          headingLevels: levels,
+          occurrences: citationOccurrencesFromControls(fnControls.map((ccs) => ccs.items ?? [])),
+        };
       });
 
       // Load citations from store
@@ -224,6 +235,7 @@ export default function Validation(): JSX.Element {
         writingMode: store.getWritingMode(),
         courtJurisdiction: store.getCourtJurisdiction(),
         courtToggles,
+        occurrences,
       });
 
       setResult(validationResult);
