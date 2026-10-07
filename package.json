@@ -83,7 +83,7 @@
     "jsdom": "^29.0.2",
     "office-addin-cli": "^2.0.3",
     "office-addin-debugging": "^6.0.3",
-    "office-addin-dev-certs": "^2.0.3",
+    "office-addin-dev-certs": "^3.0.1",
     "office-addin-lint": "^3.0.3",
     "office-addin-manifest": "^2.0.3",
     "office-addin-prettier-config": "^2.0.1",
