@@ -2182,7 +2182,56 @@ section:nth-child(even) {
 
 .docs-table-scroll {
   overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   margin: var(--space-xl) 0;
+}
+
+/* Long paths, URLs and identifiers in inline code wrap instead of widening
+   the page on a phone. */
+li code,
+p code,
+.docs-content code {
+  overflow-wrap: anywhere;
+}
+
+/* A source note under a row heading, eg the instrument a court preset was
+   checked against. */
+.docs-table-note {
+  display: block;
+  margin-top: var(--space-xs);
+  font-weight: normal;
+  font-size: 0.85em;
+  color: var(--colour-text-secondary, inherit);
+}
+
+/* Narrow screens: each row becomes a labelled card instead of a wide row. */
+@media (max-width: 720px) {
+  .docs-table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .docs-table--stack,
+  .docs-table--stack tbody,
+  .docs-table--stack tr,
+  .docs-table--stack th,
+  .docs-table--stack td {
+    display: block;
+    width: 100%;
+  }
+  .docs-table--stack tr {
+    margin-bottom: var(--space-md);
+  }
+  .docs-table--stack td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    font-size: 0.85em;
+    margin-bottom: 2px;
+  }
 }
 
 .docs-table-scroll .docs-table {

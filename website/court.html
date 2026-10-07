@@ -155,7 +155,7 @@
           from the preset data in the add-in, as at 7 October 2026.
         </p>
         <div class="docs-table-scroll">
-          <table class="docs-table docs-table--wrap">
+          <table class="docs-table docs-table--wrap docs-table--stack">
             <caption class="sr-only">Court mode presets and their key conventions</caption>
             <thead>
               <tr>
@@ -164,213 +164,190 @@
                 <th scope="col">Pinpoint</th>
                 <th scope="col">Preferred reports</th>
                 <th scope="col">List of Authorities</th>
-                <th scope="col">Checked against</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">Federal</th>
+                <th scope="rowgroup" colspan="5">Federal</th>
               </tr>
               <tr>
-                <th scope="row">High Court of Australia</th>
-                <td>Mandatory, report first</td>
-                <td>Paragraph and page</td>
-                <td>CLR</td>
-                <td>Joint Book of Authorities, Parts A to E, with the legislation version</td>
-                <td>HCA Practice Direction No 2 of 2024 (Joint Book of Authorities) (20 Dec 2024); HCA Form 27A (2024)</td>
+                <th scope="row">High Court of Australia<span class="docs-table-note">Checked against HCA Practice Direction No 2 of 2024 (Joint Book of Authorities) (20 Dec 2024); HCA Form 27A (2024)</span></th>
+                <td data-label="Parallel citations">Mandatory, report first</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">CLR</td>
+                <td data-label="List of Authorities">Joint Book of Authorities, Parts A to E, with the legislation version</td>
               </tr>
               <tr>
-                <th scope="row">Federal Court of Australia</th>
-                <td>Mandatory, MNC first</td>
-                <td>Paragraph and page, with &ldquo;at&rdquo;</td>
-                <td>FCR, CLR, ALR</td>
-                <td>Single list (no Part A / Part B) in eBook sections, with the legislation version</td>
-                <td>FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025); FCA eBooks Practice Note (GPN-eBOOKS) (11 Jun 2026)</td>
+                <th scope="row">Federal Court of Australia<span class="docs-table-note">Checked against FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025); FCA eBooks Practice Note (GPN-eBOOKS) (11 Jun 2026)</span></th>
+                <td data-label="Parallel citations">Mandatory, MNC first</td>
+                <td data-label="Pinpoint">Paragraph and page, with &ldquo;at&rdquo;</td>
+                <td data-label="Preferred reports">FCR, CLR, ALR</td>
+                <td data-label="List of Authorities">Single list (no Part A / Part B) in eBook sections, with the legislation version</td>
               </tr>
               <tr>
-                <th scope="row">Federal Circuit and Family Court</th>
-                <td>Off: the report replaces the MNC</td>
-                <td>Paragraph and page</td>
-                <td>FLC, ALR</td>
-                <td>Two parts: expected to be read, not expected to be read</td>
-                <td>FCFCOA FAM-APPEALS Practice Direction (updated 10 Jun 2025)</td>
+                <th scope="row">Federal Circuit and Family Court<span class="docs-table-note">Checked against FCFCOA FAM-APPEALS Practice Direction (updated 10 Jun 2025)</span></th>
+                <td data-label="Parallel citations">Off: the report replaces the MNC</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">FLC, ALR</td>
+                <td data-label="List of Authorities">Two parts: expected to be read, not expected to be read</td>
               </tr>
             </tbody>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">New South Wales</th>
+                <th scope="rowgroup" colspan="5">New South Wales</th>
               </tr>
               <tr>
-                <th scope="row">NSW Court of Appeal</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>NSWLR, CLR, ALR</td>
-                <td>Four categories, with legislation version dates</td>
-                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Appeal Practice Note SC CA 1 (8 May 2023)</td>
+                <th scope="row">NSW Court of Appeal<span class="docs-table-note">Checked against NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Appeal Practice Note SC CA 1 (8 May 2023)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">NSWLR, CLR, ALR</td>
+                <td data-label="List of Authorities">Four categories, with legislation version dates</td>
               </tr>
               <tr>
-                <th scope="row">NSW Court of Criminal Appeal</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>NSWLR, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Criminal Appeal Practice Note SC CCA 1 (General) (22 Jul 2021)</td>
+                <th scope="row">NSW Court of Criminal Appeal<span class="docs-table-note">Checked against NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Criminal Appeal Practice Note SC CCA 1 (General) (22 Jul 2021)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">NSWLR, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
               <tr>
-                <th scope="row">NSW Supreme Court</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>NSWLR, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023)</td>
+                <th scope="row">NSW Supreme Court<span class="docs-table-note">Checked against NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">NSWLR, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
               <tr>
-                <th scope="row">NSW District / Local Court</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>NSWLR, CLR, ALR</td>
-                <td>None (no list generated)</td>
-                <td>No court instrument found</td>
+                <th scope="row">NSW District / Local Court<span class="docs-table-note">Checked against No court instrument found</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">NSWLR, CLR, ALR</td>
+                <td data-label="List of Authorities">None (no list generated)</td>
               </tr>
             </tbody>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">Victoria</th>
+                <th scope="rowgroup" colspan="5">Victoria</th>
               </tr>
               <tr>
-                <th scope="row">Vic Court of Appeal</th>
-                <td>Off: the report replaces the MNC</td>
-                <td>Paragraph and page</td>
-                <td>VR, CLR, ALR</td>
-                <td>Part A / Part B / Part C</td>
-                <td>Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025); Vic Court of Appeal Practice Note SC CA 3 (10 Mar 2026)</td>
+                <th scope="row">Vic Court of Appeal<span class="docs-table-note">Checked against Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025); Vic Court of Appeal Practice Note SC CA 3 (10 Mar 2026)</span></th>
+                <td data-label="Parallel citations">Off: the report replaces the MNC</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">VR, CLR, ALR</td>
+                <td data-label="List of Authorities">Part A / Part B / Part C</td>
               </tr>
               <tr>
-                <th scope="row">Vic Supreme Court</th>
-                <td>Off: the report replaces the MNC</td>
-                <td>Paragraph and page</td>
-                <td>VR, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025)</td>
+                <th scope="row">Vic Supreme Court<span class="docs-table-note">Checked against Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025)</span></th>
+                <td data-label="Parallel citations">Off: the report replaces the MNC</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">VR, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
               <tr>
-                <th scope="row">Vic County / Magistrates&rsquo; Court</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph and page</td>
-                <td>VR, CLR, ALR</td>
-                <td>None (no list generated)</td>
-                <td>No court instrument found</td>
+                <th scope="row">Vic County / Magistrates&rsquo; Court<span class="docs-table-note">Checked against No court instrument found</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">VR, CLR, ALR</td>
+                <td data-label="List of Authorities">None (no list generated)</td>
               </tr>
             </tbody>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">Queensland</th>
+                <th scope="rowgroup" colspan="5">Queensland</th>
               </tr>
               <tr>
-                <th scope="row">Qld Court of Appeal</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>Qd R, CLR, ALR</td>
-                <td>Part A / Part B</td>
-                <td>Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024); Qld SC Practice Direction 3 of 2013 (Court of Appeal) (2013)</td>
+                <th scope="row">Qld Court of Appeal<span class="docs-table-note">Checked against Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024); Qld SC Practice Direction 3 of 2013 (Court of Appeal) (2013)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">Qd R, CLR, ALR</td>
+                <td data-label="List of Authorities">Part A / Part B</td>
               </tr>
               <tr>
-                <th scope="row">Qld Supreme Court</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>Qd R, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024)</td>
+                <th scope="row">Qld Supreme Court<span class="docs-table-note">Checked against Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">Qd R, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
               <tr>
-                <th scope="row">Qld District / Magistrates Court</th>
-                <td>Preferred, report first</td>
-                <td>Paragraph only</td>
-                <td>Qd R, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority) (7 Jun 2024)</td>
+                <th scope="row">Qld District / Magistrates Court<span class="docs-table-note">Checked against Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority) (7 Jun 2024)</span></th>
+                <td data-label="Parallel citations">Preferred, report first</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">Qd R, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
             </tbody>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">Other States/Territories</th>
+                <th scope="rowgroup" colspan="5">Other States/Territories</th>
               </tr>
               <tr>
-                <th scope="row">WA Supreme Court</th>
-                <td>Mandatory, MNC first</td>
-                <td>Paragraph and page</td>
-                <td>WAR, CLR, ALR</td>
-                <td>Cases to be read marked with an asterisk, with passages; later references by case name</td>
-                <td>WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2) (updated 23 Sep 2026)</td>
+                <th scope="row">WA Supreme Court<span class="docs-table-note">Checked against WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2) (updated 23 Sep 2026)</span></th>
+                <td data-label="Parallel citations">Mandatory, MNC first</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">WAR, CLR, ALR</td>
+                <td data-label="List of Authorities">Cases to be read marked with an asterisk, with passages; later references by case name</td>
               </tr>
               <tr>
-                <th scope="row">SA Supreme Court</th>
-                <td>Mandatory, report first</td>
-                <td>Paragraph and page</td>
-                <td>SASR, CLR, ALR</td>
-                <td>Two parts: expected to be read, not expected to be read</td>
-                <td>SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</td>
+                <th scope="row">SA Supreme Court<span class="docs-table-note">Checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</span></th>
+                <td data-label="Parallel citations">Mandatory, report first</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">SASR, CLR, ALR</td>
+                <td data-label="List of Authorities">Two parts: expected to be read, not expected to be read</td>
               </tr>
               <tr>
-                <th scope="row">SA District / Magistrates Court (civil)</th>
-                <td>Mandatory, report first</td>
-                <td>Paragraph and page</td>
-                <td>SASR, CLR, ALR</td>
-                <td>Two parts: expected to be read, not expected to be read</td>
-                <td>SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</td>
+                <th scope="row">SA District / Magistrates Court (civil)<span class="docs-table-note">Checked against SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</span></th>
+                <td data-label="Parallel citations">Mandatory, report first</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">SASR, CLR, ALR</td>
+                <td data-label="List of Authorities">Two parts: expected to be read, not expected to be read</td>
               </tr>
               <tr>
-                <th scope="row">Tas Supreme Court</th>
-                <td>Preferred, MNC first</td>
-                <td>Paragraph and page, with &ldquo;at&rdquo;</td>
-                <td>Tas R, CLR, ALR</td>
-                <td>Three parts: to be cited, might be referred to, legislation</td>
-                <td>Tas SC Practice Direction 3 of 2014 (Citation of Judgments) (21 Feb 2014); Tas SC Practice Direction 3 of 2022 (Appeal Books, Lists of Authorities, Submissions) (24 Aug 2022)</td>
+                <th scope="row">Tas Supreme Court<span class="docs-table-note">Checked against Tas SC Practice Direction 3 of 2014 (Citation of Judgments) (21 Feb 2014); Tas SC Practice Direction 3 of 2022 (Appeal Books, Lists of Authorities, Submissions) (24 Aug 2022)</span></th>
+                <td data-label="Parallel citations">Preferred, MNC first</td>
+                <td data-label="Pinpoint">Paragraph and page, with &ldquo;at&rdquo;</td>
+                <td data-label="Preferred reports">Tas R, CLR, ALR</td>
+                <td data-label="List of Authorities">Three parts: to be cited, might be referred to, legislation</td>
               </tr>
               <tr>
-                <th scope="row">ACT Supreme Court</th>
-                <td>Off: the report replaces the MNC</td>
-                <td>Paragraph and page</td>
-                <td>ACTLR, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>ACT SC Practice Direction 2 of 2022 (Citation of Authority) (26 May 2022)</td>
+                <th scope="row">ACT Supreme Court<span class="docs-table-note">Checked against ACT SC Practice Direction 2 of 2022 (Citation of Authority) (26 May 2022)</span></th>
+                <td data-label="Parallel citations">Off: the report replaces the MNC</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">ACTLR, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
               <tr>
-                <th scope="row">NT Supreme Court</th>
-                <td>Off: the report replaces the MNC</td>
-                <td>Paragraph and page</td>
-                <td>NTLR, CLR, ALR</td>
-                <td>Simple list</td>
-                <td>NT SC Practice Direction 2 of 2007 (Citation of Authorities) (25 May 2007); NT SC Practice Direction 1 of 2025 (Lists of Authorities) (1 Jan 2025)</td>
+                <th scope="row">NT Supreme Court<span class="docs-table-note">Checked against NT SC Practice Direction 2 of 2007 (Citation of Authorities) (25 May 2007); NT SC Practice Direction 1 of 2025 (Lists of Authorities) (1 Jan 2025)</span></th>
+                <td data-label="Parallel citations">Off: the report replaces the MNC</td>
+                <td data-label="Pinpoint">Paragraph and page</td>
+                <td data-label="Preferred reports">NTLR, CLR, ALR</td>
+                <td data-label="List of Authorities">Simple list</td>
               </tr>
             </tbody>
             <tbody>
               <tr>
-                <th scope="rowgroup" colspan="6">Tribunals</th>
+                <th scope="rowgroup" colspan="5">Tribunals</th>
               </tr>
               <tr>
-                <th scope="row">Administrative Review Tribunal</th>
-                <td>Off</td>
-                <td>Paragraph only</td>
-                <td>None</td>
-                <td>None (no list generated)</td>
-                <td>No court instrument found</td>
+                <th scope="row">Administrative Review Tribunal<span class="docs-table-note">Checked against No court instrument found</span></th>
+                <td data-label="Parallel citations">Off</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">None</td>
+                <td data-label="List of Authorities">None (no list generated)</td>
               </tr>
               <tr>
-                <th scope="row">Fair Work Commission</th>
-                <td>Off</td>
-                <td>Paragraph only</td>
-                <td>None</td>
-                <td>None (no list generated)</td>
-                <td>No court instrument found</td>
+                <th scope="row">Fair Work Commission<span class="docs-table-note">Checked against No court instrument found</span></th>
+                <td data-label="Parallel citations">Off</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">None</td>
+                <td data-label="List of Authorities">None (no list generated)</td>
               </tr>
               <tr>
-                <th scope="row">State/Territory Tribunal (NCAT/VCAT/QCAT/SAT/other)</th>
-                <td>Off</td>
-                <td>Paragraph only</td>
-                <td>None</td>
-                <td>None (no list generated)</td>
-                <td>No court instrument found</td>
+                <th scope="row">State/Territory Tribunal (NCAT/VCAT/QCAT/SAT/other)<span class="docs-table-note">Checked against No court instrument found</span></th>
+                <td data-label="Parallel citations">Off</td>
+                <td data-label="Pinpoint">Paragraph only</td>
+                <td data-label="Preferred reports">None</td>
+                <td data-label="List of Authorities">None (no list generated)</td>
               </tr>
             </tbody>
           </table>
