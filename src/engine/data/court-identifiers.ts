@@ -113,8 +113,7 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     mncTo: 2021,
     endedOn: "2021-09-01",
     succeededBy: "FedCFamC1F",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
     // Continued as FCFCOA Division 1 (Appellate) on 1 Sep 2021 (FedCFamC1A).
@@ -126,8 +125,7 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     mncTo: 2021,
     endedOn: "2021-09-01",
     succeededBy: "FedCFamC1A",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
     // Legacy: the Federal Circuit Court of Australia operated until the
@@ -140,8 +138,7 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     mncTo: 2021,
     endedOn: "2021-09-01",
     succeededBy: "FedCFamC2G",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
 
   // Federal Circuit and Family Court of Australia (FCFCOA)
@@ -156,51 +153,43 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
   // FedCFamC2G (Div 2 General Federal Law).
   {
     code: "FedCFamC1A",
-    fullName:
-      "Federal Circuit and Family Court of Australia (Division 1, Appellate Jurisdiction)",
+    fullName: "Federal Circuit and Family Court of Australia (Division 1, Appellate Jurisdiction)",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 2021,
     commencedOn: "2021-09-01",
     succeeds: "FamCAFC",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
     code: "FedCFamC1F",
-    fullName:
-      "Federal Circuit and Family Court of Australia (Division 1, First Instance)",
+    fullName: "Federal Circuit and Family Court of Australia (Division 1, First Instance)",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 2021,
     commencedOn: "2021-09-01",
     succeeds: "FamCA",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
     code: "FedCFamC2F",
-    fullName:
-      "Federal Circuit and Family Court of Australia (Division 2, Family Law)",
+    fullName: "Federal Circuit and Family Court of Australia (Division 2, Family Law)",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 2021,
     commencedOn: "2021-09-01",
     succeeds: "FCCA",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
   {
     code: "FedCFamC2G",
-    fullName:
-      "Federal Circuit and Family Court of Australia (Division 2, General Federal Law)",
+    fullName: "Federal Circuit and Family Court of Australia (Division 2, General Federal Law)",
     jurisdiction: "CTH",
     level: "federal",
     mncFrom: 2021,
     commencedOn: "2021-09-01",
     succeeds: "FCCA",
-    enablingAct:
-      "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
+    enablingAct: "Federal Circuit and Family Court of Australia Act 2021 (Cth) No 12 of 2021",
   },
 
   // New South Wales
@@ -489,8 +478,7 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     level: "tribunal",
     mncFrom: 2021,
     commencedOn: "2021-11-05",
-    enablingAct:
-      "Tasmanian Civil and Administrative Tribunal Act 2020 (Tas) No 24 of 2020",
+    enablingAct: "Tasmanian Civil and Administrative Tribunal Act 2020 (Tas) No 24 of 2020",
   },
   {
     code: "ACAT",
@@ -823,8 +811,7 @@ export const COURT_IDENTIFIERS: CourtIdentifier[] = [
     jurisdiction: "VIC",
     level: "tribunal",
     endedOn: "2024-11-18",
-    enablingAct:
-      "Victims of Crime (Financial Assistance Scheme) Act 2022 (Vic) No 21 of 2022",
+    enablingAct: "Victims of Crime (Financial Assistance Scheme) Act 2022 (Vic) No 21 of 2022",
   },
 ];
 

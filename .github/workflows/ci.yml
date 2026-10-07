@@ -1,8 +1,7 @@
 # CI Pipeline for Obiter
 #
-# Required repository secrets:
-#   LIGHTSAIL_SSH_KEY  — SSH private key for the deploy host
-#   DEPLOY_KEY         — GitHub deploy key for pushing
+# Lint, typecheck, test and build only. No secrets are needed: deploys are
+# run locally with the npm run deploy:* scripts (see the note at the end).
 
 name: CI
 
@@ -101,115 +100,10 @@ jobs:
           path: dist/
           retention-days: 30
 
-  deploy-website:
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Check for changes
-        id: changes
-        run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-          if echo "$CHANGED_FILES" | grep -q '^website/'; then
-            echo "website=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "website=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED_FILES" | grep -q '^website/server/'; then
-            echo "server=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "server=false" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$CHANGED_FILES" | grep -q '^src/'; then
-            echo "addin=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "addin=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up SSH
-        if: steps.changes.outputs.website == 'true' || steps.changes.outputs.addin == 'true'
-        env:
-          LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Deploy website to Lightsail
-        if: steps.changes.outputs.website == 'true'
-        run: |
-          # Sync website files (excluding server/) to nginx html directory
-          rsync -avz --delete --exclude='server/' \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            website/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/
-
-      - name: Deploy server to Lightsail
-        if: steps.changes.outputs.server == 'true'
-        run: |
-          # Sync server files
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            website/server/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/obiter/server/
-
-          # Install dependencies on remote if package.json changed
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'cd /var/www/obiter/server && npm ci --production'
-
-          # Restart the Node.js backend server using screen
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'pkill -f "node.*index.js" 2>/dev/null; sleep 1; source /etc/obiter/env.sh && cd /var/www/obiter/server && screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"'
-
-      - name: Deploy add-in to Lightsail
-        if: steps.changes.outputs.addin == 'true'
-        run: |
-          # Download the dist artifact built in the build job
-          # (already available via needs: build)
-
-          # Build production add-in
-          npm ci
-          npm run build:prod
-
-          # Deploy built add-in files to /app/ on the server
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            dist/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
-
-          # TRUST-002: regenerate the nginx security-header snippet from
-          # config/csp.js (single source of truth) and push it. The include
-          # line inside the /app/ location block is a one-time manual step
-          # (docs/server-setup.md); pushing this file before that exists is
-          # harmless. /opt/bitnami/nginx/conf is root-owned: write via sudo tee.
-          node scripts/generate-nginx-headers.js
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo mkdir -p /opt/bitnami/nginx/conf/obiter'
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo tee /opt/bitnami/nginx/conf/obiter/app-security-headers.conf > /dev/null' \
-            < scripts/nginx/app-security-headers.conf
-
-          # Reload nginx only if the config test passes; abort the deploy
-          # otherwise (nginx keeps serving with the old config).
-          if ! ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo /opt/bitnami/nginx/sbin/nginx -t'; then
-            echo "ERROR: remote 'nginx -t' failed — nginx was NOT reloaded (old config still active)." >&2
-            exit 1
-          fi
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo /opt/bitnami/nginx/sbin/nginx -s reload'
-
-      - name: Clean up SSH key
-        if: always() && (steps.changes.outputs.website == 'true' || steps.changes.outputs.addin == 'true')
-        run: rm -f ~/.ssh/deploy_key
+  # Deploys are not done from CI. The former deploy-website job mirrored
+  # website/ into the nginx web root with --delete (which would remove the
+  # add-in at /app and /app/beta), pushed every src/ change straight to
+  # production without a version bump or beta step, and restarted the API
+  # with pkill + screen instead of systemd. Releases go through the
+  # reviewed local scripts instead: npm run deploy:app, deploy:beta,
+  # deploy:website and deploy:server, then npm run verify-release.

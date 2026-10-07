@@ -42,25 +42,24 @@ export interface NZNeutralCitationYearReference {
  * AGLC4 year and their real-world NZLII year. For these six the two years
  * coincide (B.5); the table is nonetheless recorded as reference metadata.
  */
-export const NZ_NEUTRAL_CITATION_YEARS: ReadonlyArray<NZNeutralCitationYearReference> =
-  [
-    { code: "NZSC", fullName: "Supreme Court of New Zealand", aglc4Year: 2005, nzliiYear: 2005 },
-    { code: "NZCA", fullName: "Court of Appeal of New Zealand", aglc4Year: 2007, nzliiYear: 2007 },
-    { code: "NZHC", fullName: "High Court of New Zealand", aglc4Year: 2012, nzliiYear: 2012 },
-    {
-      code: "NZEmpC",
-      fullName: "Employment Court of New Zealand",
-      aglc4Year: 2010,
-      nzliiYear: 2010,
-    },
-    {
-      code: "NZEnvC",
-      fullName: "Environment Court of New Zealand",
-      aglc4Year: 2010,
-      nzliiYear: 2010,
-    },
-    { code: "NZFC", fullName: "Family Court of New Zealand", aglc4Year: 2012, nzliiYear: 2012 },
-  ];
+export const NZ_NEUTRAL_CITATION_YEARS: ReadonlyArray<NZNeutralCitationYearReference> = [
+  { code: "NZSC", fullName: "Supreme Court of New Zealand", aglc4Year: 2005, nzliiYear: 2005 },
+  { code: "NZCA", fullName: "Court of Appeal of New Zealand", aglc4Year: 2007, nzliiYear: 2007 },
+  { code: "NZHC", fullName: "High Court of New Zealand", aglc4Year: 2012, nzliiYear: 2012 },
+  {
+    code: "NZEmpC",
+    fullName: "Employment Court of New Zealand",
+    aglc4Year: 2010,
+    nzliiYear: 2010,
+  },
+  {
+    code: "NZEnvC",
+    fullName: "Environment Court of New Zealand",
+    aglc4Year: 2010,
+    nzliiYear: 2010,
+  },
+  { code: "NZFC", fullName: "Family Court of New Zealand", aglc4Year: 2012, nzliiYear: 2012 },
+];
 
 /**
  * Look up the dual-year reference for a NZ court code (case-sensitive).
