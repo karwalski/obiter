@@ -296,3 +296,31 @@ describe("DuplicatesDialog (ENP-003)", () => {
     expect(await axe(empty.container)).toHaveNoViolations();
   });
 });
+
+describe("merge choices follow the current survivor (CI flake, 7 Oct 2026)", () => {
+  test("counts that arrive after opening change the survivor; Merge keeps the other record's fields", async () => {
+    const [cluster] = findDuplicateClusters([maboReported, maboMnc]) as DuplicatesDialogCluster[];
+    const onMerge = jest.fn(async () => 1);
+    const props = {
+      clusters: [cluster],
+      formatCitation,
+      onMerge,
+      onIgnore: jest.fn(async () => undefined),
+      onClose: jest.fn(),
+    };
+    const { rerender } = render(<DuplicatesDialog {...props} occurrenceCounts={{}} />);
+    // The footnote counts load later and make the MNC record the default survivor.
+    rerender(<DuplicatesDialog {...props} occurrenceCounts={{ mnc: 3 }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+    await waitFor(() => expect(onMerge).toHaveBeenCalledTimes(1));
+    // The dialog's onMerge takes the survivor first, then the removed ids.
+    const [survivorId, removedIds, data] = onMerge.mock.calls[0] as unknown as [
+      string,
+      string[],
+      SourceData,
+    ];
+    expect(survivorId).toBe("mnc");
+    expect(removedIds).toEqual(["rep"]);
+    expect(data).toMatchObject({ court: "HCA", caseNumber: "23", reportSeries: "CLR", volume: "175" });
+  });
+});

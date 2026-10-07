@@ -152,7 +152,15 @@ export default function DuplicatesDialog({
   const [remaining, setRemaining] = useState<DuplicatesDialogCluster[]>(clusters);
   const [index, setIndex] = useState(0);
   const [survivorId, setSurvivorId] = useState<string | null>(null);
-  const [selection, setSelection] = useState<Record<string, string>>({});
+  // The user's field choices, tagged with the cluster and survivor they were
+  // made for. The defaults are derived during render (below), not reset in
+  // an effect: an effect left a render where Merge used the previous
+  // survivor's choices (eg after the occurrence counts loaded and changed the
+  // default survivor), dropping the other record's fields from the merge.
+  const [picked, setPicked] = useState<{ key: string; choices: Record<string, string> }>({
+    key: "",
+    choices: {},
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -175,10 +183,16 @@ export default function DuplicatesDialog({
   );
 
   // A new cluster or survivor resets the field choices to their defaults.
-  useEffect(() => {
-    if (!survivor) return;
-    setSelection(initialSelection(survivor, columns));
-  }, [survivor, columns]);
+  const selectionKey = `${index}:${survivor?.id ?? ""}`;
+  const defaultSelection = useMemo(
+    () => (survivor ? initialSelection(survivor, columns) : {}),
+    [survivor, columns]
+  );
+  const selection = useMemo(
+    () =>
+      picked.key === selectionKey ? { ...defaultSelection, ...picked.choices } : defaultSelection,
+    [picked, selectionKey, defaultSelection]
+  );
 
   useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -327,7 +341,10 @@ export default function DuplicatesDialog({
             columns={columns}
             selection={selection}
             onSelect={(key, columnId) =>
-              setSelection((prev) => ({ ...prev, [key]: columnId }))
+              setPicked((prev) => ({
+                key: selectionKey,
+                choices: { ...(prev.key === selectionKey ? prev.choices : {}), [key]: columnId },
+              }))
             }
           />
 
