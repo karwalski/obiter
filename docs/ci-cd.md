@@ -1,6 +1,11 @@
 # CI/CD Pipeline
 
-This document describes how continuous integration, automated deployment, and manual deployment work for Obiter.
+How continuous integration, deployment and releases work for Obiter.
+
+CI checks every change but never deploys. Deploys use the reviewed scripts
+(`npm run deploy:beta`, `deploy:app`, `deploy:website`, `deploy:server`,
+`restart:server`), either run locally or through the manual Deploy workflow,
+which calls the same scripts.
 
 ## CI Pipeline (ci.yml)
 
@@ -8,85 +13,63 @@ The CI workflow runs on every push to `main` or `develop`, and on pull requests 
 
 ### Jobs
 
-1. **lint-and-typecheck** -- Runs the supply-chain gates (`npm audit` and `lockfile-lint`, see [Supply-Chain Gates](#supply-chain-gates)), then `npm run lint` and `npm run typecheck`.
+1. **lint-and-typecheck** -- Runs the supply-chain gates (`npm audit` and `lockfile-lint`, see [Supply-Chain Gates](#supply-chain-gates)), then `npm run lint`, `npm run typecheck` and `npm run check-version`.
 2. **test** -- Runs `npm test`. On failure, uploads coverage and JUnit results as artifacts (retained 14 days).
 3. **build** -- Runs `npm run build` and `npm run validate` (manifest validation). Uploads the `dist/` directory as an artifact (retained 30 days).
-4. **deploy-website** -- Runs only on push to `main`. Detects which files changed and deploys accordingly (see below).
 
-### Triggers
+CI needs no secrets.
 
-| Event | Branches | What runs |
-|---|---|---|
-| Push | `main`, `develop` | lint, test, build |
-| Pull request | `main`, `develop` | lint, test, build |
-| Push to `main` | `main` only | deploy-website (conditional) |
+### Why CI does not deploy
 
-## Auto-Deploy (push to main)
+Until 7 October 2026 a `deploy-website` job ran after a green build on every push to `main`. It was removed, because:
 
-When code is pushed to `main`, the `deploy-website` job compares the latest commit against `HEAD~1` to detect which paths changed. It then deploys only the affected components:
+- It mirrored `website/` into the nginx web root with `--delete`, excluding only `server/`. That would have deleted the add-in at `/app` and `/app/beta`.
+- It deployed every `src/` change straight to production, without a version bump, beta step or tag.
+- It restarted the API with `pkill` and `screen`, not systemd, which had caused outages.
 
-### Website static files (`website/` changes, excluding `server/`)
-
-- Synced via `rsync` to `/opt/bitnami/nginx/html/` on the Lightsail instance.
-- Excludes the `server/` subdirectory (deployed separately).
-
-### Server (`website/server/` changes)
-
-- Server source files synced to `/var/www/obiter/server/` on Lightsail.
-- Runs `npm ci --production` on the remote to install/update dependencies.
-- Restarts the Node.js backend by killing the existing process and launching a new `screen` session:
-  ```
-  pkill -f "node.*index.js"
-  screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"
-  ```
-
-### Add-in (`src/` changes)
-
-- Runs `npm run build:prod` in CI to produce the production add-in bundle.
-- Synced via `rsync` to `/opt/bitnami/nginx/html/app/` on Lightsail.
-
-### What does not trigger a deploy
-
-Changes only to `tests/`, `docs/`, configuration files, or other paths outside `website/` and `src/` will not trigger any deployment step.
+A lint failure had blocked the job since September, so it never ran in that state.
 
 ## Manual Deploy (deploy.yml)
 
-The manual workflow can be triggered from the GitHub Actions tab using **workflow_dispatch**. It provides three boolean inputs:
+Start it from the Actions tab (**Run workflow**) or with `gh workflow run deploy.yml`. It runs the same scripts as a local deploy:
 
-| Input | Default | Description |
+| Input | Default | What runs |
 |---|---|---|
-| `deploy_website` | `true` | Deploy website static files and server to Lightsail |
-| `deploy_addin` | `true` | Build the add-in with `build:prod` and deploy to `/app/` |
-| `restart_server` | `false` | Restart the Node.js backend without redeploying files |
+| `addin` | `none` | `beta`: the gates, `npm run build:prod` and `npm run deploy:beta`. `production`: the same, then `npm run deploy:app`, but only when the run is on the release tag `v<package.json version>`. |
+| `website` | `false` | `npm run check-seo`, then `npm run deploy:website` (copies the pages with `scp`; nothing is deleted). |
+| `server` | `false` | `npm run deploy:server` (API files and `npm ci --production`). |
+| `restart_server` | `false` | `npm run restart:server` (`systemctl restart obiter`, then a health check). |
 
-Use `restart_server` on its own when you need to bounce the server process without pushing new code (e.g., after changing environment variables on the instance).
+After an add-in deploy, the workflow checks that the slot serves the bundle it just built. Runs share a concurrency group, so two deploys never overlap.
 
-## Required GitHub Secrets
+```bash
+# Beta from main
+gh workflow run deploy.yml --ref main -f addin=beta
+# Production from the release tag
+gh workflow run deploy.yml --ref v1.17.10 -f addin=production
+# Website pages only
+gh workflow run deploy.yml --ref main -f website=true
+```
 
-Two repository secrets must be configured under **Settings > Secrets and variables > Actions**:
+The release itself (version bump, tag, GitHub Release) and `npm run verify-release` stay local steps; see the checklist below.
+
+## Required GitHub Secrets (Deploy workflow only)
+
+Set these under **Settings > Secrets and variables > Actions**. CI does not use them.
 
 | Secret | Purpose |
 |---|---|
-| `LIGHTSAIL_SSH_KEY` | SSH private key for `<user>@<server-host>`. Used by rsync and ssh commands to deploy to the Lightsail instance. |
-| `DEPLOY_KEY` | GitHub deploy key. Used for operations that require pushing back to the repository (e.g., tagging). |
+| `OBITER_SSH_HOST` | The server IP or hostname (the same value as `OBITER_SSH_HOST` in `scripts/deploy.env`). |
+| `OBITER_SSH_KEY` | The deploy private key: its full contents, including the BEGIN and END lines. The workflow writes it to a temporary file and deletes it at the end of the run. |
+| `OBITER_SSH_USER` | Optional; defaults to `bitnami`. |
 
-### Setting up LIGHTSAIL_SSH_KEY
+Use a dedicated key for the workflow, so it can be revoked without affecting a laptop:
 
-1. Generate an SSH key pair (or use the existing Lightsail key):
-   ```
-   ssh-keygen -t ed25519 -f lightsail_deploy -C "github-actions-deploy"
-   ```
-2. Add the **public** key to `~bitnami/.ssh/authorized_keys` on the Lightsail instance.
-3. Copy the entire **private** key contents (including the `-----BEGIN` and `-----END` lines) into the `LIGHTSAIL_SSH_KEY` secret in GitHub.
+1. `ssh-keygen -t ed25519 -f obiter_actions_deploy -C "github-actions-deploy"`
+2. Append `obiter_actions_deploy.pub` to `~bitnami/.ssh/authorized_keys` on the server.
+3. Paste the private key into the `OBITER_SSH_KEY` secret, then delete the local copy.
 
-### Setting up DEPLOY_KEY
-
-1. Generate a deploy key:
-   ```
-   ssh-keygen -t ed25519 -f deploy_key -C "obiter-deploy"
-   ```
-2. Add the **public** key as a deploy key in the repository under **Settings > Deploy keys** (enable write access if needed).
-3. Add the **private** key as the `DEPLOY_KEY` secret.
+Git pushes use the separate `deploy-obiter` key locally; the workflows push nothing.
 
 ## Creating a Release (release.yml)
 
@@ -155,54 +138,36 @@ The Copilot skill packages (`scripts/package-skill.sh`) are on hold and outside 
 
 ## Rollback Procedure
 
-### Option 1: Revert and push (preferred)
+### Option 1: Redeploy the previous release tag (preferred)
 
-Revert the problematic commit and push to `main`. The CI pipeline will automatically redeploy the previous state:
-
-```bash
-git revert <commit-sha>
-git push origin main
-```
-
-This creates an auditable trail and triggers the normal deploy flow.
-
-### Option 2: Manual deploy of a previous version
-
-1. Check out the last known good commit:
-   ```bash
-   git checkout <good-commit-sha>
-   ```
-2. Trigger the manual deploy workflow from the Actions tab, or push to a temporary branch and manually deploy:
-   ```bash
-   gh workflow run deploy.yml --ref <good-commit-sha> \
-     -f deploy_website=true \
-     -f deploy_addin=true \
-     -f restart_server=true
-   ```
-
-### Option 3: Direct server intervention
-
-SSH into the instance and restore files manually:
+Each add-in release is a tag, so roll back by redeploying the last good one:
 
 ```bash
-ssh -i ~/.ssh/deploy_key <user>@<server-host>
-# Restore website from a backup or previous artifact
-# Restart the server
-pkill -f "node.*index.js" 2>/dev/null
-sleep 1
-source /etc/obiter/env.sh
-cd /var/www/obiter/server
-screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"
+gh workflow run deploy.yml --ref v<previous version> -f addin=production
 ```
 
-This is the least preferred option as it bypasses version control.
+The production guard accepts a tag only when it matches that tag's own `package.json`, so an old tag deploys exactly what it released. Locally, the same thing is `git checkout v<previous version> && npm ci && npm run build:prod && npm run deploy:app`.
+
+For the website or server, revert the commit on `main`, then run the Deploy workflow with `website=true` or `server=true restart_server=true`.
+
+### Option 2: Direct server intervention
+
+If the workflow is unavailable, SSH in and restart through systemd:
+
+```bash
+ssh -i <key> bitnami@<server-host>
+sudo systemctl restart obiter
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3001/api/signatures
+```
+
+This bypasses version control, so use it last.
 
 ## Server Environment
 
-The Lightsail instance loads environment variables from `/etc/obiter/env.sh`. This file is sourced before starting the Node.js server. If you need to change environment variables:
+The API runs as the systemd service `obiter`, which loads `/etc/obiter/env.sh`. To change environment variables:
 
-1. SSH into the instance and edit `/etc/obiter/env.sh`.
-2. Restart the server using the manual deploy workflow with `restart_server=true`, or by running the restart command directly over SSH.
+1. SSH in and edit `/etc/obiter/env.sh`.
+2. Restart with `npm run restart:server` locally, or run the Deploy workflow with `restart_server=true`.
 
 ## Supply-Chain Gates
 

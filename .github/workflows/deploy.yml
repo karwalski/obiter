@@ -1,37 +1,59 @@
-# Manual Deployment Workflow
+# Manual deployment workflow
 #
-# Trigger manually from the Actions tab to deploy website and/or
-# rebuild the add-in without waiting for a push to main.
+# Runs the same reviewed scripts as a local release (npm run deploy:beta,
+# deploy:app, deploy:website, deploy:server, restart:server), so CI and a
+# laptop deploy behave identically. Nothing here mirrors with --delete over
+# the web root or restarts the API outside systemd.
 #
-# Required repository secrets:
-#   LIGHTSAIL_SSH_KEY  — SSH private key for the deploy host
-#   DEPLOY_KEY         — GitHub deploy key for pushing
+# Trigger from the Actions tab (Run workflow). Production add-in deploys only
+# run from a release tag (vX.Y.Z) that matches package.json, after the full
+# gates pass.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   OBITER_SSH_HOST  server IP or hostname
+#   OBITER_SSH_KEY   the deploy private key (file contents, not a path)
+# Optional:
+#   OBITER_SSH_USER  defaults to bitnami
+#
+# The release itself (version bump, tag, GitHub Release) stays a local step;
+# see docs/ci-cd.md and npm run verify-release.
 
 name: Deploy
 
 on:
   workflow_dispatch:
     inputs:
-      deploy_website:
-        description: 'Deploy website to Lightsail'
+      addin:
+        description: "Add-in target: none, beta (/app/beta) or production (/app, release tag only)"
         required: true
-        default: true
+        default: none
+        type: choice
+        options: [none, beta, production]
+      website:
+        description: "Deploy the website pages (npm run deploy:website)"
+        required: true
+        default: false
         type: boolean
-      deploy_addin:
-        description: 'Build and deploy add-in to /app/'
+      server:
+        description: "Deploy the API server files (npm run deploy:server)"
         required: true
-        default: true
+        default: false
         type: boolean
       restart_server:
-        description: 'Restart the Node.js backend server'
-        required: false
+        description: "Restart the API through systemd and health-check it (npm run restart:server)"
+        required: true
         default: false
         type: boolean
 
+# One deploy at a time; a second run waits rather than racing the first.
+concurrency:
+  group: obiter-deploy
+  cancel-in-progress: false
+
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    if: ${{ inputs.deploy_addin }}
+    if: ${{ inputs.addin != 'none' || inputs.website || inputs.server || inputs.restart_server }}
 
     steps:
       - uses: actions/checkout@v7
@@ -43,125 +65,89 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
-
-      - run: npm run validate
-
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: dist/
-          retention-days: 30
-
-  deploy-website:
-    runs-on: ubuntu-latest
-    if: ${{ inputs.deploy_website || inputs.restart_server }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up SSH
-        env:
-          LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+      - name: Production deploys only run from the matching release tag
+        if: ${{ inputs.addin == 'production' }}
         run: |
-          mkdir -p ~/.ssh
-          echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Deploy website files
-        if: ${{ inputs.deploy_website }}
-        run: |
-          # Sync website files (excluding server/) to nginx html directory
-          rsync -avz --delete --exclude='server/' \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            website/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/
-
-      - name: Deploy server files
-        if: ${{ inputs.deploy_website }}
-        run: |
-          # Sync server files
-          rsync -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            website/server/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/obiter/server/
-
-          # Install dependencies on remote
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'cd /var/www/obiter/server && npm ci --production'
-
-      - name: Restart server
-        if: ${{ inputs.deploy_website || inputs.restart_server }}
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'pkill -f "node.*index.js" 2>/dev/null; sleep 1; source /etc/obiter/env.sh && cd /var/www/obiter/server && screen -dmS obiter bash -c "source /etc/obiter/env.sh && node index.js"'
-
-      - name: Clean up SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
-
-  deploy-addin:
-    runs-on: ubuntu-latest
-    if: ${{ inputs.deploy_addin }}
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Set up SSH
-        env:
-          LIGHTSAIL_SSH_KEY: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$LIGHTSAIL_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Build and deploy add-in
-        run: |
-          npm ci
-          npm run build:prod
-
-          # --exclude 'beta/' — /app/beta/ is the staging slot (see
-          # docs/beta-testing.md); promoting production must never wipe it.
-          rsync -avz --delete --exclude 'beta/' \
-            -e "ssh -i ~/.ssh/deploy_key" \
-            dist/ \
-            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/bitnami/nginx/html/app/
-
-      - name: Deploy nginx security headers (TRUST-002)
-        run: |
-          # Regenerate the snippet from config/csp.js (single source of truth)
-          # so the deployed headers can never drift from the repo.
-          node scripts/generate-nginx-headers.js
-
-          # /opt/bitnami/nginx/conf is root-owned: write via sudo tee. The
-          # include line inside the /app/ location block is a one-time manual
-          # step (docs/server-setup.md); pushing this file before that exists
-          # is harmless.
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo mkdir -p /opt/bitnami/nginx/conf/obiter'
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo tee /opt/bitnami/nginx/conf/obiter/app-security-headers.conf > /dev/null' \
-            < scripts/nginx/app-security-headers.conf
-
-          # Reload nginx only if the config test passes; abort the deploy
-          # otherwise (nginx keeps serving with the old config).
-          if ! ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo /opt/bitnami/nginx/sbin/nginx -t'; then
-            echo "ERROR: remote 'nginx -t' failed — nginx was NOT reloaded (old config still active)." >&2
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF" != "refs/tags/v$VERSION" ]; then
+            echo "Production add-in deploys must run from tag v$VERSION (this run is on $GITHUB_REF)." >&2
+            echo "Pick the tag in 'Use workflow from' when starting the run." >&2
             exit 1
           fi
-          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
-            'sudo /opt/bitnami/nginx/sbin/nginx -s reload'
 
-      - name: Clean up SSH key
+      - name: Gates (version, typecheck, tests)
+        if: ${{ inputs.addin != 'none' }}
+        run: |
+          npm run check-version
+          npm run typecheck
+          npm test
+
+      - name: Build the add-in
+        if: ${{ inputs.addin != 'none' }}
+        run: npm run build:prod
+
+      - name: Set up SSH for the deploy scripts
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_KEY_CONTENT: ${{ secrets.OBITER_SSH_KEY }}
+        run: |
+          if [ -z "$OBITER_SSH_HOST" ] || [ -z "$OBITER_SSH_KEY_CONTENT" ]; then
+            echo "Set the OBITER_SSH_HOST and OBITER_SSH_KEY repository secrets first." >&2
+            exit 1
+          fi
+          KEY="$RUNNER_TEMP/obiter_deploy_key"
+          printf '%s\n' "$OBITER_SSH_KEY_CONTENT" > "$KEY"
+          chmod 600 "$KEY"
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$OBITER_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "OBITER_SSH_KEY=$KEY" >> "$GITHUB_ENV"
+
+      - name: Deploy add-in to beta
+        if: ${{ inputs.addin == 'beta' }}
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_USER: ${{ secrets.OBITER_SSH_USER }}
+        run: npm run deploy:beta
+
+      - name: Deploy add-in to production
+        if: ${{ inputs.addin == 'production' }}
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_USER: ${{ secrets.OBITER_SSH_USER }}
+        run: npm run deploy:app
+
+      - name: Confirm the server serves this build
+        if: ${{ inputs.addin != 'none' }}
+        run: |
+          SLOT=$([ "${{ inputs.addin }}" = "beta" ] && echo "app/beta" || echo "app")
+          BUILT=$(grep -oE 'taskpane\.[a-f0-9]+\.js' dist/taskpane.html | head -1)
+          SERVED=$(curl -fsS "https://obiter.com.au/$SLOT/taskpane.html" | grep -oE 'taskpane\.[a-f0-9]+\.js' | head -1)
+          echo "built=$BUILT served=$SERVED (/$SLOT)"
+          [ "$BUILT" = "$SERVED" ]
+
+      - name: Deploy website pages
+        if: ${{ inputs.website }}
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_USER: ${{ secrets.OBITER_SSH_USER }}
+        run: |
+          npm run check-seo
+          npm run deploy:website
+
+      - name: Deploy API server files
+        if: ${{ inputs.server }}
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_USER: ${{ secrets.OBITER_SSH_USER }}
+        run: npm run deploy:server
+
+      - name: Restart the API (systemd) and health-check it
+        if: ${{ inputs.restart_server }}
+        env:
+          OBITER_SSH_HOST: ${{ secrets.OBITER_SSH_HOST }}
+          OBITER_SSH_USER: ${{ secrets.OBITER_SSH_USER }}
+        run: npm run restart:server
+
+      - name: Remove the deploy key
         if: always()
-        run: rm -f ~/.ssh/deploy_key
+        run: rm -f "$RUNNER_TEMP/obiter_deploy_key"
