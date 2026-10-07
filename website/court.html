@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Court Mode: Australian Court Submissions in Word — Obiter</title>
+  <meta name="description" content="Obiter court mode for Microsoft Word: presets for 22 Australian courts and tribunals, parallel citations, Lists of Authorities and practice-direction checks.">
+  <meta name="keywords" content="court submissions Word, list of authorities generator, parallel citations, AGLC court mode, practice note citation of authority, High Court Joint Book of Authorities, Federal Court GPN-AUTH, Australian court submissions">
+  <link rel="canonical" href="https://obiter.com.au/court.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Obiter">
+  <meta property="og:title" content="Court Mode — Australian Court Submissions in Microsoft Word">
+  <meta property="og:description" content="Presets for 22 Australian courts and tribunals, checked against each court's practice notes: parallel citations, pinpoints and Lists of Authorities in Word.">
+  <meta property="og:url" content="https://obiter.com.au/court.html">
+  <meta property="og:image" content="https://obiter.com.au/favicon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Court Mode — Obiter">
+  <meta name="twitter:description" content="Court submission mode for Australian courts and tribunals in Microsoft Word.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css?v=1175">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Which courts does Obiter court mode support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Court mode has 22 presets: the High Court, Federal Court and Federal Circuit and Family Court; the NSW, Victorian and Queensland appellate, supreme and lower courts; the Supreme Courts of WA, SA, Tasmania, the ACT and the NT, and the SA District and Magistrates Courts (civil); and the Administrative Review Tribunal, the Fair Work Commission and the state and territory tribunals."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Obiter generate a List of Authorities?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. In court mode the Bibliography view generates a List of Authorities in the layout the court's instrument describes, including the High Court Joint Book of Authorities (Parts A to E), the Federal Court list under GPN-AUTH, the NSW Court of Appeal four-category list, the Victorian Court of Appeal Part A, B and C list, the Tasmanian three-part list and the WA list with cases to be read marked with an asterisk."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Obiter court mode endorsed by the courts?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. Each court profile is checked against the court's own published practice notes and rules, and Obiter names the instrument and the date it was checked, but no court has endorsed Obiter. Always check the court's current practice directions before you file."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="aglc4.html">AGLC4</a></li>
+        <li><a href="court.html" aria-current="page">Courts</a></li>
+        <li><a href="oscola.html">OSCOLA</a></li>
+        <li><a href="nzlsg.html">NZLSG</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main-content" role="main">
+  <header class="page-header">
+    <div class="container">
+      <h1>Court mode</h1>
+      <p>
+        Court submission mode for Australian courts and tribunals: the citation
+        form, parallel citations and List of Authorities each court asks for,
+        inside Microsoft Word.
+      </p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       What court mode is
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>What court mode does</h2>
+        <p>
+          Court mode is a writing mode for submissions, outlines of argument and
+          other documents filed in Australian courts and tribunals. It builds on
+          the AGLC (the Australian Guide to Legal Citation, 4th edition, AGLC4)
+          and changes what courts treat differently from academic writing. Turn
+          it on in <strong>Settings</strong> under <strong>Writing mode</strong>,
+          then choose the court or tribunal.
+        </p>
+        <ul class="explainer__list">
+          <li>
+            <strong>No ibid.</strong> Later references give the short case name
+            or short title with the pinpoint, so each footnote identifies its
+            source. Refresh All rewrites any existing ibid.
+          </li>
+          <li>
+            <strong>No (n X) cross-references.</strong> Court short references
+            drop the footnote cross-reference. It has its own control, so it can
+            be turned back on for a document.
+          </li>
+          <li>
+            <strong>Parallel citations.</strong> A reported case is cited by its
+            authorised report and its medium neutral citation (MNC), in the
+            order the court uses, or by the report alone where the court says
+            the report replaces the MNC.
+          </li>
+          <li>
+            <strong>List of Authorities.</strong> The Bibliography view generates
+            the court&rsquo;s List of Authorities in place of a bibliography.
+          </li>
+          <li>
+            <strong>What you see is what you file.</strong> The Insert form, the
+            library previews, the Quote panel and the footnotes all render the
+            court form.
+          </li>
+        </ul>
+        <p>
+          Court mode is part of the AGLC4 standard, so the
+          <strong>Writing mode</strong> control appears while a document uses
+          AGLC4. A document switched to <a href="oscola.html">OSCOLA</a> or
+          <a href="nzlsg.html">NZLSG</a> returns to academic mode.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Supported courts
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Supported courts and tribunals</h2>
+        <p>
+          Court mode has 22 presets. Each one sets the court&rsquo;s conventions
+          and records the instrument each value comes from. The table is built
+          from the preset data in the add-in, as at 7 October 2026.
+        </p>
+        <div class="docs-table-scroll">
+          <table class="docs-table docs-table--wrap">
+            <caption class="sr-only">Court mode presets and their key conventions</caption>
+            <thead>
+              <tr>
+                <th scope="col">Court or tribunal</th>
+                <th scope="col">Parallel citations</th>
+                <th scope="col">Pinpoint</th>
+                <th scope="col">Preferred reports</th>
+                <th scope="col">List of Authorities</th>
+                <th scope="col">Checked against</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">Federal</th>
+              </tr>
+              <tr>
+                <th scope="row">High Court of Australia</th>
+                <td>Mandatory, report first</td>
+                <td>Paragraph and page</td>
+                <td>CLR</td>
+                <td>Joint Book of Authorities, Parts A to E, with the legislation version</td>
+                <td>HCA Practice Direction No 2 of 2024 (Joint Book of Authorities) (20 Dec 2024); HCA Form 27A (2024)</td>
+              </tr>
+              <tr>
+                <th scope="row">Federal Court of Australia</th>
+                <td>Mandatory, MNC first</td>
+                <td>Paragraph and page, with &ldquo;at&rdquo;</td>
+                <td>FCR, CLR, ALR</td>
+                <td>Single list (no Part A / Part B) in eBook sections, with the legislation version</td>
+                <td>FCA Lists of Authorities and Citations Practice Note (GPN-AUTH) (7 May 2025); FCA eBooks Practice Note (GPN-eBOOKS) (11 Jun 2026)</td>
+              </tr>
+              <tr>
+                <th scope="row">Federal Circuit and Family Court</th>
+                <td>Off: the report replaces the MNC</td>
+                <td>Paragraph and page</td>
+                <td>FLC, ALR</td>
+                <td>Two parts: expected to be read, not expected to be read</td>
+                <td>FCFCOA FAM-APPEALS Practice Direction (updated 10 Jun 2025)</td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">New South Wales</th>
+              </tr>
+              <tr>
+                <th scope="row">NSW Court of Appeal</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>NSWLR, CLR, ALR</td>
+                <td>Four categories, with legislation version dates</td>
+                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Appeal Practice Note SC CA 1 (8 May 2023)</td>
+              </tr>
+              <tr>
+                <th scope="row">NSW Court of Criminal Appeal</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>NSWLR, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023); NSW Court of Criminal Appeal Practice Note SC CCA 1 (General) (22 Jul 2021)</td>
+              </tr>
+              <tr>
+                <th scope="row">NSW Supreme Court</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>NSWLR, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>NSW SC Practice Note SC Gen 20 (Citation of Authority) (1 Oct 2023)</td>
+              </tr>
+              <tr>
+                <th scope="row">NSW District / Local Court</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>NSWLR, CLR, ALR</td>
+                <td>None (no list generated)</td>
+                <td>No court instrument found</td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">Victoria</th>
+              </tr>
+              <tr>
+                <th scope="row">Vic Court of Appeal</th>
+                <td>Off: the report replaces the MNC</td>
+                <td>Paragraph and page</td>
+                <td>VR, CLR, ALR</td>
+                <td>Part A / Part B / Part C</td>
+                <td>Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025); Vic Court of Appeal Practice Note SC CA 3 (10 Mar 2026)</td>
+              </tr>
+              <tr>
+                <th scope="row">Vic Supreme Court</th>
+                <td>Off: the report replaces the MNC</td>
+                <td>Paragraph and page</td>
+                <td>VR, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>Vic SC Practice Note SC Gen 3 (Citation of authorities and legislation) (1 Dec 2025)</td>
+              </tr>
+              <tr>
+                <th scope="row">Vic County / Magistrates&rsquo; Court</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph and page</td>
+                <td>VR, CLR, ALR</td>
+                <td>None (no list generated)</td>
+                <td>No court instrument found</td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">Queensland</th>
+              </tr>
+              <tr>
+                <th scope="row">Qld Court of Appeal</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>Qd R, CLR, ALR</td>
+                <td>Part A / Part B</td>
+                <td>Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024); Qld SC Practice Direction 3 of 2013 (Court of Appeal) (2013)</td>
+              </tr>
+              <tr>
+                <th scope="row">Qld Supreme Court</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>Qd R, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>Qld SC Practice Direction 1 of 2024 (Citation of Authority) (29 Jan 2024)</td>
+              </tr>
+              <tr>
+                <th scope="row">Qld District / Magistrates Court</th>
+                <td>Preferred, report first</td>
+                <td>Paragraph only</td>
+                <td>Qd R, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>Qld Magistrates Court Practice Direction 7 of 2024 (Citation of Authority) (7 Jun 2024)</td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">Other States/Territories</th>
+              </tr>
+              <tr>
+                <th scope="row">WA Supreme Court</th>
+                <td>Mandatory, MNC first</td>
+                <td>Paragraph and page</td>
+                <td>WAR, CLR, ALR</td>
+                <td>Cases to be read marked with an asterisk, with passages; later references by case name</td>
+                <td>WA SC Consolidated Practice Directions (PD 2.1, PD 8.2.2) (updated 23 Sep 2026)</td>
+              </tr>
+              <tr>
+                <th scope="row">SA Supreme Court</th>
+                <td>Mandatory, report first</td>
+                <td>Paragraph and page</td>
+                <td>SASR, CLR, ALR</td>
+                <td>Two parts: expected to be read, not expected to be read</td>
+                <td>SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</td>
+              </tr>
+              <tr>
+                <th scope="row">SA District / Magistrates Court (civil)</th>
+                <td>Mandatory, report first</td>
+                <td>Paragraph and page</td>
+                <td>SASR, CLR, ALR</td>
+                <td>Two parts: expected to be read, not expected to be read</td>
+                <td>SA Uniform Civil Rules 2020 (rr 101.8, 217.8; Form 91) (current to 15 Mar 2026)</td>
+              </tr>
+              <tr>
+                <th scope="row">Tas Supreme Court</th>
+                <td>Preferred, MNC first</td>
+                <td>Paragraph and page, with &ldquo;at&rdquo;</td>
+                <td>Tas R, CLR, ALR</td>
+                <td>Three parts: to be cited, might be referred to, legislation</td>
+                <td>Tas SC Practice Direction 3 of 2014 (Citation of Judgments) (21 Feb 2014); Tas SC Practice Direction 3 of 2022 (Appeal Books, Lists of Authorities, Submissions) (24 Aug 2022)</td>
+              </tr>
+              <tr>
+                <th scope="row">ACT Supreme Court</th>
+                <td>Off: the report replaces the MNC</td>
+                <td>Paragraph and page</td>
+                <td>ACTLR, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>ACT SC Practice Direction 2 of 2022 (Citation of Authority) (26 May 2022)</td>
+              </tr>
+              <tr>
+                <th scope="row">NT Supreme Court</th>
+                <td>Off: the report replaces the MNC</td>
+                <td>Paragraph and page</td>
+                <td>NTLR, CLR, ALR</td>
+                <td>Simple list</td>
+                <td>NT SC Practice Direction 2 of 2007 (Citation of Authorities) (25 May 2007); NT SC Practice Direction 1 of 2025 (Lists of Authorities) (1 Jan 2025)</td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr>
+                <th scope="rowgroup" colspan="6">Tribunals</th>
+              </tr>
+              <tr>
+                <th scope="row">Administrative Review Tribunal</th>
+                <td>Off</td>
+                <td>Paragraph only</td>
+                <td>None</td>
+                <td>None (no list generated)</td>
+                <td>No court instrument found</td>
+              </tr>
+              <tr>
+                <th scope="row">Fair Work Commission</th>
+                <td>Off</td>
+                <td>Paragraph only</td>
+                <td>None</td>
+                <td>None (no list generated)</td>
+                <td>No court instrument found</td>
+              </tr>
+              <tr>
+                <th scope="row">State/Territory Tribunal (NCAT/VCAT/QCAT/SAT/other)</th>
+                <td>Off</td>
+                <td>Paragraph only</td>
+                <td>None</td>
+                <td>None (no list generated)</td>
+                <td>No court instrument found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          &ldquo;Preferred&rdquo; follows instruments that ask for the parallel
+          citation &ldquo;as far as possible&rdquo;. Where a court&rsquo;s
+          instrument is silent on the order of the report and the MNC, the
+          preset follows the court&rsquo;s own example, or the order seen in its
+          published judgments. Where no instrument was found, the preset uses
+          the AGLC4 form and says so. A pinpoint to a report keeps the
+          report&rsquo;s starting page (AGLC4 r 2.2.5).
+        </p>
+        <p>
+          The full profile for each court, with the source, clause, check date
+          and known gaps for every value, is in
+          <a href="https://github.com/karwalski/obiter/blob/main/docs/court-profiles.md" target="_blank" rel="noopener noreferrer">the court profiles reference</a>
+          on GitHub.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Court toggles
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Court settings you can adjust</h2>
+        <p>
+          A preset fills in the court settings. Each one can be changed for the
+          document under <strong>Court toggles</strong> in Settings.
+        </p>
+        <ul class="explainer__list">
+          <li>
+            <strong>Parallel citations</strong> &mdash; off, preferred or
+            mandatory, and whether the report&rsquo;s MNC is given with it or
+            the report replaces it.
+          </li>
+          <li>
+            <strong>Parallel citation order</strong> &mdash; the authorised
+            report first, or the MNC first (the Federal Court, Tasmanian and WA
+            presets put the MNC first, as their instruments show).
+          </li>
+          <li>
+            <strong>Pinpoint style and connector</strong> &mdash; page only,
+            paragraph only, or paragraph and page, with AGLC4 punctuation or
+            &ldquo;at&rdquo; before the pinpoint (the Federal Court and Tasmanian
+            presets use &ldquo;at&rdquo;).
+          </li>
+          <li>
+            <strong>Authorised-report hierarchy</strong> &mdash; the court&rsquo;s
+            preferred report series in order, used to rank a case&rsquo;s reports.
+          </li>
+          <li>
+            <strong>Ibid suppression</strong> and
+            <strong>(n X) cross-reference suppression</strong> &mdash; separate
+            controls, both on in every preset.
+          </li>
+          <li>
+            <strong>Subsequent references to cases</strong> &mdash; the short
+            title and pinpoint, or the case name (the WA preset, following its
+            practice direction).
+          </li>
+          <li>
+            <strong>Unreported-judgment gate</strong> &mdash; off or warn. Warn
+            flags an MNC cited for a case that has an authorised report.
+          </li>
+          <li>
+            <strong>List of Authorities</strong> &mdash; the layout the
+            Bibliography view generates.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Lists of Authorities
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Lists of Authorities</h2>
+        <p>
+          Each layout follows the court instrument it is named after:
+        </p>
+        <div class="explainer__parts">
+          <div class="explainer__part">
+            <h3>High Court: Joint Book of Authorities</h3>
+            <p>
+              Parts A to E under HCA Practice Direction No 2 of 2024: principal
+              legislation, other legislation, cases in the CLR, cases in other
+              report series, and other materials, with the version of the
+              legislation. You mark principal legislation for Part A in Edit
+              Citation.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Federal Court: a single list</h3>
+            <p>
+              The Lists of Authorities and Citations Practice Note (GPN-AUTH),
+              reissued 7 May 2025, has no Part A and Part B. Obiter gives
+              authorities, legislation, and bills and explanatory material,
+              each in alphabetical order as in the eBooks Practice Note, with
+              the version of the legislation in force.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>NSW Court of Appeal: four categories</h3>
+            <p>
+              Legislation with the date or version to be applied, cases from
+              which passages will be read, cases cited but not read, and
+              secondary sources (Practice Note SC CA 1).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Victoria, Queensland, SA and family appeals: parts</h3>
+            <p>
+              Part A, B and C for the Victorian Court of Appeal, with
+              &ldquo;None&rdquo; under an unused part; Part A and Part B for the
+              Queensland Court of Appeal; and two parts, expected to be read and
+              not expected to be read, for the SA courts and Federal Circuit and
+              Family Court appeals.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Tasmania: three parts</h3>
+            <p>
+              Authorities counsel intends to cite, authorities that might be
+              referred to, and legislation with its sections (Tas SC Practice
+              Direction 3 of 2022).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>WA: cases to be read marked with an asterisk</h3>
+            <p>
+              Cases and legislation listed separately and alphabetically, cases
+              counsel intends to read from marked with an asterisk and the pages
+              or paragraphs to be read, and a statement when no case will be read
+              (WA Consolidated Practice Directions, PD 2.1).
+            </p>
+          </div>
+        </div>
+        <p>
+          Edit Citation and the Library show only the List of Authorities
+          controls the document&rsquo;s layout uses, labelled in that
+          layout&rsquo;s terms: which part an authority goes in, key authorities,
+          the passages to be read, principal legislation, and the legislation
+          version (&ldquo;as at&rdquo; a date, or &ldquo;as commenced on&rdquo; a
+          date). The legislation version appears only in the court lists that ask
+          for it, never in AGLC4 footnotes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Profiles in the document
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Court profiles travel with the document</h2>
+        <ul class="explainer__list">
+          <li>
+            <strong>Stored in the document.</strong> When you choose a court, the
+            document keeps the full set of values and the profile version, so it
+            renders the same way on any computer.
+          </li>
+          <li>
+            <strong>Sources in Settings.</strong> For each value, Settings shows
+            whether it comes from the profile or was changed for the document,
+            the kind of source (a court instrument, observed practice, or
+            Obiter&rsquo;s default where the instrument is silent), a link to the
+            source and a plain-English note.
+          </li>
+          <li>
+            <strong>Nothing changes without asking.</strong> When a profile is
+            corrected or a court reissues its practice note, existing documents
+            keep their values. Settings offers <strong>Update court
+            profile</strong>, lists each change, and applies nothing until you
+            accept it.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Practice-direction checks
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Practice-direction checks and reminders</h2>
+        <p>
+          In court mode, Validation checks the document against the court&rsquo;s
+          requirements and labels each issue with the practice direction it comes
+          from, not an AGLC rule. It flags a missing parallel citation where the
+          preset makes it mandatory, any ibid or (n X) left in a footnote, and,
+          with the unreported-judgment gate on, an MNC cited where an authorised
+          report exists. For the Queensland and Tasmanian courts, the Insert
+          form records whether a later judgment has doubted, or not followed,
+          each cited case, and Validation notes any case without that answer,
+          as their practice directions require.
+        </p>
+        <p>
+          Where a court or tribunal has issued a practice note or direction on
+          generative AI, court mode shows a reminder with the instrument&rsquo;s
+          name, date and a link. Sixteen of the 22 presets carry one, including
+          the Federal Court (GPN-AI), the Federal Circuit and Family Court, the
+          NSW and Victorian Supreme Courts, the Queensland and SA courts, the WA
+          Supreme Court and the Administrative Review Tribunal. The reminders
+          are practice-direction guidance, not citation rules: verify that every
+          cited authority exists and supports the point, disclose AI use where
+          the court requires it, and do not rely on one AI tool to check
+          another&rsquo;s output.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Track changes and handover
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Track Changes and handover</h2>
+        <ul class="explainer__list">
+          <li>
+            <strong>Track Changes respected.</strong> While Track Changes is on
+            (where Word can report it), Obiter asks before it refreshes the document&rsquo;s citations, and
+            explains that the refresh will appear as tracked revisions. You can
+            refresh anyway or skip for now.
+          </li>
+          <li>
+            <strong>Prepare for handover.</strong> One check before a document
+            leaves you: validation issues, footnotes the last refresh left alone
+            because they were edited by hand or locked, and Obiter&rsquo;s own
+            document properties, each with its own Remove button. Comments and
+            tracked changes are counted, never removed.
+          </li>
+          <li>
+            <strong>No personal data in the file.</strong> Obiter writes only its
+            version, the document&rsquo;s citation standard and the date it first
+            managed the document. It never writes a person&rsquo;s name, and a
+            property you remove stays removed.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Status and limits
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Checked against the courts&rsquo; instruments, not endorsed</h2>
+        <p>
+          Each court profile was checked against the court&rsquo;s own practice
+          notes, practice directions or rules, and the add-in names the
+          instrument and the date of the check (6 October 2026 for the current
+          profiles). No court has endorsed Obiter. In the add-in each profile
+          carries the label &ldquo;Experimental: checked against [instrument] on
+          [date]; not endorsed by the court&rdquo;, because no profile yet has
+          both a documented rule and current examples of the same kind of
+          document to test against. Profiles are re-checked each quarter and
+          whenever a court&rsquo;s instrument changes or moves.
+        </p>
+        <p>
+          Some courts publish no citation instrument. For the NSW District and
+          Local Courts, the Victorian County and Magistrates&rsquo; Courts and
+          the tribunals, the preset uses the AGLC4 form and says that no
+          instrument was found. Parts of some instruments are not yet modelled,
+          such as record locators and the High Court volume index; the court
+          profiles reference lists each gap.
+        </p>
+        <div class="docs-note">
+          <p>
+            Obiter output is checked for compatibility with each court&rsquo;s
+            published practice notes; it is not guaranteed to be accepted for
+            filing. Always check the court&rsquo;s current practice directions
+            before you file.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FAQ (mirrors the FAQPage structured data in <head>)
+       ============================================================ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div class="faq__list">
+        <details class="faq__item">
+          <summary class="faq__question">Which courts does Obiter court mode support?</summary>
+          <div class="faq__answer">
+            <p>
+              Court mode has 22 presets: the High Court, Federal Court and Federal
+              Circuit and Family Court; the NSW, Victorian and Queensland
+              appellate, supreme and lower courts; the Supreme Courts of WA, SA,
+              Tasmania, the ACT and the NT, and the SA District and Magistrates
+              Courts (civil); and the Administrative Review Tribunal, the Fair
+              Work Commission and the state and territory tribunals.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Can Obiter generate a List of Authorities?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. In court mode the Bibliography view generates a List of
+              Authorities in the layout the court&rsquo;s instrument describes,
+              including the High Court Joint Book of Authorities (Parts A to E),
+              the Federal Court list under GPN-AUTH, the NSW Court of Appeal
+              four-category list, the Victorian Court of Appeal Part A, B and C
+              list, the Tasmanian three-part list and the WA list with cases to be
+              read marked with an asterisk.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Is Obiter court mode endorsed by the courts?</summary>
+          <div class="faq__answer">
+            <p>
+              No. Each court profile is checked against the court&rsquo;s own
+              published practice notes and rules, and Obiter names the instrument
+              and the date it was checked, but no court has endorsed Obiter.
+              Always check the court&rsquo;s current practice directions before
+              you file.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Learn More
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Learn More</h2>
+        <ul class="explainer__links">
+          <li>
+            <a href="docs.html#court-mode">Court Submission Mode documentation</a>
+            &mdash; how to turn on court mode and use each control.
+          </li>
+          <li>
+            <a href="https://github.com/karwalski/obiter/blob/main/docs/court-profiles.md" target="_blank" rel="noopener noreferrer">Court profiles reference</a>
+            &mdash; every preset value with its source, clause and check date.
+          </li>
+          <li>
+            <a href="aglc4.html">What is AGLC4?</a>
+            &mdash; the citation standard court mode builds on.
+          </li>
+          <li>
+            <a href="download.html">Download Obiter</a>
+            &mdash; install from
+            <a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">Microsoft AppSource</a>
+            or sideload from GitHub.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">AppSource</a></li>
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="accessibility.html">Accessibility</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter stores no personal data unless you create an optional account. Your citation data always stays in your document and is never synced.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

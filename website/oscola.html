@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OSCOLA 5 and OSCOLA 4 Referencing in Word — Obiter</title>
+  <meta name="description" content="OSCOLA 5 and OSCOLA 4 referencing in Microsoft Word with Obiter: UK cases and legislation, (n X) references, tables of cases and legislation, and a bibliography.">
+  <meta name="keywords" content="OSCOLA, OSCOLA 5, OSCOLA 4, OSCOLA referencing, OSCOLA in Word, OSCOLA citation generator, Oxford University Standard for the Citation of Legal Authorities, UK legal citation Word add-in">
+  <link rel="canonical" href="https://obiter.com.au/oscola.html">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Obiter">
+  <meta property="og:title" content="OSCOLA 5 and OSCOLA 4 Referencing in Microsoft Word">
+  <meta property="og:description" content="UK legal citation in Word with the free Obiter add-in: OSCOLA 5 and OSCOLA 4 footnotes, tables of cases and legislation, bibliography and validation.">
+  <meta property="og:url" content="https://obiter.com.au/oscola.html">
+  <meta property="og:image" content="https://obiter.com.au/favicon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="OSCOLA 5 and OSCOLA 4 — Obiter">
+  <meta name="twitter:description" content="OSCOLA referencing in Microsoft Word with the free Obiter add-in.">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css?v=1175">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Does Obiter support OSCOLA 5?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Obiter implements OSCOLA 5, the 2026 edition of the Oxford University Standard for the Citation of Legal Authorities, and OSCOLA 4 for publishers that still require it. Choose the standard per document in Settings."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does OSCOLA 5 use ibid?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. OSCOLA 5 removed ibid. A later reference gives a short identifier, the footnote of the full citation and the pinpoint, such as Austin (n 1) [34]. Obiter writes these on every refresh. OSCOLA 4 still allows ibid for the immediately preceding footnote, and Obiter applies it when the document uses OSCOLA 4."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can Obiter produce an OSCOLA table of cases?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. Under OSCOLA the Bibliography view generates a Table of Cases, a Table of Legislation and a Bibliography of secondary sources, each in the OSCOLA form."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ============================================================
+       Navigation
+       ============================================================ -->
+  <nav class="site-nav" role="banner" aria-label="Primary navigation">
+    <div class="container">
+      <a href="/" class="site-nav__brand"><img src="favicon.png" alt="" class="site-nav__logo" width="24" height="24"> Obiter</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation menu">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <ul class="site-nav__links" id="nav-links">
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="aglc4.html">AGLC4</a></li>
+        <li><a href="court.html">Courts</a></li>
+        <li><a href="oscola.html" aria-current="page">OSCOLA</a></li>
+        <li><a href="nzlsg.html">NZLSG</a></li>
+        <li><a href="aglc5.html">AGLC5</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="download.html" class="site-nav__cta">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main id="main-content" role="main">
+  <header class="page-header">
+    <div class="container">
+      <h1>OSCOLA 5 and OSCOLA 4</h1>
+      <p>
+        UK legal citation in Microsoft Word: footnotes, tables of cases and
+        legislation, and a bibliography in the OSCOLA form.
+      </p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Introduction
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>OSCOLA in Obiter</h2>
+        <p>
+          The Oxford University Standard for the Citation of Legal Authorities
+          (OSCOLA) is the citation style of United Kingdom legal writing. Its
+          fifth edition, OSCOLA 5, was published by the Faculty of Law,
+          University of Oxford, in 2026. Obiter implements OSCOLA 5 and the
+          2012 fourth edition, OSCOLA 4, alongside the AGLC.
+        </p>
+        <p>
+          Choose the standard from the <strong>Citation standard</strong> control
+          in Settings. The choice is stored in the document, so one document can
+          use OSCOLA while another uses AGLC4 or NZLSG, and the whole document is
+          re-rendered on the next refresh. The Insert and Edit forms show the
+          fields OSCOLA reads (a UK case takes its neutral citation year, court
+          and number), and Record details links UK cases to BAILII.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       What Obiter renders
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>What Obiter formats under OSCOLA 5</h2>
+        <p>
+          Rule numbers below are OSCOLA 5&rsquo;s own.
+        </p>
+        <div class="explainer__parts">
+          <div class="explainer__part">
+            <h3>Cases</h3>
+            <p>
+              The case name in italics, including the <em>v</em>; the neutral
+              citation, a comma and the best report (rr 2.1.1, 2.1.3); a court
+              identifier only where there is no neutral citation (r 2.1.5).
+              Paragraph pinpoints follow in square brackets with no comma, and
+              page pinpoints follow a bracketed court identifier without a comma
+              (r 2.1.6). Scottish (r 2.2.1), Northern Irish (r 2.3.1) and Irish
+              cases take their own forms.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Legislation</h3>
+            <p>
+              Short title and year in roman, with the provision after a comma,
+              such as <em>Human Rights Act 1998, s 2</em> (rr 2.4.1, 2.4.2);
+              statutory instruments with their SI number (r 2.5.1); Welsh,
+              Scottish and Northern Irish legislation (rr 2.4.6&ndash;2.4.8); and
+              assimilated EU law (r 2.4.9). A short form declared on the first
+              citation is used alone after that (r 1.2.1).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Subsequent references without ibid</h3>
+            <p>
+              OSCOLA 5 removed ibid (rr 1.2.1, 1.2.3). A later reference gives the
+              short identifier, the footnote of the full citation and the
+              pinpoint, such as <em>Austin</em> (n 1) [34] or Stevens (n 1) 110.
+              Obiter keeps every footnote number right as the document changes.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Quotations</h3>
+            <p>
+              Single quotation marks, with double marks inside; quotations longer
+              than three lines set as an indented block without marks (r 1.5).
+              The Quote panel applies these when the document uses OSCOLA.
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Secondary sources</h3>
+            <p>
+              Books with the edition, publisher and year (r 3.2.1); chapters
+              (r 3.2.4); articles with the title in single quotes (r 3.3); theses
+              with an italic title (r 3.7.6); websites, blogs, social media,
+              podcasts and online video (rr 3.7.1, 3.7.2); newspapers (r 3.7.7);
+              Hansard (r 3.7.8); command papers (r 3.7.9); Law Commission reports
+              (r 3.7.11); and generative AI output in the form OSCOLA 5 sets
+              (r 3.7.13).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>UK, EU and ECHR materials</h3>
+            <p>
+              Treaties (r 4.1.1); UN documents and resolutions (r 4.2); the
+              International Court of Justice (r 4.3); EU legislation (r 4.4.1);
+              Court of Justice and General Court cases by ECLI (r 4.4.2); and the
+              European Court and Commission of Human Rights (rr 4.4.4, 4.4.5).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Tables and bibliography</h3>
+            <p>
+              The Bibliography view generates a Table of Cases with case names in
+              roman (r 1.6.2), a Table of Legislation (r 1.6.3) and a Bibliography
+              of secondary sources, surname first and with no closing full stop
+              (r 1.7).
+            </p>
+          </div>
+          <div class="explainer__part">
+            <h3>Validation</h3>
+            <p>
+              The OSCOLA checks run, including ibid, missing neutral citations and
+              table structure, and the AGLC-only typography checks stay silent. A
+              reported case is expected to carry both its neutral citation and its
+              best report.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       OSCOLA 4
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>OSCOLA 4</h2>
+        <p>
+          Choose OSCOLA 4 when a publisher, journal or course still requires the
+          2012 edition. Obiter applies the points where the fourth edition
+          differs:
+        </p>
+        <ul class="explainer__list">
+          <li>
+            <strong>Ibid</strong> for the immediately preceding footnote (r 1.2.1
+            of that edition), and the ibid check is not raised.
+          </li>
+          <li>
+            <strong>Declared short forms</strong> without quotation marks.
+          </li>
+          <li>
+            <strong>Thesis titles</strong> in single quotes (r 3.4.7) and an
+            <strong>access date</strong> after a URL (r 3.4.8).
+          </li>
+        </ul>
+        <p>
+          Everything else uses the same OSCOLA forms, tables and bibliography.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Coverage and testing
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>How OSCOLA support is checked</h2>
+        <p>
+          OSCOLA 5 and OSCOLA 4 were reviewed against the published guides in
+          September 2026. Rule notes derived from the guides drive a feature-matrix
+          test suite that runs alongside the core AGLC4 engine, and a coverage
+          test fails if any source type lacks a declared treatment under OSCOLA.
+        </p>
+        <p>
+          Where OSCOLA has no form of its own for a source type, such as an
+          Australian-only source, Obiter uses the AGLC4 form. A small number of
+          secondary source types, such as speeches, press releases and
+          dictionaries, still render in their AGLC4 form while their OSCOLA forms
+          are built. The
+          <a href="https://github.com/karwalski/obiter/blob/main/docs/standards-coverage.md" target="_blank" rel="noopener noreferrer">standards coverage table</a>
+          lists every source type, and points the guide leaves open are recorded
+          for researchers rather than guessed.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FAQ (mirrors the FAQPage structured data in <head>)
+       ============================================================ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div class="faq__list">
+        <details class="faq__item">
+          <summary class="faq__question">Does Obiter support OSCOLA 5?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. Obiter implements OSCOLA 5, the 2026 edition of the Oxford
+              University Standard for the Citation of Legal Authorities, and
+              OSCOLA 4 for publishers that still require it. Choose the standard
+              per document in Settings.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Does OSCOLA 5 use ibid?</summary>
+          <div class="faq__answer">
+            <p>
+              No. OSCOLA 5 removed ibid. A later reference gives a short
+              identifier, the footnote of the full citation and the pinpoint,
+              such as <em>Austin</em> (n 1) [34]. Obiter writes these on every
+              refresh. OSCOLA 4 still allows ibid for the immediately preceding
+              footnote, and Obiter applies it when the document uses OSCOLA 4.
+            </p>
+          </div>
+        </details>
+        <details class="faq__item">
+          <summary class="faq__question">Can Obiter produce an OSCOLA table of cases?</summary>
+          <div class="faq__answer">
+            <p>
+              Yes. Under OSCOLA the Bibliography view generates a Table of Cases,
+              a Table of Legislation and a Bibliography of secondary sources, each
+              in the OSCOLA form.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Learn More
+       ============================================================ -->
+  <section class="explainer-section">
+    <div class="container">
+      <div class="explainer">
+        <h2>Learn More</h2>
+        <ul class="explainer__links">
+          <li>
+            <a href="https://www.law.ox.ac.uk/oscola" target="_blank" rel="noopener noreferrer">Official OSCOLA</a>
+            &mdash; the guide, published by the Faculty of Law, University of
+            Oxford.
+          </li>
+          <li>
+            <a href="docs.html#additional-standards">OSCOLA documentation</a>
+            &mdash; how to switch standards and what changes.
+          </li>
+          <li>
+            <a href="nzlsg.html">New Zealand Law Style Guide</a> and
+            <a href="aglc4.html">AGLC4</a>
+            &mdash; the other citation standards Obiter supports.
+          </li>
+          <li>
+            <a href="download.html">Download Obiter</a>
+            &mdash; install from
+            <a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">Microsoft AppSource</a>
+            or sideload from GitHub.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/karwalski/obiter" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">AppSource</a></li>
+        <li><a href="https://ko-fi.com/matthewwatt" target="_blank" rel="noopener noreferrer">Ko-fi</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="accessibility.html">Accessibility</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+      </ul>
+      <p class="site-footer__copy">
+        &copy; 2026 Matthew Watt. Obiter is free and open source under GPLv3.<br>
+        Obiter stores no personal data unless you create an optional account. Your citation data always stays in your document and is never synced.
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

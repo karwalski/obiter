@@ -35,6 +35,9 @@
       <ul class="site-nav__links" id="nav-links">
         <li><a href="docs.html">Docs</a></li>
         <li><a href="aglc4.html">AGLC4</a></li>
+        <li><a href="court.html">Courts</a></li>
+        <li><a href="oscola.html">OSCOLA</a></li>
+        <li><a href="nzlsg.html">NZLSG</a></li>
         <li><a href="aglc5.html">AGLC5</a></li>
         <li><a href="contact.html">Contact</a></li>
         <li><a href="download.html" class="site-nav__cta">Download</a></li>
@@ -103,7 +106,7 @@
 
         <h3>Installation</h3>
         <p>
-          The recommended way to install Obiter is from Microsoft AppSource.
+          The recommended way to install Obiter is from <a href="https://marketplace.microsoft.com/en-au/product/office/WA200010629" target="_blank" rel="noopener noreferrer">Microsoft AppSource</a>.
           See the step-by-step
           <a href="download.html#install">installation instructions</a>
           on the Download page.
@@ -1495,9 +1498,9 @@
 
         <h3>Supported standards</h3>
         <ul class="docs-list">
-          <li><strong>AGLC4</strong> &mdash; Australian Guide to Legal Citation, 4th Edition. Fully supported.</li>
-          <li><strong>OSCOLA 5</strong> &mdash; Oxford University Standard for Citation of Legal Authorities, 5th Edition. Available as a bonus standard.</li>
-          <li><strong>NZLSG 3</strong> &mdash; New Zealand Law Style Guide, 3rd Edition. Available as a bonus standard.</li>
+          <li><strong>AGLC4</strong> &mdash; Australian Guide to Legal Citation, 4th Edition. Fully supported, with <a href="court.html">court mode</a> for Australian court submissions (section 20). See <a href="aglc4.html">What is AGLC4?</a></li>
+          <li><strong>OSCOLA 5</strong> and <strong>OSCOLA 4</strong> &mdash; Oxford University Standard for Citation of Legal Authorities, 5th and 4th Editions. Supported for UK legal writing, with tables of cases and legislation (section 21). See <a href="oscola.html">OSCOLA 5 and OSCOLA 4</a>.</li>
+          <li><strong>NZLSG 3</strong> &mdash; New Zealand Law Style Guide, 3rd Edition. Supported in the general and commercial styles (section 21). See <a href="nzlsg.html">New Zealand Law Style Guide</a>.</li>
         </ul>
 
         <h3>How formatting changes per standard</h3>
@@ -1528,6 +1531,8 @@
           control appears in <strong>Settings</strong> only while the document
           uses AGLC4, and a document switched to OSCOLA or NZLSG returns to
           academic mode. OSCOLA and NZLSG have no court-submission variant.
+          For an overview of every supported court and its conventions, see
+          <a href="court.html">Court mode</a>.
         </p>
 
         <h3>Writing mode</h3>
@@ -1546,14 +1551,14 @@
         <p>
           Choosing a jurisdiction loads a preset drawn from that court&rsquo;s
           practice direction or rules (the sources are listed in the Reference
-          Guide). Twenty presets are available, grouped as in the drop-down:
+          Guide). Twenty-two presets are available, grouped as in the drop-down:
         </p>
         <ul class="docs-list">
           <li><strong>Federal</strong> &mdash; High Court of Australia; Federal Court of Australia; Federal Circuit and Family Court</li>
-          <li><strong>New South Wales</strong> &mdash; NSW Court of Appeal; NSW Supreme Court; NSW District / Local Court</li>
+          <li><strong>New South Wales</strong> &mdash; NSW Court of Appeal; NSW Court of Criminal Appeal; NSW Supreme Court; NSW District / Local Court</li>
           <li><strong>Victoria</strong> &mdash; Vic Court of Appeal; Vic Supreme Court; Vic County / Magistrates&rsquo; Court</li>
           <li><strong>Queensland</strong> &mdash; Qld Court of Appeal; Qld Supreme Court; Qld District / Magistrates Court</li>
-          <li><strong>Other States/Territories</strong> &mdash; WA Supreme Court; SA Supreme Court; Tas Supreme Court; ACT Supreme Court; NT Supreme Court</li>
+          <li><strong>Other States/Territories</strong> &mdash; WA Supreme Court; SA Supreme Court; SA District / Magistrates Court (civil); Tas Supreme Court; ACT Supreme Court; NT Supreme Court</li>
           <li><strong>Tribunals</strong> &mdash; Administrative Review Tribunal; Fair Work Commission; State/Territory Tribunal (NCAT, VCAT, QCAT, SAT and others)</li>
         </ul>
 
@@ -1574,9 +1579,10 @@
         <p>
           A seventh control, <strong>Parallel citation order</strong>, chooses
           whether the authorised report or the medium neutral citation comes
-          first. Most courts take the report first; the WA Supreme Court preset
-          puts the medium neutral citation first, as its consolidated practice
-          directions require.
+          first. Most presets take the report first; the Federal Court,
+          Tasmanian Supreme Court and WA Supreme Court presets put the medium
+          neutral citation first, following the examples in their practice
+          directions.
         </p>
 
         <h3>Parallel citations</h3>
@@ -1600,7 +1606,11 @@
         </p>
         <ul class="docs-list">
           <li><strong>Simple</strong> &mdash; cases and legislation in one alphabetised list.</li>
-          <li><strong>Part A / Part B</strong> &mdash; authorities read from at the hearing and authorities referred to, with the key authorities marked (High Court, Federal Court and the NSW and Qld Courts of Appeal).</li>
+          <li><strong>Part A / Part B</strong> &mdash; authorities read from at the hearing and authorities referred to, with the key authorities marked (Qld Court of Appeal).</li>
+          <li><strong>Joint Book Parts A to E (HCA)</strong> &mdash; the High Court Joint Book of Authorities: principal legislation, other legislation, CLR cases, other report series and other materials, with the legislation version.</li>
+          <li><strong>eBook sections (Federal Court)</strong> &mdash; a single list with no Part A / Part B, as GPN-AUTH (7 May 2025) requires: authorities, legislation, and bills and explanatory material, each alphabetical, with the legislation version.</li>
+          <li><strong>Four categories (NSW Court of Appeal)</strong> &mdash; legislation with its version date, cases from which passages will be read, cases cited but not read, and secondary sources.</li>
+          <li><strong>Cases read marked with an asterisk (WA)</strong> &mdash; cases and legislation listed separately, with the cases counsel intends to read from marked and the passages to be read.</li>
           <li><strong>Part A / B / C</strong> &mdash; the Vic Court of Appeal civil form, with a third part for textbooks, articles and extrinsic materials and &ldquo;None&rdquo; stated under an unused part.</li>
           <li><strong>Two parts (read / not read)</strong> &mdash; authorities expected to be read and those not expected to be read (SA Supreme Court; Federal Circuit and Family Court appeals).</li>
           <li><strong>Three parts (Tas)</strong> &mdash; authorities to be cited, authorities that might be referred to, and legislation with sections listed separately.</li>
@@ -1635,6 +1645,12 @@
     <div class="container">
       <div class="docs-content">
         <h2>21. Additional Standards</h2>
+
+        <p>
+          Each standard has its own overview page:
+          <a href="oscola.html">OSCOLA 5 and OSCOLA 4</a> and the
+          <a href="nzlsg.html">New Zealand Law Style Guide</a>.
+        </p>
 
         <p>
           In addition to AGLC4, Obiter implements OSCOLA (5th and 4th
@@ -1680,7 +1696,7 @@
           Obiter renders:
         </p>
         <ul class="docs-list">
-          <li><strong>Cases</strong> &mdash; the neutral citation whenever one exists, then a comma and the best report (rule 3.1 to 3.3); the court identifier only for cases without a neutral citation (3.2.7); pre-neutral cases by court, file number and date (3.4); Maori Land Court decisions by minute book (3.5); Waitangi Tribunal reports by Wai number (3.6). Pinpoints take <em>at</em>: <em>at [29]</em>, <em>at 398</em> (3.2.8).</li>
+          <li><strong>Cases</strong> &mdash; the neutral citation whenever one exists, then a comma and the best report (rule 3.1 to 3.3); the court identifier only for cases without a neutral citation (3.2.7); pre-neutral cases by court, file number and date (3.4); M&amacr;ori Land Court decisions by minute book (3.5); Waitangi Tribunal reports by Wai number (3.6). Pinpoints take <em>at</em>: <em>at [29]</em>, <em>at 398</em> (3.2.8).</li>
           <li><strong>Legislation</strong> &mdash; roman short title and year, provision after a comma, <em>Crimes Act 1961, s 59</em> (4.1.1); bills with their bill number (4.2.1); regulations, rules and orders (4.3.1); Te Tiriti o Waitangi and the Treaty of Waitangi by article (4.1.1(e)).</li>
           <li><strong>Subsequent references</strong> &mdash; NZLSG does not use ibid (2.3.1). In the general style a footnote gives the pinpoint alone where the source is obvious, <em>At 535.</em>, and otherwise the identifier with an <em>above n</em> cross-reference, <em>R v Wang, above n 49, at 533</em>; legislation repeats the short title without the year, <em>Securities Act, s 63</em>. The <strong>Citation style</strong> control in Settings switches the document to the commercial style, which drops the cross-reference and gives the identifier and pinpoint only; the choice is stored in the document.</li>
           <li><strong>Quotations</strong> &mdash; double quotation marks with single marks inside; quotations of 30 words or more set as an indented block without marks (1.2.2).</li>
