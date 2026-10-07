@@ -28,6 +28,7 @@ import {
   resetTrackedRefresh,
   subscribeTrackedRefresh,
 } from "../trackedRefreshConsent";
+import { currentFocus, isEarlyClick, restoreFocus } from "../noticeGuard";
 
 /** What the refresh is for, in plain words. */
 export const TRACKED_REFRESH_LEAD: Record<ManagedRefreshReason, string> = {
@@ -41,9 +42,25 @@ export const TRACKED_REFRESH_LEAD: Record<ManagedRefreshReason, string> = {
 export const TRACKED_REFRESH_EXPLANATION =
   "Track Changes is on, so Word will record each change the refresh makes as a tracked revision. You can review them in Word.";
 
+/** The Refresh All button in the Layout: where focus returns when nothing else had it. */
+export const REFRESH_ALL_BUTTON_ID = "obiter-refresh-all";
+
+/**
+ * COURT-108 (live test of v1.17.9, N1): the prompt is a sheet docked at the
+ * bottom of the pane (see `.obiter-notice-dock`), so opening it never moves
+ * the tabs or the toolbar under the pointer. Focus starts on "Skip for now",
+ * Escape skips, a click on "Refresh anyway" within EARLY_CLICK_GUARD_MS of
+ * opening is ignored (double-click carry-over), and focus returns to the
+ * control that started the refresh.
+ */
 export default function TrackedRefreshConfirm(): JSX.Element | null {
   const [pending, setPending] = useState(getPendingTrackedRefresh);
-  const refreshButton = useRef<HTMLButtonElement>(null);
+  const skipButton = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+  const openedAt = useRef<number | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const isOpen = pending !== null;
+  const reason = pending?.reason;
 
   useEffect(() => {
     const unsubscribe = subscribeTrackedRefresh(() => setPending(getPendingTrackedRefresh()));
@@ -57,39 +74,69 @@ export default function TrackedRefreshConfirm(): JSX.Element | null {
   }, []);
 
   useEffect(() => {
-    if (pending) refreshButton.current?.focus();
-  }, [pending]);
+    if (!isOpen) return;
+    openedAt.current = Date.now();
+    // Remember where the user was (WebKit does not focus a clicked button, so
+    // a Refresh All question falls back to the Refresh All button).
+    trigger.current =
+      currentFocus() ??
+      (reason === "refresh-all" ? document.getElementById(REFRESH_ALL_BUTTON_ID) : null);
+    skipButton.current?.focus();
+    // Escape is "Skip for now" while focus is in the prompt (or nowhere).
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      const focus = currentFocus();
+      if (focus && !sheet.current?.contains(focus)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      answerTrackedRefresh(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      openedAt.current = null;
+      const target = trigger.current;
+      trigger.current = null;
+      restoreFocus(target);
+    };
+  }, [isOpen, reason]);
 
   if (!pending) return null;
 
   return (
     <div
-      className="obiter-manual-banner"
+      className="obiter-notice-sheet"
       role="alertdialog"
       aria-labelledby="tracked-refresh-title"
       aria-describedby="tracked-refresh-text"
+      ref={sheet}
     >
-      <span>
+      <p className="obiter-notice-sheet-text">
         <strong id="tracked-refresh-title">Refresh with Track Changes on?</strong>{" "}
         <span id="tracked-refresh-text">
           {TRACKED_REFRESH_LEAD[pending.reason]} {TRACKED_REFRESH_EXPLANATION}
         </span>
-      </span>
-      <button
-        ref={refreshButton}
-        type="button"
-        className="obiter-manual-banner-action"
-        onClick={() => answerTrackedRefresh(true)}
-      >
-        Refresh anyway (as tracked changes)
-      </button>
-      <button
-        type="button"
-        className="obiter-manual-banner-action"
-        onClick={() => answerTrackedRefresh(false)}
-      >
-        Skip for now
-      </button>
+      </p>
+      <div className="obiter-notice-sheet-actions">
+        <button
+          ref={skipButton}
+          type="button"
+          className="obiter-manual-banner-action"
+          onClick={() => answerTrackedRefresh(false)}
+        >
+          Skip for now
+        </button>
+        <button
+          type="button"
+          className="obiter-manual-banner-action"
+          onClick={() => {
+            if (isEarlyClick(openedAt.current)) return;
+            answerTrackedRefresh(true);
+          }}
+        >
+          Refresh anyway (as tracked changes)
+        </button>
+      </div>
     </div>
   );
 }

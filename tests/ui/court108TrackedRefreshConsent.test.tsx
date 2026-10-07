@@ -37,10 +37,15 @@ import {
   type TriggerRefreshOptions,
 } from "../../src/ui/context/CitationContext";
 import TrackedRefreshConfirm, {
+  REFRESH_ALL_BUTTON_ID,
   TRACKED_REFRESH_EXPLANATION,
 } from "../../src/ui/components/TrackedRefreshConfirm";
 import TrackChangesBanner from "../../src/ui/components/TrackChangesBanner";
-import { getTrackChangesGate, resetTrackChangesGate } from "../../src/ui/trackChangesGate";
+import {
+  getTrackChangesGate,
+  recordTrackingMode,
+  resetTrackChangesGate,
+} from "../../src/ui/trackChangesGate";
 import { getPendingTrackedRefresh, resetTrackedRefresh } from "../../src/ui/trackedRefreshConsent";
 import {
   confirmManagedRefresh,
@@ -49,6 +54,7 @@ import {
   setTrackedWriteConsentHandler,
 } from "../../src/word/trackedWriteConsent";
 import type { CitationStore } from "../../src/store/citationStore";
+import { EARLY_CLICK_GUARD_MS } from "../../src/ui/noticeGuard";
 
 let trackingMode = "TrackAll";
 let syncs = 0;
@@ -81,6 +87,12 @@ function installOffice(max: number): void {
   };
 }
 
+/** Move the clock past the early-click guard on the risky action. */
+function pastGuard(): void {
+  const later = Date.now() + EARLY_CLICK_GUARD_MS + 100;
+  jest.spyOn(Date, "now").mockImplementation(() => later);
+}
+
 const flush = async (): Promise<void> => {
   for (let i = 0; i < 6; i++) await Promise.resolve();
 };
@@ -98,6 +110,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   delete (globalThis as Record<string, unknown>).Office;
 });
 
@@ -178,8 +191,10 @@ describe("COURT-108: the in-pane prompt", () => {
     expect(dialog.textContent).toContain(TRACKED_REFRESH_EXPLANATION);
     expect(dialog.textContent).toContain("Refresh All updates every managed footnote");
     expect(dialog.textContent).not.toContain("!");
-    expect(document.activeElement?.textContent).toBe("Refresh anyway (as tracked changes)");
+    // The safe choice has focus (N1).
+    expect(document.activeElement?.textContent).toBe("Skip for now");
 
+    pastGuard();
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Refresh anyway (as tracked changes)" }));
       await flush();
@@ -276,6 +291,9 @@ describe("COURT-108: a refresh a Settings change starts asks first", () => {
     expect(screen.queryByText(/Automatic refresh is\s+paused/)).toBeNull();
 
     await act(async () => {
+      jest.advanceTimersByTime(EARLY_CLICK_GUARD_MS + 100);
+    });
+    await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Refresh anyway (as tracked changes)" }));
       await flush();
     });
@@ -310,5 +328,142 @@ describe("COURT-108: a refresh a Settings change starts asks first", () => {
     await mountAndTrigger({ type: "click" } as unknown as TriggerRefreshOptions);
     expect(screen.queryByRole("alertdialog")).toBeNull();
     expect(getTrackChangesGate().paused).toBe(true);
+  });
+});
+
+describe("COURT-108 (N1): notices never move controls under the pointer", () => {
+  function Pane(): JSX.Element {
+    return (
+      <>
+        <button id={REFRESH_ALL_BUTTON_ID} type="button">
+          Refresh All
+        </button>
+        <div className="obiter-notice-dock">
+          <TrackChangesBanner onRefreshNow={jest.fn()} />
+          <TrackedRefreshConfirm />
+        </div>
+      </>
+    );
+  }
+
+  async function ask(reason: "refresh-all" | "insert" = "refresh-all"): Promise<() => boolean | undefined> {
+    let answer: boolean | undefined;
+    await act(async () => {
+      void confirmManagedRefresh(reason).then((a) => (answer = a));
+      await flush();
+    });
+    return () => answer;
+  }
+
+  test("only one notice shows: the prompt supersedes the paused banner", async () => {
+    recordTrackingMode("TrackAll");
+    render(<Pane />);
+    expect(screen.getByText(/Automatic refresh is\s+paused/)).toBeTruthy();
+
+    await ask();
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    expect(screen.queryByText(/Automatic refresh is\s+paused/)).toBeNull();
+    expect(document.querySelectorAll(".obiter-notice-sheet")).toHaveLength(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Skip for now" }));
+      await flush();
+    });
+    // Answering counts for this pause: the banner does not come back.
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.queryByText(/Automatic refresh is\s+paused/)).toBeNull();
+  });
+
+  test("both notices render inside the bottom dock, not above the tabs", async () => {
+    recordTrackingMode("TrackAll");
+    render(<Pane />);
+    const dock = document.querySelector(".obiter-notice-dock");
+    expect(dock?.contains(screen.getByText(/Automatic refresh is\s+paused/))).toBe(true);
+    await ask();
+    expect(dock?.contains(screen.getByRole("alertdialog"))).toBe(true);
+  });
+
+  test("the safe choice comes first and has focus", async () => {
+    render(<Pane />);
+    await ask();
+    const dialog = screen.getByRole("alertdialog");
+    const buttons = Array.from(dialog.querySelectorAll("button")).map((b) => b.textContent);
+    expect(buttons).toEqual(["Skip for now", "Refresh anyway (as tracked changes)"]);
+    expect(document.activeElement?.textContent).toBe("Skip for now");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("tracked-refresh-title");
+    expect(dialog.getAttribute("aria-describedby")).toBe("tracked-refresh-text");
+  });
+
+  test("a click on Refresh anyway right after the prompt opens is ignored", async () => {
+    render(<Pane />);
+    const answer = await ask();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Refresh anyway (as tracked changes)" }));
+      await flush();
+    });
+    expect(answer()).toBeUndefined();
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+
+    pastGuard();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Refresh anyway (as tracked changes)" }));
+      await flush();
+    });
+    expect(answer()).toBe(true);
+  });
+
+  test("Escape skips and focus returns to the button that asked", async () => {
+    render(<Pane />);
+    const refreshAll = screen.getByRole("button", { name: "Refresh All" });
+    refreshAll.focus();
+    const answer = await ask();
+    expect(document.activeElement?.textContent).toBe("Skip for now");
+    await act(async () => {
+      fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+      await flush();
+    });
+    expect(answer()).toBe(false);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(document.activeElement).toBe(refreshAll);
+  });
+
+  test("with nothing focused (WebKit click), a Refresh All question returns focus to Refresh All", async () => {
+    render(<Pane />);
+    const answer = await ask("refresh-all");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Skip for now" }));
+      await flush();
+    });
+    expect(answer()).toBe(false);
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Refresh All" }));
+  });
+
+  test("the paused banner puts focus on Keep paused when the pane has focus", async () => {
+    render(<Pane />);
+    screen.getByRole("button", { name: "Refresh All" }).focus();
+    act(() => {
+      recordTrackingMode("TrackAll");
+    });
+    expect(document.activeElement?.textContent).toBe("Keep paused");
+    const buttons = Array.from(
+      document.querySelectorAll(".obiter-notice-sheet button")
+    ).map((b) => b.textContent);
+    expect(buttons).toEqual(["Keep paused", "Refresh now"]);
+  });
+
+  test("the paused banner never takes focus from a field the user is typing in", async () => {
+    render(
+      <>
+        <input aria-label="Title" />
+        <Pane />
+      </>
+    );
+    const field = screen.getByRole("textbox", { name: "Title" });
+    field.focus();
+    act(() => {
+      recordTrackingMode("TrackAll");
+    });
+    expect(screen.getByText(/Automatic refresh is\s+paused/)).toBeTruthy();
+    expect(document.activeElement).toBe(field);
   });
 });

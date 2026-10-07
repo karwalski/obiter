@@ -29,7 +29,7 @@ import CorpusDownloadBanner from "./components/CorpusDownloadBanner";
 import ErrorReporter from "./components/ErrorReporter";
 import StatusLog from "./components/StatusLog";
 import TrackChangesBanner from "./components/TrackChangesBanner";
-import TrackedRefreshConfirm from "./components/TrackedRefreshConfirm";
+import TrackedRefreshConfirm, { REFRESH_ALL_BUTTON_ID } from "./components/TrackedRefreshConfirm";
 import { confirmManagedRefresh } from "../word/trackedWriteConsent";
 import { useStatus } from "./context/StatusContext";
 import { useComfortMode } from "./hooks/useComfortMode";
@@ -374,13 +374,6 @@ export default function Layout(): JSX.Element {
           </button>
         </div>
       )}
-      {!manualMode && (
-        <TrackChangesBanner
-          refreshing={refreshing}
-          onRefreshNow={() => void handleRefreshAll(true)}
-        />
-      )}
-      <TrackedRefreshConfirm />
       <nav className="obiter-nav" role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -395,6 +388,7 @@ export default function Layout(): JSX.Element {
       </nav>
       <div className="obiter-actions-bar" role="toolbar" aria-label="Quick actions">
         <button
+          id={REFRESH_ALL_BUTTON_ID}
           className="obiter-action-btn"
           type="button"
           onClick={() => {
@@ -440,6 +434,19 @@ export default function Layout(): JSX.Element {
       <main id="obiter-main" className="obiter-content" role="main" ref={mainRef}>
         <Outlet />
       </main>
+      {/* COURT-108 (N1): the Track Changes notices are docked over the bottom
+          of the pane, above the status log, so they never push the tabs or
+          the toolbar under the pointer. Only one shows at a time: the prompt
+          supersedes the paused banner. */}
+      <div className="obiter-notice-dock">
+        {!manualMode && (
+          <TrackChangesBanner
+            refreshing={refreshing}
+            onRefreshNow={() => void handleRefreshAll(true)}
+          />
+        )}
+        <TrackedRefreshConfirm />
+      </div>
       <StatusLog />
       <footer className="obiter-footer">
         <a href="https://obiter.com.au" target="_blank" rel="noopener noreferrer">

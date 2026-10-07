@@ -28,6 +28,7 @@ jest.mock("../../src/store/singleton", () => ({ getSharedStore: jest.fn(async ()
 import { CitationProvider, useCitationContext } from "../../src/ui/context/CitationContext";
 import TrackChangesBanner from "../../src/ui/components/TrackChangesBanner";
 import { getTrackChangesGate, resetTrackChangesGate } from "../../src/ui/trackChangesGate";
+import { EARLY_CLICK_GUARD_MS } from "../../src/ui/noticeGuard";
 
 let trackingMode = "TrackAll";
 let syncs = 0;
@@ -140,7 +141,13 @@ describe("TrackChangesBanner", () => {
     expect(screen.getByText(/2 pending revisions/)).toBeTruthy();
     expect(screen.queryByText(/!/)).toBeNull();
 
+    // A click at once is double-click carry-over and is ignored (N1).
     fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    expect(onRefreshNow).not.toHaveBeenCalled();
+    const later = Date.now() + EARLY_CLICK_GUARD_MS + 100;
+    const clock = jest.spyOn(Date, "now").mockImplementation(() => later);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh now" }));
+    clock.mockRestore();
     expect(onRefreshNow).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/Track Changes is on/)).toBeNull();
     expect(getTrackChangesGate()).toMatchObject({ paused: true, acknowledged: true });

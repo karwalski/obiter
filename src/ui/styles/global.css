@@ -2496,6 +2496,47 @@ body {
   color: #ffffff;
 }
 
+/* ─── Track Changes notices (COURT-108, N1) ───
+   Docked over the bottom of the pane, above the status log. The dock takes
+   no height, so a notice appearing never reflows the tabs, the toolbar or the
+   view under the pointer. Only one notice shows at a time. */
+.obiter-notice-dock {
+  position: relative;
+  height: 0;
+  flex-shrink: 0;
+  z-index: 150;
+}
+
+.obiter-notice-dock > .obiter-notice-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.obiter-notice-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-min);
+  background: var(--colour-warning-surface, #fff8e1);
+  border-top: 2px solid var(--colour-warning);
+  color: var(--colour-warning-text, #6b4d00);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.obiter-notice-sheet-text {
+  margin: 0;
+}
+
+.obiter-notice-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
 .obiter-refreshing-note {
   width: 100%;
   margin: 2px 0 0;
